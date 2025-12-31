@@ -2,7 +2,7 @@ import { useState } from "react";
 import { FaKey } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import ArrowIcon from "../assets/arrow-right.png";
-
+import { FaEnvelope } from "react-icons/fa";
 import AuthCard from "../components/AuthCard";
 import Button from "../components/Button";
 import "../styles/auth.css";
@@ -43,34 +43,32 @@ export default function ForgotPassword() {
       }
     >
       <form onSubmit={handleSubmit} noValidate>
-        <div className="mb-3">
-          <label htmlFor="email" className="form-label fw-semibold">
-            Email
-          </label>
-
+        {/* Modern outlined input */}
+        <div className="outlined-field">
           <input
             id="email"
             type="email"
-            className={`form-control ${
-              touched && !isEmailValid ? "is-invalid" : ""
-            }`}
-            placeholder="you@university.edu"
+            className="outlined-input"
+            placeholder=" "
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onBlur={() => setTouched(true)}
             required
           />
-
-          {touched && !isEmailValid && (
-            <div className="invalid-feedback">
-              Please enter a valid email address
-            </div>
-          )}
+          <label>Email</label>
+          <FaEnvelope className="outlined-icon" />
         </div>
+
+        {/* Error text */}
+        {touched && !isEmailValid && (
+          <small className="text-danger mb-2">
+            Please enter a valid email address
+          </small>
+        )}
 
         <Button
           type="submit"
-          className="w-100 d-inline-flex align-items-center justify-content-center gap-2"
+          className="btn-brand w-100 d-inline-flex align-items-center justify-content-center gap-2"
           disabled={!isEmailValid}
         >
           Send Reset Code

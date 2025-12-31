@@ -25,7 +25,7 @@ export default function AuthCard({
         {subtitle && <p className="text-center text-muted">{subtitle}</p>}
 
         {/* Wrap content and footer in flex-column with gap for automatic spacing */}
-        <div className="d-flex flex-column gap-3">
+        <div className="d-flex flex-column gap-2">
           {children}
           {footer}
         </div>
