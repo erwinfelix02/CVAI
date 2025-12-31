@@ -289,3 +289,70 @@ button,
     color: #ffffff !important;
   }
 }
+/* Math Verification Container - fully centered */
+.math-verification {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* centers the whole row */
+  gap: 12px; /* space between each element */
+  margin-bottom: 1rem;
+}
+
+/* Numbers (a and b) */
+.math-verification .number-box {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e3e8ee;
+  border-radius: 8px;
+  min-width: 50px;
+  text-align: center;
+  font-weight: 500;
+  background: #f8f9fa;
+  color: #111827;
+  font-size: 0.95rem;
+}
+
+/* Plus / Equal sign */
+.math-verification span.operator {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px; /* ensures spacing is consistent */
+}
+
+/* Input box */
+.math-verification input {
+  width: 80px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  border: 1px solid #e3e8ee;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.math-verification input:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 2px rgba(13, 81, 115, 0.15);
+}
+
+/* Responsive adjustment */
+@media (max-width: 480px) {
+  .math-verification {
+    gap: 8px;
+  }
+
+  .math-verification input,
+  .math-verification .number-box {
+    width: 60px;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+  }
+
+  .math-verification span.operator {
+    min-width: 18px;
+  }
+}

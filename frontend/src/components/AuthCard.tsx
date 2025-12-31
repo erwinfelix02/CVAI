@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 interface AuthCardProps {
-  title: ReactNode;          // ✅ FIX
-  subtitle?: ReactNode;      // ✅ FIX
+  title: ReactNode;
+  subtitle?: ReactNode;
   header?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
@@ -22,12 +22,13 @@ export default function AuthCard({
 
         <h2 className="text-center fw-bold">{title}</h2>
 
-        {subtitle && (
-          <p className="text-center text-muted mb-4">{subtitle}</p>
-        )}
+        {subtitle && <p className="text-center text-muted">{subtitle}</p>}
 
-        {children}
-        {footer}
+        {/* Wrap content and footer in flex-column with gap for automatic spacing */}
+        <div className="d-flex flex-column gap-3">
+          {children}
+          {footer}
+        </div>
       </div>
     </div>
   );

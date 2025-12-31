@@ -1,85 +1,59 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import type { ReactNode } from "react";
 import AuthCard from "../components/AuthCard";
-import RoleSelector from "../components/RoleSelector";
 import "../styles/auth.css";
 import ArrowIcon from "../assets/arrow-right.png";
 import Button from "../components/Button";
-
-import {
-  FaEye,
-  FaEyeSlash,
-  FaUserGraduate,
-  FaChalkboardTeacher,
-  FaShieldAlt,
-} from "react-icons/fa";
-
-type Role = "student" | "employee" | "admin";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function SignIn() {
-  const [role, setRole] = useState<Role>("student");
   const [showPassword, setShowPassword] = useState(false);
+  const [userAnswer, setUserAnswer] = useState("");
+  const [question, setQuestion] = useState({ a: 0, b: 0 });
 
-  const roleEmailIcon: Record<Role, ReactNode> = {
-    student: <FaUserGraduate />,
-    employee: <FaChalkboardTeacher />,
-    admin: <FaShieldAlt />,
-  };
+  // Generate a random math question when the page loads
+  useEffect(() => {
+    const a = Math.floor(Math.random() * 100) + 1; // 1 to 100
+    const b = Math.floor(Math.random() * 10) + 1;  // 1 to 10
+    setQuestion({ a, b });
+  }, []); // empty dependency array = runs only once on mount
+
+  const correctAnswer = question.a + question.b;
+  const isVerified = parseInt(userAnswer) === correctAnswer;
 
   return (
     <AuthCard
-      title="Welcome Back"
-      subtitle="Sign in to continue to CampusAI"
+      title="Sign In"
+      subtitle="Enter your credentials to continue"
       footer={
         <p className="text-center mt-3">
           Don&apos;t have an account? <Link to="/signup">Sign up</Link>
         </p>
       }
     >
-      {/* ROLE */}
+      {/* USERNAME */}
       <div className="mb-3">
-        <label className="form-label small fw-semibold">I AM A</label>
-        <RoleSelector role={role} setRole={setRole} />
-      </div>
-
-      {/* EMAIL */}
-      <div className="mb-3">
-        <label htmlFor="email" className="form-label fw-semibold">
-          Email Address
-        </label>
-
-        <div className="input-group">
-          <span className="input-group-text">{roleEmailIcon[role]}</span>
-
-          <input
-            id="email"
-            type="email"
-            className="form-control"
-            placeholder="you@university.edu"
-          />
-        </div>
+        <label className="form-label fw-semibold">Username</label>
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Enter Username"
+        />
       </div>
 
       {/* PASSWORD */}
-      <div className="mb-2">
-        <label htmlFor="password" className="form-label fw-semibold">
-          Password
-        </label>
-
+      <div className="mb-3">
+        <label className="form-label fw-semibold">Password</label>
         <div className="input-group">
           <input
-            id="password"
             type={showPassword ? "text" : "password"}
             className="form-control"
-            placeholder="Enter your password"
+            placeholder="Enter Password"
           />
-
           <button
             type="button"
             className="input-group-text bg-transparent"
-            onClick={() => setShowPassword((prev) => !prev)}
-            style={{ cursor: "pointer" }}
+            onClick={() => setShowPassword((p) => !p)}
             aria-label="Toggle password visibility"
           >
             {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -87,17 +61,36 @@ export default function SignIn() {
         </div>
       </div>
 
-      {/* FORGOT PASSWORD */}
-      <div className="text-end mb-3">
-        <Link to="/forgot-password" className="small">
-          Forgot password?
-        </Link>
-      </div>
+{/* MATH VERIFICATION */}
+<div className="math-verification">
+  <div className="number-box">{question.a}</div>
+  <span className="operator">+</span>
+  <div className="number-box">{question.b}</div>
+  <span className="operator">=</span>
+  <input
+    type="text"
+    value={userAnswer}
+    onChange={(e) => setUserAnswer(e.target.value.replace(/\D/, ""))}
+    placeholder="?"
+  />
+</div>
 
-      <Button className="w-100 mb-3 d-inline-flex align-items-center justify-content-center gap-2">
+
+      {/* SIGN IN BUTTON */}
+      <Button
+        className="w-100 d-flex align-items-center justify-content-center gap-2"
+        disabled={!isVerified}
+      >
         Sign In
         <img src={ArrowIcon} alt="" className="btn-arrow" />
       </Button>
+
+      {/* FORGOT PASSWORD */}
+      <div className="text-center mt-2">
+        <Link to="/forgot-password" className="small">
+          Forgot Password
+        </Link>
+      </div>
     </AuthCard>
   );
 }
