@@ -9,40 +9,65 @@ import { FaUser, FaEye, FaEyeSlash, FaSyncAlt } from "react-icons/fa";
 
 export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
+
+  // Inputs
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // Validation errors
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+
+  // Math verification
   const [userAnswer, setUserAnswer] = useState("");
   const [question, setQuestion] = useState({ a: 0, b: 0 });
   const [isRotating, setIsRotating] = useState(false);
 
-  // Function to generate new math question
+  // Generate math question
   const generateQuestion = () => {
     const a = Math.floor(Math.random() * 100) + 1;
     const b = Math.floor(Math.random() * 10) + 1;
     setQuestion({ a, b });
-    setUserAnswer(""); // reset user answer
+    setUserAnswer("");
   };
 
-  // Handle click + rotate animation
-  const handleRefresh = () => {
-    setIsRotating(true);
-    generateQuestion();
-    setTimeout(() => setIsRotating(false), 600); // match animation duration
-  };
-
-  // Generate initial question on load
   useEffect(() => {
     generateQuestion();
   }, []);
 
+  const handleRefresh = () => {
+    setIsRotating(true);
+    generateQuestion();
+    setTimeout(() => setIsRotating(false), 600);
+  };
+
   const correctAnswer = question.a + question.b;
   const isVerified = parseInt(userAnswer) === correctAnswer;
+
+  const isValidEmail = (value: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+  // Submit handler
+  const handleSubmit = () => {
+    const newErrors: typeof errors = {};
+
+    if (!email) newErrors.email = "Email is required";
+    else if (!isValidEmail(email)) newErrors.email = "Invalid email format";
+
+    if (!password) newErrors.password = "Password is required";
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length === 0 && isVerified) {
+      console.log("Form is valid:", { email, password });
+      // send to backend
+    }
+  };
 
   return (
     <div className="auth-layout">
       {/* LEFT PANEL */}
       <div className="auth-left">
-        <h3 className="school-name text-center mb-3">
-          ABC National High School
-        </h3>
+        <h3 className="school-name text-center mb-3">ABC National High School</h3>
         <h1 className="campus-name">Campus AI</h1>
         <p>Smart Learning Assistant</p>
         <p className="auth-description">
@@ -69,36 +94,54 @@ export default function SignIn() {
             </p>
           }
         >
-          {/* EMAIL */}
-          <div className="outlined-field">
-            <input
-              type="email"
-              className="outlined-input"
-              placeholder=" "
-              required
-            />
-            <label>Email</label>
-            <FaUser className="outlined-icon" />
-          </div>
+{/* EMAIL */}
+<div className="outlined-field">
+  <input
+    type="email"
+    className={`outlined-input ${errors.email ? "input-error" : ""}`}
+    placeholder=" "
+    value={email}
+    onChange={(e) => {
+      setEmail(e.target.value);
+      setErrors({ ...errors, email: undefined });
+    }}
+  />
+  <label className={errors.email ? "label-error" : ""}>Email</label>
+  <FaUser className={`outlined-icon ${errors.email ? "icon-error" : ""}`} />
+  <div className="error-space">
+    <span className={errors.email ? "error-text show" : "error-text"}>
+      {errors.email || "placeholder"}
+    </span>
+  </div>
+</div>
 
-          {/* PASSWORD */}
-          <div className="outlined-field">
-            <input
-              type={showPassword ? "text" : "password"}
-              className="outlined-input"
-              placeholder=" "
-              required
-            />
-            <label>Password</label>
+{/* PASSWORD */}
+<div className="outlined-field">
+  <input
+    type={showPassword ? "text" : "password"}
+    className={`outlined-input ${errors.password ? "input-error" : ""}`}
+    placeholder=" "
+    value={password}
+    onChange={(e) => {
+      setPassword(e.target.value);
+      setErrors({ ...errors, password: undefined });
+    }}
+  />
+  <label className={errors.password ? "label-error" : ""}>Password</label>
+  <button
+    type="button"
+    className={`outlined-icon ${errors.password ? "icon-error" : ""}`}
+    onClick={() => setShowPassword(!showPassword)}
+  >
+    {showPassword ? <FaEyeSlash /> : <FaEye />}
+  </button>
+  <div className="error-space">
+    <span className={errors.password ? "error-text show" : "error-text"}>
+      {errors.password || "placeholder"}
+    </span>
+  </div>
+</div>
 
-            <button
-              type="button"
-              className="outlined-icon"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? <FaEyeSlash /> : <FaEye />}
-            </button>
-          </div>
 
           {/* MATH VERIFICATION */}
           <div className="math-verification">
@@ -110,11 +153,8 @@ export default function SignIn() {
               value={userAnswer}
               onChange={(e) => setUserAnswer(e.target.value.replace(/\D/, ""))}
               placeholder="?"
-              className={
-                userAnswer === "" ? "" : isVerified ? "correct" : "wrong"
-              } // <-- dynamic class
+              className={userAnswer === "" ? "" : isVerified ? "correct" : "wrong"}
             />
-
             <button
               type="button"
               className={`refresh-btn ${isRotating ? "rotate active" : ""}`}
@@ -125,7 +165,11 @@ export default function SignIn() {
             </button>
           </div>
 
-          <Button className="btn-brand w-100" disabled={!isVerified}>
+          <Button
+            className="btn-brand w-100"
+            onClick={handleSubmit}
+            disabled={!isVerified || !email || !password}
+          >
             Sign In <img src={ArrowIcon} className="btn-arrow" />
           </Button>
 

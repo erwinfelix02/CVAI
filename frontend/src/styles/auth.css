@@ -420,8 +420,10 @@ input[type="password"]::-webkit-password-toggle-button {
 }
 
 /* LEFT PANEL */
-.auth-left {
-  background: linear-gradient(135deg, #0d5173, #0a3e59);
+.auth-left {  background-image:
+    radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.35) 1px, transparent 0),
+    linear-gradient(135deg, #0dcaf0, #0b5ed7);
+  background-size: 24px 24px, cover;
   color: #fff;
   padding: 4rem;
   display: flex;
@@ -612,4 +614,81 @@ input[type="password"]::-webkit-password-toggle-button {
 .outlined-input:not(:placeholder-shown) ~ .outlined-icon,
 .outlined-input:not(:placeholder-shown) ~ .outlined-toggle {
   color: var(--brand-primary);
+}
+.error-space {
+  position: absolute;
+  bottom: -16px; /* place it just below input */
+  left: 0;
+  font-size: 12px;
+  color: #e53935;
+}
+.outlined-field {
+  position: relative;
+  margin-bottom: 1.2rem; /* smaller than before */
+}
+/* Input error state */
+.input-error {
+  border-color: #e53935 !important; /* red border */
+}
+
+/* Space for error messages (prevents layout shift) */
+.error-space {
+  min-height: 16px;
+  margin-top: 4px;
+}
+
+/* Error text */
+.error-text {
+  font-size: 12px;
+  color: #e53935;
+  visibility: hidden;
+}
+
+.error-text.show {
+  visibility: visible;
+}
+
+/* Optional: shake effect for invalid inputs */
+@keyframes shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-3px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+  100% { transform: translateX(0); }
+}
+
+.input-error.shake {
+  animation: shake 0.3s;
+}
+/* Input red border when error */
+.outlined-input.input-error {
+  border-color: #dc3545; /* red */
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+}
+
+/* Label turns red on error */
+.outlined-field label.label-error {
+  color: #dc3545 !important;
+}
+
+/* Icon turns red on error */
+.outlined-icon.icon-error {
+  color: #dc3545 !important;
+}
+
+/* Error message styling */
+.error-space {
+  min-height: 16px; /* keeps space even if no error */
+  margin-top: 4px;
+}
+
+.error-text {
+  font-size: 0.75rem;
+  color: transparent;
+  transition: color 0.2s ease;
+}
+
+.error-text.show {
+  color: #dc3545;
 }
