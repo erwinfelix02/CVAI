@@ -1,0 +1,495 @@
+/* Sidebar container */
+.admin-sidebar {
+  width: 260px;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  transition: width 0.25s ease, transform 0.3s ease;
+}
+
+/* Collapsed */
+.admin-sidebar.collapsed {
+  width: 60px;
+}
+
+/* Header */
+.sidebar-header {
+     height: 54px;   
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 18px;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+/* Collapse arrow */
+.collapse-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+/* When sidebar is collapsed, arrow points RIGHT (expand) */
+.admin-sidebar.collapsed .collapse-btn {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) rotate(180deg);
+}
+
+
+
+/* Close button (mobile) */
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* Nav */
+.sidebar-nav {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #475569;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.sidebar-link:hover {
+  background: #f1f5f9;
+}
+
+/* Active (blue pill like image) */
+.sidebar-link.active {
+  background: #0d5173;
+  color: white;
+}
+
+/* Hide text when collapsed */
+.admin-sidebar.collapsed .sidebar-link span,
+.admin-sidebar.collapsed .sidebar-title span,
+.admin-sidebar.collapsed .logout-btn span {
+  display: none;
+}
+
+/* Footer */
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: none;
+  color: #475569;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  color: #dc2626;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .admin-sidebar.collapsed {
+    width: 260px;
+  }
+
+  .collapse-btn {
+    display: none; /* no collapsing on mobile */
+  }
+}
+.admin-sidebar {
+  width: 260px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  background: #fff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s ease, transform 0.3s ease;
+  z-index: 1200;
+}
+
+.admin-sidebar.collapsed {
+  width: 60px;
+}
+
+.admin-main {
+  margin-left: 260px;
+  padding: 24px;
+  transition: margin-left 0.25s ease;
+}
+
+.admin-main.sidebar-collapsed {
+  margin-left: 60px;
+}
+
+/* Header */
+.sidebar-header {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e5e7eb; /* ✅ ADD THIS */
+}
+/* ✅ FIX HEADER ALIGNMENT WHEN COLLAPSED */
+.admin-sidebar.collapsed .sidebar-header {
+  justify-content: center;
+  position: relative;
+}
+
+/* ✅ CENTER THE COLLAPSE BUTTON WHEN COLLAPSED */
+.admin-sidebar.collapsed .collapse-btn {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) rotate(180deg);
+}
+
+/* ✅ HIDE MOBILE CLOSE BUTTON WHEN COLLAPSED (DESKTOP) */
+.admin-sidebar.collapsed .close-btn {
+  display: none;
+}
+/* Collapse button base */
+.collapse-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #475569;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+/* Hover effect */
+.collapse-btn:hover {
+  background: #f1f5f9;          /* light gray hover */
+  color: #0d5173;               /* primary color */
+}
+
+/* Active (click) */
+.collapse-btn:active {
+  background: #e2e8f0;
+}
+
+/* When sidebar is collapsed, keep hover working */
+.admin-sidebar.collapsed .collapse-btn:hover {
+  background: #f1f5f9;
+}
+/* DEFAULT: sidebar expanded */
+.admin-main {
+  margin-left: 260px;
+  transition: margin-left 0.25s ease;
+}
+
+/* WHEN SIDEBAR IS COLLAPSED */
+.admin-sidebar.collapsed ~ .admin-main {
+  margin-left: 60px;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .admin-main {
+    margin-left: 0;
+  }
+}
+/* Title icon background */
+.sidebar-title-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #0d5173;          /* primary color */
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+/* Title icon background */
+.sidebar-title-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #0d5173;           /* primary color */
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+/* MOBILE */
+@media (max-width: 768px) {
+  .admin-sidebar {
+    width: 220px;     /* slightly smaller */
+  }
+
+  .admin-sidebar.collapsed {
+    width: 60px;
+  }
+
+  .admin-main {
+    margin-left: 220px;
+  }
+
+  .admin-main.sidebar-collapsed {
+    margin-left: 60px;
+  }
+}
+/* Hide title icon when sidebar is collapsed */
+.admin-sidebar.collapsed .sidebar-title-icon {
+  display: none;
+}
+/* =========================
+   LAYOUT
+========================= */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+.admin-sidebar {
+  width: 260px;
+  height: 100vh;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s ease;
+  z-index: 1000;
+}
+
+/* Collapsed */
+.admin-sidebar.collapsed {
+  width: 60px;
+}
+
+/* =========================
+   HEADER
+========================= */
+.sidebar-header {
+  height: 54px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Center collapse button when collapsed */
+.admin-sidebar.collapsed .sidebar-header {
+  justify-content: center;
+  position: relative;
+}
+
+/* =========================
+   TITLE
+========================= */
+.sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 18px;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+/* Title icon */
+.sidebar-title-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #0d5173;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ✅ HIDE TITLE ICON WHEN COLLAPSED */
+.admin-sidebar.collapsed .sidebar-title-icon {
+  display: none;
+}
+
+/* =========================
+   COLLAPSE BUTTON
+========================= */
+.collapse-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #475569;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.collapse-btn:hover {
+  background: #f1f5f9;
+  color: #0d5173;
+}
+
+/* Rotate arrow when collapsed */
+.admin-sidebar.collapsed .collapse-btn {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) rotate(180deg);
+}
+
+/* =========================
+   NAVIGATION
+========================= */
+.sidebar-nav {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #475569;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.sidebar-link:hover {
+  background: #f1f5f9;
+}
+
+.sidebar-link.active {
+  background: #0d5173;
+  color: #ffffff;
+}
+
+/* Hide labels when collapsed */
+.admin-sidebar.collapsed .sidebar-link span {
+  display: none;
+}
+
+/* =========================
+   FOOTER
+========================= */
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: none;
+  color: #475569;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  color: #dc2626;
+}
+
+.admin-sidebar.collapsed .logout-btn span {
+  display: none;
+}
+
+/* =========================
+   MAIN CONTENT
+========================= */
+.admin-main {
+  flex: 1;
+  padding: 24px;
+  margin-left: 260px;
+  transition: margin-left 0.25s ease;
+}
+
+.admin-main.sidebar-collapsed {
+  margin-left: 60px;
+}
+
+/* =========================
+   MOBILE (CLEAN UI)
+========================= */
+@media (max-width: 768px) {
+  .admin-main,
+  .admin-main.sidebar-collapsed {
+    margin-left: 0;
+  }
+
+
+  .admin-sidebar {
+    width: 220px;
+  }
+}
+@media (max-width: 768px) {
+  /* Sidebar on top */
+  .admin-sidebar {
+    z-index: 1000;
+  }
+
+  /* Overlay ONLY when sidebar is OPEN */
+  .admin-sidebar:not(.collapsed) ~ .admin-main::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 900;
+  }
+}

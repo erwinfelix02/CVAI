@@ -1,0 +1,123 @@
+/* Navbar base */
+.navbar {
+  height: 4rem;
+  background-color: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  transition:
+    background-color 0.3s ease,
+    backdrop-filter 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* Navbar when scrolled */
+.navbar.scrolled {
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.navbar-logo-wrapper {
+   width: clamp(28px, 2vw, 36px);
+  height: clamp(28px, 2vw, 36px);
+  border-radius: 10px; /* smooth square */
+  background-color: #0d5173;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Logo image */
+.navbar-logo {
+  width: clamp(16px, 1.2vw, 20px);
+  height: auto;
+  object-fit: contain;
+}
+
+/* Sign in link */
+.navbar .btn-link {
+  color: #475569;
+  font-weight: 500;
+}
+
+/* Brand text (CampusAI) */
+.navbar-brand {
+  font-size: clamp(16px, 1.1vw, 22px);
+  font-weight: 700;
+}
+
+.navbar .btn,
+.navbar .btn-link {
+  font-size: clamp(14px, 0.9vw, 18px);
+  font-weight: 600;
+}
+.btn-icon {
+  width: clamp(14px, 0.9vw, 18px);
+  height: auto;
+}
+
+/* Button arrow icon */
+.btn-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+/* Hide Sign In on small screens */
+@media (max-width: 576px) {
+  .navbar-signin {
+    display: none;
+  }
+}
+/* Adjust Get Started button, logo, and brand text for all phone sizes */
+@media (max-width: 768px) {
+  /* Get Started button */
+  .navbar .d-inline-flex {
+    padding: clamp(0.3rem, 2vw, 0.6rem);   /* dynamic padding */
+    font-size: clamp(0.75rem, 2.5vw, 0.9rem); /* dynamic font-size */
+  }
+
+  /* Logo wrapper */
+  .navbar-logo-wrapper {
+    width: clamp(24px, 10vw, 32px);
+    height: clamp(24px, 10vw, 32px);
+  }
+
+  /* Logo image inside wrapper */
+  .navbar-logo {
+    width: clamp(14px, 8vw, 20px);
+    height: auto;
+  }
+
+  /* Brand text (CampusAI) */
+  .navbar-brand {
+    font-size: clamp(14px, 5vw, 20px);  /* dynamic text size */
+  }
+
+  /* Optional: shrink arrow icon in button */
+  .btn-icon {
+    width: clamp(12px, 4vw, 16px);
+    height: auto;
+  }
+}
+/* 🔒 Stop Get Started button turning white on mobile */
+@media (max-width: 768px) {
+  .navbar .navbar-cta,
+  .navbar .navbar-cta:hover,
+  .navbar .navbar-cta:focus,
+  .navbar .navbar-cta:focus-visible {
+    background-color: #0d5173;
+    color: #ffffff;
+    box-shadow: none;
+    outline: none;
+    filter: none;
+  }
+
+  .navbar .navbar-cta {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
+.navbar-cta:active {
+  transform: scale(0.96);
+  filter: brightness(0.95);
+}
+

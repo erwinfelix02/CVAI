@@ -1,0 +1,25 @@
+/* footer.css */
+footer {
+  text-align: center;
+  color: #6c757d;
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  padding: 1rem 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* Wrap 'With VisionTech' on mobile */
+@media (max-width: 768px) {
+  footer {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  /* Make 'With VisionTech' a separate block */
+footer span.with-visiontech {
+  display: inline-block;  /* keeps both words together */
+  text-align: center;     /* centers the block */
+  white-space: nowrap;    /* prevents breaking inside the block */
+}
+}

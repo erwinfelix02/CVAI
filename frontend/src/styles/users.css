@@ -1,0 +1,246 @@
+.users-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* HEADER */
+.users-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.users-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.users-header p {
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.add-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0d5173;
+  color: #fff;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.add-user-btn:hover {
+  background: #093b54;
+}
+
+/* CARD */
+.users-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+}
+
+/* TOOLBAR */
+.users-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.search-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.search-box input {
+  border: none;
+  outline: none;
+  width: 100%;
+}
+
+.filter-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.filter-btn:hover {
+  background: #f8fafc;
+}
+
+/* TABLE */
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.users-table th {
+  text-align: left;
+  font-weight: 500;
+  color: #64748b;
+  padding: 14px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.users-table td {
+  padding: 18px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.users-table tr:last-child td {
+  border-bottom: none;
+}
+
+.name {
+  font-weight: 600;
+}
+
+.email {
+  color: #475569;
+}
+
+.date {
+  color: #475569;
+}
+
+.actions {
+  text-align: right;
+  cursor: pointer;
+}
+
+/* PILLS */
+.pill {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: lowercase;
+}
+
+.role.student {
+  background: #e2f0f7;
+  color: #0d5173;
+}
+
+.role.teacher {
+  background: #e6f7f3;
+  color: #0f766e;
+}
+
+.status.active {
+  background: #e8f7ec;
+  color: #16a34a;
+}
+
+.status.inactive {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .users-table th:nth-child(2),
+  .users-table td:nth-child(2) {
+    display: none; /* hide email on small screens */
+  }
+}
+/* =========================
+   MOBILE RESPONSIVE USERS
+========================= */
+@media (max-width: 768px) {
+
+  /* HEADER STACK */
+  .users-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .add-user-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* TOOLBAR STACK */
+  .users-toolbar {
+    flex-direction: column;
+  }
+
+  .filter-btn {
+    width: 100%;
+  }
+
+  /* TABLE → CARD LAYOUT */
+  .users-table,
+  .users-table thead,
+  .users-table tbody,
+  .users-table th,
+  .users-table td,
+  .users-table tr {
+    display: block;
+    width: 100%;
+  }
+
+  /* Hide table header */
+  .users-table thead {
+    display: none;
+  }
+
+  /* Row becomes card */
+  .users-table tr {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+
+  .users-table td {
+    padding: 6px 0;
+    border: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+  }
+
+  /* Labels using data-style layout */
+  .users-table td::before {
+    content: attr(data-label);
+    font-weight: 500;
+    color: #64748b;
+  }
+
+  /* Name stronger */
+  .users-table td.name {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  /* Actions aligned right */
+  .users-table td.actions {
+    justify-content: flex-end;
+  }
+
+  /* Hide email label for clarity */
+  .users-table td.email {
+    display: none;
+  }
+}

@@ -1,0 +1,291 @@
+:root {
+  --brand-primary: #0d5173;
+}
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top, #f5fbff, #ffffff);
+}
+
+.auth-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.role-selector {
+  display: flex;
+  background: #f5f6f8;
+  border-radius: 12px;
+  padding: 6px;
+  margin-bottom: 16px;
+}
+
+.role-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px;
+  border-radius: 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.role-btn.active {
+  background: #fff;
+  color: #0d5173;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.divider {
+  text-align: center;
+  font-size: 12px;
+  color: #adb5bd;
+  margin: 16px 0;
+  position: relative;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  height: 1px;
+  width: 30%;
+  background: #e9ecef;
+  position: absolute;
+  top: 50%;
+}
+
+.divider::before {
+  left: 0;
+}
+.divider::after {
+  right: 0;
+}
+.input-group-text {
+  color: #6b7280;
+}
+
+.input-group-text:hover {
+  color: #111827;
+}
+/* Full page center */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+/* Card size control */
+.auth-card {
+  width: 100%;
+  max-width: 380px; /* 👈 key: keeps it small */
+  padding: 1.5rem;
+  border-radius: 14px;
+  background: #fff;
+}
+
+/* Headings */
+.auth-card h2 {
+  font-size: 1.4rem;
+}
+
+/* Subtitle */
+.auth-card p {
+  font-size: 0.9rem;
+}
+
+/* Inputs smaller */
+.form-control {
+  font-size: 0.9rem;
+  padding: 0.55rem 0.75rem;
+}
+
+.input-group-text {
+  font-size: 0.9rem;
+}
+
+/* Button sizing */
+button,
+.btn {
+  font-size: 0.9rem;
+}
+
+/* 📱 Mobile adjustments */
+@media (max-width: 480px) {
+  .auth-card {
+    max-width: 100%;
+    padding: 1.25rem;
+  }
+
+  .auth-card h2 {
+    font-size: 1.2rem;
+  }
+}
+.btn-arrow {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+}
+
+.btn:hover .btn-arrow {
+  transform: translateX(4px);
+}
+
+/* Forgot Password*/
+.reset-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%; /* 👈 circle */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--reset-bg, #eff5f5); /* 👈 editable */
+  color: var(--reset-icon, #0d5173); /* 👈 editable */
+  font-size: 1.6rem;
+}
+/* Smooth fade */
+.btn {
+  transition: opacity 0.2s ease;
+}
+
+/* Disabled = same color, just faded */
+.btn.btn-brand:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--brand-color, #0d5173);
+  border-color: var(--brand-color, #0d5173);
+  color: #fff;
+}
+
+.email-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #eef5f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.email-icon img {
+  width: 24px;
+}
+
+.code-input {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-size: 20px;
+  border-radius: 10px;
+  border: 1px solid #e3e8ee;
+}
+
+.code-input:focus,
+.code-input:focus-visible {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 2px rgba(13, 81, 115, 0.15);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+/* Verify Code email icon */
+.verify-icon {
+  width: var(--verify-size, 64px);
+  height: var(--verify-size, 64px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background-color: var(--verify-bg, #eef5f7);
+  color: var(--verify-icon, #0d5173);
+
+  font-size: var(--verify-icon-size, 1.6rem);
+}
+.resend-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+
+  font-size: inherit;
+  font-weight: 500;
+  cursor: pointer;
+
+  color: var(--verify-icon, #0d5173);
+}
+
+.resend-btn:hover {
+  text-decoration: underline;
+}
+/* Mobile adjustments for AuthCard */
+@media (max-width: 480px) {
+  .auth-card {
+    max-width: 100%; /* let it use almost full width */
+    width: 95%; /* leave small margin from screen edges */
+    padding: 1rem 1.25rem; /* reduce padding */
+    border-radius: 12px; /* slightly smaller rounding */
+  }
+
+  .auth-card h2 {
+    font-size: 1.2rem; /* smaller heading */
+  }
+
+  .auth-card p {
+    font-size: 0.85rem; /* smaller subtitle text */
+  }
+
+  .form-control,
+  .input-group-text,
+  button,
+  .btn {
+    font-size: 0.85rem; /* smaller inputs and buttons */
+    padding: 0.5rem 0.75rem;
+  }
+
+  .btn-arrow {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* Mobile press effect for AuthCard buttons like navbar Get Started */
+/* Mobile press effect for AuthCard buttons */
+@media (max-width: 768px) {
+  .auth-card .btn {
+    transition: transform 0.1s ease; /* smooth shrink */
+    -webkit-tap-highlight-color: transparent; /* remove tap highlight */
+    touch-action: manipulation; /* better mobile responsiveness */
+
+    /* Force original colors */
+    background-color: #0d5173 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+
+  .auth-card .btn:active {
+    transform: scale(0.96); /* shrink on press */
+    /* Do NOT change background or color here */
+  }
+
+  /* Remove hover effects on mobile to prevent flash */
+  .auth-card .btn:hover {
+    background-color: #0d5173 !important;
+    color: #ffffff !important;
+  }
+}

@@ -1,0 +1,35 @@
+.stats-section {
+  border-top: 1.5px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1.5px solid rgba(0, 0, 0, 0.08);
+}
+/* Section border */
+.stats-section {
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background-color: #ffffff;
+}
+
+/* Value (numbers) */
+/* Value (numbers) */
+.stats-value {
+  color: #0d5173;
+  font-weight: 700;
+  font-size: clamp(30px, 2.2vw, 48px);
+  line-height: 1.1;
+}
+
+/* Label text */
+.stats-label {
+  margin-top: 0.5rem;
+  color: #64748b;
+  font-size: clamp(14px, 1.2vw, 18px);
+  font-weight: 500;
+}
+
+
+.stats-inner {
+  max-width: 900px; /* pulls stats toward center */
+}
+.stats-section {
+  background-color: #f8f9fa;
+}

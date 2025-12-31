@@ -1,0 +1,105 @@
+.features-title {
+font-size: 30px;
+  color: #0f172a;
+  font-size: clamp(1.8rem, 1.4rem + 1.8vw, 2.8rem);
+  line-height: 1.2;
+}
+
+.features-subtitle {
+  color: #64748b;
+  font-size: clamp(1rem, 0.95rem + 0.4vw, 1.25rem);
+  max-width: 720px;
+  margin-inline: auto;
+}
+.feature-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+.feature-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+.feature-icon {
+  background: #e6f2f7;
+  padding: 10px;
+  border-radius: 12px;
+}
+.feature-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  background: #e6f2f7;
+  padding: 10px;
+  border-radius: 12px;
+  transition: background-color 0.25s ease, transform 0.25s ease;
+}
+
+/* Icon reacts when card is hovered */
+.card:hover .feature-icon {
+  background-color: #d0e9f3; /* light color change */
+  transform: scale(1.05);
+}
+.features-row {
+  max-width: 1000px;   /* pulls cards toward center */
+  margin-inline: auto;
+}
+.card {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Highlight border on hover / touch */
+.card:hover {
+  border-color: #0d5173; /* brand color */
+  box-shadow: 0 10px 28px rgba(13, 81, 115, 0.15);
+}
+
+/* Mobile: subtle tap effect for feature cards */
+@media (max-width: 768px) {
+  /* Reset cards for mobile */
+  .feature-card,
+  .card {
+    border: 1px solid rgba(15, 23, 42, 0.08); /* default border */
+    box-shadow: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Default icon state */
+  .card .feature-icon {
+    background-color: #e6f2f7;
+    transform: scale(1);
+    transition: background-color 0.15s ease, transform 0.15s ease;
+  }
+
+  /* Card press effect: border + shadow */
+  .feature-card:active,
+  .card:active {
+    transform: translateY(-2px) scale(1.02);
+    border-color: #0d5173; /* border highlight like desktop hover */
+    box-shadow: 0 6px 20px rgba(13, 81, 115, 0.1);
+  }
+
+  /* Icon press effect */
+  .card:active .feature-icon {
+    background-color: #d0e9f3;
+    transform: scale(1.05);
+  }
+
+  /* After release, revert to normal */
+  .card:not(:active) {
+    border-color: rgba(15, 23, 42, 0.08);
+    box-shadow: none;
+  }
+
+  .card:not(:active) .feature-icon {
+    background-color: #e6f2f7;
+    transform: scale(1);
+  }
+}

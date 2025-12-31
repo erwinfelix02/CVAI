@@ -1,0 +1,81 @@
+/* Brand primary button */
+.btn-brand {
+  background-color: #0d5173;
+  border-color: #0dcaf0;
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 10px; /* 👈 smooth edges, still square */
+  transition: all 0.25s ease;
+}
+
+.btn-brand:hover {
+  background-color: #0bb3d6;
+  border-color: #0bb3d6;
+  color: #ffffff;
+}
+
+/* Outline variant */
+.btn-outline-brand {
+  color: #0dcaf0;
+  border-color: #0dcaf0;
+  border-radius: 10px; /* 👈 same smooth edge */
+  transition: all 0.25s ease;
+}
+
+.btn-outline-brand:hover {
+  background-color: #0dcaf0;
+  color: #ffffff;
+}
+
+/* White / transparent button */
+.btn-white-brand {
+  background-color: transparent;
+  border: none;
+  color: #0d5173;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: background-color 0.2s ease;
+}
+
+.btn-white-brand:hover {
+  background-color: #29a399;
+  color: #ffffff;
+}
+.btn {
+  white-space: nowrap; /* prevents ugly line breaks */
+  padding: 0.5rem 1rem; /* responsive padding */
+  min-width: unset;
+}
+@media (max-width: 576px) {
+  .btn {
+    padding: 0.45rem 0.75rem;
+    font-size: 13px;
+  }
+}
+/* Base icon style */
+.btn-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+
+/* Grow icon when button is hovered */
+.btn:hover .btn-icon {
+  transform: scale(1.25);
+}
+
+/* White button with black border */
+.btn-white-border {
+  background-color: #ffffff;
+  border: 1px solid #0f172a; /* near-black (better than pure black) */
+  color: #0f172a;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.25s ease;
+}
+
+.btn-white-border:hover {
+  background-color: #29a399;
+  color: #ffffff;
+}
