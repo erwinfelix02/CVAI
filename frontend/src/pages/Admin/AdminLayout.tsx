@@ -6,7 +6,6 @@ export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Detect mobile
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= 768);
     check();
@@ -16,18 +15,11 @@ export default function AdminLayout() {
 
   return (
     <div className="admin-layout">
-      <Sidebar
-        collapsed={collapsed}
-        setCollapsed={setCollapsed}
-      />
+      {/* Sidebar */}
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} isMobile={isMobile} />
 
-      <main
-        className={`
-          admin-main
-          ${collapsed && !isMobile ? "sidebar-collapsed" : ""}
-          ${collapsed && isMobile ? "content-dimmed" : ""}
-        `}
-      >
+      {/* Main Content */}
+      <main className={`admin-main ${isMobile ? "mobile" : ""}`}>
         <Outlet />
       </main>
     </div>

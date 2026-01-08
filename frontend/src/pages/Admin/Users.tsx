@@ -1,40 +1,42 @@
-import { Search, Filter, MoreHorizontal, UserPlus } from "lucide-react";
+import { Search, UserPlus } from "lucide-react";
+import UserRow from "../../components/Admin/UserRow";
+import type { User } from "../../types/User";
 
-const users = [
+const users: User[] = [
   {
+    id: "STU-2024-001",
     name: "John Doe",
     email: "john.doe@university.edu",
-    role: "student",
+    role: "Student",
     status: "active",
-    joined: "2024-01-15",
   },
   {
-    name: "Jane Smith",
+    id: "FAC-001",
+    name: "Dr. Jane Smith",
     email: "jane.smith@university.edu",
-    role: "teacher",
+    role: "Faculty",
     status: "active",
-    joined: "2024-01-10",
   },
   {
+    id: "STU-2024-002",
     name: "Bob Wilson",
     email: "bob.wilson@university.edu",
-    role: "student",
-    status: "inactive",
-    joined: "2024-02-20",
-  },
-  {
-    name: "Alice Brown",
-    email: "alice.brown@university.edu",
-    role: "teacher",
+    role: "Student",
     status: "active",
-    joined: "2024-01-05",
   },
   {
+    id: "FAC-002",
+    name: "Dr. Alice Brown",
+    email: "alice.brown@university.edu",
+    role: "Faculty",
+    status: "active",
+  },
+  {
+    id: "STU-2024-003",
     name: "Charlie Davis",
     email: "charlie.davis@university.edu",
-    role: "student",
-    status: "active",
-    joined: "2024-03-01",
+    role: "Student",
+    status: "inactive",
   },
 ];
 
@@ -45,7 +47,7 @@ export default function AdminUsers() {
       <div className="users-header">
         <div>
           <h1>Users</h1>
-          <p>Manage all registered users</p>
+          <p>View all students and faculty members</p>
         </div>
 
         <button className="add-user-btn">
@@ -57,57 +59,40 @@ export default function AdminUsers() {
       {/* CARD */}
       <div className="users-card">
         {/* TOOLBAR */}
-        <div className="users-toolbar">
-          <div className="search-box">
+        <div className="users-toolbar d-flex justify-content-between align-items-center mb-3">
+          <div className="search-box d-flex align-items-center gap-2">
             <Search size={18} />
-            <input placeholder="Search users..." />
+            <input placeholder="Search by name, email, or ID..." />
           </div>
 
-          <button className="filter-btn">
-            <Filter size={18} />
-          </button>
+          <div className="tabs d-flex gap-2">
+            <button className="add-user-btn" data-name="all">
+              All
+            </button>
+            <button className="add-user-btn" data-name="students">
+              Students
+            </button>
+            <button className="add-user-btn" data-name="faculty">
+              Faculty
+            </button>
+          </div>
         </div>
 
         {/* TABLE */}
         <table className="users-table">
           <thead>
             <tr>
+              <th>User ID</th>
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
               <th>Status</th>
-              <th>Joined</th>
-              <th></th>
+              <th>Action</th>
             </tr>
           </thead>
-
           <tbody>
-            {users.map((u) => (
-              <tr key={u.email}>
-                <td className="name" data-label="Name">
-                  {u.name}
-                </td>
-
-                <td className="email" data-label="Email">
-                  {u.email}
-                </td>
-
-                <td data-label="Role">
-                  <span className={`pill role ${u.role}`}>{u.role}</span>
-                </td>
-
-                <td data-label="Status">
-                  <span className={`pill status ${u.status}`}>{u.status}</span>
-                </td>
-
-                <td className="date" data-label="Joined">
-                  {u.joined}
-                </td>
-
-                <td className="actions" data-label="Actions">
-                  <MoreHorizontal size={18} />
-                </td>
-              </tr>
+            {users.map((user) => (
+              <UserRow key={user.id} user={user} />
             ))}
           </tbody>
         </table>

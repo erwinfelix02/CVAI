@@ -1,0 +1,12 @@
+/* GraduationCap icon styling */
+.welcome-icon {
+  margin-bottom: 12px;
+}
+
+.welcome-icon .graduation-icon {
+  width: 42px;         /* icon size */
+  height: 42px;
+  color: #ffff;      /* icon color */
+  display: block;
+  margin: 0 auto;      /* center horizontally */
+}

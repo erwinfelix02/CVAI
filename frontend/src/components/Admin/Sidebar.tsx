@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import "../../styles/admin-sidebar.css";
 import {
   LayoutDashboard,
   Users,
@@ -14,11 +15,13 @@ import {
 interface SidebarProps {
   collapsed: boolean;
   setCollapsed: (v: boolean) => void;
+  isMobile: boolean;  // NEW
 }
 
-export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
+export default function Sidebar({ collapsed, setCollapsed, isMobile }: SidebarProps) {
   return (
-    <aside className={`admin-sidebar ${collapsed ? "collapsed" : ""}`}>
+    <aside className={`admin-sidebar ${collapsed ? "collapsed" : ""} ${isMobile && collapsed ? "open" : ""}`}>
+
       {/* HEADER */}
       <div className="sidebar-header">
         <div className="sidebar-title">
@@ -47,13 +50,20 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
         <SidebarLink to="/admin/settings" icon={<Settings size={18} />} label="Settings" collapsed={collapsed} />
       </nav>
 
-      {/* FOOTER */}
-      <div className="sidebar-footer">
-        <button className="logout-btn">
-          <LogOut size={18} />
-          {!collapsed && <span>Logout</span>}
-        </button>
-      </div>
+{/* FOOTER */}
+<div className="sidebar-footer">
+  <NavLink
+    to="/logout"
+    className="sidebar-link logout-link"
+    title={collapsed ? "Logout" : undefined}
+  >
+    <div className="sidebar-link-icon">
+      <LogOut size={18} />
+    </div>
+    {!collapsed && <span>Logout</span>}
+  </NavLink>
+</div>
+
     </aside>
   );
 }

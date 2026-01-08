@@ -1,0 +1,44 @@
+/* Layout container */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Sidebar */
+.admin-layout .sidebar {
+  position: sticky; /* stays in place when scrolling */
+  top: 0;
+  height: 100vh; /* full viewport height */
+  flex-shrink: 0;
+  overflow-y: auto; /* scroll inside sidebar if content is long */
+  z-index: 100;
+}
+
+/* Main content */
+.admin-main {
+  flex: 1;
+  min-width: 0; /* 🔥 required for flex + overflow */
+  overflow-x: auto; /* horizontal scroll if table too wide */
+  overflow-y: auto; /* vertical scroll for main content */
+  padding: 24px 32px;
+  background: #f8fafc;
+}
+
+/* MOBILE RESPONSIVE */
+@media (max-width: 768px) {
+  .admin-layout {
+    flex-direction: column;
+  }
+
+  .admin-layout .sidebar {
+    position: relative; /* sidebar on top for mobile */
+    height: auto;
+    width: 100%;
+  }
+
+  .admin-main {
+    width: 100%;
+    padding: 16px;
+  }
+}

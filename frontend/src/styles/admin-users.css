@@ -1,0 +1,68 @@
+.icon-btn {
+  background: none;       /* no background */
+  border: none;           /* no border */
+  padding: 0;             /* remove padding */
+  cursor: pointer;
+  display: inline-flex;   /* center icon if needed */
+  align-items: center;
+  justify-content: center;
+}
+.icon-btn:hover {
+  color: #1d4ed8; /* example: turn blue on hover */
+}
+.tab {
+  background: #f3f4f6;      /* light gray background */
+  border: none;
+  border-radius: 9999px;    /* pill shape */
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-right: 6px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.tab:hover {
+  background: #e5e7eb;      /* slightly darker gray */
+}
+
+.tab.active {
+  background: #0d5173;      /* blue for active tab */
+  color: white;
+}
+/* USERS TOOLBAR */
+.users-toolbar {
+  display: flex;
+  gap: 12px;             /* space between search and tabs */
+  align-items: center;    /* vertical alignment */
+  margin-bottom: 16px;
+}
+
+
+/* TABS */
+.tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.tab {
+  background: #f3f4f6;
+  border: none;
+  border-radius: 12px;       /* soft curve */
+  padding: 0 14px;          /* horizontal padding */
+  height: 40px;             /* same as search bar */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.tab:hover {
+  background: #e5e7eb;
+}
+
+.tab.active {
+  background: #0d5173;
+  color: white;
+}

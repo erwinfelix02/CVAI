@@ -88,15 +88,40 @@
 }
 
 /* Active (blue pill like image) */
-.sidebar-link.active {
-  background: #0d5173;
-  color: white;
+/* Active state for all sidebar links including logout */
+.sidebar-link.active,
+.sidebar-link.logout-link.active {
+  background: #0d5173;   /* active background */
+  color: #ffffff;        /* active text color */
 }
+
+/* Make sure icons also match active text */
+.sidebar-link.active svg,
+.sidebar-link.logout-link.active svg {
+  color: #ffffff;
+}/* Default hover */
+.sidebar-link:hover {
+  background: #f1f5f9;
+}
+
+/* But do NOT change background if the link is active */
+.sidebar-link.active:hover,
+.sidebar-link.logout-link.active:hover {
+  background: #0d5173;  /* keep the active background */
+  color: #ffffff;       /* keep active text color */
+}
+
+/* Ensure icons stay white on active hover */
+.sidebar-link.active:hover svg,
+.sidebar-link.logout-link.active:hover svg {
+  color: #ffffff;
+}
+
+
 
 /* Hide text when collapsed */
 .admin-sidebar.collapsed .sidebar-link span,
-.admin-sidebar.collapsed .sidebar-title span,
-.admin-sidebar.collapsed .logout-btn span {
+.admin-sidebar.collapsed .sidebar-title span {
   display: none;
 }
 
@@ -413,10 +438,6 @@
   background: #f1f5f9;
 }
 
-.sidebar-link.active {
-  background: #0d5173;
-  color: #ffffff;
-}
 
 /* Hide labels when collapsed */
 .admin-sidebar.collapsed .sidebar-link span {
@@ -446,9 +467,6 @@
   color: #dc2626;
 }
 
-.admin-sidebar.collapsed .logout-btn span {
-  display: none;
-}
 
 /* =========================
    MAIN CONTENT
@@ -492,4 +510,21 @@
     background: rgba(0, 0, 0, 0.4);
     z-index: 900;
   }
+}
+/* Icon wrapper for nav links */
+.sidebar-link-icon {
+  width: 36px;       /* same size as collapse button/icon spacing */
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+/* Center icon when sidebar is collapsed */
+.admin-sidebar.collapsed .sidebar-footer .sidebar-link.logout-link {
+  justify-content: center; /* centers the icon */
+}
+
+.admin-sidebar.collapsed .sidebar-footer .sidebar-link.logout-link span {
+  display: none; /* hide text */
 }

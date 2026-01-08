@@ -1,0 +1,49 @@
+.message-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 896px;
+  margin-top: 12px;
+   box-sizing: border-box;
+}
+
+.message-input input {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.send-btn {
+  width: 60px;
+  height: 100%;
+  background: #0d5173;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.send-btn:hover {
+  background: #0f4c75;             /* slightly darker */
+  transform: scale(1.05);          /* subtle zoom */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* soft shadow on hover */
+}
+
+.send-btn .send-icon {
+  width: 24px;
+  height: 24px;
+  color: #fff;
+  transition: transform 0.2s ease;  /* smooth icon effect */
+}
+
+.send-btn:hover .send-icon {
+  transform: rotate(20deg);         /* fun little rotation effect */
+}

@@ -11,12 +11,19 @@
     "vite": "^7.2.7"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-slot": "^1.2.4",
+    "axios": "^1.13.2",
     "bootstrap": "^5.3.8",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "lucide-react": "^0.562.0",
-    "mongoose": "^9.0.2"
+    "mongoose": "^9.0.2",
+    "nodemailer": "^7.0.12",
+    "tailwind-merge": "^3.4.0"
   },
   "scripts": {
     "backend": "cd backend && npm run dev",
