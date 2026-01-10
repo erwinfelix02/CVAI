@@ -1,8 +1,5 @@
+import { useMemo } from "react";
 import "../../styles/quickprompts.css";
-
-interface QuickPromptsProps {
-  collapsed: boolean;
-}
 
 const PROMPTS = [
   "How do I enroll in courses?",
@@ -15,13 +12,14 @@ const PROMPTS = [
   "What are the payment options?",
 ];
 
-export default function QuickPrompts({ collapsed }: QuickPromptsProps) {
-  // shuffle prompts and pick 4
-  const shuffled = PROMPTS.sort(() => 0.5 - Math.random());
-  const visiblePrompts = shuffled.slice(0, 4);
+export default function QuickPrompts() {
+  const visiblePrompts = useMemo(() => {
+    const shuffled = [...PROMPTS].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 4);
+  }, []);
 
   return (
-    <div className={`quick-prompts ${collapsed ? "collapsed" : ""}`}>
+    <div className="quick-prompts">
       {visiblePrompts.map((text, index) => (
         <button key={index} className="prompt">
           ✨ {text}

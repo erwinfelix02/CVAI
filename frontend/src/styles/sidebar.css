@@ -198,3 +198,26 @@
 .campusai-sidebar.collapsed .sidebar-title span {
   display: none;
 }
+/* DEFAULT */
+.campusai-sidebar {
+  width: 260px;
+  height: 100vh;
+  background: #fff;
+  border-right: 1px solid #e5e7eb;
+  transition: transform 0.25s ease;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .campusai-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 1000;
+    transform: translateX(0);
+  }
+
+  .campusai-sidebar.collapsed {
+    transform: translateX(-100%);
+  }
+}

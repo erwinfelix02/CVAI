@@ -10,3 +10,23 @@
   display: block;
   margin: 0 auto;      /* center horizontally */
 }
+.chat-window {
+  flex: 1;
+  padding: 24px;
+  position: relative;
+}
+
+.chat-window.mobile {
+  padding-top: 60px;
+}
+
+/* Mobile menu button */
+.mobile-menu-btn {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 1100;
+}
