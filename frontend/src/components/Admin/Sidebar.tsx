@@ -20,7 +20,13 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed, setCollapsed, isMobile }: SidebarProps) {
   return (
-    <aside className={`admin-sidebar ${collapsed ? "collapsed" : ""} ${isMobile && collapsed ? "open" : ""}`}>
+    <aside
+  className={`admin-sidebar
+    ${collapsed ? "collapsed" : ""}
+    ${isMobile && !collapsed ? "open" : ""}
+  `}
+>
+
 
       {/* HEADER */}
       <div className="sidebar-header">
@@ -32,10 +38,10 @@ export default function Sidebar({ collapsed, setCollapsed, isMobile }: SidebarPr
         </div>
 
         <button
-          className="collapse-btn"
-          onClick={() => setCollapsed(!collapsed)}
-          aria-label="Toggle sidebar"
-        >
+  className={`collapse-btn ${isMobile ? "mobile-toggle" : ""}`}
+  onClick={() => setCollapsed(!collapsed)}
+>
+
           <ChevronLeft size={18} />
         </button>
       </div>

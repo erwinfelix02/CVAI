@@ -1,3 +1,4 @@
+import "../../styles/admin-dashboard.css";
 interface Props {
   title: string;
   value: string;

@@ -9,6 +9,12 @@
   justify-content: center;
   background: radial-gradient(circle at top, #f5fbff, #ffffff);
 }
+.school-logo img {
+  width: 250px; /* adjust as needed */
+  height: auto;
+  margin-bottom: 10px;
+  border-radius: 50%;
+}
 
 .auth-card {
   background: #fff;

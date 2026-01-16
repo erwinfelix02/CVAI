@@ -10,26 +10,20 @@ export const register = async (req, res) => {
     const { fullName, schoolId, email, password } = req.body;
 
     // 1️⃣ Check school record
-    const member = await SchoolMember.findOne({
-      fullName,
-      schoolId,
-      status: "active",
-    });
+    const member = await SchoolMember.findOne({ fullName, schoolId });
     if (!member)
       return res.status(403).json({ message: "You are not registered." });
 
     // 2️⃣ Check if user already exists
     let user = await User.findOne({ email });
-
     if (user) {
       if (user.verified) {
-        // Already verified → cannot register again
         return res.status(400).json({ message: "Account already exists." });
       } else {
-        // User exists but not verified → resend new code
+        // Resend new code
         const newCode = Math.floor(100000 + Math.random() * 900000).toString();
         user.verificationCode = newCode;
-        user.codeExpires = new Date(Date.now() + 1 * 60 * 1000); // 5 minutes
+        user.codeExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
         await user.save();
 
         await sendVerificationEmail(email, newCode);
@@ -43,10 +37,8 @@ export const register = async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     // 4️⃣ Generate verification code & expiry
-    const verificationCode = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
-    const codeExpires = new Date(Date.now() + 1 * 60 * 1000); // 5 minutes
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const codeExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     // 5️⃣ Create unverified user
     user = await User.create({
@@ -85,12 +77,7 @@ export const verifyEmail = async (req, res) => {
       return res.status(400).json({ message: "User already verified." });
 
     // 1️⃣ Check if code expired
-    if (
-      !user.verificationCode ||
-      !user.codeExpires ||
-      new Date() > user.codeExpires
-    ) {
-      // ❌ Do NOT delete user. Just ask to resend code
+    if (!user.verificationCode || !user.codeExpires || new Date() > user.codeExpires) {
       return res
         .status(400)
         .json({ message: "Code expired. Please resend the code." });
@@ -105,6 +92,12 @@ export const verifyEmail = async (req, res) => {
     user.verificationCode = null;
     user.codeExpires = null;
     await user.save();
+
+    // ✅ Activate school member
+    await SchoolMember.findOneAndUpdate(
+      { schoolId: user.schoolId },
+      { status: "active" }
+    );
 
     // 3️⃣ Generate JWT
     const token = jwt.sign(
@@ -141,10 +134,8 @@ export const resendCode = async (req, res) => {
       return res.status(400).json({ message: "User already verified." });
 
     // Generate new code & expiry
-    const verificationCode = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
-    const codeExpires = new Date(Date.now() + 1 * 60 * 1000); // 5 minutes
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const codeExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     user.verificationCode = verificationCode;
     user.codeExpires = codeExpires;
@@ -158,3 +149,52 @@ export const resendCode = async (req, res) => {
     res.status(500).json({ message: "Server error." });
   }
 };
+
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ message: "Invalid credentials." });
+
+    if (user.verified) {
+      const token = jwt.sign(
+        { id: user._id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+
+      // 🔹 Redirect based on role
+      let redirect = "/chat"; // default for student & faculty
+      if (user.role.toLowerCase() === "admin") {
+        redirect = "/admin/dashboard";
+      }
+
+      return res.json({
+        message: "Login successful",
+        redirect,
+        token,
+        user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+        },
+      });
+    }
+
+    // If not verified
+    return res.json({
+      message: "Account not verified. Please verify your email.",
+      redirect: "/verify-code",
+      email: user.email,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error." });
+  }
+};
+

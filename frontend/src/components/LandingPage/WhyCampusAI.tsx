@@ -29,11 +29,11 @@ export function WhyCampusAI() {
               </li>
               <li className="mb-2 d-flex align-items-start gap-2">
                 <img src={CheckIcon} alt="" width={18} height={18} />
-                <span>Never miss deadlines with smart reminders</span>
+                <span>Easy access to campus resources and support</span>
               </li>
               <li className="mb-2 d-flex align-items-start gap-2">
                 <img src={CheckIcon} alt="" width={18} height={18} />
-                <span>Easy access to campus resources and support</span>
+                <span>Never miss deadlines</span>
               </li>
             </ul>
 

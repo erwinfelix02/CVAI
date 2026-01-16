@@ -7,7 +7,7 @@
 
 /* Sidebar */
 .admin-layout .sidebar {
-  position: sticky; /* stays in place when scrolling */
+  position: fixed; /* stays in place when scrolling */
   top: 0;
   height: 100vh; /* full viewport height */
   flex-shrink: 0;

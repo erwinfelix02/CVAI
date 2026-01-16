@@ -1,18 +1,3 @@
-/* Sidebar container */
-.admin-sidebar {
-  width: 260px;
-  background: #ffffff;
-  border-right: 1px solid #e5e7eb;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 1000;
-  transition: width 0.25s ease, transform 0.3s ease;
-}
-
 /* Collapsed */
 .admin-sidebar.collapsed {
   width: 60px;
@@ -20,7 +5,7 @@
 
 /* Header */
 .sidebar-header {
-     height: 54px;   
+  height: 54px;
   padding: 16px;
   display: flex;
   align-items: center;
@@ -51,8 +36,6 @@
   left: 50%;
   transform: translateX(-50%) rotate(180deg);
 }
-
-
 
 /* Close button (mobile) */
 .close-btn {
@@ -91,15 +74,15 @@
 /* Active state for all sidebar links including logout */
 .sidebar-link.active,
 .sidebar-link.logout-link.active {
-  background: #0d5173;   /* active background */
-  color: #ffffff;        /* active text color */
+  background: #0d5173; /* active background */
+  color: #ffffff; /* active text color */
 }
 
 /* Make sure icons also match active text */
 .sidebar-link.active svg,
 .sidebar-link.logout-link.active svg {
   color: #ffffff;
-}/* Default hover */
+} /* Default hover */
 .sidebar-link:hover {
   background: #f1f5f9;
 }
@@ -107,8 +90,8 @@
 /* But do NOT change background if the link is active */
 .sidebar-link.active:hover,
 .sidebar-link.logout-link.active:hover {
-  background: #0d5173;  /* keep the active background */
-  color: #ffffff;       /* keep active text color */
+  background: #0d5173; /* keep the active background */
+  color: #ffffff; /* keep active text color */
 }
 
 /* Ensure icons stay white on active hover */
@@ -116,8 +99,6 @@
 .sidebar-link.logout-link.active:hover svg {
   color: #ffffff;
 }
-
-
 
 /* Hide text when collapsed */
 .admin-sidebar.collapsed .sidebar-link span,
@@ -155,29 +136,38 @@
   .collapse-btn {
     display: none; /* no collapsing on mobile */
   }
+
+  .admin-main {
+    margin-left: 0;
+    height: 100dvh;
+    overflow-y: auto;
+  }
+  .admin-sidebar {
+    width: 220px;
+  }
+
+  .admin-sidebar.collapsed {
+    width: 60px;
+  }
 }
+
 .admin-sidebar {
   width: 260px;
-  position: fixed;
   top: 0;
+  position: fixed;
   left: 0;
-  height: 100vh;
+  height: 100dvh;
   background: #fff;
   border-right: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
-  transition: width 0.25s ease, transform 0.3s ease;
-  z-index: 1200;
+  transition:
+    width 0.25s ease,
+    transform 0.3s ease;
+  z-index: 100;
 }
-
 .admin-sidebar.collapsed {
   width: 60px;
-}
-
-.admin-main {
-  margin-left: 260px;
-  padding: 24px;
-  transition: margin-left 0.25s ease;
 }
 
 .admin-main.sidebar-collapsed {
@@ -221,13 +211,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 /* Hover effect */
 .collapse-btn:hover {
-  background: #f1f5f9;          /* light gray hover */
-  color: #0d5173;               /* primary color */
+  background: #f1f5f9; /* light gray hover */
+  color: #0d5173; /* primary color */
 }
 
 /* Active (click) */
@@ -241,7 +234,7 @@
 }
 /* DEFAULT: sidebar expanded */
 .admin-main {
-  margin-left: 260px;
+  margin-left: 0px;
   transition: margin-left 0.25s ease;
 }
 
@@ -250,18 +243,12 @@
   margin-left: 60px;
 }
 
-/* MOBILE */
-@media (max-width: 768px) {
-  .admin-main {
-    margin-left: 0;
-  }
-}
 /* Title icon background */
 .sidebar-title-icon {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: #0d5173;          /* primary color */
+  background: #0d5173; /* primary color */
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -273,30 +260,12 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: #0d5173;           /* primary color */
+  background: #0d5173; /* primary color */
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-/* MOBILE */
-@media (max-width: 768px) {
-  .admin-sidebar {
-    width: 220px;     /* slightly smaller */
-  }
-
-  .admin-sidebar.collapsed {
-    width: 60px;
-  }
-
-  .admin-main {
-    margin-left: 220px;
-  }
-
-  .admin-main.sidebar-collapsed {
-    margin-left: 60px;
-  }
 }
 /* Hide title icon when sidebar is collapsed */
 .admin-sidebar.collapsed .sidebar-title-icon {
@@ -309,23 +278,6 @@
   display: flex;
   min-height: 100vh;
   background: #f8fafc;
-}
-
-/* =========================
-   SIDEBAR
-========================= */
-.admin-sidebar {
-  width: 260px;
-  height: 100vh;
-  background: #ffffff;
-  border-right: 1px solid #e5e7eb;
-  position: fixed;
-  top: 0;
-  left: 0;
-  display: flex;
-  flex-direction: column;
-  transition: width 0.25s ease;
-  z-index: 1000;
 }
 
 /* Collapsed */
@@ -396,7 +348,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    color 0.2s ease;
 }
 
 .collapse-btn:hover {
@@ -438,7 +393,6 @@
   background: #f1f5f9;
 }
 
-
 /* Hide labels when collapsed */
 .admin-sidebar.collapsed .sidebar-link span {
   display: none;
@@ -467,17 +421,17 @@
   color: #dc2626;
 }
 
-
 /* =========================
    MAIN CONTENT
 ========================= */
 .admin-main {
   flex: 1;
-  padding: 24px;
+  padding: 12px;
   margin-left: 260px;
+  overflow-y: auto;
+  height: 100vh;
   transition: margin-left 0.25s ease;
 }
-
 .admin-main.sidebar-collapsed {
   margin-left: 60px;
 }
@@ -489,8 +443,8 @@
   .admin-main,
   .admin-main.sidebar-collapsed {
     margin-left: 0;
+    height: 100vh;
   }
-
 
   .admin-sidebar {
     width: 220px;
@@ -513,7 +467,7 @@
 }
 /* Icon wrapper for nav links */
 .sidebar-link-icon {
-  width: 36px;       /* same size as collapse button/icon spacing */
+  width: 36px; /* same size as collapse button/icon spacing */
   height: 36px;
   display: flex;
   align-items: center;

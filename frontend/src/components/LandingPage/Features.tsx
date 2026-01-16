@@ -39,18 +39,20 @@ export function Features() {
           From course selection to campus navigation, CampusAI has you covered.
         </p>
 
-        <div className="row g-4 justify-content-center features-row">
-          {features.map((f) => (
-            <div key={f.title} className="col-md-6 col-lg-3">
-              <div className="card h-100 border-1 shadow-sm rounded-4">
-                <div className="card-body">
-                  <img src={f.icon} alt="" className="feature-icon mb-3" />
-                  <h5 className="fw-semibold">{f.title}</h5>
-                  <p className="text-muted mb-0">{f.desc}</p>
+        <div className="features-row">
+          <div className="row g-4 justify-content-center features-row">
+            {features.map((f) => (
+              <div key={f.title} className="col-md-3 col-lg-3">
+                <div className="card h-100 border-1 shadow-sm rounded-4">
+                  <div className="card-body">
+                    <img src={f.icon} alt="" className="feature-icon mb-3" />
+                    <h5 className="fw-semibold">{f.title}</h5>
+                    <p className="text-muted mb-0">{f.desc}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </section>

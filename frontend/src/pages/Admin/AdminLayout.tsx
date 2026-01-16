@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import Sidebar from "../../components/Admin/Sidebar";
 import { useState, useEffect } from "react";
+import "../../styles/admin-layout.css";
 
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);

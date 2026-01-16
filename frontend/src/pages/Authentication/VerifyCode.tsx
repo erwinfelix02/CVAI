@@ -3,15 +3,17 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaEnvelope } from "react-icons/fa";
 import AuthCard from "../../components/Authentication/AuthCard";
+import AuthLayout from "../../components/Authentication/AuthLayout";
 import Button from "../../components/Authentication/Button";
+import Logo from "../../assets/graduation.png";
 import "../../styles/auth.css";
+import { API_BASE_URL } from "../../config";
 
 export default function VerifyCode() {
   const [code, setCode] = useState<string[]>(Array(6).fill(""));
   const [loading, setLoading] = useState(false);
   const [resendDisabled, setResendDisabled] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
-
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
@@ -19,21 +21,29 @@ export default function VerifyCode() {
   const navigate = useNavigate();
   const query = new URLSearchParams(useLocation().search);
   const email = query.get("email");
-
   const isComplete = code.every((digit) => digit !== "");
 
-  // --- Input handlers ---
+  /* ---------------- ALERT AUTO-HIDE (FIX) ---------------- */
+  useEffect(() => {
+    if (!alertMessage || loading) return;
+
+    const timer = setTimeout(() => {
+      setAnimateAlert(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [alertMessage, loading]);
+
+  /* ---------------- INPUT HANDLERS ---------------- */
   const handleChange = (value: string, index: number) => {
     if (!/^\d?$/.test(value)) return;
+
     const newCode = [...code];
     newCode[index] = value;
     setCode(newCode);
 
     if (value && index < 5) {
-      const nextInput = document.getElementById(
-        `code-${index + 1}`
-      ) as HTMLInputElement;
-      nextInput?.focus();
+      document.getElementById(`code-${index + 1}`)?.focus();
     }
   };
 
@@ -42,19 +52,19 @@ export default function VerifyCode() {
     index: number
   ) => {
     if (e.key !== "Backspace") return;
+
     const newCode = [...code];
+
     if (newCode[index]) {
       newCode[index] = "";
-      setCode(newCode);
     } else if (index > 0) {
-      const prevInput = document.getElementById(
-        `code-${index - 1}`
-      ) as HTMLInputElement;
-      prevInput?.focus();
+      document.getElementById(`code-${index - 1}`)?.focus();
     }
+
+    setCode(newCode);
   };
 
-  // --- Verify code ---
+  /* ---------------- SUBMIT ---------------- */
   const handleSubmit = async () => {
     if (!isComplete || !email) {
       setAlertMessage("Missing email or verification code.");
@@ -63,33 +73,26 @@ export default function VerifyCode() {
       return;
     }
 
-    // 1️⃣ ALWAYS show verifying first
     setLoading(true);
-    setAlertMessage("Verifying");
+    setAlertMessage("Verifying...");
     setAlertType("success");
     setAnimateAlert(true);
 
     try {
-      await axios.post("http://localhost:5000/api/auth/verify-email", {
+      await axios.post(`${API_BASE_URL}/auth/verify-email`, {
         email,
         code: code.join(""),
       });
 
-      // 2️⃣ Small delay so verifying is visible
       setTimeout(() => {
         setLoading(false);
         setAlertMessage("Email successfully verified!");
         setAlertType("success");
         setAnimateAlert(true);
 
-        // 3️⃣ Navigate after user sees success
-        setTimeout(() => {
-          setAnimateAlert(false);
-          navigate("/signin");
-        }, 1500);
-      }, 1200);
+        setTimeout(() => navigate("/signin"), 1500);
+      }, 1000);
     } catch (err: any) {
-      // 2️⃣ STILL let verifying show briefly before error
       setTimeout(() => {
         setLoading(false);
         setAlertMessage(
@@ -97,47 +100,27 @@ export default function VerifyCode() {
         );
         setAlertType("error");
         setAnimateAlert(true);
-      }, 1200);
+      }, 1000);
     }
   };
-  // 🔔 Auto-hide alert (same behavior as SignUp)
-  useEffect(() => {
-    if (!alertMessage) return;
 
-    // ❌ Do NOT auto-hide while verifying
-    if (loading) return;
-
-    const timer = setTimeout(() => {
-      setAnimateAlert(false);
-    }, 3000); // hide after 3 seconds
-
-    return () => clearTimeout(timer);
-  }, [alertMessage, loading]);
-
-  // --- Resend code ---
+  /* ---------------- RESEND CODE ---------------- */
   const handleResend = async () => {
-    if (!email) {
-      setAlertMessage("Missing email.");
-      setAlertType("error");
-      setAnimateAlert(true);
-      return;
-    }
+    if (!email) return;
 
     setResendDisabled(true);
     setResendTimer(30);
 
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/auth/resend-code",
-        { email }
-      );
-      setAlertMessage(response.data.message || "Code resent!");
+      const res = await axios.post(`${API_BASE_URL}/auth/resend-code`, {
+        email,
+      });
+
+      setAlertMessage(res.data.message || "Code resent!");
       setAlertType("success");
       setAnimateAlert(true);
-    } catch (err: any) {
-      setAlertMessage(
-        err.response?.data?.message || "Server error. Try again later."
-      );
+    } catch {
+      setAlertMessage("Server error. Try again later.");
       setAlertType("error");
       setAnimateAlert(true);
       setResendDisabled(false);
@@ -145,101 +128,109 @@ export default function VerifyCode() {
     }
   };
 
-  // --- Countdown effect ---
+  /* ---------------- RESEND TIMER ---------------- */
   useEffect(() => {
     if (resendTimer <= 0) return;
+
     const interval = setInterval(() => {
-      setResendTimer((prev) => {
-        if (prev <= 1) {
-          setResendDisabled(false);
+      setResendTimer((t) => {
+        if (t <= 1) {
           clearInterval(interval);
+          setResendDisabled(false);
           return 0;
         }
-        return prev - 1;
+        return t - 1;
       });
     }, 1000);
+
     return () => clearInterval(interval);
   }, [resendTimer]);
 
+  /* ---------------- UI ---------------- */
   return (
-    <AuthCard
-      header={
-        <div className="d-flex justify-content-center mb-3">
-          <div className="verify-icon">
-            <FaEnvelope />
-          </div>
-        </div>
-      }
-      title="Check your email"
-      subtitle={
-        <>
-          We sent a 6-digit code to <br />
-          <strong>{email}</strong>
-        </>
-      }
-      footer={
-        <p className="text-center mt-3 mb-0">
-          <Link to="/signin" className="small">
-            ← Back
-          </Link>
-        </p>
-      }
-    >
-      {/* --- Alert --- */}
+    <AuthLayout>
       {alertMessage && (
         <div
           className={`loading-alert-wrapper ${
             alertType === "error" ? "alert-error" : "alert-success"
           } ${animateAlert ? "loading" : ""}`}
         >
-          <div className="loading-alert d-flex align-items-center justify-content-center">
+          <div className="loading-alert d-flex align-items-center">
             {loading && alertType === "success" && (
-              <span
-                className="spinner-border spinner-border-sm me-2"
-                role="status"
-                aria-hidden="true"
-              ></span>
+              <span className="spinner-border spinner-border-sm me-2" />
             )}
             <span className="loading-text">{alertMessage}</span>
           </div>
         </div>
       )}
 
-      {/* --- Code Inputs --- */}
-      <div className="d-flex justify-content-center gap-2 mb-2">
-        {code.map((digit, index) => (
-          <input
-            key={index}
-            id={`code-${index}`}
-            type="text"
-            inputMode="numeric"
-            maxLength={1}
-            className="code-input text-center"
-            value={digit}
-            onChange={(e) => handleChange(e.target.value, index)}
-            onKeyDown={(e) => handleKeyDown(e, index)}
-          />
-        ))}
-      </div>
+      <AuthCard
+        title="Check your email"
+        subtitle={
+          <>
+            We sent a 6-digit code to <br />
+            <strong>{email}</strong>
+          </>
+        }
+        header={
+          <>
+            <h1 className="campus-ai-header-mobile text-center mb-3">
+              <span className="campus-ai-logo-wrapper">
+                <img src={Logo} alt="CampusAI logo" className="navbar-logo" />
+              </span>
+              Campus AI
+            </h1>
 
-      <Button
-        className="w-100 d-inline-flex align-items-center justify-content-center gap-2"
-        disabled={!isComplete || loading}
-        onClick={handleSubmit}
+            <div className="d-flex justify-content-center mb-3">
+              <div className="verify-icon">
+                <FaEnvelope />
+              </div>
+            </div>
+          </>
+        }
+        footer={
+          <p className="text-center mt-3 mb-0">
+            <Link to="/signin" className="small">
+              ← Back to Sign In
+            </Link>
+          </p>
+        }
       >
-        {loading ? "Verifying..." : "Verify Code"}
-      </Button>
+        <div className="d-flex justify-content-center gap-2 mb-3">
+          {code.map((digit, index) => (
+            <input
+              key={index}
+              id={`code-${index}`}
+              type="text"
+              inputMode="numeric"
+              maxLength={1}
+              className="code-input text-center"
+              value={digit}
+              onChange={(e) => handleChange(e.target.value, index)}
+              onKeyDown={(e) => handleKeyDown(e, index)}
+            />
+          ))}
+        </div>
 
-      <p className="text-center mt-3 small">
-        Didn’t receive the code?{" "}
-        <button
-          className="resend-btn"
-          onClick={handleResend}
-          disabled={resendDisabled}
+        <Button
+          className="w-100"
+          disabled={!isComplete || loading}
+          onClick={handleSubmit}
         >
-          {resendDisabled ? `Wait ${resendTimer}s` : "Resend"}
-        </button>
-      </p>
-    </AuthCard>
+          {loading ? "Verifying..." : "Verify Code"}
+        </Button>
+
+        <p className="text-center mt-3 small">
+          Didn’t receive the code?{" "}
+          <button
+            className="resend-btn"
+            onClick={handleResend}
+            disabled={resendDisabled}
+          >
+            {resendDisabled ? `Wait ${resendTimer}s` : "Resend"}
+          </button>
+        </p>
+      </AuthCard>
+    </AuthLayout>
   );
 }

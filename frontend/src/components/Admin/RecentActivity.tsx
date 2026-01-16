@@ -1,3 +1,4 @@
+import "../../styles/admin-dashboard.css";
 const activities = [
   { title: "New user registered", subtitle: "john.doe@university.edu", time: "2 min ago" },
   { title: "FAQ updated", subtitle: "Admin", time: "15 min ago" },

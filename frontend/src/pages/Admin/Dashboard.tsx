@@ -1,6 +1,6 @@
 import StatCard from "../../components/Admin/StatCard";
 import RecentActivity from "../../components/Admin/RecentActivity";
-
+import "../../styles/admin-dashboard.css";
 export default function AdminDashboard() {
   return (
     <>
