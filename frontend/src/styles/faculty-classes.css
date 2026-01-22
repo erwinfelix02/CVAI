@@ -1,0 +1,128 @@
+.faculty-classes-page {
+  padding-top: 8px;
+  padding-bottom: 16px;
+}
+
+/* semester pill */
+.faculty-semester-pill {
+  border-radius: 999px;
+}
+
+/* info banner */
+.faculty-info-banner {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ecfdf5; /* soft green */
+}
+
+.faculty-info-banner .info-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #d1fae5;
+  color: #059669;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+/* mini stats */
+.faculty-mini-stat {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.mini-stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+.mini-stat-label {
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* class card */
+.faculty-class-card {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  overflow: hidden;
+  position: relative;
+}
+
+/* top accent bar */
+.faculty-class-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+}
+
+/* accents */
+.class-accent-blue::before {
+  background: linear-gradient(90deg, #3b82f6, #06b6d4);
+}
+.class-accent-purple::before {
+  background: linear-gradient(90deg, #8b5cf6, #a855f7);
+}
+.class-accent-green::before {
+  background: linear-gradient(90deg, #10b981, #22c55e);
+}
+.class-accent-orange::before {
+  background: linear-gradient(90deg, #f59e0b, #f97316);
+}
+
+.class-code-pill {
+  font-weight: 800;
+}
+
+.class-title {
+  font-size: 1.25rem;
+}
+
+.class-meta {
+  color: #334155;
+}
+
+.meta-text {
+  min-width: 0;
+  overflow-wrap: anywhere; /* ✅ prevents overflow on small screens */
+}
+
+/* progress */
+.class-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: #eef2f7;
+  overflow: hidden;
+}
+.class-progress .progress-bar {
+  border-radius: 999px;
+}
+
+/* action buttons */
+.class-action-btn {
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  background: #fff !important;
+  border-radius: 12px !important;
+  padding: 10px 12px !important;
+}
+.class-action-btn:hover {
+  background: #f8fafc !important;
+}
+
+/* mobile tweaks */
+@media (max-width: 575.98px) {
+  .class-title {
+    font-size: 1.15rem;
+  }
+  .faculty-class-card .card-body {
+    padding: 16px !important;
+  }
+}

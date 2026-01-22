@@ -1,0 +1,130 @@
+.faculty-materials-page {
+  padding-top: 6px;
+  padding-bottom: 24px;
+}
+
+/* Stats icon box */
+.faculty-stat-card .stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+}
+
+.stat-icon.blue {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+.stat-icon.purple {
+  background: rgba(139, 92, 246, 0.12);
+  color: #7c3aed;
+}
+.stat-icon.red {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+.stat-icon.green {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+/* Material row */
+.material-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.material-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.material-title {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 540px;
+}
+
+.material-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.material-icon.pdf {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+.material-icon.doc {
+  background: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+}
+.material-icon.video {
+  background: rgba(139, 92, 246, 0.1);
+  color: #7c3aed;
+}
+
+.material-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.downloads-count {
+  width: 36px;
+  text-align: right;
+  font-weight: 600;
+}
+/* ✅ ensure text inside stat cards is always visible */
+.faculty-stat-card .stat-value {
+  color: #0f172a; /* dark */
+}
+
+.faculty-stat-card .stat-label {
+  color: #64748b; /* muted */
+}
+
+/* Responsive */
+@media (max-width: 767.98px) {
+  .material-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .material-title {
+    max-width: 100%;
+  }
+
+  .material-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .downloads-count {
+    width: auto;
+  }
+}

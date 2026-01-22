@@ -1,0 +1,131 @@
+/* Page spacing fix */
+.faculty-students-page {
+  padding-top: 0;
+}
+
+/* Header */
+.students-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 768px) {
+  .students-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+/* Student list */
+.student-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Student row */
+.student-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+}
+
+/* Left */
+.student-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.student-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #1f6f8b;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.student-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.student-meta {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+/* Status dot */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.good {
+  background: #22c55e;
+}
+
+.status-dot.warning {
+  background: #f59e0b;
+}
+
+/* Metrics */
+.student-metrics {
+  display: flex;
+  gap: 32px;
+}
+
+.metric {
+  text-align: right;
+}
+
+.metric-value {
+  font-weight: 700;
+}
+
+.metric-value.good {
+  color: #16a34a;
+}
+
+.metric-value.warning {
+  color: #f59e0b;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Actions */
+.student-actions {
+  display: flex;
+  gap: 12px;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+/* Mobile */
+@media (max-width: 767.98px) {
+  .student-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .student-actions {
+    align-self: flex-end;
+  }
+}

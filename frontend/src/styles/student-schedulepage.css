@@ -1,0 +1,6 @@
+/* Adjust header text on small screens so it doesn't collide with hamburger */
+@media (max-width: 767.98px) {
+  .header-container {
+    padding-left: 50px; /* approximate width of hamburger + margin */
+  }
+}

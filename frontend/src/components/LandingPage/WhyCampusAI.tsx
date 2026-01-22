@@ -40,7 +40,7 @@ export function WhyCampusAI() {
             <div className="text-center text-md-start mt-4">
               <Button
                 className="px-4 d-inline-flex align-items-center gap-2"
-                onClick={() => navigate("/admin/dashboard")}
+                onClick={() => navigate("/student")}
               >
                 Join Your Classmates
                 <img src={ArrowIcon} alt="" width={16} height={16} />

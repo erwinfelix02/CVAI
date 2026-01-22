@@ -1,0 +1,425 @@
+/* =========================
+   FACULTY DASHBOARD (Matches screenshot + responsive)
+========================= */
+
+.faculty-dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.faculty-title {
+  font-size: clamp(1.35rem, 1.05rem + 1.1vw, 2.1rem);
+  font-weight: 900;
+  line-height: 1.15;
+  color: #0f172a;
+}
+
+.faculty-academic-year {
+  text-align: right;
+  min-width: 220px;
+}
+
+.faculty-academic-year .label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.faculty-academic-year .value {
+  display: block;
+  font-size: 18px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+/* stack on small screens */
+@media (max-width: 575.98px) {
+  .faculty-academic-year {
+    text-align: left;
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* =========================
+   Base card look (like screenshot)
+========================= */
+.faculty-card {
+  border-radius: 18px;
+  border: 1px solid #eef2f7;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+/* section icon pill */
+.section-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: #eef2ff;
+  color: #4f46e5;
+  flex-shrink: 0;
+}
+
+.section-icon.warn {
+  background: #fff7ed;
+  color: #f59e0b;
+}
+
+.section-icon.purple {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+/* =========================
+   STATS CARDS (colored gradients like screenshot)
+========================= */
+.faculty-stat-card {
+  border-radius: 18px;
+  padding: 18px;
+  color: #fff;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.10);
+  overflow: hidden;
+  position: relative;
+  height: 100%;
+}
+
+.faculty-stat-card .value {
+  font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.2rem);
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.faculty-stat-card .label {
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0.95;
+}
+
+.faculty-stat-card .sub {
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/* icon bubble on right */
+.faculty-stat-card .icon-bubble {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+}
+
+/* subtle big circle highlight */
+.faculty-stat-card::after {
+  content: "";
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 140px;
+  height: 140px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* tones */
+.faculty-stat-card.tone-blue {
+  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+}
+.faculty-stat-card.tone-purple {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+}
+.faculty-stat-card.tone-orange {
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+}
+.faculty-stat-card.tone-green {
+  background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
+}
+
+/* =========================
+   TODAY CLASSES row (responsive + no overflow)
+========================= */
+.faculty-class-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e8eef6;
+  min-width: 0;
+}
+
+.faculty-class-row .time {
+  font-weight: 900;
+  color: #0f172a;
+  font-size: 14px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: 86px; /* gives that aligned-time look */
+}
+
+.faculty-class-row .title {
+  font-weight: 900;
+  color: #0f172a;
+  font-size: 15px;
+  line-height: 1.15;
+  word-break: break-word;
+}
+
+.faculty-class-row .title .code {
+  color: #2563eb;
+}
+
+.faculty-class-row .meta {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #64748b;
+  word-break: break-word;
+}
+
+/* status pill */
+.status-pill {
+  margin-left: auto;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* exact pill colors like screenshot */
+.status-pill.completed {
+  background: #e5e7eb;
+  color: #475569;
+}
+.status-pill.ongoing {
+  background: #10b981;
+  color: #fff;
+}
+.status-pill.upcoming {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+/* row highlight states */
+.faculty-class-row.completed {
+  background: #f8fafc;
+  border-color: #eef2f7;
+}
+.faculty-class-row.ongoing {
+  background: #eef6f7;            /* soft teal tint */
+  border-color: #9fb8c7;          /* border like your screenshot */
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.06);
+}
+.faculty-class-row.upcoming {
+  background: #ffffff;
+}
+
+/* mobile stacking */
+@media (max-width: 575.98px) {
+  .faculty-class-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .faculty-class-row .time {
+    width: auto;
+  }
+
+  .status-pill {
+    margin-left: 0;
+  }
+}
+
+/* =========================
+   PENDING TASKS (like screenshot)
+========================= */
+.faculty-task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e8eef6;
+}
+
+.faculty-task-row .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.faculty-task-row .dot.danger { background: #ef4444; }
+.faculty-task-row .dot.warning { background: #f59e0b; }
+.faculty-task-row .dot.success { background: #22c55e; }
+
+/* =========================
+   RECENT SUBMISSIONS (like screenshot)
+========================= */
+.faculty-submission-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e8eef6;
+  min-width: 0;
+}
+
+.faculty-submission-row .avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  background: #1f5166; /* close to your screenshot avatar tone */
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.faculty-submission-row .right {
+  margin-left: auto;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.course-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #e8eef6;
+  font-size: 12px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+/* mobile: make right side drop under */
+@media (max-width: 575.98px) {
+  .faculty-submission-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .faculty-submission-row .right {
+    margin-left: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+  }
+}
+/* ✅ Force consistent icon column alignment */
+.faculty-sidebar .nav-label svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+
+  /* ✅ reserve same space for every icon */
+  display: block;
+}
+
+/* ✅ make nav-label use a fixed icon slot */
+.faculty-sidebar .nav-label {
+  display: grid;
+  grid-template-columns: 22px 1fr; /* icon column + text column */
+  align-items: center;
+  column-gap: 10px;
+}
+
+/* when collapsed, keep icon centered */
+.faculty-sidebar.collapsed .nav-label {
+  grid-template-columns: 22px;
+  justify-content: center;
+}
+.faculty-sidebar .nav-item {
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+}
+.faculty-sidebar .badge {
+  flex-shrink: 0;
+}
+
+.faculty-class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  /* ✅ responsive max height */
+  max-height: min(380px, 60vh);
+  overflow-y: auto;
+
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch; /* ✅ mobile smooth scroll */
+}
+
+/* Small phones */
+@media (max-width: 575.98px) {
+  .faculty-class-list {
+    max-height: 45vh;
+  }
+}
+.faculty-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  max-height: min(320px, 50vh);
+  overflow-y: auto;
+
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Small phones */
+@media (max-width: 575.98px) {
+  .faculty-task-list {
+    max-height: 40vh;
+  }
+}
+/* =========================
+   Scrollable Recent Submissions
+========================= */
+
+.faculty-submission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  max-height: min(420px, 65vh); /* ✅ desktop + mobile safe */
+  overflow-y: auto;
+
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* smaller phones */
+@media (max-width: 575.98px) {
+  .faculty-submission-list {
+    max-height: 45vh;
+  }
+}

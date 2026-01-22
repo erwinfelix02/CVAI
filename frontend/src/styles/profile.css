@@ -1,0 +1,109 @@
+/* =========================
+   PROFILE HERO (layout-safe)
+========================= */
+.profile-hero {
+  overflow: hidden;
+  border-radius: 16px;
+
+  /* ✅ prevent overflowing into sidebar / outside main */
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.profile-hero__banner {
+  height: 96px;
+  background: linear-gradient(90deg, #eaf2f7, #f7fbff);
+
+  /* ✅ safety */
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.profile-hero__body {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.profile-hero__avatar {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: #0b4d6b;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 28px;
+  border: 6px solid #fff;
+  margin-top: -56px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+@media (max-width: 767.98px) {
+  .profile-hero__avatar {
+    margin-inline: auto;
+  }
+}
+
+
+/* =========================
+   FIELD LABEL + VALUE (safe)
+========================= */
+.profile-field__label {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.profile-field__value {
+  font-weight: 600;
+  color: #0f172a;
+
+  /* ✅ long email/address won't force overflow */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  min-width: 0;
+}
+.student-profile-page {
+  width: 100%;
+  min-width: 0; /* important in flex layouts */
+}
+
+.student-profile-shell {
+  width: 100%;
+  min-width: 0;
+  padding: 0; /* dashboard has no container padding */
+}
+
+/* Title icon badge (like your screenshot) */
+.profile-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #eef6ff;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+/* Make Lucide SVG visible + sized nicely */
+.profile-card__icon-svg {
+  width: 20px;
+  height: 20px;
+  color: #0d6efd;          /* primary */
+  stroke: currentColor;
+  display: block;
+}

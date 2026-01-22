@@ -1,0 +1,115 @@
+.grades-page {
+  width: 100%;
+  min-width: 0;
+}
+
+.grades-card {
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+}
+
+.grades-title-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #eef6ff;
+  color: #0d6efd;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+/* stats */
+.grades-stat {
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+}
+.grades-stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: #f1f5f9;
+  color: #0f172a;
+}
+.grades-stat-icon.blue {
+  background: #e7f0ff;
+  color: #0d6efd;
+}
+.grades-stat-icon.green {
+  background: #e9f8ef;
+  color: #198754;
+}
+.grades-stat-icon.orange {
+  background: #fff4e6;
+  color: #f59f00;
+}
+.grades-stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.grades-stat-value.big {
+  font-size: 2.1rem;
+}
+
+/* table */
+.grades-table thead th {
+  font-weight: 600;
+  border-bottom: 1px solid #e2e8f0;
+}
+.grades-table tbody td {
+  padding-top: 18px;
+  padding-bottom: 18px;
+  border-top: 1px solid #eef2f7;
+}
+
+/* colored grades (like screenshot) */
+.grade-blue {
+  color: #1d4ed8;
+  font-weight: 700;
+}
+.grade-green {
+  color: #16a34a;
+  font-weight: 700;
+}
+.grade-orange {
+  color: #f59f00;
+  font-weight: 700;
+}
+
+/* status pills */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.pill-orange {
+  color: #f97316;
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+.pill-green {
+  color: #16a34a;
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+}
+.pill-red {
+  color: #dc2626;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+.pill-blue {
+  color: #0d6efd;
+  background: #e7f0ff;
+  border-color: #bcd5ff;
+}
+
+.min-w-0 { min-width: 0; }

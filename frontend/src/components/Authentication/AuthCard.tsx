@@ -16,19 +16,20 @@ export default function AuthCard({
   footer,
 }: AuthCardProps) {
   return (
-    <div className="auth-page">
-      <div className="auth-card shadow-sm">
-        {header}
+    <div className="card auth-card border-0 shadow-lg rounded-4 overflow-hidden">
+      <div className="auth-accent" />
 
-        <h2 className="text-center fw-bold">{title}</h2>
+      <div className="card-body p-3 p-sm-4">
+        {header && <div className="mb-3">{header}</div>}
 
-        {subtitle && <p className="text-center text-muted">{subtitle}</p>}
-
-        {/* Wrap content and footer in flex-column with gap for automatic spacing */}
-        <div className="d-flex flex-column gap-2">
-          {children}
-          {footer}
+        <div className="text-center mb-3">
+          <h2 className="fw-bold mb-1">{title}</h2>
+          {subtitle && <div className="text-muted small">{subtitle}</div>}
         </div>
+
+        <div className="d-grid gap-2">{children}</div>
+
+        {footer && <div className="mt-3">{footer}</div>}
       </div>
     </div>
   );

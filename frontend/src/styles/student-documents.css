@@ -1,0 +1,129 @@
+/* =========================
+   DOCUMENTS PAGE (Student)
+========================= */
+
+/* -------------------------
+   DOCUMENT TABS (COMPACT + COMFY)
+------------------------- */
+.documents-page .nav.nav-pills {
+  background: #f3f4f6 !important;
+  padding: 4px !important; /* ⬆ slightly bigger */
+  border-radius: 12px !important;
+}
+
+.documents-page .nav.nav-pills .nav-link {
+  border-radius: 11px !important;
+  padding: 4px 12px !important; /* ⬆ main size increase */
+  font-size: 14px; /* ⬆ more readable */
+  line-height: 1.2;
+  color: #64748b !important;
+  font-weight: 600;
+}
+
+.documents-page .nav.nav-pills .nav-link.active {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+/* Pending badge */
+.documents-page .nav .badge {
+  border-radius: 999px;
+  font-size: 12px;
+  padding: 3px 7px;
+  line-height: 1;
+  background: #e5e7eb !important;
+  color: #0f172a !important;
+}
+
+/* -------------------------
+   Cards
+------------------------- */
+.documents-page .card {
+  border-radius: 18px !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+/* -------------------------
+   Tables
+------------------------- */
+.documents-page .table thead th {
+  font-weight: 600;
+  color: #64748b;
+  border-bottom: 1px solid #e5e7eb !important;
+  padding: 12px 14px; /* ⬆ more breathing room */
+}
+
+.documents-page .table tbody td {
+  border-top: 1px solid #eef2f7 !important;
+  padding: 14px;
+}
+
+/* -------------------------
+   Icon action buttons
+------------------------- */
+.documents-page .btn.btn-link {
+  color: #0f172a;
+  opacity: 0.85;
+  padding: 0;
+}
+
+.documents-page .btn.btn-link:hover {
+  opacity: 1;
+}
+
+/* -------------------------
+   Request list items
+------------------------- */
+.documents-page .request-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  background: #ffffff;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.documents-page .request-item:hover {
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+  transform: translateY(-2px);
+}
+
+/* -------------------------
+   Request button (dark blue)
+------------------------- */
+.documents-page .btn-primary {
+  background: #0b4b6b !important;
+  border-color: #0b4b6b !important;
+  font-weight: 600;
+  padding: 8px 22px; /* ⬆ slightly bigger */
+}
+
+.documents-page .btn-primary:hover {
+  filter: brightness(0.95);
+}
+
+/* -------------------------
+   Status pills (outlined)
+------------------------- */
+.documents-page .status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px; /* ⬆ bigger */
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+  background: #ffffff;
+  white-space: nowrap;
+}
+
+.documents-page .status-pill.processing {
+  border: 1px solid #f6c48b;
+  color: #b45309;
+}
+
+.documents-page .status-pill.ready {
+  border: 1px solid #86efac;
+  color: #15803d;
+}

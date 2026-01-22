@@ -1,0 +1,240 @@
+/* ==============================
+   Sidebar Container
+   ============================== */
+.student-sidebar {
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  border-right: 1px solid #dee2e6;
+  height: 100vh;
+  transition:
+    width 0.3s ease,
+    left 0.3s ease;
+  position: relative;
+  z-index: 1050;
+  overflow: hidden; 
+}
+
+.student-sidebar.collapsed {
+  width: 70px;
+}
+
+.student-sidebar.expanded {
+  width: 250px;
+}
+
+/* ==============================
+   Sidebar Header (Brand + Toggle)
+   ============================== */
+.student-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #dee2e6;
+  flex-shrink: 0;
+}
+
+.brand-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: #0d6efd;
+  border-radius: 8px;
+  color: white;
+}
+
+.brand-text-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.brand-text {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.sidebar-description {
+  font-size: 0.75rem;
+  color: #6c757d;
+  line-height: 1;
+}
+
+/* ==============================
+   Navigation Container
+   ============================== */
+.student-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0; 
+  margin-top: 0.5rem;
+  padding: 0 0.5rem;
+  overflow-y: auto;
+}
+
+/* ==============================
+   Nav Items
+   ============================== */
+.nav-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  margin-bottom: 0.25rem;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.nav-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-item .nav-label span,
+.nav-item .nav-label svg {
+  color: #212529; /* default black */
+}
+
+.nav-item .badge {
+  font-size: 0.7rem;
+}
+
+/* Hover effect for non-active items */
+.nav-item:not(.active):hover {
+  background-color: #cfe2ff; /* light blue hover for visibility */
+}
+
+/* Active nav item */
+.nav-item.active {
+  background-color: #0d6efd; /* primary blue */
+}
+
+/* Hover effect for active items (slightly darker blue) */
+.nav-item.active:hover {
+  background-color: #0b5ed7;
+}
+
+/* Active text & icon white */
+.nav-item.active .nav-label span,
+.nav-item.active .nav-label svg {
+  color: #ffffff;
+}
+
+
+/* ==============================
+   Sidebar Mobile
+   ============================== */
+@media (max-width: 767.98px) {
+  .student-sidebar.collapsed,
+  .student-sidebar.expanded {
+    position: fixed;
+    top: 0;
+    left: -250px; /* hidden by default */
+    height: 100dvh;
+    width: 250px;
+     z-index: 1300;
+     overflow: hidden;
+    transition: left 0.3s ease;
+  }
+
+  .student-sidebar.mobile-open {
+    left: 0; /* slide in */
+  }
+}
+
+/* ==============================
+   Collapsed Sidebar Adjustments
+   ============================== */
+.student-sidebar.collapsed .nav-item {
+  justify-content: center; /* center the icon horizontally */
+  padding: 0.5rem 0; /* optional: reduce padding if needed */
+}
+
+.student-sidebar.collapsed .nav-item .nav-label {
+  justify-content: center; /* center icon inside label */
+  gap: 0; /* remove space reserved for text */
+}
+
+.student-sidebar.collapsed .nav-item .nav-label span {
+  display: none; /* hide the text when collapsed */
+}
+
+.student-sidebar.collapsed .nav-item .badge {
+  display: none; /* hide badge when collapsed */
+}
+
+.student-sidebar.collapsed .student-sidebar-logout .btn {
+  justify-content: center; /* center logout icon */
+  padding: 0; /* remove padding */
+}
+
+/* ==============================
+   Collapsed Header Toggle Button
+   ============================== */
+.student-sidebar.collapsed .student-sidebar-header {
+  justify-content: center; /* center the collapse toggle button */
+}
+
+.student-sidebar.collapsed .student-sidebar-header button {
+  margin: 0; /* remove any extra margin */
+}
+
+
+/* Collapsed help button */
+.student-sidebar.collapsed .student-sidebar-help .btn {
+  padding: 0;
+  justify-content: center;
+}
+/* =========================
+   Sidebar bottom section
+========================= */
+.student-sidebar-bottom {
+  margin-top: auto;
+  padding: 8px 0.5rem; /* ✅ match .student-sidebar-nav horizontal padding */
+  flex-shrink: 0;
+}
+
+.sidebar-separator {
+  height: 1px;
+  background: #dee2e6; /* same tone as borders */
+  margin: 10px 0.5rem;  /* ✅ match nav-item inner spacing */
+}
+
+
+/* Danger (Logout) style */
+.nav-item-danger {
+  color: #dc3545;
+}
+
+.nav-item-danger .nav-label svg {
+  color: #dc3545;
+}
+
+/* Hover for logout */
+.nav-item-danger:hover {
+  background: rgba(220, 53, 69, 0.08);
+}
+.student-sidebar-bottom .nav-item {
+  margin-bottom: 0.25rem; /* same as menu items */
+}
+.student-sidebar.collapsed .student-sidebar-bottom {
+  padding: 8px 0.5rem;
+}
+
+.student-sidebar.collapsed .sidebar-separator {
+  margin: 10px 0.5rem;
+}
