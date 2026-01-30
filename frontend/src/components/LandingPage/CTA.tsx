@@ -17,12 +17,12 @@ export function CTA() {
           </p>
 
           <button
-      className="btn cta-btn d-inline-flex align-items-center gap-2"
-      onClick={() => navigate("/superadmin")}// Change this part with ,faculty ,registrar ,superadmin, dept-head
-    >
-      Register Now
-      <img src={ArrowIcon} alt="" className="cta-btn-icon" />
-    </button>
+            className="btn cta-btn d-inline-flex align-items-center gap-2"
+            onClick={() => navigate("/superadmin")} // Change this part with (student, faculty ,registrar ,superadmin, dept-head)
+          >
+            Register Now
+            <img src={ArrowIcon} alt="" className="cta-btn-icon" />
+          </button>
         </div>
       </div>
     </section>
