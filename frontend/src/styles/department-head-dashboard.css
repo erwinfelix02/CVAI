@@ -1,0 +1,94 @@
+.dept-dashboard .dept-card-link {
+  color: #0d5173;
+}
+.dept-dashboard .dept-card-link:hover {
+  color: #08384f;
+}
+
+/* Stat cards */
+.dept-stat {
+  background: #fff;
+}
+.dept-stat-value {
+  line-height: 1;
+}
+.dept-stat-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+/* icon tones */
+.dept-stat-icon.tone-purple {
+  background: rgba(124, 58, 237, 0.12);
+  color: #7c3aed;
+}
+.dept-stat-icon.tone-blue {
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+}
+.dept-stat-icon.tone-green {
+  background: rgba(22, 163, 74, 0.12);
+  color: #16a34a;
+}
+.dept-stat-icon.tone-orange {
+  background: rgba(249, 115, 22, 0.12);
+  color: #f97316;
+}
+
+/* Teaching loads */
+.dept-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: #eef2f6;
+}
+.dept-progress .progress-bar {
+  border-radius: 999px;
+}
+.dept-badge-ok {
+  border: 1px solid rgba(22, 163, 74, 0.18);
+  color: #166534;
+}
+.dept-badge-danger {
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  color: #991b1b;
+}
+
+/* Conflicts */
+.dept-issue-pill {
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #92400e;
+}
+.dept-conflict {
+  background: rgba(245, 158, 11, 0.10);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+.dept-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: rgba(15, 23, 42, 0.35);
+  display: inline-block;
+  margin-top: 7px;
+}
+
+/* Recent assignments */
+.dept-assignment {
+  background: #f8fafc;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+/* Small screens: tighten padding a bit */
+@media (max-width: 575.98px) {
+  .dept-assignment,
+  .dept-conflict {
+    padding: 12px 12px;
+  }
+}

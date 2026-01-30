@@ -1,0 +1,66 @@
+/* src/styles/DepartmentHeadLayout.css */
+
+/* ✅ lock the whole app frame */
+.dept-layout {
+  height: 100dvh;        /* ✅ critical */
+  overflow: hidden;      /* ✅ prevents page scroll */
+  background: #f6f7fb;
+}
+
+/* mobile top header */
+.dept-mobile-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  z-index: 1035;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  background: #0d5173;
+  color: #fff;
+}
+
+.dept-mobile-menu-btn {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.14);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dept-mobile-title-wrap {
+  line-height: 1.1;
+}
+.dept-mobile-title {
+  font-weight: 700;
+}
+.dept-mobile-subtitle {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/* ✅ Only MAIN scrolls */
+.dept-main {
+  height: 100dvh;        /* ✅ critical */
+  overflow-y: auto;      /* ✅ scroll here */
+  min-height: 0;         /* ✅ critical for flex layout */
+}
+
+/* when mobile header exists */
+.dept-main.has-mobile-header {
+  padding-top: 64px;
+}
+
+/* ✅ Overlay */
+.dept-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+  background: rgba(0, 0, 0, 0.35);
+}

@@ -18,9 +18,9 @@ export function CTA() {
 
           <button
       className="btn cta-btn d-inline-flex align-items-center gap-2"
-      onClick={() => navigate("/superadmin")}
+      onClick={() => navigate("/dept-head")}
     >
-      Enroll Now
+      Register Now
       <img src={ArrowIcon} alt="" className="cta-btn-icon" />
     </button>
         </div>

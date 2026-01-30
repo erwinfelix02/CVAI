@@ -1,0 +1,131 @@
+/* src/styles/dept-schedules.css */
+
+.dept-page {
+  max-width: 1400px;
+}
+
+.dept-h2 {
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+
+.dept-primary-btn {
+  background: #0d5173;
+  border-color: #0d5173;
+}
+.dept-primary-btn:hover {
+  background: #0b4563;
+  border-color: #0b4563;
+}
+
+/* Search input polish */
+.dept-input .form-control:focus,
+.dept-filter .form-select:focus {
+  box-shadow: none;
+}
+
+/* schedule card */
+.dept-schedule-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.dept-schedule-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: #eef3f6;
+  color: #0d5173;
+}
+
+.dept-code {
+  font-weight: 800;
+  font-size: 20px;
+  color: #0f172a;
+}
+
+.dept-title {
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+.dept-chip {
+  font-weight: 700;
+  padding: 6px 10px;
+}
+
+/* meta row */
+.dept-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: #475569;
+}
+
+.dept-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* ✅ Actions: always aligned + same sizing */
+.dept-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* base shared btn sizing */
+.dept-btn {
+  height: 44px;              /* ✅ same height */
+  padding: 0 16px;           /* ✅ consistent padding */
+  border-radius: 12px;       /* ✅ matches screenshot */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* edit button */
+.dept-btn-edit {
+  min-width: 110px;          /* ✅ gives same look as screenshot */
+}
+
+/* icon-only delete button */
+.dept-btn-icon {
+  width: 44px;               /* ✅ perfect square */
+  padding: 0;                /* ✅ remove extra padding */
+}
+
+/* ✅ responsive tweaks */
+@media (max-width: 576px) {
+  .dept-schedule-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+  }
+
+  .dept-code {
+    font-size: 18px;
+  }
+
+  /* On mobile: full width actions, aligned right */
+  .dept-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  /* Optional: make Edit also icon-only on very small screens */
+  .dept-btn-edit {
+    min-width: 44px;
+    padding: 0;
+  }
+  .dept-btn-edit span {
+    display: none !important;
+  }
+}

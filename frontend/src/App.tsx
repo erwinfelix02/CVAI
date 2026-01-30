@@ -34,7 +34,6 @@ import GradeManagementPage from "./pages/Faculty/GradeManagementPage";
 import FacultyAIAssistantPage from "./pages/Faculty/FacultyAIAssistantPage";
 import FacultySettingsPage from "./pages/Faculty/FacultySettingsPage";
 
-
 import RegistrarLayout from "./pages/Registrar/RegistrarLayout";
 import RegistrarDashboard from "./pages/Registrar/RegistrarDashboard";
 import ApplicationsPage from "./pages/Registrar/ApplicationsPage";
@@ -49,9 +48,9 @@ import ActivityLogsPage from "./pages/SuperAdmin/ActivityLogsPage";
 import SettingsPage from "./pages/SuperAdmin/SettingsPage";
 import UsersPage from "./pages/SuperAdmin/UsersPage";
 
-
-
-
+import DepartmentHeadLayoutPage from "./pages/DepartmentHead/DepartmentHeadLayoutPage";
+import DepartmentHeadDashboard from "./pages/DepartmentHead/DepartmentHeadDashboard";
+import ScheduleManagementPage from "./pages/DepartmentHead/ScheduleManagementPage";
 
 export default function App() {
   return (
@@ -113,6 +112,12 @@ export default function App() {
         <Route path="logs" element={<ActivityLogsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="users" element={<UsersPage />} />
+      </Route>
+
+      {/* ✅ Department Head */}
+      <Route path="/dept-head" element={<DepartmentHeadLayoutPage />}>
+        <Route index element={<DepartmentHeadDashboard />} />
+        <Route path="schedules" element={<ScheduleManagementPage />} />
       </Route>
     </Routes>
   );
