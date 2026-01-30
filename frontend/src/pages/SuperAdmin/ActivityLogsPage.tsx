@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { Activity, CheckCircle2, AlertTriangle, Shield } from "lucide-react";
 
-import LogsHeader from "../../components/SuperAdmin/Logs/LogsHeader";
-import LogsStats from "../../components/SuperAdmin/Logs/LogsStats";
-import LogsFilters from "../../components/SuperAdmin/Logs/LogsFilters";
-import LogsTable from "../../components/SuperAdmin/Logs/LogsTable";
+import LogsHeader from "../../components/SuperAdmin/SystemLogs/LogsHeader";
+import LogsStats from "../../components/SuperAdmin/SystemLogs/LogsStats";
+import LogsFilters from "../../components/SuperAdmin/SystemLogs/LogsFilters";
+import LogsTable from "../../components/SuperAdmin/SystemLogs/LogsTable";
 
-import type { LogRow, LogStatus, LogType, StatCard } from "../../components/SuperAdmin/Logs/types";
+import type { LogRow, LogStatus, LogType, StatCard } from "../../components/SuperAdmin/SystemLogs/types";
 import "../../styles/superadmin-logs.css";
 
 const seed: LogRow[] = [
