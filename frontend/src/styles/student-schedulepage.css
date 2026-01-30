@@ -4,3 +4,7 @@
     padding-left: 50px; /* approximate width of hamburger + margin */
   }
 }
+/* Active day tab – force box shape */
+.student-schedule .card-body button.bg-primary {
+  border-radius: 10px !important; /* change to 6px if you want sharper */
+}

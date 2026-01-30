@@ -1,0 +1,184 @@
+/* =========================
+   Registrar Applications (compact like screenshot)
+========================= */
+
+.registrar-card {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+/* Header pill (smaller) */
+.registrar-pill {
+  background: #eef2f6;
+  color: #0f172a;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 8px 14px;              /* ✅ smaller */
+  font-size: 0.95rem;             /* ✅ smaller */
+  white-space: nowrap;
+}
+
+/* =========================
+   Filters (compact)
+========================= */
+
+.registrar-search .input-group-text {
+  border-right: 0;
+  border-radius: 14px 0 0 14px;
+  padding: 10px 12px;             /* ✅ smaller height */
+}
+
+.registrar-search .form-control {
+  border-left: 0;
+  border-radius: 0 14px 14px 0;
+  padding: 10px 12px;             /* ✅ smaller height */
+  font-size: 0.95rem;
+}
+
+.registrar-search .form-control:focus {
+  box-shadow: none;
+}
+
+.registrar-select {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  border: 2px solid #0d5b78;
+  border-radius: 14px;            /* ✅ slightly less round */
+  padding: 8px 12px;              /* ✅ smaller */
+  background: #fff;
+
+  min-width: 230px;               /* ✅ closer to screenshot */
+}
+
+.registrar-select-ic {
+  width: 32px;                    /* ✅ smaller */
+  height: 32px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #f1f5f9;
+  color: #0f172a;
+  flex: 0 0 auto;
+}
+
+.registrar-select-control {
+  border: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.95rem;             /* ✅ smaller */
+}
+
+.registrar-select-caret {
+  margin-left: auto;
+  color: #64748b;
+}
+
+/* =========================
+   Application row (compact like screenshot)
+========================= */
+
+.registrar-app-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;            /* ✅ smaller radius */
+  padding: 14px 16px;             /* ✅ tighter */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+/* Avatar smaller */
+.registrar-avatar {
+  width: 44px;                    /* ✅ smaller */
+  height: 44px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #0f172a;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  font-size: 0.95rem;
+}
+
+/* Text sizing closer to screenshot */
+.registrar-app-card .fw-semibold {
+  font-size: 1.05rem;             /* ✅ name */
+}
+
+.registrar-app-card .text-muted {
+  font-size: 0.95rem;             /* ✅ program line */
+}
+
+.registrar-app-card .small {
+  font-size: 0.86rem;             /* ✅ ref/submitted line */
+}
+
+/* Status pill smaller (like screenshot) */
+.registrar-status {
+  font-weight: 800;
+  font-size: 0.85rem;             /* ✅ smaller */
+  border-radius: 999px;
+  padding: 6px 12px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.registrar-status.pending {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+.registrar-status.approved {
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.35);
+}
+.registrar-status.rejected {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.10);
+  border-color: rgba(239, 68, 68, 0.28);
+}
+
+/* Review button smaller */
+.registrar-review-btn {
+  border-radius: 14px;
+  padding: 9px 14px;              /* ✅ smaller */
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+/* Keep actions from stretching */
+.registrar-app-actions {
+  flex: 0 0 auto;
+}
+
+/* =========================
+   Responsive
+========================= */
+
+@media (max-width: 991.98px) {
+  .registrar-select {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .registrar-app-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .registrar-app-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

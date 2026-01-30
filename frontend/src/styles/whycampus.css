@@ -10,22 +10,22 @@
   font-size: 16px;
 }
 .why-gradient {
-  padding: 5rem 1.5rem; /* similar to py-20 px-6 */
+  padding: 5rem 1.5rem;
   background: linear-gradient(
     135deg,
-    rgba(13, 110, 253, 0.05),  /* primary */
-    rgba(25, 135, 84, 0.05)    /* accent */
+    rgba(13, 110, 253, 0.05), 
+    rgba(25, 135, 84, 0.05) 
   );
 }
 .why-gradient button {
-  display: inline-block;       /* isolates scaling from flex container */
-  transform-origin: center;    /* scale happens in place */
+  display: inline-block;  
+  transform-origin: center; 
 }
 
 
 @media (max-width: 768px) {
   .why-gradient button {
-    background-color: #0d5173 !important; /* force hero CTA color */
+    background-color: #0d5173 !important;
     color: #ffffff !important;
     border: none;
     border-radius: 0.5rem;
@@ -40,7 +40,6 @@
     will-change: transform, filter;
   }
 
-  /* Hover/focus do not change color */
   .why-gradient button:hover,
   .why-gradient button:focus,
   .why-gradient button:focus-visible {
@@ -52,16 +51,16 @@
     transform: none;
   }
 
-  /* Press effect: only scale & brightness, no color change */
+ 
   .why-gradient button:active {
     transform: scale(0.96);
     filter: brightness(0.95);
-    background-color: #0d5173 !important; /* keep color */
-    color: #ffffff !important;            /* keep text color */
+    background-color: #0d5173 !important;
+    color: #ffffff !important;          
   }
 }
 
-/* Desktop hover effect for WhyCampusAI card */
+
 .why-gradient .bg-white {
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   border: 1px solid rgba(15, 23, 42, 0.08);
@@ -72,10 +71,10 @@
 .why-gradient .bg-white:hover {
   transform: translateY(-6px);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
-  border-color: #0d5173; /* same as feature card hover */
+  border-color: #0d5173; 
 }
 
-/* Mobile: subtle tap/press effect */
+
 @media (max-width: 768px) {
   .why-gradient .bg-white {
     transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
@@ -84,12 +83,12 @@
   }
 
   .why-gradient .bg-white:active {
-    transform: scale(0.96); /* subtle press effect */
+    transform: scale(0.96);
     box-shadow: 0 6px 20px rgba(13, 81, 115, 0.1);
     border-color: #0d5173;
   }
 
-  /* After release, revert to default */
+
   .why-gradient .bg-white:not(:active) {
     border-color: rgba(15, 23, 42, 0.08);
     box-shadow: none;

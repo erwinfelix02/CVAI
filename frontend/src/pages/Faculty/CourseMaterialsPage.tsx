@@ -28,30 +28,29 @@ export default function CourseMaterialsPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-
     return sampleMaterials.filter((m) => {
       const matchCourse = courseFilter === "All Courses" || m.course === courseFilter;
       const matchSearch =
         q.length === 0 ||
         m.title.toLowerCase().includes(q) ||
         m.course.toLowerCase().includes(q);
-
       return matchCourse && matchSearch;
     });
   }, [courseFilter, search]);
 
   const stats = useMemo(() => {
-    const totalFiles = sampleMaterials.length;
-    const videos = sampleMaterials.filter((m) => m.type === "video").length;
-    const documents = sampleMaterials.filter((m) => m.type !== "video").length;
-    const downloads = sampleMaterials.reduce((sum, m) => sum + m.downloads, 0);
-    return { totalFiles, videos, documents, downloads };
+    return {
+      totalFiles: sampleMaterials.length,
+      videos: sampleMaterials.filter((m) => m.type === "video").length,
+      documents: sampleMaterials.filter((m) => m.type !== "video").length,
+      downloads: sampleMaterials.reduce((sum, m) => sum + m.downloads, 0),
+    };
   }, []);
 
   return (
-    <div className="container-fluid faculty-materials-page">
+    <div className="container-fluid faculty-materials-scope">
       {/* Header */}
-      <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-3 mb-md-4">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
           <h3 className="fw-bold mb-1">Course Materials</h3>
           <p className="text-muted mb-0">
@@ -65,7 +64,6 @@ export default function CourseMaterialsPage() {
         </button>
       </div>
 
-      {/* Filters */}
       <MaterialsFilters
         courses={courses}
         courseFilter={courseFilter}
@@ -74,10 +72,8 @@ export default function CourseMaterialsPage() {
         setSearch={setSearch}
       />
 
-      {/* Stats */}
       <MaterialsStats stats={stats} />
 
-      {/* List */}
       <MaterialsList materials={filtered} totalCount={sampleMaterials.length} />
     </div>
   );

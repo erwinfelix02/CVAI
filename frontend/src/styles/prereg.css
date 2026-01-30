@@ -1,0 +1,484 @@
+/* ===== Shell / Background ===== */
+.prereg-shell {
+  min-height: 100vh;
+  background: #f6f8fb;
+
+  /* ✅ offset for fixed-top navbar */
+  padding-top: 72px;
+}
+.prereg-btn svg {
+  flex-shrink: 0;
+}
+.prereg-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* 🔥 THIS is the key */
+  gap: 12px;
+  padding-top: 18px;
+  margin-top: 18px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+/* Bootstrap invalid style support */
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: #dc3545 !important;
+}
+
+/* 🔥 tighter error text spacing */
+.invalid-feedback {
+  font-size: 0.8rem;
+  line-height: 1.1;
+
+  margin-top: 2px !important;   /* 🔥 reduce gap */
+  margin-bottom: 0 !important;
+
+  min-height: 14px;             /* still prevents layout jump */
+}
+
+/* 🔥 remove extra spacing from form groups */
+.form-label {
+  margin-bottom: 4px;
+}
+
+/* documents row invalid */
+.prereg-doc-row.is-invalid-row {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 0.15rem rgba(220, 53, 69, 0.12);
+}
+.row.g-3 > * {
+  margin-bottom: 0px;
+}
+/* label red */
+.is-invalid-label {
+  color: #dc3545 !important;
+  font-weight: 700;
+}
+
+/* 🔥 make placeholder red when invalid */
+.is-invalid-placeholder::placeholder {
+  color: #dc3545 !important;
+  opacity: 0.9;
+}
+
+.prereg-footer-left,
+.prereg-footer-right {
+  display: flex;
+  align-items: center;
+}
+/* =========================
+   LOCK CARD APPEARANCE
+   (NO hover / focus / active)
+========================= */
+
+/* Base card look */
+.prereg-card {
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 14px 40px rgba(2, 8, 23, 0.06) !important;
+  transition: none !important;
+}
+
+/* Disable ALL interactive states */
+.prereg-card:hover,
+.prereg-card:focus,
+.prereg-card:focus-within,
+.prereg-card:active {
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 14px 40px rgba(2, 8, 23, 0.06) !important;
+  outline: none !important;
+  transform: none !important;
+}
+
+/* Mobile: stack buttons nicely */
+@media (max-width: 576px) {
+  .prereg-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .prereg-footer-left,
+  .prereg-footer-right {
+    width: 100%;
+  }
+
+  .prereg-footer-right button,
+  .prereg-footer-left button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 576px) {
+  .prereg-shell {
+    padding-top: 64px;
+  }
+}
+/* =========================
+   BACK BUTTON
+========================= */
+.prereg-back-wrap {
+  margin-top: 14px;
+  margin-bottom: 6px;
+}
+
+.prereg-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  background: transparent;
+  border: none;
+  padding: 6px 4px;
+
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+
+  cursor: pointer;
+}
+
+.prereg-back-btn:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 576px) {
+  .prereg-back-btn {
+    font-size: 13px;
+  }
+}
+
+/* Space below navbar for content spacing (keep this small now) */
+.prereg-page {
+  padding-top: 22px;
+  padding-bottom: 40px;
+}
+
+/* ===== Shell / Background ===== */
+.prereg-shell {
+  min-height: 100vh;
+  background: #f6f8fb;
+}
+
+/* Space below sticky navbar */
+.prereg-page {
+  padding-top: 22px;
+  padding-bottom: 40px;
+}
+
+/* Hero */
+.prereg-hero {
+  padding-top: 10px;
+  margin-bottom: 18px;
+}
+
+.prereg-title {
+  letter-spacing: -0.02em;
+  font-size: clamp(28px, 2.4vw, 44px);
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+/* Stepper wrapper spacing */
+.prereg-stepper-wrap {
+  margin-bottom: 18px;
+}
+
+/* ===== Card (centered like screenshot) ===== */
+.prereg-card {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
+  box-shadow: 0 14px 40px rgba(2, 8, 23, 0.06);
+  background: #fff;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.prereg-card-body {
+  padding: clamp(16px, 2.2vw, 34px);
+}
+
+/* ===== Stepper (match screenshot) ===== */
+.prereg-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.prereg-stepper-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* pill */
+.prereg-stepper-pill {
+  border: 0;
+  background: #eef2f6;
+  color: #0f172a;
+  border-radius: 999px;
+  padding: 10px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 13px;
+  white-space: nowrap;
+
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.prereg-stepper-pill:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(2, 8, 23, 0.08);
+}
+
+.prereg-stepper-pill.active {
+  background: #0b4a6f;
+  color: #fff;
+}
+
+.prereg-stepper-pill.done {
+  background: #dbe7ef;
+  color: #0b4a6f;
+}
+
+/* locked (future step) */
+.prereg-stepper-pill.locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.prereg-stepper-pill:disabled {
+  cursor: not-allowed;
+}
+
+.prereg-step-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* connector lines (screenshot style) */
+.prereg-stepper-line {
+  width: 56px;
+  height: 2px;
+  background: #d8e1ea;
+  border-radius: 999px;
+}
+
+.prereg-stepper-line.done {
+  background: #0b4a6f;
+}
+
+/* Small screens: remove lines to avoid ugly wrapping */
+@media (max-width: 576px) {
+  .prereg-stepper-line {
+    display: none;
+  }
+
+  .prereg-stepper {
+    gap: 10px;
+  }
+
+  .prereg-stepper-pill {
+    padding: 10px 14px;
+    font-size: 12.5px;
+  }
+}
+
+/* hide chevrons (screenshot uses lines) */
+.prereg-stepper-chevron {
+  display: none !important;
+}
+
+/* On small screens: hide connectors to avoid ugly wrap lines */
+@media (max-width: 576px) {
+  .prereg-stepper-line {
+    display: none;
+  }
+}
+
+/* ===== Step section header ===== */
+.prereg-step {
+  width: 100%;
+}
+
+.prereg-step-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 576px) {
+  .prereg-step-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.prereg-step-header-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e6f2f7;
+  color: #0b4a6f;
+}
+
+/* ===== Chips ===== */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 800;
+  font-size: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.chip-muted {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.chip-success {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: #065f46;
+}
+
+/* ===== Documents rows (match screenshot) ===== */
+.prereg-doc-row {
+  border: 1px solid #e8eef4;
+  border-radius: 14px;
+  padding: 16px 18px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+@media (max-width: 576px) {
+  .prereg-doc-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.prereg-doc-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.prereg-doc-title {
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #0f172a;
+}
+
+.prereg-doc-ico {
+  color: #64748b;
+}
+
+.prereg-doc-sub {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 6px;
+}
+
+.prereg-doc-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+@media (max-width: 576px) {
+  .prereg-doc-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.prereg-upload-btn {
+  background: #eef2f6;
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.prereg-upload-btn:hover {
+  background: #e6edf4;
+}
+
+.prereg-remove-btn {
+  background: transparent;
+  border: 1px solid rgba(185, 28, 28, 0.25);
+  color: #b91c1c;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ===== Footer buttons like screenshot ===== */
+.prereg-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 18px;
+  margin-top: 18px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.prereg-btn {
+  border-radius: 14px;
+  padding: 10px 18px;
+  font-weight: 800;
+}
+
+@media (max-width: 576px) {
+  .prereg-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .prereg-btn {
+    width: 100%;
+  }
+}
+
+/* ===== Review cards ===== */
+.prereg-review-card {
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #f8fafc;
+}
+
+.prereg-review-list > * + * {
+  margin-top: 8px;
+}

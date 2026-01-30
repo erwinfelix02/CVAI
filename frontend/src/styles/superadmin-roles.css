@@ -1,0 +1,581 @@
+/* =========================
+   SUPER ADMIN - ROLE MGMT
+========================= */
+
+.superadmin-roles .superadmin-role-card {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.superadmin-add-btn {
+  border-radius: 14px;
+  padding: 10px 16px;
+  background: #0d5b78;
+  border-color: #0d5b78;
+}
+.superadmin-add-btn:hover {
+  background: #0b4c64;
+  border-color: #0b4c64;
+}
+/* Make modal fit nicely on smaller screens */
+.modal-dialog.modal-xl {
+  max-width: 1140px;
+}
+
+@media (max-width: 576px) {
+  .modal-dialog {
+    margin: 0.75rem;
+  }
+}
+
+/* Cleaner input-group look */
+.input-group-text {
+  border-right: 0;
+}
+
+.input-group .form-control,
+.input-group .form-select {
+  border-left: 0;
+}
+
+/* Rounded modern modal */
+.modal-content {
+  border: none;
+}
+
+/* Ensure scrollable body doesn't hide footer */
+.modal-dialog-scrollable .modal-body {
+  max-height: calc(100vh - 220px);
+}
+
+/* icon bubble */
+.role-ic {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+/* clickable hover */
+.role-clickable {
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.role-clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* Tabs */
+.role-tabs-bar {
+  display: flex;
+  gap: 10px;
+}
+
+/* Sticky info panel */
+.role-info-sticky {
+  position: sticky;
+  top: 12px;
+}
+
+/* key/value rows */
+.role-kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+/* permission chip editable */
+.role-chip-editable {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Modal above everything */
+.modal {
+  z-index: 1060;
+}
+.modal-backdrop {
+  z-index: 1055;
+}
+
+.role-ic.tone-purple {
+  background: rgba(124, 58, 237, 0.14);
+  color: #7c3aed;
+}
+.role-ic.tone-blue {
+  background: rgba(59, 130, 246, 0.14);
+  color: #2563eb;
+}
+.role-ic.tone-orange {
+  background: rgba(245, 158, 11, 0.16);
+  color: #d97706;
+}
+.role-ic.tone-green {
+  background: rgba(34, 197, 94, 0.14);
+  color: #16a34a;
+}
+.role-ic.tone-teal {
+  background: rgba(20, 184, 166, 0.14);
+  color: #0f766e;
+}
+.role-ic.tone-indigo {
+  background: rgba(99, 102, 241, 0.14);
+  color: #4f46e5;
+}
+
+.role-title {
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.role-users {
+  font-size: 0.95rem;
+}
+
+.role-settings-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  padding: 0 !important;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  line-height: 1 !important;
+}
+
+/* label */
+.role-perms-label {
+  margin-top: 14px;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  color: #64748b;
+}
+
+/* permission chips */
+.role-chip {
+  background: #eef2f6;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.9rem;
+
+  padding: 6px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* Responsive spacing like screenshot */
+@media (max-width: 575.98px) {
+  .role-ic {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+  }
+  .role-chip {
+    font-size: 0.88rem;
+  }
+}
+/* Tabs */
+.role-tabs-bar {
+  display: flex;
+  gap: 10px;
+}
+
+/* Sticky info panel */
+.role-info-sticky {
+  position: sticky;
+  top: 12px;
+}
+
+/* key/value rows */
+.role-kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+/* permission chip editable */
+.role-chip-editable {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* clickable role cards */
+.role-clickable {
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.role-clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* =========================
+   ROLE MODAL (Better UI)
+========================= */
+.role-modal {
+  z-index: 1060;
+}
+.modal-backdrop {
+  z-index: 1055;
+}
+
+.role-modal-dialog {
+  max-width: 560px;
+}
+
+.role-modal-content {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  overflow: hidden;
+  box-shadow: 0 18px 60px rgba(15, 23, 42, 0.18);
+}
+
+.role-modal-header {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbfc 100%);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 16px 18px;
+}
+
+.role-modal-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: rgba(13, 91, 120, 0.1);
+  color: #0d5b78;
+  flex: 0 0 auto;
+}
+
+.role-modal-title {
+  font-size: 1.05rem;
+  line-height: 1.1;
+}
+
+.role-modal-subtitle {
+  max-width: 380px;
+}
+
+.role-modal-close {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  padding: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.role-modal-body {
+  padding: 16px 18px 6px;
+}
+
+.role-modal-footer {
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 12px 18px;
+  background: #fff;
+}
+
+.role-modal-roleline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.03);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.role-badge {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-weight: 700;
+}
+
+.role-input {
+  border-radius: 12px;
+}
+
+.role-modal-hint {
+  display: flex;
+  justify-content: flex-end;
+}
+/* =========================
+   ROLE DETAILS - Better UI
+========================= */
+
+.role-details-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.role-back-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  padding: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* toolbar */
+.role-toolbar {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+.role-toolbar-body {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.role-search {
+  position: relative;
+  flex: 1 1 340px;
+  min-width: 260px;
+}
+.role-search-ic {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.7;
+}
+.role-search-input {
+  padding-left: 40px !important;
+  border-radius: 14px;
+}
+
+.role-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.role-filter-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 14px;
+}
+.role-filter-select {
+  border-radius: 14px;
+  min-width: 160px;
+}
+
+/* users card */
+.role-users-card {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+.role-users-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* table */
+.role-table thead th {
+  font-weight: 800;
+}
+.role-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(13, 91, 120, 0.1);
+  color: #0d5b78;
+  font-weight: 800;
+}
+.role-act-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  padding: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* info card */
+.role-info-card {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+.role-info-divider {
+  height: 1px;
+  background: rgba(15, 23, 42, 0.08);
+  margin: 14px 0;
+}
+.role-info-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
+  font-weight: 900;
+}
+.role-empty {
+  padding: 10px 0;
+}
+.role-info-sticky {
+  position: sticky;
+  top: 12px;
+}
+
+/* accordion perms (no tabs) */
+.role-perms-card {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+.role-accordion-btn {
+  width: 100%;
+  background: #fff;
+  border: 0;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.role-accordion-btn:hover {
+  background: rgba(15, 23, 42, 0.02);
+}
+.role-perm-ic {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: rgba(124, 58, 237, 0.12);
+  color: #7c3aed;
+}
+.role-accordion-chev {
+  opacity: 0.75;
+}
+
+/* keep your role-kv from earlier */
+.role-kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+/* Responsive tighten */
+@media (max-width: 575.98px) {
+  .role-filter-select {
+    min-width: 140px;
+  }
+  .role-act-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+}
+.role-right-btn {
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-weight: 700;
+}
+/* Smooth edges + keep table clipped */
+.role-users-card {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+/* Top bar (rows + counts) */
+.role-users-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 12px 14px;
+  background: #fff;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.role-page-size {
+  width: 90px;
+}
+
+/* Make table readable, avoid squeezed text */
+.role-users-table {
+  min-width: 760px;
+}
+
+.role-users-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Column sizing */
+.role-col-id {
+  width: 160px;
+}
+.role-col-status {
+  width: 140px;
+}
+.role-col-name {
+  width: 30%;
+}
+.role-col-email {
+  width: 40%;
+}
+
+/* Truncation */
+.role-td-truncate {
+  max-width: 0;
+}
+.role-truncate {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Footer area */
+.role-users-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+
+  padding: 10px 14px;
+  background: #fff;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+/* Pagination a bit softer */
+.role-users-footer .page-link {
+  border-radius: 10px;
+}

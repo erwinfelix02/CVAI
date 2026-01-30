@@ -1,0 +1,164 @@
+/* =========================
+   SUPERADMIN - ACTIVITY LOGS
+========================= */
+
+.superadmin-logs .superadmin-logs-card {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+/* title icon */
+.superadmin-logs-titleicon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(245, 158, 11, 0.14);
+  color: #d97706;
+  flex: 0 0 auto;
+}
+
+.superadmin-logs-btn {
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-weight: 600;
+}
+
+/* =========================
+   Stats
+========================= */
+.superadmin-logs-stat-ic {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.superadmin-logs-stat-ic.blue { background: rgba(59,130,246,.14); color: #2563eb; }
+.superadmin-logs-stat-ic.green { background: rgba(34,197,94,.14); color: #16a34a; }
+.superadmin-logs-stat-ic.orange { background: rgba(245,158,11,.16); color: #d97706; }
+.superadmin-logs-stat-ic.red { background: rgba(239,68,68,.12); color: #dc2626; }
+
+.superadmin-logs-stat-val {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.4px;
+}
+
+/* =========================
+   Filters bar
+========================= */
+.superadmin-logs-search {
+  position: relative;
+}
+.superadmin-logs-search-ic {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  color: #64748b;
+}
+.superadmin-logs-search-input {
+  padding-left: 40px;
+  border-radius: 14px;
+  height: 44px;
+}
+.superadmin-logs-search-input:focus { box-shadow: none; }
+
+.superadmin-logs-select {
+  position: relative;
+  min-width: 180px;
+}
+.superadmin-logs-select-control {
+  border-radius: 14px;
+  height: 44px;
+  padding-right: 38px;
+  font-weight: 600;
+}
+.superadmin-logs-select-control:focus { box-shadow: none; }
+.superadmin-logs-select-caret {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+}
+
+/* =========================
+   Table
+========================= */
+.superadmin-logs-tablewrap {
+  border-radius: 18px;
+}
+.superadmin-logs-table thead th {
+  font-size: 0.92rem;
+  color: #64748b;
+  font-weight: 700;
+  padding-top: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+.superadmin-logs-table td {
+  padding-top: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #eef2f6;
+  vertical-align: middle;
+}
+.superadmin-logs-details {
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.superadmin-logs-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.92rem;
+}
+
+/* user icon */
+.superadmin-logs-useric {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(15,23,42,.06);
+  display: grid;
+  place-items: center;
+  color: #0f172a;
+}
+
+/* pills */
+.superadmin-logs-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.superadmin-logs-pill.role.admin { color: #ef4444; background: rgba(239,68,68,.10); }
+.superadmin-logs-pill.role.faculty { color: #16a34a; background: rgba(34,197,94,.12); }
+.superadmin-logs-pill.role.student { color: #2563eb; background: rgba(59,130,246,.12); }
+.superadmin-logs-pill.role.neutral { color: #0f172a; background: rgba(15,23,42,.06); }
+
+.superadmin-logs-pill.type.auth { color: #2563eb; background: rgba(59,130,246,.12); }
+.superadmin-logs-pill.type.data { color: #7c3aed; background: rgba(124,58,237,.12); }
+.superadmin-logs-pill.type.security { color: #d97706; background: rgba(245,158,11,.14); }
+.superadmin-logs-pill.type.system { color: #0f172a; background: rgba(15,23,42,.06); }
+
+.superadmin-logs-pill.status.success { color: #16a34a; background: rgba(34,197,94,.12); }
+.superadmin-logs-pill.status.warning { color: #d97706; background: rgba(245,158,11,.14); }
+.superadmin-logs-pill.status.error { color: #dc2626; background: rgba(239,68,68,.12); }
+
+/* Mobile tweaks */
+@media (max-width: 575.98px) {
+  .superadmin-logs-select { width: 100%; min-width: 0; }
+  .superadmin-logs-details { max-width: 160px; }
+}

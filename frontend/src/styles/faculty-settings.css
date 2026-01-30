@@ -1,0 +1,96 @@
+/* =========================
+   FACULTY - SETTINGS
+========================= */
+
+.faculty-settings .faculty-settings-card {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+/* tabs */
+.faculty-settings-tabs {
+  display: inline-flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 14px;
+  background: #f1f5f9;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  flex-wrap: wrap;
+}
+
+.faculty-settings-tab {
+  border: 0;
+  background: transparent;
+  border-radius: 12px;
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: #475569;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.faculty-settings-tab:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.faculty-settings-tab.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+/* row layout */
+.faculty-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* ✅ switch size + keep it aligned in small screens */
+.form-switch .faculty-switch.form-check-input {
+  width: 56px;
+  height: 30px;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 999px;
+  background-position: left center;
+  background-size: 26px 26px;
+}
+
+.form-switch .faculty-switch.form-check-input:checked {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+  background-position: right center;
+}
+
+.form-switch .faculty-switch.form-check-input:focus {
+  box-shadow: none;
+}
+
+/* wrap so it doesn't shrink */
+.faculty-switch-wrap {
+  flex: 0 0 auto;
+}
+
+/* save button */
+.faculty-settings-savebtn {
+  border-radius: 14px;
+  padding: 10px 16px;
+}
+
+/* mobile stack */
+@media (max-width: 575.98px) {
+  .faculty-settings-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .faculty-switch-wrap {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+}

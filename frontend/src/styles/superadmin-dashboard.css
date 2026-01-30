@@ -1,0 +1,205 @@
+/* =========================
+   SUPER ADMIN DASHBOARD
+========================= */
+
+.superadmin-dashboard .superadmin-card {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+/* Stat value */
+.superadmin-stat-value {
+  font-size: 2rem;
+  letter-spacing: -0.5px;
+  line-height: 1.05;
+}
+
+/* Stat icon bubble */
+.superadmin-stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.superadmin-stat-icon.blue { background: rgba(59,130,246,.14); color: #2563eb; }
+.superadmin-stat-icon.purple { background: rgba(124,58,237,.14); color: #7c3aed; }
+.superadmin-stat-icon.green { background: rgba(34,197,94,.14); color: #16a34a; }
+.superadmin-stat-icon.orange { background: rgba(245,158,11,.16); color: #d97706; }
+
+/* Top right "All Systems Online" pill */
+.superadmin-pill {
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.superadmin-pill.success {
+  color: #15803d;
+  background: rgba(34,197,94,.12);
+  border-color: rgba(34,197,94,.30);
+}
+
+/* Portal row */
+.superadmin-portal-row {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 14px 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.superadmin-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.superadmin-dot.online { background: #22c55e; }
+.superadmin-dot.offline { background: #ef4444; }
+
+.superadmin-chip {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  border: 1px solid transparent;
+}
+
+.superadmin-chip.online {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.superadmin-chip.offline {
+  color: #b91c1c;
+  background: rgba(239,68,68,.10);
+  border-color: rgba(239,68,68,.25);
+}
+
+/* Recent activity row */
+.superadmin-activity-row {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 14px 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.superadmin-activity-ic {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.superadmin-activity-ic.blue { background: rgba(59,130,246,.14); color: #2563eb; }
+.superadmin-activity-ic.green { background: rgba(34,197,94,.14); color: #16a34a; }
+.superadmin-activity-ic.orange { background: rgba(245,158,11,.16); color: #d97706; }
+
+.superadmin-time-dot {
+  opacity: 0.7;
+}
+
+/* Links */
+.superadmin-link {
+  color: #0f172a;
+  font-weight: 700;
+  text-decoration: none;
+}
+.superadmin-link:hover {
+  text-decoration: underline;
+}
+
+/* Quick Actions tile */
+.superadmin-qa {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  flex-direction: column;
+
+  text-decoration: none;
+  color: #0f172a;
+
+  transition: transform .12s ease, background .12s ease;
+  min-height: 86px;
+}
+.superadmin-qa:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+.superadmin-qa-ic {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: #f1f5f9;
+  color: #0d5b78;
+}
+
+.superadmin-badge-ai {
+  background: #7c3aed !important;
+}
+
+/* Responsive: stack meta nicely */
+@media (max-width: 575.98px) {
+  .superadmin-portal-row,
+  .superadmin-activity-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .superadmin-portal-row > div:last-child,
+  .superadmin-activity-row > div:last-child {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+/* make all quick action cards same height */
+.superadmin-qa {
+  min-height: 96px; /* a bit more stable */
+}
+
+/* ✅ floating badge (doesn't affect layout) */
+.superadmin-qa-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+
+  background: #7c3aed;
+  color: #fff;
+
+  font-weight: 800;
+  font-size: 0.72rem;
+  line-height: 1;
+
+  padding: 5px 8px;
+  border-radius: 999px;
+}

@@ -423,3 +423,13 @@
     max-height: 45vh;
   }
 }
+/* Force all text inside colored stat cards to be white */
+.faculty-stat-card,
+.faculty-stat-card * {
+  color: #fff !important;
+}
+
+/* if you want subtext slightly softer */
+.faculty-stat-card .sub {
+  opacity: 0.9;
+}

@@ -1,15 +1,14 @@
 import { Routes, Route } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
+
+import StudentPreRegistrationPage from "./pages/PreReg/StudentPreRegistrationPage";
+
 import SignIn from "./pages/Authentication/SignIn";
 import SignUp from "./pages/Authentication/SignUp";
 import ForgotPassword from "./pages/Authentication/ForgotPassword";
 import VerifyCode from "./pages/Authentication/VerifyCode";
 import "./styles/buttons.css";
-import "./styles/admin.css";
 import "./styles/users.css";
-import Admin from "./pages/Admin/AdminLayout";
-import Dashboard from "./pages/Admin/Dashboard";
-import Users from "./pages/Admin/Users";
 
 import StudentLayoutPage from "./pages/Student/StudentLayoutPage";
 import StudentDashboard from "./pages/Student/StudentDashboard";
@@ -29,6 +28,30 @@ import StudentsPage from "./pages/Faculty/StudentsPage";
 import MyClassesPage from "./pages/Faculty/MyClassesPage";
 import FacultyAnnouncementsPage from "./pages/Faculty/FacultyAnnouncementsPage";
 import CourseMaterialsPage from "./pages/Faculty/CourseMaterialsPage";
+import TeachingSchedulePage from "./pages/Faculty/TeachingSchedulePage";
+import AttendanceTrackingPage from "./pages/Faculty/AttendanceTrackingPage";
+import GradeManagementPage from "./pages/Faculty/GradeManagementPage";
+import FacultyAIAssistantPage from "./pages/Faculty/FacultyAIAssistantPage";
+import FacultySettingsPage from "./pages/Faculty/FacultySettingsPage";
+
+
+import RegistrarLayout from "./pages/Registrar/RegistrarLayout";
+import RegistrarDashboard from "./pages/Registrar/RegistrarDashboard";
+import ApplicationsPage from "./pages/Registrar/ApplicationsPage";
+import StudentRecordsPage from "./pages/Registrar/StudentRecordsPage";
+
+import SuperAdminLayoutPage from "./pages/SuperAdmin/SuperAdminLayoutPage";
+import SuperAdminDashboard from "./pages/SuperAdmin/SuperAdminDashboard";
+import RoleManagementPage from "./pages/SuperAdmin/RoleManagementPage";
+import AIKnowledgeBasePage from "./pages/SuperAdmin/AIKnowledgeBasePage";
+import AIKnowledgeCategoryPage from "./pages/SuperAdmin/AIKnowledgeCategoryPage";
+import ActivityLogsPage from "./pages/SuperAdmin/ActivityLogsPage";
+import SettingsPage from "./pages/SuperAdmin/SettingsPage";
+import UsersPage from "./pages/SuperAdmin/UsersPage";
+
+
+
+
 
 export default function App() {
   return (
@@ -40,11 +63,8 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/verify-code" element={<VerifyCode />} />
 
-      {/* Admin */}
-      <Route path="/admin" element={<Admin />}>
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="users" element={<Users />} />
-      </Route>
+      {/* ✅ Pre-Registration */}
+      <Route path="/prereg" element={<StudentPreRegistrationPage />} />
 
       {/* Student */}
       <Route path="/student" element={<StudentLayoutPage />}>
@@ -67,6 +87,32 @@ export default function App() {
         <Route path="classes" element={<MyClassesPage />} />
         <Route path="announcements" element={<FacultyAnnouncementsPage />} />
         <Route path="materials" element={<CourseMaterialsPage />} />
+        <Route path="schedule" element={<TeachingSchedulePage />} />
+        <Route path="attendance" element={<AttendanceTrackingPage />} />
+        <Route path="grades" element={<GradeManagementPage />} />
+        <Route path="aiassistant" element={<FacultyAIAssistantPage />} />
+        <Route path="settings" element={<FacultySettingsPage />} />
+      </Route>
+
+      {/* ✅ Registrar */}
+      <Route path="/registrar" element={<RegistrarLayout />}>
+        <Route index element={<RegistrarDashboard />} />
+        <Route path="applications" element={<ApplicationsPage />} />
+        <Route path="students" element={<StudentRecordsPage />} />
+      </Route>
+
+      {/* ✅ Super Admin */}
+      <Route path="/superadmin" element={<SuperAdminLayoutPage />}>
+        <Route index element={<SuperAdminDashboard />} />
+        <Route path="roles" element={<RoleManagementPage />} />
+        <Route path="aiknowledge" element={<AIKnowledgeBasePage />} />
+        <Route
+          path="aiknowledge/:categoryId"
+          element={<AIKnowledgeCategoryPage />}
+        />
+        <Route path="logs" element={<ActivityLogsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="users" element={<UsersPage />} />
       </Route>
     </Routes>
   );

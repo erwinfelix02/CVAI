@@ -1,0 +1,141 @@
+/* =========================
+   Shared card look
+========================= */
+.registrar-card {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+/* Export button like screenshot */
+.registrar-export-btn {
+  border-radius: 14px;
+  padding: 10px 16px;
+}
+
+/* =========================
+   Mini stat cards (4 boxes)
+========================= */
+.registrar-mini-stat {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+/* =========================
+   Filters (compact)
+========================= */
+.registrar-filters-body {
+  padding: 10px 12px !important;
+}
+@media (min-width: 768px) {
+  .registrar-filters-body {
+    padding: 12px 14px !important;
+  }
+}
+
+.registrar-search .input-group-text {
+  border-right: 0;
+  border-radius: 14px 0 0 14px;
+  padding: 8px 10px;
+}
+.registrar-search .form-control {
+  border-left: 0;
+  border-radius: 0 14px 14px 0;
+  height: 42px;
+  padding: 8px 10px;
+}
+.registrar-search .form-control:focus {
+  box-shadow: none;
+}
+
+/* dropdown pills (All Status / All Courses) */
+.registrar-pill-select {
+  position: relative;
+  min-width: 220px;
+}
+.registrar-pill-select .form-select {
+  border-radius: 14px;
+  height: 42px;
+  padding-right: 36px;
+}
+.registrar-pill-select .caret {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+}
+
+@media (max-width: 991.98px) {
+  .registrar-pill-select {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* =========================
+   Table
+========================= */
+.registrar-table thead th {
+  font-weight: 600;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.registrar-table td,
+.registrar-table th {
+  padding: 16px 18px;
+  vertical-align: middle;
+}
+
+.registrar-table-wrap {
+  padding: 0 14px 14px;
+}
+
+.registrar-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: #0f172a;
+  flex: 0 0 auto;
+}
+
+/* status pills */
+.registrar-status {
+  font-weight: 800;
+  font-size: 0.85rem;
+  border-radius: 999px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.registrar-status.active {
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.35);
+}
+.registrar-status.dropped {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.10);
+  border-color: rgba(239, 68, 68, 0.28);
+}
+.registrar-status.graduated {
+  color: #1d4ed8;
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.28);
+}
+
+.registrar-dots {
+  text-decoration: none;
+  font-size: 22px;
+  line-height: 1;
+  color: #0f172a;
+}
+.registrar-dots:hover {
+  color: #111827;
+}

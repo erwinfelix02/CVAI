@@ -1,0 +1,143 @@
+.prereg-navbar {
+  height: 72px; /* desktop height */
+  background: #ffffff;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  z-index: 1200;
+
+  transition:
+    background-color 0.3s ease,
+    backdrop-filter 0.3s ease,
+    -webkit-backdrop-filter 0.3s ease,
+    box-shadow 0.3s ease;
+}
+/* Circular logo badge */
+.prereg-logo-wrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(2, 8, 23, 0.12);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 auto;
+}
+
+/* Actual logo inside */
+.prereg-navbar-logo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  border-radius: 0; /* don't clip logo */
+}
+@media (max-width: 576px) {
+  .prereg-logo-wrapper {
+    width: 46px;
+    height: 46px;
+  }
+
+  .prereg-navbar-logo {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+/* blur on scroll */
+.prereg-navbar.scrolled {
+  background-color: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 10px 24px rgba(2, 8, 23, 0.06);
+}
+
+.prereg-navbar-inner {
+  height: 72px; /* match navbar height */
+  display: flex;
+  align-items: center;
+}
+
+/* Brand wrapper */
+.prereg-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 100%;
+
+  /* important so long text doesn't push outside */
+  min-width: 0;
+}
+
+/* Logo */
+.prereg-navbar-logo {
+  width: 46px;
+  height: 46px;
+  object-fit: cover;
+  border-radius: 12px;
+  flex: 0 0 auto;
+}
+
+/* Text */
+.prereg-navbar-text {
+  min-width: 0; /* allows ellipsis */
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.prereg-navbar-school,
+.prereg-navbar-subtitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prereg-navbar-school {
+  font-weight: 900;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: #0f172a;
+}
+
+.prereg-navbar-subtitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+/* mobile */
+@media (max-width: 576px) {
+  .prereg-navbar {
+    height: 64px;
+  }
+
+  .prereg-navbar-inner {
+    height: 64px;
+  }
+
+  .prereg-navbar-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+
+  .prereg-navbar-school {
+    font-size: 13px;
+  }
+
+  .prereg-navbar-subtitle {
+    font-size: 11px;
+  }
+}
+
+/* extra small phones */
+@media (max-width: 360px) {
+  .prereg-navbar-school {
+    font-size: 12px;
+  }
+
+  .prereg-navbar-subtitle {
+    font-size: 10px;
+  }
+}

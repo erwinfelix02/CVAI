@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import Button from "../Authentication/Button";
 import "../../styles/navbar.css";
-import Logo from "../../assets/graduation.png";
+import Logo from "../../assets/graystone1.jpg";
 import ArrowIcon from "../../assets/arrow-right.png";
 
 export default function Navbar() {
@@ -11,30 +11,33 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const onScroll = () => {
-      setScrolled(window.scrollY > 0);
-    };
-
-    window.addEventListener("scroll", onScroll);
+    const onScroll = () => setScrolled(window.scrollY > 0);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
     <nav
-      className={`navbar navbar-expand-lg fixed-top ${
-        scrolled ? "scrolled" : ""
-      }`}
+      className={`navbar navbar-expand-lg fixed-top ${scrolled ? "scrolled" : ""}`}
     >
-      <div className="container py-2">
-        {/* LOGO */}
+      <div className="container py-2 d-flex align-items-center">
+        {/* BRAND */}
         <button
-          className="navbar-brand d-flex align-items-center gap-2 btn btn-link p-0"
+          className="navbar-brand d-flex align-items-center gap-3 btn btn-link p-0"
           onClick={() => navigate("/")}
         >
           <span className="navbar-logo-wrapper">
             <img src={Logo} alt="CampusAI logo" className="navbar-logo" />
           </span>
-          CampusAI
+
+          {/* TEXT (like PreRegNavbar) */}
+          <div className="navbar-text text-start">
+            <div className="navbar-school">
+              Graystone Institute of the Philippines
+            </div>
+            <div className="navbar-title">CampusAI</div>
+          </div>
         </button>
 
         {/* ACTION BUTTONS */}
@@ -49,9 +52,9 @@ export default function Navbar() {
 
           <Button
             className="navbar-cta px-4 d-inline-flex align-items-center gap-2"
-            onClick={() => navigate("/signup")}
+            onClick={() => navigate("/prereg")}
           >
-            Get Started
+            Register Now
             <img src={ArrowIcon} alt="" className="btn-icon" />
           </Button>
         </div>

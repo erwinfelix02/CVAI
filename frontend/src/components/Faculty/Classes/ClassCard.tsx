@@ -20,7 +20,9 @@ export default function ClassCard({
 
   return (
     <div className={`card shadow-sm faculty-class-card ${accentClass(item.accent)}`}>
-      <div className="card-body p-3 p-md-4">
+      <div className="card-body faculty-class-body">
+
+
         {/* top row: code pill + assigned badge */}
         <div className="d-flex justify-content-between align-items-start mb-2">
           <span className="badge rounded-pill text-dark bg-white border px-3 py-2 class-code-pill">

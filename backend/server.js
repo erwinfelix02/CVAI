@@ -4,10 +4,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import connectDB from "./config/db.js";
-import authRoutes from "./routes/auth.routes.js";
-import emailVerificationRoutes from "./routes/emailVerification.routes.js";
-import resendCodeRoutes from "./routes/resendCode.js";
-import schoolMemberRoutes from "./routes/schoolMemberRoutes.js";
+
 
 
 const app = express();
@@ -18,14 +15,6 @@ app.use(express.json());
 
 // Connect DB
 connectDB();
-
-
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/auth", emailVerificationRoutes);
-app.use("/api/auth", resendCodeRoutes);
-app.use("/api", schoolMemberRoutes);
-
 
 mongoose
   .connect(process.env.MONGO_URI)

@@ -69,7 +69,8 @@ export default function AssignedClassesPage() {
   }, []);
 
   return (
-    <div className="container-fluid faculty-classes-page">
+    <div className="container-fluid faculty-classes-scope">
+
       {/* Header */}
       <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-3 mb-md-4">
         <div>

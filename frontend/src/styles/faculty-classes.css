@@ -1,21 +1,30 @@
-.faculty-classes-page {
+/* =========================
+   FACULTY CLASSES (ISOLATED)
+========================= */
+
+.faculty-classes-scope {
   padding-top: 8px;
   padding-bottom: 16px;
 }
 
+/* header */
+.faculty-classes-scope h3 {
+  color: #0f172a;
+}
+
 /* semester pill */
-.faculty-semester-pill {
+.faculty-classes-scope .faculty-semester-pill {
   border-radius: 999px;
 }
 
 /* info banner */
-.faculty-info-banner {
+.faculty-classes-scope .faculty-info-banner {
   border-radius: 16px;
   border: 1px solid rgba(15, 23, 42, 0.08);
-  background: #ecfdf5; /* soft green */
+  background: #ecfdf5;
 }
 
-.faculty-info-banner .info-icon {
+.faculty-classes-scope .faculty-info-banner .info-icon {
   width: 44px;
   height: 44px;
   border-radius: 14px;
@@ -23,106 +32,139 @@
   color: #059669;
   display: grid;
   place-items: center;
-  flex-shrink: 0;
 }
 
 /* mini stats */
-.faculty-mini-stat {
+.faculty-classes-scope .faculty-mini-stat {
   border-radius: 16px;
   border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
-.mini-stat-value {
+.faculty-classes-scope .mini-stat-value {
   font-size: 2rem;
   font-weight: 800;
   color: #0f172a;
-  line-height: 1.1;
 }
 
-.mini-stat-label {
+.faculty-classes-scope .mini-stat-label {
   color: #64748b;
   font-weight: 600;
 }
 
-/* class card */
-.faculty-class-card {
+/* =========================
+   CLASS CARD (MATCH IMAGE)
+========================= */
+
+.faculty-classes-scope .faculty-class-card {
+  position: relative;
   border-radius: 16px;
   border: 1px solid rgba(15, 23, 42, 0.08);
-  background: #fff;
+  background: #ffffff !important;
+  color: #0f172a;
   overflow: hidden;
-  position: relative;
+  padding: 0 !important;
+  isolation: isolate;
+
+  opacity: 1 !important;
+  filter: none !important;
 }
 
-/* top accent bar */
-.faculty-class-card::before {
+/* ✅ SINGLE accent bar rule (no duplicates) */
+/* accent bar – curved like the card */
+.faculty-classes-scope .faculty-class-card::before {
   content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
+
   height: 6px;
+  z-index: 10;
+
+  /* ✅ MATCH card curvature */
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+
+  opacity: 1;
+  filter: none;
 }
 
-/* accents */
-.class-accent-blue::before {
-  background: linear-gradient(90deg, #3b82f6, #06b6d4);
-}
-.class-accent-purple::before {
-  background: linear-gradient(90deg, #8b5cf6, #a855f7);
-}
-.class-accent-green::before {
-  background: linear-gradient(90deg, #10b981, #22c55e);
-}
-.class-accent-orange::before {
-  background: linear-gradient(90deg, #f59e0b, #f97316);
+
+/* accent colors */
+.faculty-classes-scope .class-accent-blue::before {
+  background: linear-gradient(90deg, #2563eb 0%, #06b6d4 100%);
 }
 
-.class-code-pill {
-  font-weight: 800;
+.faculty-classes-scope .class-accent-purple::before {
+  background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%);
 }
 
-.class-title {
+.faculty-classes-scope .class-accent-green::before {
+  background: linear-gradient(90deg, #16a34a 0%, #22c55e 100%);
+}
+
+.faculty-classes-scope .class-accent-orange::before {
+  background: linear-gradient(90deg, #f59e0b 0%, #f97316 100%);
+}
+
+/* ✅ Push content down so it doesn't collide with the bar */
+.faculty-classes-scope .faculty-class-body,
+.faculty-classes-scope .faculty-class-card .card-body {
+  padding: 20px 16px 16px !important;
+}
+
+@media (min-width: 768px) {
+  .faculty-classes-scope .faculty-class-body,
+  .faculty-classes-scope .faculty-class-card .card-body {
+    padding: 20px 24px 22px !important;
+  }
+}
+
+/* pills */
+.faculty-classes-scope .class-code-pill,
+.faculty-classes-scope .badge {
+  padding: 6px 14px;
+  font-weight: 600;
+  color: #0f172a !important;
+}
+
+/* title & meta */
+.faculty-classes-scope .class-title {
   font-size: 1.25rem;
+  color: #0f172a;
 }
 
-.class-meta {
-  color: #334155;
+.faculty-classes-scope .class-meta {
+  color: #1e293b;
 }
 
-.meta-text {
-  min-width: 0;
-  overflow-wrap: anywhere; /* ✅ prevents overflow on small screens */
+.faculty-classes-scope .meta-text {
+  color: #1e293b;
+  overflow-wrap: anywhere;
 }
 
 /* progress */
-.class-progress {
+.faculty-classes-scope .class-progress {
   height: 10px;
   border-radius: 999px;
   background: #eef2f7;
-  overflow: hidden;
-}
-.class-progress .progress-bar {
-  border-radius: 999px;
 }
 
-/* action buttons */
-.class-action-btn {
+/* buttons */
+.faculty-classes-scope .class-action-btn {
   border-color: #e2e8f0 !important;
   color: #0f172a !important;
-  background: #fff !important;
+  background: #ffffff !important;
   border-radius: 12px !important;
-  padding: 10px 12px !important;
 }
-.class-action-btn:hover {
+
+.faculty-classes-scope .class-action-btn:hover {
   background: #f8fafc !important;
 }
 
-/* mobile tweaks */
+/* mobile */
 @media (max-width: 575.98px) {
-  .class-title {
+  .faculty-classes-scope .class-title {
     font-size: 1.15rem;
-  }
-  .faculty-class-card .card-body {
-    padding: 16px !important;
   }
 }

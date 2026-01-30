@@ -33,7 +33,7 @@ export function Hero() {
             className="hero-cta px-4 d-inline-flex align-items-center gap-2"
             onClick={() => navigate("/signin")}
           >
-            Start Chatting Now
+            Get Started
             <img src={ChatIcon} alt="" className="btn-icon" />
           </Button>
 

@@ -1,0 +1,95 @@
+.superadmin-layout {
+  height: 100dvh;
+  overflow: hidden;
+  background: #f6f7fb;
+  display: flex;
+  width: 100%;
+}
+
+.superadmin-main {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 100dvh;
+  overflow-y: auto;
+
+  padding-left: 16px;
+  padding-right: 16px;
+
+  padding-top: calc(16px + env(safe-area-inset-top));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+.superadmin-sidebar {
+  flex-shrink: 0;
+}
+
+/* Mobile top header */
+.superadmin-mobile-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  height: 60px;
+  padding-top: env(safe-area-inset-top);
+  padding-left: 14px;
+  padding-right: 14px;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  background: #0f172a;
+  color: #fff;
+
+  z-index: 1200;
+}
+
+.superadmin-mobile-menu-btn {
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.superadmin-mobile-menu-btn:active {
+  transform: scale(0.96);
+}
+
+.superadmin-mobile-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.superadmin-mobile-title {
+  font-weight: 800;
+  font-size: 0.98rem;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.superadmin-mobile-subtitle {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 767.98px) {
+  .superadmin-main.has-mobile-header {
+    padding-top: calc(60px + 16px + env(safe-area-inset-top));
+  }
+}

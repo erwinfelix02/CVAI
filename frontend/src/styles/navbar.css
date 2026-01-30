@@ -1,123 +1,189 @@
-/* Navbar base */
+/* =========================
+   NAVBAR (MATCH PREREG)
+========================= */
 .navbar {
-  height: 4rem;
-  background-color: #ffffff;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  height: 72px; /* ✅ same as prereg */
+  background: #ffffff;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  z-index: 1200;
+
   transition:
     background-color 0.3s ease,
     backdrop-filter 0.3s ease,
+    -webkit-backdrop-filter 0.3s ease,
     box-shadow 0.3s ease;
 }
 
-/* Navbar when scrolled */
 .navbar.scrolled {
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 10px 24px rgba(2, 8, 23, 0.06);
 }
 
+/* ✅ container must match height */
+.navbar .container {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+/* =========================
+   BRAND (MATCH PREREG)
+========================= */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* ✅ same spacing as prereg */
+  max-width: 100%;
+  min-width: 0;
+  text-decoration: none !important;
+}
+
+/* =========================
+   LOGO (MATCH PREREG)
+========================= */
 .navbar-logo-wrapper {
-   width: clamp(28px, 2vw, 36px);
-  height: clamp(28px, 2vw, 36px);
-  border-radius: 10px; /* smooth square */
-  background-color: #0d5173;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(2, 8, 23, 0.12);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
 }
 
-/* Logo image */
 .navbar-logo {
-  width: clamp(16px, 1.2vw, 20px);
-  height: auto;
-  object-fit: contain;
+  width: 46px;
+  height: 46px;
+  object-fit: cover;   /* ✅ same zoom effect */
+  border-radius: 12px;
+  display: block;
 }
 
-/* Sign in link */
-.navbar .btn-link {
-  color: #475569;
-  font-weight: 500;
+
+/* =========================
+   BRAND TEXT (MATCH PREREG)
+   School name (top) + CampusAI (bottom)
+========================= */
+.navbar-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
 }
 
-/* Brand text (CampusAI) */
-.navbar-brand {
-  font-size: clamp(16px, 1.1vw, 22px);
+.navbar-school,
+.navbar-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: min(56vw, 520px);
+}
+
+/* ✅ School name should be MAIN */
+.navbar-school {
+  font-weight: 900;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: #0f172a;
+}
+
+/* ✅ CampusAI should be secondary */
+.navbar-title {
+  font-size: 12px;
   font-weight: 700;
+  color: #64748b;
 }
 
+/* =========================
+   BUTTONS
+========================= */
 .navbar .btn,
 .navbar .btn-link {
-  font-size: clamp(14px, 0.9vw, 18px);
   font-weight: 600;
 }
-.btn-icon {
-  width: clamp(14px, 0.9vw, 18px);
-  height: auto;
+
+.navbar-cta {
+  background: #0d5173;
+  color: #fff;
+  border: 0;
 }
 
-/* Button arrow icon */
+.navbar-cta:hover,
+.navbar-cta:focus,
+.navbar-cta:focus-visible {
+  background: #0b4763;
+  color: #fff;
+  box-shadow: none;
+  outline: none;
+}
+
+.navbar-cta:active {
+  transform: scale(0.98);
+  filter: brightness(0.95);
+}
+
 .btn-icon {
   width: 16px;
   height: 16px;
   object-fit: contain;
 }
-/* Hide Sign In on small screens */
+
+/* =========================
+   MOBILE (MATCH PREREG)
+========================= */
 @media (max-width: 576px) {
+  .navbar {
+    height: 64px;
+  }
+
+  .navbar .container {
+    height: 64px;
+  }
+
+  .navbar-logo-wrapper {
+    width: 46px;
+    height: 46px;
+  }
+
+  .navbar-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+
+  .navbar-school {
+    font-size: 13px;
+  }
+
+  .navbar-title {
+    font-size: 11px;
+  }
+
+  /* optional: hide Sign In on small screens */
   .navbar-signin {
     display: none;
   }
 }
-/* Adjust Get Started button, logo, and brand text for all phone sizes */
-@media (max-width: 768px) {
-  /* Get Started button */
-  .navbar .d-inline-flex {
-    padding: clamp(0.3rem, 2vw, 0.6rem);   /* dynamic padding */
-    font-size: clamp(0.75rem, 2.5vw, 0.9rem); /* dynamic font-size */
+
+/* extra small phones */
+@media (max-width: 360px) {
+  .navbar-school {
+    font-size: 12px;
   }
 
-  /* Logo wrapper */
-  .navbar-logo-wrapper {
-    width: clamp(24px, 10vw, 32px);
-    height: clamp(24px, 10vw, 32px);
+  .navbar-title {
+    font-size: 10px;
   }
 
-  /* Logo image inside wrapper */
-  .navbar-logo {
-    width: clamp(14px, 8vw, 20px);
-    height: auto;
-  }
-
-  /* Brand text (CampusAI) */
-  .navbar-brand {
-    font-size: clamp(14px, 5vw, 20px);  /* dynamic text size */
-  }
-
-  /* Optional: shrink arrow icon in button */
-  .btn-icon {
-    width: clamp(12px, 4vw, 16px);
-    height: auto;
+  .navbar-cta {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
   }
 }
-/* 🔒 Stop Get Started button turning white on mobile */
-@media (max-width: 768px) {
-  .navbar .navbar-cta,
-  .navbar .navbar-cta:hover,
-  .navbar .navbar-cta:focus,
-  .navbar .navbar-cta:focus-visible {
-    background-color: #0d5173;
-    color: #ffffff;
-    box-shadow: none;
-    outline: none;
-    filter: none;
-  }
-
-  .navbar .navbar-cta {
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-}
-.navbar-cta:active {
-  transform: scale(0.96);
-  filter: brightness(0.95);
-}
-

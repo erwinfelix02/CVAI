@@ -1,0 +1,256 @@
+.faculty-att-page {
+  background: #f6f8fb;
+}
+
+/* header buttons */
+.att-btn {
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 700;
+}
+
+/* filters card */
+.att-filters-card,
+.att-stat-card,
+.att-list-card {
+  border: 0;
+  border-radius: 16px;
+  box-shadow: 0 12px 26px rgba(2, 8, 23, 0.06);
+}
+
+.att-input {
+  border-radius: 12px !important;
+}
+
+/* stats */
+.att-stat-ico {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.att-stat-value {
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+  color: #0f172a; /* ✅ always visible */
+}
+
+.tone-blue { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+.tone-green { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+.tone-red { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+.tone-orange { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+
+.tone-text-blue { color: #2563eb; }
+.tone-text-green { color: #10b981; }
+.tone-text-red { color: #ef4444; }
+.tone-text-orange { color: #f59e0b; }
+
+/* list header pill */
+.att-pill {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+/* rows */
+.att-rows > * + * {
+  margin-top: 12px;
+}
+
+.att-row {
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: #fff;
+}
+
+.row-present {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.30);
+}
+.row-absent {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.30);
+}
+.row-pending {
+  background: #fff;
+}
+
+/* avatar */
+.att-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: #0b4a6f;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+}
+
+/* present/absent toggle buttons */
+.att-toggle {
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 800;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+}
+
+.att-toggle.is-on.is-present {
+  background: #10b981;
+  border-color: #10b981;
+  color: #fff;
+}
+
+.att-toggle.is-on.is-absent {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+
+/* responsive */
+@media (max-width: 576px) {
+  .att-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .att-toggle {
+    width: 100%;
+    justify-content: center;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+/* ✅ prevent inputs from overflowing in bootstrap grid */
+.faculty-att-filters .row > [class*="col-"] {
+  min-width: 0;
+}
+
+/* ✅ search container should not exceed its column */
+.faculty-att-search {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ✅ input can shrink (prevents cut) */
+.faculty-att-search input {
+  min-width: 0;
+  width: 100%;
+}
+
+/* ✅ if lucide icon is shrinking weird */
+.faculty-att-search svg {
+  flex: 0 0 auto;
+}
+/* =========================
+   ATTENDANCE HEADER (SAFE)
+   - Only affects buttons inside .attendance-header
+   - Will NOT affect other buttons in your app
+========================= */
+
+.attendance-header .att-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  /* ✅ Make borders visible only here */
+  border: 1px solid rgba(15, 23, 42, 0.14) !important;
+
+  /* ✅ Keep Bootstrap look */
+  background-clip: padding-box;
+
+  /* ✅ Prevent text wrapping/ugly cut */
+  white-space: nowrap;
+
+  /* ✅ Nice spacing */
+  padding: 10px 14px;
+  border-radius: 12px;
+
+  /* ✅ Light shadow like screenshot */
+  box-shadow: 0 8px 18px rgba(2, 8, 23, 0.06);
+}
+
+/* keep btn-light looking clean */
+.attendance-header .btn.btn-light.att-btn {
+  background: #fff !important;
+}
+
+/* keep btn-success proper (don’t force white bg) */
+.attendance-header .btn.btn-success.att-btn {
+  border-color: transparent !important;
+  box-shadow: 0 10px 20px rgba(16, 185, 129, 0.25);
+}
+
+/* hover safe */
+.attendance-header .btn.btn-light.att-btn:hover {
+  background: #f8fafc !important;
+}
+
+/* =========================
+   MOBILE: buttons become full width
+========================= */
+@media (max-width: 576px) {
+  .attendance-actions {
+    width: 100%;
+  }
+
+  .attendance-header .att-btn {
+    flex: 1;
+  }
+}
+/* =========================
+   ATTENDANCE SEARCH (FIX CUT)
+========================= */
+
+/* allow columns to shrink without breaking input-group */
+.att-filters-row > [class*="col-"] {
+  min-width: 0;
+}
+
+/* prevent the input-group from wrapping weirdly */
+.att-search-group {
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
+}
+
+/* icon area */
+.att-search-icon {
+  border-radius: 12px 0 0 12px !important;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+  flex: 0 0 auto;
+}
+
+/* input area */
+.att-search-input {
+  min-width: 0;
+  width: 100%;
+  border-radius: 0 12px 12px 0 !important;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-left: 0; /* ✅ removes double border between icon and input */
+}
+
+/* keep focus clean */
+.att-search-input:focus {
+  box-shadow: none;
+}
+.att-search-group:focus-within .att-search-icon,
+.att-search-group:focus-within .att-search-input {
+  border-color: rgba(11, 74, 111, 0.35);
+}

@@ -10,12 +10,12 @@ import {
   Bell,
   FolderOpen,
   Bot,
-  HelpCircle,
   LogOut,
   ChevronLeft,
   ChevronRight,
   GraduationCap,
   X,
+  Settings,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -31,11 +31,26 @@ const nav = [
   { label: "Students", icon: Users, path: "/faculty/students", badge: 120 },
   { label: "My Classes", icon: BookOpen, path: "/faculty/classes" },
   { label: "Schedule", icon: Calendar, path: "/faculty/schedule" },
-  { label: "Grade Management", icon: ClipboardCheck, path: "/faculty/grades", badge: 18 },
+  {
+    label: "Grade Management",
+    icon: ClipboardCheck,
+    path: "/faculty/grades",
+    badge: 18,
+  },
   { label: "Attendance", icon: CheckSquare, path: "/faculty/attendance" },
-  { label: "Announcements", icon: Bell, path: "/faculty/announcements", badge: 2 },
+  {
+    label: "Announcements",
+    icon: Bell,
+    path: "/faculty/announcements",
+    badge: 2,
+  },
   { label: "Course Materials", icon: FolderOpen, path: "/faculty/materials" },
-  { label: "AI Assistant", icon: Bot, path: "/faculty/aiassistant", badge: "AI" },
+  {
+    label: "AI Assistant",
+    icon: Bot,
+    path: "/faculty/aiassistant",
+    badge: "AI",
+  },
 ];
 
 export default function FacultySidebar({
@@ -62,7 +77,9 @@ export default function FacultySidebar({
             </span>
             <div className="brand-text-container">
               <span className="brand-text fw-bold fs-5">CampusHub</span>
-              <span className="sidebar-description text-muted small">Faculty Portal</span>
+              <span className="sidebar-description text-muted small">
+                Faculty Portal
+              </span>
             </div>
           </div>
         )}
@@ -91,9 +108,10 @@ export default function FacultySidebar({
       {/* Nav */}
       <nav className="faculty-sidebar-nav">
         {nav.map(({ label, icon: Icon, badge, path }) => {
-          const isActive = path === "/faculty"
-            ? location.pathname === path
-            : location.pathname.startsWith(path);
+          const isActive =
+            path === "/faculty"
+              ? location.pathname === path
+              : location.pathname.startsWith(path);
 
           return (
             <Link
@@ -111,7 +129,9 @@ export default function FacultySidebar({
                 </div>
 
                 {(!collapsed || isMobile) && badge && (
-                  <span className={`badge ${typeof badge === "string" ? "badge-ai" : "bg-primary"}`}>
+                  <span
+                    className={`badge ${typeof badge === "string" ? "badge-ai" : "bg-primary"}`}
+                  >
                     {badge}
                   </span>
                 )}
@@ -126,16 +146,20 @@ export default function FacultySidebar({
         <div className="sidebar-separator" />
 
         <Link
-          to="/faculty/help"
+          to="/faculty/settings"
           className="text-decoration-none"
           onClick={() => {
             if (isMobile && setMobileOpen) setMobileOpen(false);
           }}
         >
-          <div className={`nav-item ${location.pathname.startsWith("/faculty/help") ? "active" : ""}`}>
+          <div
+            className={`nav-item ${
+              location.pathname.startsWith("/faculty/settings") ? "active" : ""
+            }`}
+          >
             <div className="nav-label">
-              <HelpCircle size={18} />
-              {(!collapsed || isMobile) && <span>Help Center</span>}
+              <Settings size={18} />
+              {(!collapsed || isMobile) && <span>Profile Settings</span>}
             </div>
           </div>
         </Link>

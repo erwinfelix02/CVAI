@@ -1,0 +1,287 @@
+/* =========================
+   FACULTY SCHEDULE (FULL UPDATE - SMALLER CARDS)
+   - Smaller day + class cards
+   - Horizontal scroll on small screens
+   - Responsive sizing
+========================= */
+
+/* PAGE */
+.faculty-schedule-page {
+  background: #f6f8fb;
+}
+
+/* Header right pill */
+.faculty-schedule-pill {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 999px;
+  padding: 8px 12px; /* smaller */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px; /* smaller */
+  box-shadow: 0 8px 18px rgba(2, 8, 23, 0.05);
+}
+
+/* Horizontal scroll wrapper for small screens
+   ✅ IMPORTANT: your FacultyScheduleGrid should wrap grid in this */
+.faculty-schedule-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide ugly scrollbar (optional, safe) */
+.faculty-schedule-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+.faculty-schedule-scroll::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.15);
+  border-radius: 999px;
+}
+.faculty-schedule-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Grid: 5 columns on large screens, scroll on small */
+.faculty-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(220px, 1fr)); /* smaller columns */
+  gap: 14px; /* smaller gap */
+  min-width: 820px; /* forces scroll on small */
+}
+
+/* Day cards */
+.faculty-day {
+  border: 0;
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(2, 8, 23, 0.06);
+  background: #fff;
+}
+
+.faculty-day .card-body {
+  padding: 14px; /* smaller padding */
+}
+
+/* Today highlight */
+.faculty-day.is-today {
+  border: 2px solid #0b4a6f;
+}
+
+/* Today badge */
+.faculty-today-badge {
+  background: #0b4a6f;
+  color: #fff;
+  font-weight: 800;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+/* Class card */
+.faculty-class-card {
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: #fff;
+}
+
+/* spacing between class cards */
+.faculty-class-card + .faculty-class-card {
+  margin-top: 10px;
+}
+
+/* time */
+.faculty-class-time {
+  font-size: 12px;
+  opacity: 0.95;
+}
+
+/* course code */
+.faculty-class-code {
+  font-size: 15px;
+  font-weight: 900;
+  margin-top: 4px;
+  line-height: 1.1;
+  white-space: nowrap; /* keeps code neat */
+}
+
+/* title */
+.faculty-class-title {
+  font-size: 13px;
+  opacity: 0.95;
+}
+
+/* meta */
+.faculty-class-meta {
+  font-size: 12px;
+  opacity: 0.95;
+}
+
+
+/* =========================
+   STATS
+========================= */
+
+.faculty-stat-card {
+  border: 0;
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(2, 8, 23, 0.06);
+  background: #fff;
+}
+
+.faculty-stat-card .card-body {
+  padding: 14px;
+}
+
+.faculty-stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2f6;
+}
+
+/* =========================
+   SCHEDULE CLASS CARD TONES ONLY
+========================= */
+.faculty-class-card.tone-blue {
+  background: linear-gradient(135deg, #1e88e5, #17b3d6);
+  color: #fff;
+}
+.faculty-class-card.tone-purple {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #fff;
+}
+.faculty-class-card.tone-green {
+  background: linear-gradient(135deg, #10b981, #14b8a6);
+  color: #fff;
+}
+.faculty-class-card.tone-orange {
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  color: #fff;
+}
+
+/* Force all text inside class card white (prevents any Bootstrap override) */
+.faculty-class-card * {
+  color: inherit !important;
+}
+
+/* =========================
+   STATS CARD - FORCE DARK TEXT
+========================= */
+.faculty-stat-card,
+.faculty-stat-card * {
+  color: #0f172a;
+}
+
+.faculty-stat-card .text-muted {
+  color: #64748b !important;
+}
+
+
+.faculty-stat-value {
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+}
+.faculty-stat-value {
+  color: #0f172a; /* dark text */
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+}
+.faculty-stat-card .text-muted {
+  color: #64748b !important;
+}
+.faculty-stat-icon.stat-tone-blue {
+  background: #1e88e5;
+  color: #fff;
+}
+.faculty-stat-icon.stat-tone-purple {
+  background: #7c3aed;
+  color: #fff;
+}
+.faculty-stat-icon.stat-tone-green {
+  background: #10b981;
+  color: #fff;
+}
+.faculty-stat-icon.stat-tone-orange {
+  background: #f59e0b;
+  color: #fff;
+}
+
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+/* medium screens */
+@media (max-width: 1200px) {
+  .faculty-schedule-grid {
+    grid-template-columns: repeat(5, minmax(210px, 1fr));
+    min-width: 780px;
+  }
+}
+
+/* phones */
+@media (max-width: 576px) {
+  .faculty-schedule-pill {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .faculty-schedule-grid {
+    grid-template-columns: repeat(5, minmax(200px, 1fr));
+    min-width: 720px;
+  }
+
+  .faculty-day .card-body {
+    padding: 12px;
+  }
+
+  .faculty-class-card {
+    padding: 10px;
+  }
+}
+
+/* extra-small phones */
+@media (max-width: 400px) {
+  .faculty-class-title {
+    font-size: 12px;
+  }
+  .faculty-class-meta {
+    font-size: 11px;
+  }
+}
+/* ✅ ensures schedule grid starts BELOW the stat cards */
+.faculty-schedule-stats-wrap {
+  margin-top: 18px;
+  margin-bottom: 18px;
+}
+
+/* ✅ extra safety so grid never sits under stats */
+.faculty-schedule-scroll {
+  margin-top: 6px;
+  position: relative;
+  z-index: 0;
+}
+/* =========================
+   FINAL OVERRIDE (Stats should NEVER be white)
+   Put this at the bottom of faculty-schedule.css
+========================= */
+.faculty-schedule-page .faculty-stat-card,
+.faculty-schedule-page .faculty-stat-card .faculty-stat-value,
+.faculty-schedule-page .faculty-stat-card .text-muted {
+  color: #0f172a !important;
+}
+
+.faculty-schedule-page .faculty-stat-card .text-muted {
+  color: #64748b !important;
+}
+
+.faculty-schedule-page .faculty-stat-card .faculty-stat-icon,
+.faculty-schedule-page .faculty-stat-card .faculty-stat-icon svg {
+  color: inherit !important;
+}

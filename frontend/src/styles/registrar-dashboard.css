@@ -1,0 +1,233 @@
+/* =========================
+   Registrar Dashboard
+========================= */
+
+/* ✅ Prevent horizontal swipe / overflow */
+.registrar-dashboard,
+.registrar-dashboard * {
+  box-sizing: border-box;
+}
+
+.registrar-dashboard {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;  /* ✅ kill sideways swipe */
+}
+
+.registrar-dashboard .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.registrar-dashboard .row > * {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+/* Cards */
+.registrar-dashboard .registrar-card {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  max-width: 100%;
+}
+
+.registrar-dashboard .registrar-stat {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  max-width: 100%;
+}
+
+.registrar-stat-value {
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.registrar-stat-helper {
+  margin-top: 6px;
+}
+
+/* icon bubble */
+.registrar-stat-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.registrar-stat-icon.blue { background: rgba(59,130,246,.12); color: #2563eb; }
+.registrar-stat-icon.orange { background: rgba(245,158,11,.16); color: #d97706; }
+.registrar-stat-icon.green { background: rgba(34,197,94,.12); color: #16a34a; }
+.registrar-stat-icon.red { background: rgba(239,68,68,.12); color: #dc2626; }
+
+/* Quick actions rows */
+.registrar-action-row {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  color: #0f172a;
+  text-decoration: none;
+  transition: background .12s ease, transform .12s ease;
+
+  width: 100%;
+  max-width: 100%;
+}
+
+.registrar-action-row:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+/* ✅ allow text to shrink (prevents overflow) */
+.registrar-action-row .min-w-0 {
+  min-width: 0;
+}
+
+.registrar-action-ic {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #f1f5f9;
+  color: #0f172a;
+  flex: 0 0 auto;
+}
+
+.registrar-chip {
+  background: rgba(148,163,184,.25);
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 12px;
+  border-radius: 999px;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.registrar-action-arrow {
+  color: #64748b;
+}
+
+/* Recent applications list item */
+.registrar-app-row {
+  background: #f8fafc;
+  border-radius: 18px;
+  padding: 14px 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ✅ allow left side to shrink */
+.registrar-app-row .min-w-0 {
+  min-width: 0;
+}
+
+.registrar-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #0f172a;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+/* status pills */
+.registrar-status {
+  font-weight: 700;
+  font-size: 13px;
+  border-radius: 999px;
+  padding: 6px 12px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  flex: 0 0 auto;
+}
+
+.registrar-status.pending {
+  color: #b45309;
+  background: rgba(245,158,11,.12);
+  border-color: rgba(245,158,11,.35);
+}
+
+.registrar-status.approved {
+  color: #15803d;
+  background: rgba(34,197,94,.12);
+  border-color: rgba(34,197,94,.35);
+}
+
+.registrar-status.rejected {
+  color: #b91c1c;
+  background: rgba(239,68,68,.10);
+  border-color: rgba(239,68,68,.28);
+}
+
+/* link */
+.registrar-link {
+  color: #0f172a;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.registrar-link:hover {
+  text-decoration: underline;
+}
+
+/* progress */
+.registrar-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+.registrar-progress .progress-bar {
+  background: #0d5b78;
+}
+
+.registrar-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(34,197,94,.12);
+  color: #15803d;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+}
+
+/* =========================
+   Responsive fixes
+========================= */
+@media (max-width: 575.98px) {
+  .registrar-app-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .registrar-app-meta {
+    text-align: left !important;
+    width: 100%;
+  }
+
+  .registrar-app-row > div:last-child {
+    width: 100%;
+    justify-content: space-between !important;
+  }
+}
