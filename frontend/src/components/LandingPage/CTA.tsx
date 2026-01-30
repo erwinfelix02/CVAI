@@ -18,7 +18,7 @@ export function CTA() {
 
           <button
       className="btn cta-btn d-inline-flex align-items-center gap-2"
-      onClick={() => navigate("/superadmin")}
+      onClick={() => navigate("/superadmin")}// Change this part with ,faculty ,registrar ,superadmin, dept-head
     >
       Register Now
       <img src={ArrowIcon} alt="" className="cta-btn-icon" />
