@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-
 import Button from "../Authentication/Button";
 import "../../styles/hero.css";
 import ChatIcon from "../../assets/chat.png";
@@ -24,8 +23,7 @@ export function Hero() {
 
         <p className="lead mt-3 mx-auto hero-text" style={{ maxWidth: 720 }}>
           Get instant answers about courses, schedules, campus resources, and
-          everything you need for academic success. Available 24/7, just for
-          you.
+          everything you need for academic success. Available 24/7, just for you.
         </p>
 
         <div className="d-flex flex-column flex-sm-row justify-content-center align-items-center gap-3 mt-4">
@@ -42,7 +40,6 @@ export function Hero() {
           </Button>
         </div>
 
-        {/* Chat Preview */}
         <div className="mt-5 d-flex justify-content-center">
           <ChatPreview />
         </div>

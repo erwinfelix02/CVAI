@@ -1,13 +1,13 @@
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 type Props = {
   roleName: string;
   count: number;
   onBack: () => void;
-  onAdd: () => void;
+  onAdd?: () => void;
 };
 
-export default function RoleDetailsHeader({ roleName, count, onBack, onAdd }: Props) {
+export default function RoleDetailsHeader({ roleName, count, onBack, }: Props) {
   return (
     <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-3">
       <div className="d-flex align-items-center gap-2">
@@ -21,10 +21,6 @@ export default function RoleDetailsHeader({ roleName, count, onBack, onAdd }: Pr
         </div>
       </div>
 
-      <button className="btn btn-primary d-flex align-items-center gap-2" onClick={onAdd}>
-        <Plus size={18} />
-        Add User
-      </button>
     </div>
   );
 }

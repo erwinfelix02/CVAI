@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   X,
-  UserPlus,
   Save,
   Trash2,
   Pencil,
@@ -19,7 +18,6 @@ type Props = {
   onClose: () => void;
 
   // user actions
-  onAddUserToRole: (roleId: string, user: Omit<UserItem, "id">) => void;
   onUpdateUser: (userId: string, patch: Partial<UserItem>) => void;
   onRemoveUserFromRole: (userId: string) => void;
 };
@@ -27,11 +25,18 @@ type Props = {
 type UserStatus = "Active" | "Inactive";
 type StatusFilter = "All" | UserStatus;
 
-type NewUserForm = {
+type EditUserForm = {
   userId: string;
   fullName: string;
   email: string;
   status: UserStatus;
+};
+
+const INITIAL_FORM: EditUserForm = {
+  userId: "",
+  fullName: "",
+  email: "",
+  status: "Active",
 };
 
 export default function RoleDetailsOffcanvas({
@@ -39,7 +44,6 @@ export default function RoleDetailsOffcanvas({
   role,
   users,
   onClose,
-  onAddUserToRole,
   onUpdateUser,
   onRemoveUserFromRole,
 }: Props) {
@@ -50,17 +54,11 @@ export default function RoleDetailsOffcanvas({
   // selection
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-  // modal
+  // edit modal
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [form, setForm] = useState<NewUserForm>({
-    userId: "",
-    fullName: "",
-    email: "",
-    status: "Active",
-  });
+  const [form, setForm] = useState<EditUserForm>(INITIAL_FORM);
 
   // reset local state when role changes / closed
   useEffect(() => {
@@ -68,9 +66,8 @@ export default function RoleDetailsOffcanvas({
     setStatusFilter("All");
     setSelectedUserId(null);
     setModalOpen(false);
-    setModalMode("add");
     setEditingId(null);
-    setForm({ userId: "", fullName: "", email: "", status: "Active" });
+    setForm(INITIAL_FORM);
   }, [role?.id, open]);
 
   const roleUsers = useMemo(() => {
@@ -83,7 +80,8 @@ export default function RoleDetailsOffcanvas({
     return roleUsers.find((u) => u.id === selectedUserId) ?? null;
   }, [roleUsers, selectedUserId]);
 
-  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
   const filteredUsers = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -92,10 +90,11 @@ export default function RoleDetailsOffcanvas({
       const matchesQuery =
         !query ||
         (u.userId ?? "").toLowerCase().includes(query) ||
-        u.fullName.toLowerCase().includes(query) ||
-        u.email.toLowerCase().includes(query);
+        (u.fullName ?? "").toLowerCase().includes(query) ||
+        (u.email ?? "").toLowerCase().includes(query);
 
-      const matchesStatus = statusFilter === "All" ? true : u.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "All" ? true : u.status === statusFilter;
 
       return matchesQuery && matchesStatus;
     });
@@ -103,60 +102,32 @@ export default function RoleDetailsOffcanvas({
 
   if (!role) return null;
 
-  const openAdd = () => {
-    setModalMode("add");
-    setEditingId(null);
-    setForm({
-      userId: "",
-      fullName: "",
-      email: "",
-      status: "Active",
-    });
-    setModalOpen(true);
-  };
-
   const openEdit = (u: UserItem) => {
-    setModalMode("edit");
     setEditingId(u.id);
     setForm({
       userId: u.userId ?? "",
-      fullName: u.fullName,
-      email: u.email,
+      fullName: u.fullName ?? "",
+      email: u.email ?? "",
       status: u.status,
     });
     setModalOpen(true);
   };
 
-  const closeModal = () => {
-    setModalOpen(false);
-  };
+  const closeModal = () => setModalOpen(false);
 
   const canSubmit =
-    form.userId.trim() &&
-    form.fullName.trim() &&
-    isValidEmail(form.email);
+    form.userId.trim() && form.fullName.trim() && isValidEmail(form.email);
 
   const submitModal = () => {
     if (!canSubmit) return;
+    if (!editingId) return;
 
-    if (modalMode === "add") {
-      onAddUserToRole(role.id, {
-        roleId: role.id,
-        userId: form.userId.trim(),
-        fullName: form.fullName.trim(),
-        email: form.email.trim(),
-        status: form.status,
-        createdAt: new Date().toISOString().slice(0, 10),
-      });
-    } else {
-      if (!editingId) return;
-      onUpdateUser(editingId, {
-        userId: form.userId.trim(),
-        fullName: form.fullName.trim(),
-        email: form.email.trim(),
-        status: form.status,
-      });
-    }
+    onUpdateUser(editingId, {
+      userId: form.userId.trim(),
+      fullName: form.fullName.trim(),
+      email: form.email.trim(),
+      status: form.status,
+    });
 
     setModalOpen(false);
   };
@@ -194,7 +165,7 @@ export default function RoleDetailsOffcanvas({
         </div>
 
         <div className="offcanvas-body">
-          {/* Top bar: search + filter + add */}
+          {/* Top bar: search + filter (NO ADD BUTTON) */}
           <div className="card shadow-sm mb-3">
             <div className="card-body d-flex flex-column gap-2">
               <div className="d-flex gap-2 flex-wrap">
@@ -223,14 +194,6 @@ export default function RoleDetailsOffcanvas({
                     <option value="Inactive">Inactive</option>
                   </select>
                 </div>
-
-                <button
-                  className="btn btn-primary d-flex align-items-center gap-2 ms-auto"
-                  onClick={openAdd}
-                >
-                  <UserPlus size={16} />
-                  Add User
-                </button>
               </div>
 
               <div className="text-muted small">
@@ -325,7 +288,6 @@ export default function RoleDetailsOffcanvas({
                     </div>
                   ) : (
                     <>
-                      {/* top identity */}
                       <div className="d-flex flex-column align-items-center text-center gap-2 mb-3">
                         <div className="role-info-avatar">
                           {selectedUser.fullName.trim().slice(0, 1).toUpperCase()}
@@ -337,7 +299,6 @@ export default function RoleDetailsOffcanvas({
                         </div>
                       </div>
 
-                      {/* centered meta */}
                       <div className="role-info-meta">
                         <div className="role-info-meta-item">
                           <div className="text-muted small">User ID</div>
@@ -368,7 +329,6 @@ export default function RoleDetailsOffcanvas({
                         </div>
                       </div>
 
-                      {/* actions on right card */}
                       <div className="d-grid gap-2 mt-3">
                         <button
                           className="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2"
@@ -382,7 +342,11 @@ export default function RoleDetailsOffcanvas({
                           className="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-2"
                           onClick={() => toggleDisable(selectedUser)}
                         >
-                          {selectedUser.status === "Active" ? <Ban size={16} /> : <CheckCircle2 size={16} />}
+                          {selectedUser.status === "Active" ? (
+                            <Ban size={16} />
+                          ) : (
+                            <CheckCircle2 size={16} />
+                          )}
                           {selectedUser.status === "Active" ? "Disable" : "Enable"}
                         </button>
 
@@ -401,7 +365,7 @@ export default function RoleDetailsOffcanvas({
             </div>
           </div>
 
-          {/* MODAL (Add/Edit) */}
+          {/* MODAL (EDIT ONLY) */}
           {modalOpen && (
             <>
               <div className="modal-backdrop fade show" onClick={closeModal} />
@@ -410,9 +374,7 @@ export default function RoleDetailsOffcanvas({
                 <div className="modal-dialog modal-dialog-centered role-modal-dialog" role="document">
                   <div className="modal-content role-modal-content">
                     <div className="modal-header role-modal-header">
-                      <div className="fw-bold">
-                        {modalMode === "add" ? "Add User" : "Edit User"}
-                      </div>
+                      <div className="fw-bold">Edit User</div>
 
                       <button className="btn btn-light border" onClick={closeModal} aria-label="Close">
                         <X size={18} />
@@ -466,7 +428,9 @@ export default function RoleDetailsOffcanvas({
                           <select
                             className="form-select"
                             value={form.status}
-                            onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as UserStatus }))}
+                            onChange={(e) =>
+                              setForm((p) => ({ ...p, status: e.target.value as UserStatus }))
+                            }
                           >
                             <option value="Active">Active</option>
                             <option value="Inactive">Inactive</option>
@@ -486,7 +450,7 @@ export default function RoleDetailsOffcanvas({
                         disabled={!canSubmit}
                       >
                         <Save size={16} />
-                        {modalMode === "add" ? "Add User" : "Save Changes"}
+                        Save Changes
                       </button>
                     </div>
                   </div>

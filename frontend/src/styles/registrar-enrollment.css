@@ -1,0 +1,88 @@
+.registrar-enrollment {
+  max-width: 100%;
+}
+
+/* Cards */
+.enroll-card {
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+/* Stats icons */
+.stat-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+}
+
+.stat-icon.yellow { background: #fef3c7; color: #d97706; }
+.stat-icon.blue   { background: #dbeafe; color: #2563eb; }
+.stat-icon.green  { background: #dcfce7; color: #16a34a; }
+
+/* Search */
+.enroll-search input {
+  box-shadow: none;
+}
+
+/* Student rows */
+.enroll-student-row {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.enroll-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.enroll-btn {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* Section capacity */
+.capacity-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.capacity-pill {
+  background: #e2e8f0;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;           /* 🔥 prevents vertical overflow */
+  white-space: nowrap;      /* 🔥 prevents wrapping */
+  flex-shrink: 0;           /* 🔥 prevents squeezing */
+  align-self: flex-start;   /* 🔥 locks it inside the card */
+}
+
+
+/* Responsive */
+@media (max-width: 575px) {
+  .enroll-student-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .enroll-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

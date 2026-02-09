@@ -125,3 +125,64 @@
     filter: brightness(0.95);
   }
 }
+/* ===============================
+   Scroll reveal animation
+================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition:
+    opacity 700ms ease-out,
+    transform 700ms ease-out;
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Optional delays */
+.reveal.delay-1 { transition-delay: 100ms; }
+.reveal.delay-2 { transition-delay: 200ms; }
+.reveal.delay-3 { transition-delay: 300ms; }
+.reveal.delay-4 { transition-delay: 400ms; }
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+/* ===============================
+   Hero load animation (NOT scroll)
+================================ */
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-badge,
+.hero-title,
+.hero-text,
+.hero-cta,
+.hero-demo,
+.hero-section .mt-5 {
+  opacity: 0;
+  transform: translateY(24px);
+  animation: heroFadeUp 700ms ease-out forwards;
+}
+
+.hero-title { animation-delay: 100ms; }
+.hero-text { animation-delay: 200ms; }
+.hero-cta { animation-delay: 300ms; }
+.hero-demo { animation-delay: 350ms; }
+.hero-section .mt-5 { animation-delay: 420ms; }

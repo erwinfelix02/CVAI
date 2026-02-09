@@ -94,3 +94,113 @@
     box-shadow: none;
   }
 }
+/* ===============================
+   Layout & Background
+================================ */
+.why-gradient {
+  padding: 5rem 1.5rem;
+  background: linear-gradient(
+    135deg,
+    rgba(13, 110, 253, 0.05),
+    rgba(25, 135, 84, 0.05)
+  );
+}
+
+/* ===============================
+   Text
+================================ */
+.why-title {
+  font-size: clamp(1.8rem, 1.4rem + 1.6vw, 2.4rem);
+}
+
+.why-list {
+  font-size: 16px;
+}
+
+.why-quote {
+  font-size: 16px;
+}
+
+/* ===============================
+   Card hover
+================================ */
+.why-card {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.why-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  border-color: #0d5173;
+}
+
+/* ===============================
+   Scroll Reveal
+================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition:
+    opacity 700ms ease-out,
+    transform 700ms ease-out;
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Delays */
+.delay-1 { transition-delay: 100ms; }
+.delay-2 { transition-delay: 200ms; }
+.delay-3 { transition-delay: 300ms; }
+.delay-4 { transition-delay: 400ms; }
+.delay-5 { transition-delay: 500ms; }
+.delay-6 { transition-delay: 600ms; }
+
+/* ===============================
+   Button (Mobile tap)
+================================ */
+.why-gradient button {
+  transform-origin: center;
+}
+
+@media (max-width: 768px) {
+  .why-gradient button {
+    background-color: #0d5173 !important;
+    color: #ffffff !important;
+    border-radius: 0.5rem;
+    transition: transform 140ms cubic-bezier(0.2,0.8,0.2,1), filter 140ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .why-gradient button:active {
+    transform: scale(0.96);
+    filter: brightness(0.95);
+  }
+
+  .why-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .why-card:active {
+    transform: scale(0.97);
+    box-shadow: 0 6px 20px rgba(13, 81, 115, 0.1);
+  }
+}
+
+/* ===============================
+   Accessibility
+================================ */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}

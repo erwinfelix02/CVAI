@@ -1,0 +1,162 @@
+/* Base */
+.registrar-sections-page,
+.registrar-sections-page * {
+  box-sizing: border-box;
+}
+
+.sections-add-btn {
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+/* Stat cards */
+.sections-stat-card {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.sections-stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Toolbar */
+.sections-toolbar {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.sections-search {
+  position: relative;
+}
+
+.sections-search-ic {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+}
+
+.sections-search-input {
+  padding-left: 44px;
+  border-radius: 14px;
+  height: 52px;
+}
+
+.sections-select {
+  border-radius: 14px;
+  height: 52px;
+}
+
+/* Section card */
+.sections-card {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.sections-card-ic {
+  color: #0d5b78;
+}
+
+.sections-card-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.sections-card-sub {
+  margin-top: 4px;
+}
+
+.sections-kebab {
+  color: #0f172a;
+  opacity: 0.7;
+  text-decoration: none;
+}
+.sections-kebab:hover {
+  opacity: 1;
+}
+
+/* ✅ FIX for the “35/40” chip */
+.sections-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 28px;
+  padding: 0 12px;
+
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 13px;
+
+  line-height: 1;           /* ✅ prevents vertical cropping */
+  white-space: nowrap;      /* ✅ no wrapping */
+  flex: 0 0 auto;           /* ✅ don’t shrink */
+}
+
+.sections-chip.tone-primary {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+}
+
+.sections-chip.tone-warning {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+}
+
+.sections-chip.tone-danger {
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
+}
+
+/* Progress */
+.sections-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: #eef2f7;
+  overflow: hidden;
+}
+
+.sections-progress .progress-bar {
+  border-radius: 999px;
+}
+
+.sections-progress .progress-bar.tone-primary {
+  background: #2b6cb0;
+}
+
+.sections-progress .progress-bar.tone-warning {
+  background: #e3a008;
+}
+
+.sections-progress .progress-bar.tone-danger {
+  background: #ef4444;
+}
+
+/* Meta rows */
+.sections-meta {
+  color: #475569;
+}
+
+/* Responsive tweaks */
+@media (max-width: 575.98px) {
+  .sections-add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .sections-search-input,
+  .sections-select {
+    height: 48px;
+  }
+
+  .sections-card-title {
+    font-size: 18px;
+  }
+}

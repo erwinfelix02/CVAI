@@ -1,74 +1,685 @@
-.users-eye-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-
-  display: inline-flex;
+/* ================= TOOLBAR ================= */
+.users-toolbar {
+  display: flex;
   align-items: center;
-  justify-content: center;
-
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  color: #0f172a;
-
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.1s ease;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+/* ================= CARD (SMOOTH EDGES) ================= */
+.card {
+  border-radius: 20px; /* ✅ smooth rounded corners */
+  border: none; /* remove sharp border */
+  box-shadow:
+    0 10px 25px rgba(15, 23, 42, 0.06),
+    0 4px 10px rgba(15, 23, 42, 0.04); /* soft layered shadow */
 }
 
-.users-eye-btn:hover {
-  background: #f8fafc;
-  box-shadow: 0 6px 16px rgba(2, 8, 23, 0.08);
-  transform: translateY(-1px);
+/* Inner spacing refinement */
+.card-body {
+  border-radius: inherit; /* match parent rounding */
 }
 
-.users-eye-btn:active {
-  transform: translateY(0);
-}
-
-.users-eye-btn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-}
-
-
-td.text-end {
-  white-space: nowrap;
+/* Optional: subtle hover polish (very clean) */
+.card:hover {
+  box-shadow:
+    0 14px 32px rgba(15, 23, 42, 0.08),
+    0 6px 14px rgba(15, 23, 42, 0.05);
 }
 
 .users-search {
-  width: 100%;
-  flex: 1 1 auto;
+  position: relative;
+  flex: 1;
+  max-width: 560px;
 }
 
-@media (min-width: 992px) {
-  .users-search {
-    max-width: 520px;
+.users-search svg {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+}
+
+.users-search input {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px 0 46px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.users-filter-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.users-tabs {
+  display: flex;
+  gap: 10px;
+}
+
+.users-tab {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+  font-weight: 600;
+}
+
+.users-tab.active {
+  background: #0b5b87;
+  color: #fff;
+  border-color: #0b5b87;
+}
+
+/* ================= TABLE ================= */
+.users-thead th {
+  padding: 18px 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.users-row td {
+  padding: 20px 12px;
+}
+
+.users-action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+}
+
+.users-action-btn:hover {
+  background: #f1f5f9;
+}
+/* ================= ROLE PILLS ================= */
+.users-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+/* Super Admin */
+.pill-superadmin {
+  background: #f3e8ff;
+  color: #7c3aed;
+  border-color: #e9d5ff;
+}
+
+/* Registrar */
+.pill-registrar {
+  background: #e0ecff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+
+/* Dept Head */
+.pill-depthead {
+  background: #ffedd5;
+  color: #f97316;
+  border-color: #fed7aa;
+}
+
+/* Finance */
+.pill-finance {
+  background: #dcfce7;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+/* Faculty */
+.pill-faculty {
+  background: #e0f2fe;
+  color: #0284c7;
+  border-color: #bae6fd;
+}
+
+/* Student */
+.pill-student {
+  background: #e0e7ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+}
+/* ================= STATUS PILLS ================= */
+.users-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+
+.users-status.active {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.users-status.inactive {
+  background: #fee2e2;
+  color: #dc2626;
+}
+/* ================= FILTER DROPDOWN ================= */
+.users-filter-wrap {
+  position: relative;
+}
+
+.users-filter-menu {
+  position: absolute;
+  top: 52px;
+
+  left: 50%; /* ✅ anchor to center */
+  transform: translateX(-50%); /* ✅ pull back by half width */
+
+  min-width: 160px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow:
+    0 10px 25px rgba(15, 23, 42, 0.08),
+    0 4px 10px rgba(15, 23, 42, 0.05);
+  padding: 6px;
+  z-index: 30;
+}
+
+.users-filter-menu button {
+  width: 100%;
+  height: 40px; /* ✅ fixed height */
+  padding: 0 14px; /* ✅ horizontal only */
+
+  display: flex; /* ✅ switch to flex */
+  align-items: center; /* ✅ vertical center */
+  justify-content: center; /* ✅ horizontal center */
+
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.users-filter-menu button:hover {
+  background: #f1f5f9;
+}
+
+.users-filter-menu button.active {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 600;
+}
+/* =========================
+   Add User Modal (Responsive)
+========================= */
+
+.users-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  z-index: 2000;
+}
+.users-modal.users-modal-compact {
+  width: min(620px, 100%);
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+
+  max-height: calc(100vh - 28px);
+  display: flex;
+  flex-direction: column;
+}
+.users-modal {
+  width: min(720px, 100%);
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+
+  /* mobile-friendly */
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+}
+
+.users-modal-header {
+  padding: 14px 16px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.users-modal-title {
+  margin: 0;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.users-modal-subtitle {
+  margin: 2px 0 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.users-modal-close {
+  border: 0;
+  background: transparent;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+
+.users-modal-close:hover {
+  background: #f1f5f9;
+}
+
+.users-modal-body {
+  padding: 12px 16px;
+  overflow: auto;
+}
+
+.users-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+}
+
+.users-col-span-2 {
+  grid-column: span 2;
+}
+
+.users-field label {
+  display: block;
+  font-weight: 700;
+  font-size: 12px;
+  color: #0f172a;
+  margin-bottom: 5px;
+}
+
+.users-field .req {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.users-field input,
+.users-field select,
+.users-field textarea {
+  width: 100%;
+  border: 1px solid #e6edf6;
+  border-radius: 10px;
+  padding: 9px 10px;
+  outline: none;
+  background: #fbfdff;
+  transition: 0.15s ease;
+  font-size: 14px;
+}
+
+.users-field input:focus,
+.users-field select:focus,
+.users-field textarea:focus {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+  background: #ffffff;
+}
+
+.users-field .err {
+  display: block;
+  margin-top: 5px;
+  color: #ef4444;
+  font-size: 11px;
+}
+.users-modal-footer .btn {
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+.users-field .hint {
+  display: block;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.users-modal-footer {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid #eef2f7;
+  background: #ffffff;
+}
+
+/* ✅ Mobile layout: modal becomes full-width and single column */
+@media (max-width: 640px) {
+  .users-modal {
+    border-radius: 12px;
+  }
+
+  .users-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .users-col-span-2 {
+    grid-column: span 1;
+  }
+
+  .users-modal-title {
+    font-size: 18px;
+  }
+}
+/* 3 name inputs on one row */
+.users-name-row {
+  display: grid;
+  grid-template-columns: 1.15fr 0.9fr 1.15fr; /* first/last a bit wider */
+  gap: 10px 12px;
+}
+
+/* On small screens, stack them */
+@media (max-width: 640px) {
+  .users-name-row {
+    grid-template-columns: 1fr;
+  }
+}
+/* Name row: 3 columns */
+.users-name-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+}
+
+/* Two-per-row layout */
+.users-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+}
+
+/* Responsive stack */
+@media (max-width: 640px) {
+  .users-name-row {
+    grid-template-columns: 1fr;
+  }
+  .users-row-2 {
+    grid-template-columns: 1fr;
+  }
+}
+/* label + input invalid states (StepPersonal-style) */
+.is-invalid-label {
+  color: #dc3545;
+}
+
+.is-invalid {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 0.15rem rgba(220, 53, 69, 0.15);
+}
+
+/* optional: make placeholder red too */
+.is-invalid-placeholder::placeholder {
+  color: rgba(220, 53, 69, 0.7);
+}
+
+/* reserve space so layout doesn't jump */
+.users-invalid-feedback {
+  font-size: 12px;
+  line-height: 1.2;
+  margin-top: 6px;
+  color: #dc3545;
+  min-height: 14px; /* keeps spacing even when no error */
+}
+
+/* If you want to avoid adding new base classes, you can skip these.
+   But if you used them above, make sure they exist in your CSS. */
+.users-label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.users-input,
+.users-select,
+.users-textarea {
+  width: 100%;
+}
+.users-row-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .users-row-3 {
+    grid-template-columns: 1fr;
+  }
+}
+/* ===== Review Modal Layout ===== */
+.users-review-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 860px) {
+  .users-review-grid {
+    grid-template-columns: 1fr;
   }
 }
 
-.users-search-icon {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  left: 12px;
-  color: #6c757d;
-  pointer-events: none;
+/* Review cards */
+.users-review-card {
+  background: #f8fafc; /* soft */
+  border: 1px solid #e6eef7;
+  border-radius: 14px;
+  padding: 16px 18px;
 }
 
-.users-search-input {
-  padding-left: 44px;
-  border-radius: 12px;
+.users-review-card h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
 }
 
-.users-filters {
-  flex: 0 0 auto;
+.users-review-card p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.4;
 }
-.pagination .page-link {
+
+.users-review-card b {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+/* Highlight (Temporary Password) */
+.users-review-card.highlight {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  padding: 14px 16px;      /* 🔥 reduced padding */
+}
+.users-review-card.highlight h4 {
+  margin-bottom: 8px;     /* tighter title spacing */
+}
+
+.users-review-card.highlight small {
+  display: block;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+.users-temp-pass-wrap {
+  margin: 6px 0 6px 0;    /* 🔥 tighter margins */
+}
+.users-temp-centered {
+  text-align: center;
+}
+
+.temp-label {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.temp-password-centered {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0 6px;
+}
+
+.temp-password {
+  padding: 10px 14px;
   border-radius: 10px;
+  border: 1px dashed #94a3b8;
+  background: #ffffff;
+
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 16px;
+  font-weight: 700;
+
+  color: #0f172a;
+  letter-spacing: 0.5px;
 }
-.pagination .page-item + .page-item {
-  margin-left: 6px;
+
+.temp-password-note {
+  margin: 0;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+
+
+.users-temp-pass-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+/* Compact temp password (no dead space) */
+.temp-password {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 8px 12px;
+  border-radius: 10px;
+
+  background: #ffffff;
+  border: 1px dashed #94a3b8;
+
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 15px;
+  font-weight: 700;
+
+  color: #0f172a;
+  letter-spacing: 0.4px;
+
+  width: fit-content;   
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.users-temp-pass-wrap {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+
+/* Copy button in review modal */
+.users-temp-pass-row .btn.btn-light {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+/* Disclaimer box (like screenshot) */
+.users-review-disclaimer {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Optional: "uploaded chip" style tags if you add them later */
+.users-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.users-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  border: 1px solid #bbf7d0;
+  background: #dcfce7;
+  color: #166534;
+  font-weight: 600;
+}
+
+.users-chip span {
+  font-weight: 700;
+}
+
+/* Make the review modal body less cramped */
+.users-modal-body.space-y-6 > * + * {
+  margin-top: 18px;
+}
+.users-review-title .users-modal-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.users-review-check {
+  color: #16a34a; /* green check */
+}
+/* Highlights the Active status input (Blue Version) */
+.users-status-active {
+  background-color: #dbeafe !important; /* Light Blue Background */
+  color: #1e40af !important;            /* Dark Blue Text */
+  border: 1px solid #3b82f6 !important; /* Solid Blue Border */
+  text-align: center;                   /* Center the text */
+  font-weight: 700;                     /* Bold text */
+  opacity: 1 !important;                /* Force full visibility */
+  cursor: not-allowed;                  /* Show blocked cursor */
 }

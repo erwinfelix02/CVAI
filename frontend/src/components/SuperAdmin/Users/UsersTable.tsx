@@ -12,51 +12,33 @@ export default function UsersTable({
 }) {
   return (
     <div className="table-responsive">
-      <table className="table align-middle mb-0">
-        <thead className="table-light">
+      <table className="table users-table">
+        <thead className="users-thead">
           <tr>
-            <th className="text-nowrap">User ID</th>
             <th>Name</th>
             <th>Email</th>
-            <th className="text-nowrap">Role</th>
-            <th className="text-nowrap">Status</th>
-            <th className="text-nowrap text-end">Actions</th>
+            <th>Role</th>
+            <th>Department</th>
+            <th>Status</th>
+            <th className="text-end">Action</th>
           </tr>
         </thead>
 
         <tbody>
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="text-center text-muted py-4">
-                No users found.
+          {rows.map((u) => (
+            <tr key={u.id} className="users-row">
+              <td className="fw-semibold">{u.name}</td>
+              <td className="text-muted">{u.email}</td>
+              <td><RolePill role={u.role} /></td>
+              <td className="text-muted">{u.department}</td>
+              <td><StatusPill status={u.status} /></td>
+              <td className="text-end">
+                <button className="users-action-btn" onClick={() => onView(u)}>
+                  <Eye size={18} />
+                </button>
               </td>
             </tr>
-          ) : (
-            rows.map((u) => (
-              <tr key={u.id}>
-                <td className="font-monospace text-nowrap">{u.id}</td>
-                <td className="fw-semibold">{u.name}</td>
-                <td className="text-muted">{u.email}</td>
-                <td>
-                  <RolePill role={u.role} />
-                </td>
-                <td>
-                  <StatusPill status={u.status} />
-                </td>
-                <td className="text-end">
-                  <button
-                    type="button"
-                    className="users-eye-btn"
-                    onClick={() => onView(u)}
-                    aria-label={`View ${u.name}`}
-                    title="View"
-                  >
-                    <Eye size={18} />
-                  </button>
-                </td>
-              </tr>
-            ))
-          )}
+          ))}
         </tbody>
       </table>
     </div>

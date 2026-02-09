@@ -33,3 +33,50 @@
 .stats-section {
   background-color: #f8f9fa;
 }
+.stats-section {
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background-color: #f8f9fa;
+}
+
+.stats-inner {
+  max-width: 900px;
+}
+
+.stats-value {
+  color: #0d5173;
+  font-weight: 700;
+  font-size: clamp(30px, 2.2vw, 48px);
+}
+
+.stats-label {
+  margin-top: 0.5rem;
+  color: #64748b;
+  font-size: clamp(14px, 1.2vw, 18px);
+  font-weight: 500;
+}
+
+/* ===============================
+   Scroll reveal animation
+================================ */
+.stats-item.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 700ms ease-out,
+    transform 700ms ease-out;
+  will-change: opacity, transform;
+}
+
+.stats-item.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stats-item.reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}

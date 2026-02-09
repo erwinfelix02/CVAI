@@ -12,12 +12,14 @@ import RoleHeader from "../../components/SuperAdmin/Roles/RoleHeader";
 import RoleGrid from "../../components/SuperAdmin/Roles/RoleGrid";
 import RoleDetailsView from "../../components/SuperAdmin/Roles/RoleDetailsView";
 
+import RoleDetailsModal from "../../components/SuperAdmin/Roles/RoleDetailsModal";
+import EditRoleModal from "../../components/SuperAdmin/Roles/EditRoleModal";
+
 import type {
   RoleCardItem,
   UserItem,
   Gender,
 } from "../../components/SuperAdmin/Roles/types";
-
 import "../../styles/superadmin-roles.css";
 
 export default function RoleManagementPage() {
@@ -29,7 +31,13 @@ export default function RoleManagementPage() {
         users: 0,
         tone: "purple",
         icon: Shield,
-        permissions: ["Full system access", "Manage all portals", "Manage roles"],
+        permissions: [
+          "manage_users",
+          "manage_roles",
+          "manage_portals",
+          "view_system_logs",
+          "manage_ai_knowledge",
+        ],
       },
       {
         id: "registrar",
@@ -37,7 +45,11 @@ export default function RoleManagementPage() {
         users: 0,
         tone: "blue",
         icon: ClipboardList,
-        permissions: ["Manage students", "Process applications", "Enrollment"],
+        permissions: [
+          "manage_students",
+          "process_applications",
+          "manage_enrollment",
+        ],
       },
       {
         id: "depthead",
@@ -45,7 +57,11 @@ export default function RoleManagementPage() {
         users: 0,
         tone: "orange",
         icon: Building2,
-        permissions: ["Manage schedules", "Assign rooms", "Faculty loads"],
+        permissions: [
+          "manage_schedules",
+          "assign_rooms",
+          "manage_faculty_loads",
+        ],
       },
       {
         id: "finance",
@@ -53,7 +69,7 @@ export default function RoleManagementPage() {
         users: 0,
         tone: "green",
         icon: Wallet,
-        permissions: ["Fee management", "Scholarships", "Financial reports"],
+        permissions: ["fee_management", "scholarships", "financial_reports"],
       },
       {
         id: "faculty",
@@ -61,7 +77,7 @@ export default function RoleManagementPage() {
         users: 0,
         tone: "teal",
         icon: BookOpen,
-        permissions: ["Grade management", "Class materials", "Attendance"],
+        permissions: ["grade_management", "class_materials", "attendance"],
       },
       {
         id: "student",
@@ -69,19 +85,26 @@ export default function RoleManagementPage() {
         users: 0,
         tone: "indigo",
         icon: GraduationCap,
-        permissions: ["View grades", "View schedule", "AI assistant"],
+        permissions: ["view_grades", "view_schedule", "ai_assistant"],
       },
     ],
-    []
+    [],
   );
 
-  const [roles] = useState<RoleCardItem[]>(seedRoles);
+  const [roles, setRoles] = useState<RoleCardItem[]>(seedRoles);
 
-  // ✅ helper to build fullName consistently
-  const makeFullName = (firstName: string, middleName: string, lastName: string) =>
-    [firstName, middleName, lastName].filter((x) => x.trim()).join(" ").trim();
+  // users (same as yours, kept)
+  const makeFullName = (
+    firstName: string,
+    middleName: string,
+    lastName: string,
+  ) =>
+    [firstName, middleName, lastName]
+      .filter((x) => x.trim())
+      .join(" ")
+      .trim();
 
-  const [users, setUsers] = useState<UserItem[]>([
+  const [users] = useState<UserItem[]>([
     {
       id: "u1",
       userId: "FAC-2025-001",
@@ -112,43 +135,17 @@ export default function RoleManagementPage() {
       roleId: "student",
       createdAt: "2025-10-05",
     },
-    {
-      id: "u3",
-      userId: "STU-2025-022",
-      firstName: "Ana",
-      middleName: "",
-      lastName: "Reyes",
-      gender: "Female" as Gender,
-      houseNo: "7B",
-      fullName: makeFullName("Ana", "", "Reyes"),
-      email: "ana@uni.edu",
-      phone: "09112223333",
-      status: "Inactive",
-      roleId: "student",
-      createdAt: "2025-09-22",
-    },
-    {
-      id: "u4",
-      userId: "REG-2025-003",
-      firstName: "Kevin",
-      middleName: "",
-      lastName: "Lim",
-      gender: "Male" as Gender,
-      houseNo: "55",
-      fullName: makeFullName("Kevin", "", "Lim"),
-      email: "kevin@uni.edu",
-      phone: "09223334444",
-      status: "Active",
-      roleId: "registrar",
-      createdAt: "2025-09-01",
-    },
   ]);
 
   const [view, setView] = useState<"list" | "details">("list");
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
 
+  // ✅ modals
+  const [detailsRoleId, setDetailsRoleId] = useState<string | null>(null);
+  const [editRoleId, setEditRoleId] = useState<string | null>(null);
+
   const selectedRole = selectedRoleId
-    ? roles.find((r) => r.id === selectedRoleId) ?? null
+    ? (roles.find((r) => r.id === selectedRoleId) ?? null)
     : null;
 
   // live user counts
@@ -160,34 +157,30 @@ export default function RoleManagementPage() {
     return roles.map((r) => ({ ...r, users: counts[r.id] ?? 0 }));
   }, [roles, users]);
 
-  const openRoleDetails = (id: string) => {
+  const openRoleDetailsPage = (id: string) => {
     setSelectedRoleId(id);
     setView("details");
   };
 
-  // user actions
-  const addUserToRole = (roleId: string, user: Omit<UserItem, "id">) => {
-    setUsers((prev) => [
-      ...prev,
-      { ...user, id: `u${prev.length + 1}`, roleId },
-    ]);
-  };
+  const detailsRole = detailsRoleId
+    ? (rolesWithCounts.find((r) => r.id === detailsRoleId) ?? null)
+    : null;
+  const editRole = editRoleId
+    ? (rolesWithCounts.find((r) => r.id === editRoleId) ?? null)
+    : null;
 
-  const updateUser = (userId: string, patch: Partial<UserItem>) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, ...patch } : u))
+  const saveRolePermissions = (roleId: string, perms: any[]) => {
+    setRoles((prev) =>
+      prev.map((r) => (r.id === roleId ? { ...r, permissions: perms } : r)),
     );
-  };
-
-  const removeUserFromRole = (userId: string) => {
-    setUsers((prev) => prev.filter((u) => u.id !== userId));
+    setEditRoleId(null);
+    setDetailsRoleId(null);
   };
 
   return (
     <div className="superadmin-roles container-fluid py-3 py-md-4">
       {view === "list" && (
         <>
-          {/* Header WITHOUT Add Role */}
           <RoleHeader
             title="Role Management"
             subtitle="Configure portal access and permissions"
@@ -197,8 +190,8 @@ export default function RoleManagementPage() {
 
           <RoleGrid
             items={rolesWithCounts}
-            onOpen={openRoleDetails}
-            onSettings={(id) => alert(`Settings: ${id}`)}
+            onOpen={openRoleDetailsPage}
+            onSettings={(id) => setDetailsRoleId(id)} // ✅ open role details modal
           />
         </>
       )}
@@ -208,9 +201,28 @@ export default function RoleManagementPage() {
           role={selectedRole}
           users={users}
           onBack={() => setView("list")}
-          onAddUserToRole={addUserToRole}
-          onUpdateUser={updateUser}
-          onRemoveUserFromRole={removeUserFromRole}
+          onUpdateUser={() => {}}
+          onRemoveUserFromRole={() => {}}
+        />
+      )}
+
+      {/* ✅ Role Details modal (matches screenshot) */}
+      {detailsRole && (
+        <RoleDetailsModal
+          role={detailsRole}
+          onClose={() => setDetailsRoleId(null)}
+          onEdit={() => {
+            setEditRoleId(detailsRole.id);
+          }}
+        />
+      )}
+
+      {/* ✅ Edit modal (grid cards, only allowed for that role) */}
+      {editRole && (
+        <EditRoleModal
+          role={editRole}
+          onClose={() => setEditRoleId(null)}
+          onSave={(perms) => saveRolePermissions(editRole.id, perms)}
         />
       )}
     </div>

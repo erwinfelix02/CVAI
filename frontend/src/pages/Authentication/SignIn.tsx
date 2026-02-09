@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import AuthCard from "../../components/Authentication/AuthCard";
+import PreRegNavbar from "../../components/PreReg/PreRegNavbar";
 import AuthLayout from "../../components/Authentication/AuthLayout";
+import AuthCard from "../../components/Authentication/AuthCard";
+import Button from "../../components/Authentication/Button";
 import "../../styles/auth.css";
 import ArrowIcon from "../../assets/arrow-right.png";
-import Button from "../../components/Authentication/Button";
-import Logo from "../../assets/graduation.png";
+
 import { FaUser, FaEye, FaEyeSlash, FaSyncAlt } from "react-icons/fa";
 import { API_BASE_URL } from "../../config";
 
@@ -17,16 +18,18 @@ export default function SignIn() {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
     {}
   );
+
   const [mathError, setMathError] = useState<string | null>(null);
   const [userAnswer, setUserAnswer] = useState("");
   const [question, setQuestion] = useState({ a: 0, b: 0 });
   const [isRotating, setIsRotating] = useState(false);
+
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // --- Math verification ---
+  /* ---------------- Math verification ---------------- */
   const generateQuestion = () => {
     const a = Math.floor(Math.random() * 100) + 1;
     const b = Math.floor(Math.random() * 10) + 1;
@@ -35,7 +38,9 @@ export default function SignIn() {
     setMathError(null);
   };
 
-  useEffect(() => generateQuestion(), []);
+  useEffect(() => {
+    generateQuestion();
+  }, []);
 
   const handleRefresh = () => {
     setIsRotating(true);
@@ -50,14 +55,19 @@ export default function SignIn() {
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
   const handlePasswordChange = (value: string) => {
-    const sanitizedValue = value.replace(/\s/g, "");
-    setPassword(sanitizedValue);
+    const sanitized = value.replace(/\s/g, "");
+    setPassword(sanitized);
     setErrors((prev) => ({ ...prev, password: undefined }));
-    if (/\s/.test(value))
-      setErrors((prev) => ({ ...prev, password: "Spaces are not allowed" }));
+
+    if (/\s/.test(value)) {
+      setErrors((prev) => ({
+        ...prev,
+        password: "Spaces are not allowed",
+      }));
+    }
   };
 
-  // --- Submit ---
+  /* ---------------- Submit ---------------- */
   const handleSubmit = async () => {
     const newErrors: typeof errors = {};
     let hasError = false;
@@ -81,32 +91,31 @@ export default function SignIn() {
     } else if (!isVerified) {
       setMathError("Incorrect answer. Please try again");
       hasError = true;
-    } else setMathError(null);
+    } else {
+      setMathError(null);
+    }
 
     setErrors(newErrors);
     if (hasError) return;
 
     setLoading(true);
-    setAlertMessage("Signing in...");
+    setAlertMessage("Signing in");
     setAlertType("success");
     setAnimateAlert(true);
 
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/auth/login`,
-        {
-          email,
-          password,
-        }
-      );
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+        email,
+        password,
+      });
 
       const { redirect } = response.data;
-
-      // 🔹 Redirect based on server response
-      window.location.href = redirect; // will go to /chat or /admin/dashboard
+      window.location.href = redirect;
     } catch (err: any) {
       setTimeout(() => {
-        setAlertMessage(err.response?.data?.message || "Login failed");
+        setAlertMessage(
+          err.response?.data?.message || "Login failed"
+        );
         setAlertType("error");
         setAnimateAlert(true);
         setLoading(false);
@@ -114,145 +123,156 @@ export default function SignIn() {
     }
   };
 
-  // --- Auto-hide alert ---
+  /* ---------------- Auto-hide alert ---------------- */
   useEffect(() => {
-    if (alertMessage) {
-      const timer = setTimeout(() => setAnimateAlert(false), 3000);
-      return () => clearTimeout(timer);
-    }
+    if (!alertMessage) return;
+    const timer = setTimeout(() => setAnimateAlert(false), 3000);
+    return () => clearTimeout(timer);
   }, [alertMessage]);
 
+  /* ================= RENDER ================= */
   return (
-    <AuthLayout>
-      {alertMessage && (
-        <div
-          className={`loading-alert-wrapper ${alertType === "error" ? "alert-error" : "alert-success"} ${animateAlert ? "loading" : ""}`}
-        >
-          <div className="loading-alert d-flex align-items-center">
-            {loading && alertType === "success" && (
-              <span className="spinner-border spinner-border-sm me-2" />
-            )}
-            <span className="loading-text">{alertMessage}</span>
-          </div>
-        </div>
-      )}
+    <>
+      {/* ✅ Navbar is now ACTUALLY USED */}
+      <PreRegNavbar />
 
-      <AuthCard
-        title="Sign In"
-        subtitle="Enter your credentials to continue"
-        header={
-          <h1 className="campus-ai-header-mobile text-center mb-3">
-            <span className="campus-ai-logo-wrapper">
-              <img src={Logo} alt="CampusAI logo" className="navbar-logo" />
-            </span>
-            Campus AI
-          </h1>
-        }
-        footer={
-          <p className="text-center mt-3">
-            Don&apos;t have an account? <Link to="/signup">Sign up</Link>
-          </p>
-        }
-      >
-        {/* Email */}
-        <div className="outlined-field">
-          <input
-            type="email"
-            className={`outlined-input ${errors.email ? "input-error" : ""}`}
-            placeholder=" "
-            value={email}
-            minLength={6}
-            maxLength={254}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setErrors({ ...errors, email: undefined });
-            }}
-          />
-          <label className={errors.email ? "label-error" : ""}>Email</label>
-          <FaUser
-            className={`outlined-icon ${errors.email ? "icon-error" : ""}`}
-          />
-          <div className="error-space">
-            <span className={errors.email ? "error-text show" : "error-text"}>
-              {errors.email || "placeholder"}
-            </span>
-          </div>
-        </div>
-
-        {/* Password */}
-        <div className="outlined-field">
-          <input
-            type={showPassword ? "text" : "password"}
-            className={`outlined-input ${errors.password ? "input-error" : ""}`}
-            placeholder=" "
-            value={password}
-            minLength={8}
-            maxLength={64}
-            onChange={(e) => handlePasswordChange(e.target.value)}
-          />
-          <label className={errors.password ? "label-error" : ""}>
-            Password
-          </label>
-          <button
-            type="button"
-            className={`outlined-icon ${errors.password ? "icon-error" : ""}`}
-            onClick={() => setShowPassword((p) => !p)}
+      <AuthLayout>
+        {alertMessage && (
+          <div
+            className={`loading-alert-wrapper ${
+              alertType === "error" ? "alert-error" : "alert-success"
+            } ${animateAlert ? "loading" : ""}`}
           >
-            {showPassword ? <FaEyeSlash /> : <FaEye />}
-          </button>
-          <div className="error-space">
-            <span
-              className={errors.password ? "error-text show" : "error-text"}
-            >
-              {errors.password || "placeholder"}
-            </span>
+            <div className="loading-alert d-flex align-items-center">
+              {loading && alertType === "success" && (
+                <span className="spinner-border spinner-border-sm me-2" />
+              )}
+              <span className="loading-text">{alertMessage}</span>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Math verification */}
-        <div className="outlined-field math-field">
-          <div className="math-verification">
-            <div className="number-box">{question.a}</div>
-            <span className="operator">+</span>
-            <div className="number-box">{question.b}</div>
-            <span className="operator">=</span>
+        <AuthCard
+          title="Sign In"
+          subtitle="Enter your credentials to continue"
+          footer={
+            <p className="text-center mt-3">
+              Don&apos;t have an account?{" "}
+              <Link to="/signup">Sign up</Link>
+            </p>
+          }
+        >
+          {/* Email */}
+          <div className="outlined-field">
             <input
-              value={userAnswer}
+              type="email"
+              className={`outlined-input ${
+                errors.email ? "input-error" : ""
+              }`}
+              placeholder=" "
+              value={email}
               onChange={(e) => {
-                setUserAnswer(e.target.value.replace(/\D/, ""));
-                setMathError(null);
+                setEmail(e.target.value);
+                setErrors((p) => ({ ...p, email: undefined }));
               }}
-              placeholder="? "
-              className={
-                userAnswer === "" ? "" : isVerified ? "correct" : "wrong"
-              }
             />
+            <label className={errors.email ? "label-error" : ""}>
+              Email
+            </label>
+            <FaUser
+              className={`outlined-icon ${
+                errors.email ? "icon-error" : ""
+              }`}
+            />
+            <div className="error-space">
+              <span className={errors.email ? "error-text show" : "error-text"}>
+                {errors.email || "placeholder"}
+              </span>
+            </div>
+          </div>
+
+          {/* Password */}
+          <div className="outlined-field">
+            <input
+              type={showPassword ? "text" : "password"}
+              className={`outlined-input ${
+                errors.password ? "input-error" : ""
+              }`}
+              placeholder=" "
+              value={password}
+              onChange={(e) => handlePasswordChange(e.target.value)}
+            />
+            <label className={errors.password ? "label-error" : ""}>
+              Password
+            </label>
             <button
               type="button"
-              className={`refresh-btn ${isRotating ? "rotate active" : ""}`}
-              onClick={handleRefresh}
-              title="Refresh numbers"
+              className={`outlined-icon ${
+                errors.password ? "icon-error" : ""
+              }`}
+              onClick={() => setShowPassword((p) => !p)}
             >
-              <FaSyncAlt />
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
             </button>
+            <div className="error-space">
+              <span
+                className={errors.password ? "error-text show" : "error-text"}
+              >
+                {errors.password || "placeholder"}
+              </span>
+            </div>
           </div>
-          <div className="error-space">
-            <span className={mathError ? "error-text show" : "error-text"}>
-              {mathError || "placeholder"}
-            </span>
+
+          {/* Math verification */}
+          <div className="outlined-field math-field">
+            <div className="math-verification">
+              <div className="number-box">{question.a}</div>
+              <span className="operator">+</span>
+              <div className="number-box">{question.b}</div>
+              <span className="operator">=</span>
+              <input
+                value={userAnswer}
+                onChange={(e) => {
+                  setUserAnswer(e.target.value.replace(/\D/g, ""));
+                  setMathError(null);
+                }}
+                placeholder="?"
+                className={
+                  userAnswer === ""
+                    ? ""
+                    : isVerified
+                    ? "correct"
+                    : "wrong"
+                }
+              />
+              <button
+                type="button"
+                className={`refresh-btn ${
+                  isRotating ? "rotate active" : ""
+                }`}
+                onClick={handleRefresh}
+              >
+                <FaSyncAlt />
+              </button>
+            </div>
+            <div className="error-space">
+              <span className={mathError ? "error-text show" : "error-text"}>
+                {mathError || "placeholder"}
+              </span>
+            </div>
           </div>
-        </div>
 
-        <Button className="btn-brand w-100" onClick={handleSubmit}>
-          Sign In <img src={ArrowIcon} className="btn-arrow" />
-        </Button>
+          <Button className="btn-brand w-100" onClick={handleSubmit}>
+            Sign In <img src={ArrowIcon} className="btn-arrow" />
+          </Button>
 
-        <div className="text-center mt-2">
-          <Link to="/forgot-password" className="small">
-            Forgot password?
-          </Link>
-        </div>
-      </AuthCard>
-    </AuthLayout>
+          <div className="text-center mt-2">
+            <Link to="/forgot-password" className="small">
+              Forgot password?
+            </Link>
+          </div>
+        </AuthCard>
+      </AuthLayout>
+    </>
   );
 }

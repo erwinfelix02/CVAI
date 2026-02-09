@@ -16,7 +16,7 @@ type Props = {
 
 export default function QuickActionsCard({ title, items }: Props) {
   return (
-    <div className="card shadow-sm registrar-card h-100">
+    <div className="card shadow-sm registrar-card">
       <div className="card-body p-3 p-md-4">
         <h5 className="fw-bold mb-3">{title}</h5>
 

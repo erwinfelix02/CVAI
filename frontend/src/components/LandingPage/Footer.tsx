@@ -2,7 +2,7 @@ import "../../styles/footer.css";
 
 export function Footer() {
   return (
-    <footer className="footer">
+    <footer className="footer reveal delay-1">
       <span className="copyright">
         © 2025 CampusAI. Empowering students with AI.
       </span>

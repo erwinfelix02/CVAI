@@ -4,7 +4,6 @@ import LandingPage from "./pages/LandingPage";
 import StudentPreRegistrationPage from "./pages/PreReg/StudentPreRegistrationPage";
 
 import SignIn from "./pages/Authentication/SignIn";
-import SignUp from "./pages/Authentication/SignUp";
 import ForgotPassword from "./pages/Authentication/ForgotPassword";
 import VerifyCode from "./pages/Authentication/VerifyCode";
 import "./styles/buttons.css";
@@ -38,6 +37,10 @@ import RegistrarLayout from "./pages/Registrar/RegistrarLayout";
 import RegistrarDashboard from "./pages/Registrar/RegistrarDashboard";
 import ApplicationsPage from "./pages/Registrar/ApplicationsPage";
 import StudentRecordsPage from "./pages/Registrar/StudentRecordsPage";
+import StudentEnrollmentPage from "./pages/Registrar/StudentEnrollmentPage";
+import SectionsManagementPage from "./pages/Registrar/SectionsManagementPage";
+import DocumentRequestsPage from "./pages/Registrar/DocumentRequestsPage";
+
 
 import SuperAdminLayoutPage from "./pages/SuperAdmin/SuperAdminLayoutPage";
 import SuperAdminDashboard from "./pages/SuperAdmin/SuperAdminDashboard";
@@ -58,7 +61,6 @@ export default function App() {
       {/* Authentication */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/signin" element={<SignIn />} />
-      <Route path="/signup" element={<SignUp />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/verify-code" element={<VerifyCode />} />
 
@@ -98,6 +100,9 @@ export default function App() {
         <Route index element={<RegistrarDashboard />} />
         <Route path="applications" element={<ApplicationsPage />} />
         <Route path="students" element={<StudentRecordsPage />} />
+        <Route path="enrollment" element={<StudentEnrollmentPage />} />
+        <Route path="sections" element={<SectionsManagementPage />} />
+        <Route path="documents" element={<DocumentRequestsPage />} />
       </Route>
 
       {/* ✅ Super Admin */}

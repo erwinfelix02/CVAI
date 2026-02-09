@@ -25,7 +25,7 @@ export default function PreRegNavbar() {
               Graystone Institute of the Philippines
             </div>
             <div className="prereg-navbar-subtitle">
-              Campus Virtual Information Assistant
+              Campus Virtual Assistant for Information
             </div>
           </div>
         </div>

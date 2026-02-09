@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { PermissionKey } from "./permissions";
 
 export type RoleTone =
   | "purple"
@@ -12,9 +13,9 @@ export type RoleCardItem = {
   id: string;
   name: string;
   users: number;
-  tone: RoleTone;
+  tone: "purple" | "blue" | "orange" | "green" | "teal" | "indigo";
   icon: LucideIcon;
-  permissions: string[];
+  permissions: PermissionKey[];
 };
 
 export type UserStatus = "Active" | "Inactive";

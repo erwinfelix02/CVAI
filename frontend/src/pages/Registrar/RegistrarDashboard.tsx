@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import {
   Users,
   ClipboardList,
@@ -22,7 +22,31 @@ import EnrollmentStatusCard from "../../components/Registrar/Dashboard/Enrollmen
 import "../../styles/registrar-dashboard.css";
 
 export default function RegistrarDashboard() {
-  // ✅ lock the stats type so tone stays "blue" | "orange" | "green" | "red"
+  const quickRef = useRef<HTMLDivElement | null>(null);
+  const recentRef = useRef<HTMLDivElement | null>(null);
+
+  // 🔥 Sync Recent Applications height to Quick Actions
+  useEffect(() => {
+    if (!quickRef.current || !recentRef.current) return;
+
+    const syncHeight = () => {
+      recentRef.current!.style.height =
+        quickRef.current!.offsetHeight + "px";
+    };
+
+    syncHeight();
+
+    const observer = new ResizeObserver(syncHeight);
+    observer.observe(quickRef.current);
+
+    window.addEventListener("resize", syncHeight);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", syncHeight);
+    };
+  }, []);
+
   const stats = useMemo<StatCardProps[]>(
     () => [
       {
@@ -139,17 +163,23 @@ export default function RegistrarDashboard() {
       {/* Middle row */}
       <div className="row g-3 g-md-4 mb-3 mb-md-4">
         <div className="col-12 col-lg-4">
-          <QuickActionsCard title="Quick Actions" items={quickActions} />
+          <div ref={quickRef}>
+            <QuickActionsCard title="Quick Actions" items={quickActions} />
+          </div>
         </div>
 
-        <div className="col-12 col-lg-8">
-          <RecentApplicationsCard
-            title="Recent Applications"
-            viewAllLabel="View All"
-            viewAllTo="/registrar/applications"
-            items={recent}
-          />
-        </div>
+    <div className="col-12 col-lg-8">
+  <RecentApplicationsCard
+    ref={recentRef}
+    title="Recent Applications"
+    viewAllLabel="View All"
+    viewAllTo="/registrar/applications"
+    items={recent}
+  />
+</div>
+
+
+
       </div>
 
       {/* Enrollment status */}

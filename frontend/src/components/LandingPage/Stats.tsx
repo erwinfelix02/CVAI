@@ -13,8 +13,11 @@ export function Stats() {
       <div className="container py-5">
         <div className="stats-inner mx-auto">
           <div className="row text-center">
-            {stats.map((s) => (
-              <div key={s.label} className="col-6 col-md-3 mb-4 stats-item">
+            {stats.map((s, i) => (
+              <div
+                key={s.label}
+                className={`col-6 col-md-3 mb-4 stats-item reveal delay-${i + 1}`}
+              >
                 <div className="stats-value">{s.value}</div>
                 <div className="stats-label">{s.label}</div>
               </div>

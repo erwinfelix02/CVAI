@@ -7,8 +7,18 @@ type Props = {
   onOpen: (id: string) => void;
 };
 
+const MAX_VISIBLE_PERMS = 3;
+
+const formatPermission = (key: string) =>
+  key
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
 export default function RoleCard({ item, onSettings, onOpen }: Props) {
   const Icon = item.icon;
+
+  const visiblePerms = item.permissions.slice(0, MAX_VISIBLE_PERMS);
+  const hiddenCount = item.permissions.length - visiblePerms.length;
 
   return (
     <div
@@ -21,6 +31,7 @@ export default function RoleCard({ item, onSettings, onOpen }: Props) {
       }}
     >
       <div className="card-body p-3 p-md-4">
+        {/* Header */}
         <div className="d-flex align-items-center justify-content-between gap-3">
           <div className="d-flex align-items-center gap-3">
             <div className={`role-ic tone-${item.tone}`}>
@@ -28,8 +39,20 @@ export default function RoleCard({ item, onSettings, onOpen }: Props) {
             </div>
 
             <div className="min-w-0">
-              <div className="fw-bold role-title text-truncate">{item.name}</div>
-              <div className="text-muted role-users">{item.users} users</div>
+              <div className="d-flex align-items-center gap-2 flex-wrap">
+                <div className="fw-bold role-title text-truncate">
+                  {item.name}
+                </div>
+
+                {/* System badge */}
+                {item.id === "superadmin" && (
+                  <span className="role-badge">System</span>
+                )}
+              </div>
+
+              <div className="text-muted role-users">
+                {item.users} users
+              </div>
             </div>
           </div>
 
@@ -46,14 +69,24 @@ export default function RoleCard({ item, onSettings, onOpen }: Props) {
           </button>
         </div>
 
-        <div className="role-perms-label">PERMISSIONS</div>
+        {/* Permissions label */}
+        <div className="role-perms-label">
+          PERMISSIONS ({item.permissions.length})
+        </div>
 
+        {/* Permission chips */}
         <div className="d-flex flex-wrap gap-2">
-          {item.permissions.map((p) => (
+          {visiblePerms.map((p) => (
             <span key={p} className="role-chip">
-              {p}
+              {formatPermission(p)}
             </span>
           ))}
+
+          {hiddenCount > 0 && (
+            <span className="role-chip role-chip-muted">
+              +{hiddenCount} more
+            </span>
+          )}
         </div>
       </div>
     </div>

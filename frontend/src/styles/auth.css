@@ -839,3 +839,287 @@ input[type="password"]::-webkit-password-toggle-button {
     min-height: auto;
   }
 }
+/* ===== FULL PAGE BACKGROUND ===== */
+.auth-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background:
+    radial-gradient(900px 500px at 10% 0%, rgba(13, 202, 240, 0.18), transparent 55%),
+    radial-gradient(900px 500px at 90% 20%, rgba(13, 81, 115, 0.16), transparent 55%),
+    linear-gradient(180deg, #ffffff, #f6f8fb);
+}
+
+/* ===== CENTER CARD WRAPPER ===== */
+.auth-center-wrapper {
+  width: 100%;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+/* Card max width */
+.auth-form-max {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* ===== AUTH CARD ===== */
+.auth-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 0;
+  width: 100%;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* Accent bar */
+.auth-accent {
+  height: 6px;
+  background: linear-gradient(90deg, var(--brand-primary), #0dcaf0);
+}
+
+/* ===== MOBILE OPTIMIZATION ===== */
+@media (max-width: 480px) {
+  .auth-form-max {
+    max-width: 100%;
+  }
+
+  .auth-card {
+    border-radius: 12px;
+  }
+}
+/* ===== LOCKED EMAIL FIELD ===== */
+.outlined-field.locked .outlined-input {
+  background: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Change email button */
+.change-email-btn {
+  position: absolute;
+  right: 12px;
+  bottom: -22px;
+  font-size: 12px;
+  color: var(--brand-primary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.change-email-btn:hover {
+  text-decoration: underline;
+}
+
+/* Space for change email button */
+.outlined-field.locked {
+  margin-bottom: 2.2rem;
+}
+/* ===== AUTH STEPPER ===== */
+.auth-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.auth-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #64748b;
+  transition: all 0.25s ease;
+}
+
+.auth-step svg {
+  font-size: 0.9rem;
+}
+
+.auth-step.active {
+  background: #0d5173;
+  color: #ffffff;
+}
+
+.auth-step.completed {
+  background: rgba(13, 81, 115, 0.15);
+  color: #0d5173;
+}
+
+.auth-step-line {
+  width: 36px;
+  height: 2px;
+  background: #e2e8f0;
+  border-radius: 2px;
+}
+
+/* ===== LOCKED EMAIL FIELD ===== */
+.outlined-field.locked .outlined-input {
+  background: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Change email button */
+.change-email-btn {
+  position: absolute;
+  right: 12px;
+  bottom: -22px;
+  font-size: 12px;
+  color: var(--brand-primary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.change-email-btn:hover {
+  text-decoration: underline;
+}
+
+/* Space for change email button */
+.outlined-field.locked {
+  margin-bottom: 2.2rem;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .auth-step {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+  }
+
+  .auth-step-line {
+    width: 24px;
+  }
+}
+/* ===== STEPPER ===== */
+.auth-stepper.compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 1.2rem;
+  flex-wrap: nowrap;
+}
+
+.auth-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #e9f1f5;
+  color: #6c757d;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.auth-step.active {
+  background: #0b5d7a;
+  color: #fff;
+}
+
+.auth-step.completed {
+  background: #d8e9f0;
+  color: #0b5d7a;
+}
+
+.auth-step-line {
+  width: 28px;
+  height: 2px;
+  background: #d0d7de;
+}
+
+/* ===== PASSWORD INPUT FIX ===== */
+.outlined-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 42px 14px 14px;
+}
+
+/* Prevent card overflow */
+.auth-card {
+  overflow: visible;
+}
+/* ===== STEPPER ===== */
+.auth-stepper.compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.auth-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: #e9f0f4;
+  color: #6c757d;
+  font-size: 13px;
+}
+
+.auth-step.active {
+  background: #0b5d7a;
+  color: #fff;
+}
+
+.auth-step.completed {
+  background: #d4e6ef;
+  color: #0b5d7a;
+}
+
+.auth-step-line {
+  width: 30px;
+  height: 2px;
+  background: #d0dbe2;
+}
+
+/* ===== PASSWORD EYE ===== */
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6c757d;
+  font-size: 16px;
+}
+
+.password-toggle:hover {
+  color: #0b5d7a;
+}
+.resend-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.resend-btn:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+}
