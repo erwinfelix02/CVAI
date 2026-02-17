@@ -8,18 +8,24 @@ export const createUser = async (payload: any) => {
   });
 
   const data = await res.json();
-
   if (!res.ok) throw new Error(data.message);
   return data;
 };
 
-
-// ✅ NEW: Fetch users from DB
 export const getUsers = async () => {
   const res = await fetch(API_URL);
-
   const data = await res.json();
   if (!res.ok) throw new Error("Failed to load users");
+  return data;
+};
+
+export const sendCredentials = async (id: string) => {
+  const res = await fetch(`${API_URL}/${id}/send-credentials`, {
+    method: "POST",
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message);
 
   return data;
 };

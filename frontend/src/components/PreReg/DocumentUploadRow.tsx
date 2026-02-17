@@ -1,23 +1,60 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { UploadCloud, Trash2, FileText } from "lucide-react";
+import AuthAlert from "../Authentication/AuthAlert"; // adjust path if needed
 
 export default function DocumentUploadRow({
   title,
   file,
-  accept = "image/*,application/pdf",
+  accept = "application/pdf",
   onChange,
-  error,
 }: {
   title: string;
   file?: File | null;
   accept?: string;
   onChange: (f: File | null) => void;
-  error?: string; // ✅ new
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<"error" | "success">("error");
+  const [alertVisible, setAlertVisible] = useState(false);
+
+  const showAlert = (msg: string, type: "error" | "success") => {
+    setAlertMessage(msg);
+    setAlertType(type);
+    setAlertVisible(true);
+
+    setTimeout(() => {
+      setAlertVisible(false);
+    }, 3000);
+  };
+
+  const handleFileChange = (selectedFile: File | null) => {
+    if (!selectedFile) {
+      onChange(null);
+      return;
+    }
+
+    // ✅ Strict PDF validation
+    if (selectedFile.type !== "application/pdf") {
+      inputRef.current!.value = "";
+      showAlert("Only PDF files are allowed.", "error");
+      return;
+    }
+
+    // Optional: size validation (5MB max)
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      inputRef.current!.value = "";
+      showAlert("File must be less than 5MB.", "error");
+      return;
+    }
+
+    onChange(selectedFile);
+    showAlert("PDF uploaded successfully.", "success");
+  };
+
   return (
-    <div className={`prereg-doc-row ${error ? "is-invalid-row" : ""}`}>
+    <div className="prereg-doc-row">
       <div className="prereg-doc-left">
         <div className="prereg-doc-title">
           <FileText size={18} className="prereg-doc-ico" />
@@ -25,13 +62,15 @@ export default function DocumentUploadRow({
         </div>
 
         <div className="prereg-doc-sub">
-          {file ? `Selected: ${file.name}` : "No file selected"}
+          {file ? `Selected: ${file.name}` : "No file selected (PDF only)"}
         </div>
 
-        {/* ✅ error message (keeps alignment) */}
-        <div className="invalid-feedback d-block mt-1">
-          {error ? error : "\u00A0"}
-        </div>
+        {/* ✅ Styled Alert */}
+        <AuthAlert
+          message={alertMessage}
+          type={alertType}
+          visible={alertVisible}
+        />
       </div>
 
       <div className="prereg-doc-actions">
@@ -40,7 +79,9 @@ export default function DocumentUploadRow({
           type="file"
           accept={accept}
           className="d-none"
-          onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+          onChange={(e) =>
+            handleFileChange(e.target.files?.[0] ?? null)
+          }
         />
 
         <button

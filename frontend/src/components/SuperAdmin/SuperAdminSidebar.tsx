@@ -13,6 +13,8 @@ import {
   X,
   Crown,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -44,6 +46,8 @@ export default function SuperAdminSidebar({
   isMobile = false,
 }: SidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const isActive = (path: string) =>
     path === "/superadmin"
@@ -129,17 +133,47 @@ export default function SuperAdminSidebar({
         <div
           className="nav-item nav-item-danger"
           role="button"
-          onClick={() => {
-            console.log("sign out");
-            if (isMobile && setMobileOpen) setMobileOpen(false);
-          }}
+          onClick={() => setShowLogoutConfirm(true)}
         >
           <div className="nav-label">
             <LogOut size={18} />
-            {(!collapsed || isMobile) && <span>Sign Out</span>}
+            {(!collapsed || isMobile) && <span>Log Out</span>}
           </div>
         </div>
       </div>
+      {showLogoutConfirm && (
+        <div className="logout-overlay">
+          <div className="logout-modal">
+            <h6>Confirm Log Out</h6>
+            <p>Are you sure you want to Log out?</p>
+
+            <div className="d-flex gap-2 justify-content-end">
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowLogoutConfirm(false)}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={() => {
+                  localStorage.removeItem("token");
+                  localStorage.removeItem("user");
+
+                  setShowLogoutConfirm(false);
+
+                  if (isMobile && setMobileOpen) setMobileOpen(false);
+
+                  navigate("/signin");
+                }}
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

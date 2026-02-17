@@ -9,6 +9,12 @@ type Props = {
   onToggle: () => void;
   onDelete: () => void;
 };
+const formatDateOnly = (dateString: string) =>
+  new Date(dateString).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
 export default function UserInfoCard({
   roleName,
@@ -97,7 +103,10 @@ export default function UserInfoCard({
 
                 <div className="col-6 text-end">
                   <div className="text-muted small">Created</div>
-                  <div className="fw-semibold">{user.createdAt}</div>
+                  <div className="fw-semibold">
+  {formatDateOnly(user.createdAt)}
+</div>
+
                 </div>
               </div>
             </div>

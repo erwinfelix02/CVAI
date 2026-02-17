@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import Button from "../Authentication/Button";
 import "../../styles/hero.css";
-import ChatIcon from "../../assets/chat.png";
+import { MessageCircle } from "lucide-react";
 import AiIcon from "../../assets/ai.png";
 import ChatPreview from "./ChatPreview";
 
@@ -23,7 +23,8 @@ export function Hero() {
 
         <p className="lead mt-3 mx-auto hero-text" style={{ maxWidth: 720 }}>
           Get instant answers about courses, schedules, campus resources, and
-          everything you need for academic success. Available 24/7, just for you.
+          everything you need for academic success. Available 24/7, just for
+          you.
         </p>
 
         <div className="d-flex flex-column flex-sm-row justify-content-center align-items-center gap-3 mt-4">
@@ -32,7 +33,7 @@ export function Hero() {
             onClick={() => navigate("/signin")}
           >
             Get Started
-            <img src={ChatIcon} alt="" className="btn-icon" />
+            <MessageCircle size={18} />
           </Button>
 
           <Button variant="whiteBorder" className="hero-demo">

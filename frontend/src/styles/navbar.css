@@ -13,6 +13,10 @@
     -webkit-backdrop-filter 0.3s ease,
     box-shadow 0.3s ease;
 }
+.navbar-cta svg {
+  background: none;
+  padding: 0;
+}
 
 .navbar.scrolled {
   background-color: rgba(255, 255, 255, 0.75);

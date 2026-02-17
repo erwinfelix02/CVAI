@@ -1,11 +1,19 @@
-// src/components/SuperAdmin/Knowledge/KnowledgeCategoryCard.tsx
+import { MessageCircle } from "lucide-react";
 import type { KbCategory } from "./types";
 
-export default function KnowledgeCategoryCard({ category }: { category: KbCategory }) {
-  const Icon = category.icon;
+export default function KnowledgeCategoryCard({
+  category,
+}: {
+  category: KbCategory;
+}) {
+  const Icon = category.icon || MessageCircle;
 
   return (
-    <div className={`superadmin-kb-cat card shadow-sm tone-${category.tone}`}>
+    <div
+      className={`superadmin-kb-cat card shadow-sm tone-${
+        category.tone || "slate"
+      }`}
+    >
       <div className="card-body p-3 p-md-4">
         <div className="superadmin-kb-cat-top d-flex align-items-start justify-content-between gap-3">
           <div className="superadmin-kb-cat-ic">
@@ -18,7 +26,9 @@ export default function KnowledgeCategoryCard({ category }: { category: KbCatego
         </div>
 
         <div className="mt-2">
-          <div className="fw-bold superadmin-kb-cat-title">{category.title}</div>
+          <div className="fw-bold superadmin-kb-cat-title">
+            {category.title}
+          </div>
           <div className="text-muted">{category.subtitle}</div>
         </div>
 

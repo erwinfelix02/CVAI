@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Shield,
   ClipboardList,
@@ -11,7 +11,6 @@ import {
 import RoleHeader from "../../components/SuperAdmin/Roles/RoleHeader";
 import RoleGrid from "../../components/SuperAdmin/Roles/RoleGrid";
 import RoleDetailsView from "../../components/SuperAdmin/Roles/RoleDetailsView";
-
 import RoleDetailsModal from "../../components/SuperAdmin/Roles/RoleDetailsModal";
 import EditRoleModal from "../../components/SuperAdmin/Roles/EditRoleModal";
 
@@ -20,9 +19,45 @@ import type {
   UserItem,
   Gender,
 } from "../../components/SuperAdmin/Roles/types";
+
+import { getUsers } from "../../api/userService";
 import "../../styles/superadmin-roles.css";
 
+/* ================= HELPERS ================= */
+
+function roleToRoleId(role: string): string {
+  switch (role) {
+    case "Super Admin":
+      return "superadmin";
+    case "Registrar":
+      return "registrar";
+    case "Dept Head":
+      return "depthead";
+    case "Finance":
+      return "finance";
+    case "Faculty":
+      return "faculty";
+    case "Student":
+      return "student";
+    default:
+      return "";
+  }
+}
+
+const makeFullName = (
+  firstName: string,
+  middleName: string,
+  lastName: string,
+) =>
+  [firstName, middleName, lastName]
+    .filter((x) => x && x.trim())
+    .join(" ")
+    .trim();
+
+/* ================= PAGE ================= */
+
 export default function RoleManagementPage() {
+  /* ---------- ROLES (STATIC) ---------- */
   const seedRoles = useMemo<RoleCardItem[]>(
     () => [
       {
@@ -93,80 +128,77 @@ export default function RoleManagementPage() {
 
   const [roles, setRoles] = useState<RoleCardItem[]>(seedRoles);
 
-  // users (same as yours, kept)
-  const makeFullName = (
-    firstName: string,
-    middleName: string,
-    lastName: string,
-  ) =>
-    [firstName, middleName, lastName]
-      .filter((x) => x.trim())
-      .join(" ")
-      .trim();
+  /* ---------- USERS (FROM DB) ---------- */
+  const [users, setUsers] = useState<UserItem[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
-  const [users] = useState<UserItem[]>([
-    {
-      id: "u1",
-      userId: "FAC-2025-001",
-      firstName: "Maria",
-      middleName: "",
-      lastName: "Santos",
-      gender: "Female" as Gender,
-      houseNo: "21",
-      fullName: makeFullName("Maria", "", "Santos"),
-      email: "maria@uni.edu",
-      phone: "09123456789",
-      status: "Active",
-      roleId: "faculty",
-      createdAt: "2025-11-12",
-    },
-    {
-      id: "u2",
-      userId: "STU-2025-014",
-      firstName: "Juan",
-      middleName: "",
-      lastName: "Dela Cruz",
-      gender: "Male" as Gender,
-      houseNo: "113",
-      fullName: makeFullName("Juan", "", "Dela Cruz"),
-      email: "juan@uni.edu",
-      phone: "09987654321",
-      status: "Active",
-      roleId: "student",
-      createdAt: "2025-10-05",
-    },
-  ]);
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        setLoadingUsers(true);
+        const data = await getUsers();
 
+        const mapped: UserItem[] = data.map((u: any) => ({
+          id: u._id,
+          userId: u.idNumber,
+          firstName: u.firstName,
+          middleName: u.middleName || "",
+          lastName: u.lastName,
+          fullName: makeFullName(
+            u.firstName,
+            u.middleName || "",
+            u.lastName,
+          ),
+          email: u.email,
+          phone: u.phone,
+          gender: u.gender as Gender,
+          status: u.status === "active" ? "Active" : "Inactive",
+          roleId: roleToRoleId(u.role),
+          createdAt: u.createdAt,
+        }));
+
+        setUsers(mapped);
+      } catch (err) {
+        console.error("❌ Failed to fetch users", err);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    loadUsers();
+  }, []);
+
+  /* ---------- VIEW STATE ---------- */
   const [view, setView] = useState<"list" | "details">("list");
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
 
-  // ✅ modals
   const [detailsRoleId, setDetailsRoleId] = useState<string | null>(null);
   const [editRoleId, setEditRoleId] = useState<string | null>(null);
 
   const selectedRole = selectedRoleId
-    ? (roles.find((r) => r.id === selectedRoleId) ?? null)
+    ? roles.find((r) => r.id === selectedRoleId) ?? null
     : null;
 
-  // live user counts
+  /* ---------- ROLE COUNTS ---------- */
   const rolesWithCounts = useMemo(() => {
     const counts = users.reduce<Record<string, number>>((acc, u) => {
       acc[u.roleId] = (acc[u.roleId] ?? 0) + 1;
       return acc;
     }, {});
-    return roles.map((r) => ({ ...r, users: counts[r.id] ?? 0 }));
+
+    return roles.map((r) => ({
+      ...r,
+      users: counts[r.id] ?? 0,
+    }));
   }, [roles, users]);
 
-  const openRoleDetailsPage = (id: string) => {
-    setSelectedRoleId(id);
-    setView("details");
-  };
-
+  /* ---------- MODAL ROLES ---------- */
   const detailsRole = detailsRoleId
-    ? (rolesWithCounts.find((r) => r.id === detailsRoleId) ?? null)
+    ? rolesWithCounts.find((r) => r.id === detailsRoleId) ?? null
     : null;
+
   const editRole = editRoleId
-    ? (rolesWithCounts.find((r) => r.id === editRoleId) ?? null)
+    ? rolesWithCounts.find((r) => r.id === editRoleId) ?? null
     : null;
 
   const saveRolePermissions = (roleId: string, perms: any[]) => {
@@ -176,6 +208,13 @@ export default function RoleManagementPage() {
     setEditRoleId(null);
     setDetailsRoleId(null);
   };
+
+  const openRoleDetailsPage = (id: string) => {
+    setSelectedRoleId(id);
+    setView("details");
+  };
+
+  /* ================= RENDER ================= */
 
   return (
     <div className="superadmin-roles container-fluid py-3 py-md-4">
@@ -188,11 +227,15 @@ export default function RoleManagementPage() {
             actionLabel=""
           />
 
-          <RoleGrid
-            items={rolesWithCounts}
-            onOpen={openRoleDetailsPage}
-            onSettings={(id) => setDetailsRoleId(id)} // ✅ open role details modal
-          />
+          {loadingUsers ? (
+            <div className="text-muted small">Loading users…</div>
+          ) : (
+            <RoleGrid
+              items={rolesWithCounts}
+              onOpen={openRoleDetailsPage}
+              onSettings={(id) => setDetailsRoleId(id)}
+            />
+          )}
         </>
       )}
 
@@ -206,18 +249,14 @@ export default function RoleManagementPage() {
         />
       )}
 
-      {/* ✅ Role Details modal (matches screenshot) */}
       {detailsRole && (
         <RoleDetailsModal
           role={detailsRole}
           onClose={() => setDetailsRoleId(null)}
-          onEdit={() => {
-            setEditRoleId(detailsRole.id);
-          }}
+          onEdit={() => setEditRoleId(detailsRole.id)}
         />
       )}
 
-      {/* ✅ Edit modal (grid cards, only allowed for that role) */}
       {editRole && (
         <EditRoleModal
           role={editRole}

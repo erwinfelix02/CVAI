@@ -683,3 +683,149 @@
   opacity: 1 !important;                /* Force full visibility */
   cursor: not-allowed;                  /* Show blocked cursor */
 }
+
+/* ===== EMPTY STATE ===== */
+.users-empty-state {
+  padding: 48px 16px;
+  text-align: center;
+  border: 1px dashed #dee2e6;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.users-empty-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+.users-table td {
+  vertical-align: middle;
+}
+
+.users-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.users-action-btn:hover {
+  background-color: #f1f5f9;
+  transform: translateY(-1px);
+}
+.modern-modal {
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.modern-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.modal-title {
+  font-weight: 600;
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
+.modal-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.modal-close-btn {
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background: #e5e7eb;
+}
+
+.modern-info-card {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.info-row {
+  display: grid;
+  grid-template-columns: 20px 80px 1fr;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.info-value {
+  color: #111827;
+}
+
+.modern-notice-box {
+  margin-top: 18px;
+  background: #e0f2fe;
+  color: #1e40af;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.modern-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.modern-send-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modern-cancel {
+  min-width: 90px;
+}
+.users-input.users-status-inactive {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+  border: 2px solid #ef4444 !important;
+  font-weight: 600;
+}
+.users-input-wrapper {
+  position: relative;
+}
+
+.users-input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+}
+
+.users-input,
+.users-select,
+.users-textarea {
+  padding-left: 38px;
+}

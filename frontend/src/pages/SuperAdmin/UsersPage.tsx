@@ -4,7 +4,9 @@ import UsersToolbar from "../../components/SuperAdmin/Users/UsersToolbar";
 import UsersTable from "../../components/SuperAdmin/Users/UsersTable";
 import AddUserModal from "../../components/SuperAdmin/Users/AddUserModal";
 import type { AddUserPayload } from "../../components/SuperAdmin/Users/AddUserModal";
-import { createUser, getUsers } from "../../api/userService";
+import SendCredentialsModal from "../../components/SuperAdmin/Users/SendCredentialsModal";
+import AuthAlert from "../../components/Authentication/AuthAlert";
+import { createUser, getUsers, sendCredentials } from "../../api/userService";
 import "../../styles/superadmin-user.css";
 
 /* ================= TYPES ================= */
@@ -20,7 +22,7 @@ export type UserRole =
 export type UserStatus = "active" | "inactive";
 
 export type UserRow = {
-  id: string;          // MongoDB _id
+  id: string;
   name: string;
   email: string;
   role: UserRole;
@@ -29,6 +31,8 @@ export type UserRow = {
   phone?: string;
   userCode?: string;
   notes?: string;
+  credentialsSent?: boolean;
+  createdBy?: string;
 };
 
 export type RoleTab =
@@ -64,47 +68,56 @@ function tabToRoleFilter(tab: RoleTab): UserRole | "All" {
 /* ================= PAGE ================= */
 
 export default function UsersPage() {
-  /* 🔥 USERS NOW COME FROM DATABASE */
   const [users, setUsers] = useState<UserRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<RoleTab>("All");
-  const [statusFilter, setStatusFilter] =
-    useState<"all" | "active" | "inactive">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
 
   const [page, setPage] = useState(1);
   const pageSize = 7;
 
   const [addOpen, setAddOpen] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<"success" | "error">("success");
+  const [animateAlert, setAnimateAlert] = useState(false);
 
-  /* ================= LOAD USERS FROM DB ================= */
+  /* ================= LOAD USERS ================= */
+
+  const reloadUsers = async () => {
+    try {
+      const data = await getUsers();
+
+      const mapped: UserRow[] = data.map((u: any) => ({
+        id: u._id,
+        name: `${u.firstName} ${
+          u.middleName ? u.middleName + " " : ""
+        }${u.lastName}`.trim(),
+        email: u.email,
+        role: u.role,
+        department: u.department,
+        status: u.status,
+        phone: u.phone,
+        userCode: u.idNumber,
+        notes: u.notes,
+        credentialsSent: u.credentialsSent,
+        createdBy: u.createdBy,
+      }));
+
+      setUsers(mapped);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to load users from database");
+    }
+  };
 
   useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        const data = await getUsers();
-
-        const mapped: UserRow[] = data.map((u: any) => ({
-          id: u._id,
-          name: `${u.firstName} ${u.middleName ? u.middleName + " " : ""}${u.lastName}`.trim(),
-          email: u.email,
-          role: u.role,
-          department: u.department,
-          status: u.status,
-          phone: u.phone,
-          userCode: u.idNumber,
-          notes: u.notes,
-        }));
-
-        setUsers(mapped);
-      } catch (err) {
-        console.error(err);
-        alert("Failed to load users from database");
-      }
-    };
-
-    loadUsers();
+    reloadUsers();
   }, []);
 
   /* ================= FILTERING ================= */
@@ -115,8 +128,9 @@ export default function UsersPage() {
 
     return users.filter((u) => {
       const matchesRole = roleFilter === "All" || u.role === roleFilter;
-      const matchesStatus =
-        statusFilter === "all" || u.status === statusFilter;
+
+      const matchesStatus = statusFilter === "all" || u.status === statusFilter;
+
       const matchesQuery =
         !q ||
         u.name.toLowerCase().includes(q) ||
@@ -131,7 +145,26 @@ export default function UsersPage() {
   }, [query, activeTab, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const showAlert = (message: string, type: "success" | "error") => {
+    setAnimateAlert(false);
+
+    setTimeout(() => {
+      setAlertMessage(message);
+      setAlertType(type);
+      setAnimateAlert(true);
+    }, 50);
+  };
+  useEffect(() => {
+    if (!animateAlert) return;
+
+    const t = setTimeout(() => {
+      setAnimateAlert(false);
+    }, 3000);
+
+    return () => clearTimeout(t);
+  }, [animateAlert]);
 
   /* ================= ADD USER ================= */
 
@@ -139,29 +172,48 @@ export default function UsersPage() {
     try {
       setIsLoading(true);
 
-      // Save to backend
-      await createUser(payload);
+      await createUser({
+        ...payload,
+        createdBy: "SuperAdmin", // ✅ ADD THIS
+      });
 
-      // Reload users from DB (single source of truth)
-      const data = await getUsers();
+      await reloadUsers();
 
-      const mapped: UserRow[] = data.map((u: any) => ({
-        id: u._id,
-        name: `${u.firstName} ${u.middleName ? u.middleName + " " : ""}${u.lastName}`.trim(),
-        email: u.email,
-        role: u.role,
-        department: u.department,
-        status: u.status,
-        phone: u.phone,
-        userCode: u.idNumber,
-        notes: u.notes,
-      }));
-
-      setUsers(mapped);
       setAddOpen(false);
-      alert("✅ User saved successfully");
+      showAlert("User created successfully (inactive).", "success");
     } catch (err: any) {
-      alert(err.message || "Failed to save user");
+      showAlert(err.response?.data?.message || "Failed to save user", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /* ================= SEND CREDENTIALS ================= */
+
+  const handleSendClick = (user: UserRow) => {
+    setSelectedUser(user);
+    setSendOpen(true);
+  };
+
+  const confirmSendCredentials = async () => {
+    if (!selectedUser) return;
+
+    try {
+      setIsLoading(true);
+
+      await sendCredentials(selectedUser.id);
+
+      await reloadUsers();
+
+      setSendOpen(false);
+      setSelectedUser(null);
+
+      showAlert("Credentials sent and user activated!", "success");
+    } catch (err: any) {
+      showAlert(
+        err.response?.data?.message || "Failed to send credentials",
+        "error",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -170,82 +222,112 @@ export default function UsersPage() {
   /* ================= UI ================= */
 
   return (
-    <div className="container-fluid py-4">
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <div>
-          <h1 className="h3 fw-bold mb-1">Portal Users</h1>
-          <p className="text-muted mb-0">
-            Manage all portal users and their roles
-          </p>
-        </div>
-
-        <button
-          className="btn btn-primary d-flex align-items-center gap-2"
-          onClick={() => setAddOpen(true)}
-        >
-          <UserPlus size={18} />
-          Add User
-        </button>
-      </div>
-
-      <div className="card shadow-sm border-0">
-        <div className="card-body p-4">
-          <UsersToolbar
-            query={query}
-            onQueryChange={setQuery}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
-          />
-
-          <UsersTable rows={pageRows} onView={(u) => console.log("view", u)} />
-
-          {totalPages > 1 && (
-            <div className="d-flex justify-content-end mt-3">
-              <nav>
-                <ul className="pagination pagination-sm users-pagination">
-                  <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
-                    <button
-                      className="page-link"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-                  </li>
-
-                  <li className="page-item active">
-                    <span className="page-link">{page}</span>
-                  </li>
-
-                  <li
-                    className={`page-item ${
-                      page === totalPages ? "disabled" : ""
-                    }`}
-                  >
-                    <button
-                      className="page-link"
-                      onClick={() =>
-                        setPage((p) => Math.min(totalPages, p + 1))
-                      }
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </li>
-                </ul>
-              </nav>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* MODAL */}
-      <AddUserModal
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        onSubmit={handleAddUser}
-        isLoading={isLoading}
+    <>
+      <AuthAlert
+        message={alertMessage}
+        type={alertType}
+        visible={animateAlert}
+        loading={isLoading}
       />
-    </div>
+
+      <div className="container-fluid py-4">
+        <div className="d-flex align-items-center justify-content-between mb-3">
+          <div>
+            <h1 className="h3 fw-bold mb-1">Portal Users</h1>
+            <p className="text-muted mb-0">
+              Manage all portal users and their roles
+            </p>
+          </div>
+
+          <button
+            className="btn btn-primary d-flex align-items-center gap-2"
+            onClick={() => setAddOpen(true)}
+          >
+            <UserPlus size={18} />
+            Add User
+          </button>
+        </div>
+
+        <div className="card shadow-sm border-0">
+          <div className="card-body p-4">
+            <UsersToolbar
+              query={query}
+              onQueryChange={setQuery}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+            />
+
+            {pageRows.length > 0 ? (
+              <UsersTable
+                rows={pageRows}
+                onView={(u) => console.log("view", u)}
+                onSendCredentials={handleSendClick}
+              />
+            ) : (
+              <div className="users-empty-state">
+                <div className="users-empty-icon">📭</div>
+                <h5 className="fw-semibold mb-1">No users found</h5>
+                <p className="text-muted mb-0">
+                  Try adjusting your search or filters.
+                </p>
+              </div>
+            )}
+
+            {totalPages > 1 && (
+              <div className="d-flex justify-content-end mt-3">
+                <nav>
+                  <ul className="pagination pagination-sm users-pagination">
+                    <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
+                      <button
+                        className="page-link"
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                    </li>
+
+                    <li className="page-item active">
+                      <span className="page-link">{page}</span>
+                    </li>
+
+                    <li
+                      className={`page-item ${
+                        page === totalPages ? "disabled" : ""
+                      }`}
+                    >
+                      <button
+                        className="page-link"
+                        onClick={() =>
+                          setPage((p) => Math.min(totalPages, p + 1))
+                        }
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ADD USER MODAL */}
+        <AddUserModal
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          onSubmit={handleAddUser}
+          isLoading={isLoading}
+        />
+        <SendCredentialsModal
+          open={sendOpen}
+          user={selectedUser}
+          onClose={() => setSendOpen(false)}
+          onConfirm={confirmSendCredentials}
+          isLoading={isLoading}
+        />
+      </div>
+    </>
   );
 }

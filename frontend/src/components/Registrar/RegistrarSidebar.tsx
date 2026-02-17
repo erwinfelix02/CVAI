@@ -14,7 +14,10 @@ import {
   ChevronRight,
   GraduationCap,
   X,
+  Bot,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -26,11 +29,23 @@ interface SidebarProps {
 
 const nav = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/registrar" },
-  { label: "Applications", icon: FileText, path: "/registrar/applications", badge: 48 },
+  {
+    label: "Applications",
+    icon: FileText,
+    path: "/registrar/applications",
+    badge: 48,
+  },
   { label: "Students", icon: Users, path: "/registrar/students" },
   { label: "Enrollment", icon: UserPlus, path: "/registrar/enrollment" },
   { label: "Sections", icon: Layers, path: "/registrar/sections" },
+  { label: "Faculty Accounts", icon: Users, path: "/registrar/faculty" },
   { label: "Documents", icon: FolderOpen, path: "/registrar/documents" },
+  {
+    label: "AI Assistant",
+    icon: Bot,
+    path: "/registrar/ai-assistant",
+    badge: "AI",
+  },
 ];
 
 export default function RegistrarSidebar({
@@ -41,6 +56,8 @@ export default function RegistrarSidebar({
   isMobile = false,
 }: SidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   return (
     <aside
@@ -130,7 +147,9 @@ export default function RegistrarSidebar({
             if (isMobile && setMobileOpen) setMobileOpen(false);
           }}
         >
-          <div className={`nav-item ${location.pathname.startsWith("/registrar/settings") ? "active" : ""}`}>
+          <div
+            className={`nav-item ${location.pathname.startsWith("/registrar/settings") ? "active" : ""}`}
+          >
             <div className="nav-label">
               <Settings size={18} />
               {(!collapsed || isMobile) && <span>Settings</span>}
@@ -145,7 +164,9 @@ export default function RegistrarSidebar({
             if (isMobile && setMobileOpen) setMobileOpen(false);
           }}
         >
-          <div className={`nav-item ${location.pathname.startsWith("/registrar/help") ? "active" : ""}`}>
+          <div
+            className={`nav-item ${location.pathname.startsWith("/registrar/help") ? "active" : ""}`}
+          >
             <div className="nav-label">
               <HelpCircle size={18} />
               {(!collapsed || isMobile) && <span>Help Center</span>}
@@ -156,10 +177,7 @@ export default function RegistrarSidebar({
         <div
           className="nav-item nav-item-danger"
           role="button"
-          onClick={() => {
-            console.log("logout");
-            if (isMobile && setMobileOpen) setMobileOpen(false);
-          }}
+          onClick={() => setShowLogoutConfirm(true)}
         >
           <div className="nav-label">
             <LogOut size={18} />
@@ -167,6 +185,39 @@ export default function RegistrarSidebar({
           </div>
         </div>
       </div>
+      {showLogoutConfirm && (
+        <div className="logout-overlay">
+          <div className="logout-modal">
+            <h6>Confirm Logout</h6>
+            <p>Are you sure you want to logout?</p>
+
+            <div className="d-flex gap-2 justify-content-end">
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowLogoutConfirm(false)}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={() => {
+                  localStorage.removeItem("token");
+                  localStorage.removeItem("user");
+
+                  setShowLogoutConfirm(false);
+
+                  if (isMobile && setMobileOpen) setMobileOpen(false);
+
+                  navigate("/signin");
+                }}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

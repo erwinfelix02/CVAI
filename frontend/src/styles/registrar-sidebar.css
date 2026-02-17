@@ -183,3 +183,20 @@
     box-shadow: 0 10px 40px rgba(0,0,0,0.2);
   }
 }
+.logout-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.logout-modal {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 320px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}

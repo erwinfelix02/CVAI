@@ -1,0 +1,429 @@
+/* ======================
+   STAT CARDS
+====================== */
+.stat-card {
+  border-radius: 14px;
+}
+
+/* ======================
+   TABLE
+====================== */
+.table-head th {
+  font-weight: 500;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.faculty-row td {
+  padding: 1.1rem 1rem;
+  vertical-align: middle;
+}
+
+.faculty-row:hover {
+  background-color: #f8fafc;
+}
+
+/* ======================
+   AVATAR
+====================== */
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #e9f1f5;
+  color: #0d6efd;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+/* ======================
+   STATUS PILLS
+====================== */
+.status-pill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-active {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.status-inactive {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+/* ======================
+   ACTION BUTTON
+====================== */
+.btn-icon {
+  width: 38px; /* same as height = perfect circle */
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+}
+
+.btn-icon:hover {
+  background-color: #f1f5f9;
+  border-radius: 50%;
+}
+/* ======================
+   TABLE LABELS
+====================== */
+.table-head th {
+  font-size: 16px;
+  font-weight: 500;
+  color: #64748b; /* muted slate */
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.table thead th:first-child {
+  padding-left: 1.75rem;
+}
+
+.table thead th:last-child {
+  padding-right: 1.75rem;
+}
+/* ======================
+   ROW SPACING
+====================== */
+.faculty-row td {
+  padding-top: 1.15rem;
+  padding-bottom: 1.15rem;
+  vertical-align: middle;
+}
+
+.faculty-row td:first-child {
+  padding-left: 1.75rem;
+}
+
+.faculty-row td:last-child {
+  padding-right: 1.75rem;
+}
+/* ======================
+   ACTIONS
+====================== */
+.btn-outline-primary {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+}
+
+.btn-icon {
+  width: 38px; /* same as height = perfect circle */
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+}
+
+.btn-icon:hover {
+  background: #f1f5f9;
+  border-radius: 50%;
+}
+
+/* ======================
+   CARD FIX (ROUNDED BOTTOM)
+====================== */
+.faculty-card {
+  border-radius: 14px;
+  overflow: hidden; /* 👈 THIS FIXES IT */
+}
+
+/* ======================
+   TABLE BACKGROUND FIX
+====================== */
+.faculty-table {
+  margin-bottom: 0;
+}
+
+.faculty-table tbody tr:last-child td {
+  border-bottom: none;
+}
+/* ======================
+   SEND CREDENTIALS BUTTON
+====================== */
+.send-credentials-btn {
+  padding: 0 16px; /* vertical handled by height */
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #0d6efd;
+  background-color: #ffffff;
+  border: 1px solid #0d6efd;
+  border-radius: 10px;
+}
+
+.send-credentials-btn:hover {
+  background-color: #0d6efd;
+  color: #ffffff;
+}
+
+/* ======================
+   ICON BUTTON (3 DOTS)
+====================== */
+.btn-icon {
+  width: 38px; /* same as height = perfect circle */
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+}
+
+.btn-icon:hover {
+  background-color: #f1f5f9;
+} /* ======================
+   FACULTY INFO
+====================== */
+.faculty-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.faculty-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.faculty-email {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+/* ======================
+   STATUS PILL
+====================== */
+.status-pill {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.status-active {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.status-inactive {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+/* ======================
+   SEND CREDENTIALS BUTTON
+====================== */
+.send-credentials-btn {
+  padding: 0 16px; /* vertical handled by height */
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #0d6efd;
+  background-color: #ffffff;
+  border: 1px solid #0d6efd;
+  border-radius: 10px;
+}
+
+.send-credentials-btn:hover {
+  background-color: #0d6efd;
+  color: #ffffff;
+}
+
+/* ======================
+   ICON BUTTON (3 DOTS)
+====================== */
+.btn-icon {
+  width: 38px; /* same as height = perfect circle */
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+}
+
+.btn-icon:hover {
+  background-color: #f1f5f9;
+}
+
+/* ======================
+   ROW ALIGNMENT
+====================== */
+.faculty-row td {
+  vertical-align: middle;
+  padding-top: 1.15rem;
+  padding-bottom: 1.15rem;
+}
+/* ======================
+   ACTION BUTTON BASE
+====================== */
+.action-btn {
+  height: 38px; /* ✅ same height */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+/* ================= OVERLAY ================= */
+
+.faculty-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55); /* slightly darker like screenshot */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+/* ================= MODAL (MATCH SCREENSHOT) ================= */
+
+.faculty-modal {
+  background: #ffffff;
+
+  /* 🎯 exact balanced width */
+  width: 860px;
+  max-width: 90%;
+
+  /* balanced height */
+  max-height: 88vh;
+
+  border-radius: 16px;
+
+  /* softer professional shadow like screenshot */
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+
+  /* internal spacing like SuperAdmin */
+  padding: 26px 32px;
+
+  overflow-y: auto;
+
+  animation: fadeIn 0.2s ease;
+}
+
+/* ================= HEADER ================= */
+
+.faculty-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 22px;
+}
+
+/* ================= GRID ================= */
+
+.faculty-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+/* ================= NOTES ================= */
+
+.faculty-notes {
+  margin-top: 24px;
+}
+
+/* ================= FOOTER ================= */
+
+.faculty-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid #eaeaea; /* subtle divider like screenshot */
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 992px) {
+  .faculty-form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .faculty-modal {
+    width: 95%;
+    padding: 20px;
+    border-radius: 14px;
+  }
+
+  .faculty-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .faculty-modal-footer {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .faculty-modal-footer button {
+    width: 100%;
+  }
+}
+
+/* ================= ANIMATION ================= */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #f3f4f6;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background: #e5e7eb;
+  transform: translateY(-1px);
+}
+
+.btn-icon:active {
+  transform: scale(0.95);
+}
+.users-input.users-status-inactive {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+  border: 2px solid #ef4444 !important;
+  font-weight: 600;
+}
+.users-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.users-input-icon {
+  position: absolute;
+  left: 12px;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.users-input-with-icon .users-input,
+.users-input-with-icon .users-select {
+  padding-left: 38px;
+}

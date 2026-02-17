@@ -143,7 +143,7 @@ export default function RoleUsersTable({
       {/* pagination footer */}
       <div className="role-users-footer">
         <nav aria-label="Users pagination" className="ms-auto">
-          <ul className="pagination pagination-sm mb-0">
+          <ul className="pagination pagination-sm mb-0 gap-2">
             <li className={`page-item ${safePage <= 1 ? "disabled" : ""}`}>
               <button className="page-link" onClick={() => goto(safePage - 1)}>
                 Prev

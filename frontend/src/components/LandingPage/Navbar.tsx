@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 
 import Button from "../Authentication/Button";
 import "../../styles/navbar.css";
 import Logo from "../../assets/graystone1.jpg";
-import ArrowIcon from "../../assets/arrow-right.png";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -19,7 +19,9 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`navbar navbar-expand-lg fixed-top ${scrolled ? "scrolled" : ""}`}
+      className={`navbar navbar-expand-lg fixed-top ${
+        scrolled ? "scrolled" : ""
+      }`}
     >
       <div className="container py-2 d-flex align-items-center">
         {/* BRAND */}
@@ -31,7 +33,6 @@ export default function Navbar() {
             <img src={Logo} alt="CampusAI logo" className="navbar-logo" />
           </span>
 
-          {/* TEXT (like PreRegNavbar) */}
           <div className="navbar-text text-start">
             <div className="navbar-school">
               Graystone Institute of the Philippines
@@ -55,7 +56,7 @@ export default function Navbar() {
             onClick={() => navigate("/prereg")}
           >
             Register Now
-            <img src={ArrowIcon} alt="" className="btn-icon" />
+            <ArrowRight size={18} strokeWidth={2} />
           </Button>
         </div>
       </div>

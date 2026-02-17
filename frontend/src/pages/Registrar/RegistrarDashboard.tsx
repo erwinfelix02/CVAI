@@ -18,7 +18,7 @@ import RecentApplicationsCard from "../../components/Registrar/Dashboard/RecentA
 import type { RecentApplication } from "../../components/Registrar/Dashboard/RecentApplicationsCard";
 
 import EnrollmentStatusCard from "../../components/Registrar/Dashboard/EnrollmentStatusCard";
-
+import ProtectedLayout from "../../layouts/ProtectedLayout";
 import "../../styles/registrar-dashboard.css";
 
 export default function RegistrarDashboard() {
@@ -141,7 +141,7 @@ export default function RegistrarDashboard() {
     },
   ];
 
-  return (
+  return (<ProtectedLayout>
     <div className="registrar-dashboard">
       {/* Header */}
       <div className="mb-3 mb-md-4">
@@ -195,5 +195,6 @@ export default function RegistrarDashboard() {
         </div>
       </div>
     </div>
+    </ProtectedLayout>
   );
 }

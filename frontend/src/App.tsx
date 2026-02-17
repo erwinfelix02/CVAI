@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
-
+import RequireAuth from "./auth/RequireAuth";
+import ProtectedLayout from "./layouts/ProtectedLayout";
 import StudentPreRegistrationPage from "./pages/PreReg/StudentPreRegistrationPage";
 
 import SignIn from "./pages/Authentication/SignIn";
@@ -40,6 +41,7 @@ import StudentRecordsPage from "./pages/Registrar/StudentRecordsPage";
 import StudentEnrollmentPage from "./pages/Registrar/StudentEnrollmentPage";
 import SectionsManagementPage from "./pages/Registrar/SectionsManagementPage";
 import DocumentRequestsPage from "./pages/Registrar/DocumentRequestsPage";
+import FacultyAccountsPage from "./pages/Registrar/FacultyAccountsPage";
 
 
 import SuperAdminLayoutPage from "./pages/SuperAdmin/SuperAdminLayoutPage";
@@ -54,6 +56,7 @@ import UsersPage from "./pages/SuperAdmin/UsersPage";
 import DepartmentHeadLayoutPage from "./pages/DepartmentHead/DepartmentHeadLayoutPage";
 import DepartmentHeadDashboard from "./pages/DepartmentHead/DepartmentHeadDashboard";
 import ScheduleManagementPage from "./pages/DepartmentHead/ScheduleManagementPage";
+import RegistrarAIAssistantPage from "./pages/Registrar/RegistrarAIAssistantPage";
 
 export default function App() {
   return (
@@ -68,7 +71,16 @@ export default function App() {
       <Route path="/prereg" element={<StudentPreRegistrationPage />} />
 
       {/* Student */}
-      <Route path="/student" element={<StudentLayoutPage />}>
+      <Route
+        path="/student"
+        element={
+          <RequireAuth>
+            <ProtectedLayout>
+              <StudentLayoutPage />
+            </ProtectedLayout>
+          </RequireAuth>
+        }
+      >
         <Route index element={<StudentDashboard />} />
         <Route path="schedule" element={<StudentSchedulePage />} />
         <Route path="aiassistant" element={<StudentAIAssistantPage />} />
@@ -82,7 +94,16 @@ export default function App() {
       </Route>
 
       {/* ✅ Faculty */}
-      <Route path="/faculty" element={<FacultyLayoutPage />}>
+      <Route
+        path="/faculty"
+        element={
+          <RequireAuth>
+            <ProtectedLayout>
+              <FacultyLayoutPage />
+            </ProtectedLayout>
+          </RequireAuth>
+        }
+      >
         <Route index element={<FacultyDashboard />} />
         <Route path="students" element={<StudentsPage />} />
         <Route path="classes" element={<MyClassesPage />} />
@@ -96,17 +117,38 @@ export default function App() {
       </Route>
 
       {/* ✅ Registrar */}
-      <Route path="/registrar" element={<RegistrarLayout />}>
+      <Route
+        path="/registrar"
+        element={
+          <RequireAuth>
+            <ProtectedLayout>
+              <RegistrarLayout />
+            </ProtectedLayout>
+          </RequireAuth>
+        }
+      >
         <Route index element={<RegistrarDashboard />} />
         <Route path="applications" element={<ApplicationsPage />} />
         <Route path="students" element={<StudentRecordsPage />} />
         <Route path="enrollment" element={<StudentEnrollmentPage />} />
         <Route path="sections" element={<SectionsManagementPage />} />
+        <Route path="faculty" element={<FacultyAccountsPage />} />
         <Route path="documents" element={<DocumentRequestsPage />} />
+        <Route path="ai-assistant" element={<RegistrarAIAssistantPage />} />
+
       </Route>
 
       {/* ✅ Super Admin */}
-      <Route path="/superadmin" element={<SuperAdminLayoutPage />}>
+      <Route
+        path="/superadmin"
+        element={
+          <RequireAuth>
+            <ProtectedLayout>
+              <SuperAdminLayoutPage />
+            </ProtectedLayout>
+          </RequireAuth>
+        }
+      >
         <Route index element={<SuperAdminDashboard />} />
         <Route path="roles" element={<RoleManagementPage />} />
         <Route path="aiknowledge" element={<AIKnowledgeBasePage />} />
@@ -120,7 +162,16 @@ export default function App() {
       </Route>
 
       {/* ✅ Department Head */}
-      <Route path="/dept-head" element={<DepartmentHeadLayoutPage />}>
+      <Route
+        path="/dept-head"
+        element={
+          <RequireAuth>
+            <ProtectedLayout>
+              <DepartmentHeadLayoutPage />
+            </ProtectedLayout>
+          </RequireAuth>
+        }
+      >
         <Route index element={<DepartmentHeadDashboard />} />
         <Route path="schedules" element={<ScheduleManagementPage />} />
       </Route>

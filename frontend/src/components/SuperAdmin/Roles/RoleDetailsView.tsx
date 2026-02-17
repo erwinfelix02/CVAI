@@ -58,8 +58,6 @@ export default function RoleDetailsView({
   }, [roleUsers, q, statusFilter]);
 
   const openEdit = (u: UserItem) => {
-    // ✅ If you still want edit, handle it outside with another modal/page
-    // For now, we just select the user (or you can trigger your modal here)
     setSelectedUserId(u.id);
   };
 

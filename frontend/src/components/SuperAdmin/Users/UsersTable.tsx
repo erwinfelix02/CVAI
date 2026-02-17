@@ -1,18 +1,20 @@
-import { Eye } from "lucide-react";
+import { Eye, Send } from "lucide-react";
 import type { UserRow } from "../../../pages/SuperAdmin/UsersPage";
-import RolePill from "./pills/RolePill";
-import StatusPill from "./pills/StatusPill";
+
+type Props = {
+  rows: UserRow[];
+  onView: (u: UserRow) => void;
+  onSendCredentials: (u: UserRow) => void;
+};
 
 export default function UsersTable({
   rows,
   onView,
-}: {
-  rows: UserRow[];
-  onView: (u: UserRow) => void;
-}) {
+  onSendCredentials,
+}: Props) {
   return (
     <div className="table-responsive">
-      <table className="table users-table">
+      <table className="table users-table align-middle">
         <thead className="users-thead">
           <tr>
             <th>Name</th>
@@ -27,15 +29,67 @@ export default function UsersTable({
         <tbody>
           {rows.map((u) => (
             <tr key={u.id} className="users-row">
-              <td className="fw-semibold">{u.name}</td>
-              <td className="text-muted">{u.email}</td>
-              <td><RolePill role={u.role} /></td>
-              <td className="text-muted">{u.department}</td>
-              <td><StatusPill status={u.status} /></td>
-              <td className="text-end">
-                <button className="users-action-btn" onClick={() => onView(u)}>
-                  <Eye size={18} />
-                </button>
+              {/* Name */}
+              <td className="fw-semibold align-middle">
+                {u.name}
+              </td>
+
+              {/* Email */}
+              <td className="text-muted align-middle">
+                {u.email}
+              </td>
+
+              {/* Role */}
+              <td className="align-middle">
+                {u.role}
+              </td>
+
+              {/* Department */}
+              <td className="text-muted align-middle">
+                {u.department}
+              </td>
+
+              {/* Status */}
+              <td className="align-middle">
+                <span
+                  className={`users-status ${
+                    u.status === "active" ? "active" : "inactive"
+                  }`}
+                >
+                  {u.status}
+                </span>
+              </td>
+
+              {/* Action */}
+              <td className="text-end align-middle">
+                <div className="d-flex justify-content-end align-items-center gap-2">
+
+                  {/* View Button */}
+                  <button
+                    type="button"
+                    className="users-action-btn"
+                    onClick={() => onView(u)}
+                    title="View User"
+                  >
+                    <Eye size={18} />
+                  </button>
+
+                  {/* Send Credentials Button (only if not sent) */}
+                 {u.createdBy === "SuperAdmin" &&
+ u.status === "inactive" &&
+ !u.credentialsSent && (
+
+                    <button
+                      type="button"
+                      className="users-action-btn"
+                      onClick={() => onSendCredentials(u)}
+                      title="Send Credentials"
+                    >
+                      <Send size={18} />
+                    </button>
+                  )}
+
+                </div>
               </td>
             </tr>
           ))}

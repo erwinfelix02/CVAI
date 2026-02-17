@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import axios from "axios";
+import { Sparkles } from "lucide-react";
 import {
-  Sparkles,
   MessageCircle,
   GraduationCap,
   BookOpen,
@@ -13,70 +14,86 @@ import {
 import KnowledgeHeader from "../../components/SuperAdmin/Knowledge/KnowledgeHeader";
 import KnowledgeInfoBanner from "../../components/SuperAdmin/Knowledge/KnowledgeInfoBanner";
 import KnowledgeCategoryCard from "../../components/SuperAdmin/Knowledge/KnowledgeCategoryCard";
-import type { KbCategory } from "../../components/SuperAdmin/Knowledge/types";
 
 import "../../styles/superadmin-knowledge.css";
 
 export default function AIKnowledgeBasePage() {
-  const categories: KbCategory[] = useMemo(
-    () => [
-      {
-        id: "general",
-        title: "General",
-        subtitle: "General inquiries and information",
-        icon: MessageCircle,
-        tone: "slate",
-        count: 0,
-      },
-      {
-        id: "enrollment",
-        title: "Enrollment",
-        subtitle: "Registration and enrollment process",
-        icon: GraduationCap,
-        tone: "teal",
-        count: 1,
-      },
-      {
-        id: "courses",
-        title: "Courses",
-        subtitle: "Course information and schedules",
-        icon: BookOpen,
-        tone: "blue",
-        count: 0,
-      },
-      {
-        id: "fees",
-        title: "Fees",
-        subtitle: "Tuition, fees, and payment info",
-        icon: DollarSign,
-        tone: "amber",
-        count: 0,
-      },
-      {
-        id: "campus",
-        title: "Campus",
-        subtitle: "Facilities and campus services",
-        icon: Building2,
-        tone: "mint",
-        count: 1,
-      },
-      {
-        id: "technical",
-        title: "Technical",
-        subtitle: "IT support and technical help",
-        icon: Wrench,
-        tone: "purple",
-        count: 1,
-      },
-    ],
-    [],
-  );
+  const [categories, setCategories] = useState<any[]>([]);
+
+  // ✅ MASTER CATEGORY LIST (ALWAYS SHOWN)
+  const baseCategories = [
+    {
+      id: "general",
+      title: "General",
+      subtitle: "General inquiries and information",
+      icon: MessageCircle,
+      tone: "slate",
+    },
+    {
+      id: "enrollment",
+      title: "Enrollment",
+      subtitle: "Registration and enrollment process",
+      icon: GraduationCap,
+      tone: "teal",
+    },
+    {
+      id: "courses",
+      title: "Courses",
+      subtitle: "Course information and schedules",
+      icon: BookOpen,
+      tone: "blue",
+    },
+    {
+      id: "fees",
+      title: "Fees",
+      subtitle: "Tuition, fees, and payment info",
+      icon: DollarSign,
+      tone: "amber",
+    },
+    {
+      id: "campus",
+      title: "Campus",
+      subtitle: "Facilities and campus services",
+      icon: Building2,
+      tone: "mint",
+    },
+    {
+      id: "technical",
+      title: "Technical",
+      subtitle: "IT support and technical help",
+      icon: Wrench,
+      tone: "purple",
+    },
+  ];
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const res = await axios.get("http://localhost:5000/api/faqs");
+
+      // Count FAQs per category
+      const grouped = res.data.reduce((acc: any, faq: any) => {
+        if (!acc[faq.category]) acc[faq.category] = 0;
+        acc[faq.category]++;
+        return acc;
+      }, {});
+
+      // Merge counts into base categories
+      const formatted = baseCategories.map((cat) => ({
+        ...cat,
+        count: grouped[cat.id] || 0, // ✅ 0 if none
+      }));
+
+      setCategories(formatted);
+    };
+
+    fetchCategories();
+  }, []);
 
   return (
     <div className="superadmin-kb">
       <KnowledgeHeader
         title="AI Knowledge Base"
-        subtitle="Manage FAQs that power the AI assistant's responses"
+        subtitle="Manage FAQs that power the AI assistant"
         icon={Sparkles}
       />
 

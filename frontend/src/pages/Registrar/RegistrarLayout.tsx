@@ -47,11 +47,15 @@ export default function RegistrarLayout() {
       )}
 
       {/* Main scroll area */}
-      <main className={`registrar-main ${isMobile ? "has-mobile-header" : ""}`}>
-        <div className="container-fluid py-3 py-md-4">
-          <Outlet />
-        </div>
-      </main>
+   <main
+  className={`registrar-main ${
+    isMobile ? "has-mobile-header" : ""
+  } registrar-ai-full`}
+>
+  <Outlet />
+</main>
+
+
 
       {/* Mobile overlay */}
       {isMobile && mobileOpen && (

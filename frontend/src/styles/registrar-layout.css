@@ -13,15 +13,16 @@
 .registrar-main {
   flex: 1;
   min-width: 0;
-  height: 100dvh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 
   padding-left: 16px;
   padding-right: 16px;
-
   padding-top: calc(16px + env(safe-area-inset-top));
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
+
 
 /* =========================
    MOBILE TOP HEADER

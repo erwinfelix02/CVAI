@@ -1,10 +1,13 @@
 import User from "../models/User.js";
 import sendEmail from "../utils/sendEmail.js";
+import validator from "validator";
+
+/* ================================
+   CREATE USER (INACTIVE)
+================================ */
 
 export const createUser = async (req, res) => {
   try {
-    console.log("📩 Incoming payload:", req.body);
-
     const {
       firstName,
       middleName,
@@ -15,108 +18,217 @@ export const createUser = async (req, res) => {
       gender,
       role,
       department,
-      status,
       notes,
-      tempPassword,
+      createdBy = "SuperAdmin",
     } = req.body;
 
-    // 1. Check if user exists
-    const exists = await User.findOne({
-      $or: [{ email }, { idNumber }],
-    });
+    /* ================= VALIDATION ================= */
 
-    if (exists) {
-      return res.status(400).json({ message: "User already exists" });
+    // 1. Required fields
+    if (
+      !firstName ||
+      !lastName ||
+      !idNumber ||
+      !email ||
+      !phone ||
+      !gender ||
+      !role ||
+      !department
+    ) {
+      return res
+        .status(400)
+        .json({ message: "All required fields must be provided." });
     }
 
-    // 2. Create and Save User
+    // 2. Sanitize strings
+    const cleanFirstName = validator.escape(firstName.trim());
+    const cleanMiddleName = middleName
+      ? validator.escape(middleName.trim())
+      : "";
+    const cleanLastName = validator.escape(lastName.trim());
+    const cleanIdNumber = validator.escape(idNumber.trim());
+    const cleanEmail = validator.normalizeEmail(email.trim()) || email.trim();  
+ 
+    const cleanDepartment = validator.escape(department.trim());
+    const cleanNotes = notes ? validator.escape(notes.trim()) : "";
+
+    // 3. Validate email format
+    if (!validator.isEmail(cleanEmail)) {
+      return res.status(400).json({ message: "Invalid email format." });
+    }
+
+let cleanPhone = phone.trim().replace(/\s+/g, "");
+
+// If user sends 0912xxxxxxx → convert
+if (/^09\d{9}$/.test(cleanPhone)) {
+  cleanPhone = "+63" + cleanPhone.slice(1);
+}
+
+// If user sends 639xxxxxxxxx → convert
+if (/^639\d{9}$/.test(cleanPhone)) {
+  cleanPhone = "+" + cleanPhone;
+}
+
+// Final strict validation
+if (!/^\+639\d{9}$/.test(cleanPhone)) {
+  return res.status(400).json({
+    message: "Phone must be in format +639XXXXXXXXX.",
+  });
+}
+
+
+
+
+    // 5. Validate role (prevent role injection)
+    const allowedRoles = [
+      "Faculty",
+      "Student",
+      "Registrar",
+      "Dept Head",
+      "Finance",
+      "Super Admin",
+    ];
+
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ message: "Invalid role selected." });
+    }
+
+   const existingEmail = await User.findOne({ email: cleanEmail });
+if (existingEmail) {
+  return res.status(400).json({
+    message: "Email already exists.",
+  });
+}
+
+const existingId = await User.findOne({ idNumber: cleanIdNumber });
+if (existingId) {
+  return res.status(400).json({
+    message: "ID number already exists.",
+  });
+}
+
+
     const user = new User({
-      firstName,
-      middleName,
-      lastName,
-      idNumber,
-      email,
-      phone,
+      firstName: cleanFirstName,
+      middleName: cleanMiddleName,
+      lastName: cleanLastName,
+      idNumber: cleanIdNumber,
+      email: cleanEmail,
+      phone: cleanPhone,
       gender,
       role,
-      department,
-      status: status || "active",
-      notes,
-      password: tempPassword,
+      department: cleanDepartment,
+      status: "inactive",
+      notes: cleanNotes,
+      password: "TEMP_LOCKED",
+      credentialsSent: false,
+      createdBy,
     });
 
-    const saved = await user.save();
-    console.log("✅ User saved:", saved._id);
+    await user.save();
 
-    // 3. Prepare Email Data
-    // Handle middle name gracefully (add space only if it exists)
-    const fullName = `${firstName} ${middleName ? middleName + " " : ""}${lastName}`;
-    const appName = process.env.APP_NAME || "CVAI Portal";
+    res.status(201).json({
+      message: "User created successfully (inactive).",
+    });
+ } catch (err) {
+  if (err.code === 11000) {
+    const field = Object.keys(err.keyValue)[0];
 
-    // 4. Enhanced HTML Template
-    const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; background-color: #ffffff;">
-        
-        <div style="background-color: #0F172A; padding: 20px; text-align: center;">
-          <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Welcome to ${appName}</h1>
-        </div>
+const formattedField =
+  field === "email"
+    ? "Email"
+    : field === "idNumber"
+    ? "ID number"
+    : field;
 
-        <div style="padding: 30px 20px;">
-          <p style="font-size: 16px; color: #333333; margin-top: 0;">Hello <strong>${fullName}</strong>,</p>
-          
-          <p style="font-size: 16px; color: #555555; line-height: 1.5;">
-            Your account has been successfully created by the administration. You can now access the portal using the credentials below.
-          </p>
+return res.status(400).json({
+  message: `${formattedField} already exists.`,
+});
 
-          <div style="background-color: #f3f4f6; border-left: 4px solid #3b82f6; padding: 20px; margin: 25px 0; border-radius: 4px;">
-            <p style="margin: 5px 0; font-size: 14px; color: #555;"><strong>ID Number:</strong></p>
-            <p style="margin: 0 0 15px 0; font-size: 18px; color: #000;">${idNumber}</p>
+  }
 
-            <p style="margin: 5px 0; font-size: 14px; color: #555;"><strong>Temporary Password:</strong></p>
-            <div style="background-color: #ffffff; display: inline-block; padding: 8px 12px; border: 1px solid #cccccc; border-radius: 4px; font-family: monospace; font-size: 18px; color: #d946ef; font-weight: bold;">
-              ${tempPassword}
-            </div>
-          </div>
+  res.status(500).json({
+    message: "Server error",
+  });
+}
+};
 
-          <p style="font-size: 14px; color: #666666; margin-bottom: 0;">
-            * Please log in and change your password immediately for security purposes.
-          </p>
-        </div>
+/* ================================
+   SEND CREDENTIALS (ACTIVATE)
+================================ */
 
-        <div style="background-color: #f9fafb; padding: 15px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af;">
-          <p style="margin: 0;">This is an automated message. Please do not reply.</p>
-          <p style="margin: 5px 0;">&copy; ${new Date().getFullYear()} ${appName}. All rights reserved.</p>
-        </div>
-      </div>
-    `;
+function generateTempPassword(length = 10) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$";
+  return Array.from({ length }, () =>
+    chars.charAt(Math.floor(Math.random() * chars.length)),
+  ).join("");
+}
 
-    // 5. Send Email (Non-blocking)
-    try {
-      await sendEmail(
-        email, 
-        `Welcome to ${appName} - Your Login Credentials`, 
-        emailHtml
-      );
-      console.log("📧 Email sent successfully");
-    } catch (emailError) {
-      console.warn("⚠️ Email failed to send, but user was created:", emailError.message);
-      // We do NOT throw an error here, so the frontend still gets a success response
+export const sendCredentials = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(201).json({ message: "User created successfully", userId: saved._id });
+    if (user.credentialsSent) {
+      return res.status(400).json({
+        message: "Credentials already sent.",
+      });
+    }
 
+    const tempPassword = generateTempPassword(10);
+
+    // ❌ REMOVE MANUAL HASHING
+    user.password = tempPassword; // <-- just assign plain
+
+    user.status = "active";
+    user.credentialsSent = true;
+
+    await user.save(); // ✅ schema will hash automatically
+
+    const fullName = `${user.firstName} ${
+      user.middleName ? user.middleName + " " : ""
+    }${user.lastName}`;
+
+    const appName = process.env.APP_NAME || "CVAI Portal";
+
+    const emailHtml = `
+      <h2>Welcome to ${appName}</h2>
+      <p>Hello <strong>${fullName}</strong>,</p>
+      <p>Your account has been activated.</p>
+      <p><strong>ID Number:</strong> ${user.idNumber}</p>
+      <p><strong>Temporary Password:</strong> ${tempPassword}</p>
+      <p>Please log in and change your password immediately.</p>
+    `;
+
+    await sendEmail(
+      user.email,
+      `Your Login Credentials - ${appName}`,
+      emailHtml,
+    );
+
+    res.status(200).json({
+      message: "Credentials sent and user activated.",
+    });
   } catch (err) {
-    console.error("❌ Error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
+/* ================================
+   GET USERS
+================================ */
+
 export const getUsers = async (req, res) => {
   try {
     const users = await User.find().sort({ createdAt: -1 });
+
     res.status(200).json(users);
   } catch (err) {
-    console.error("❌ Fetch users error:", err);
     res.status(500).json({ message: "Failed to fetch users" });
   }
 };

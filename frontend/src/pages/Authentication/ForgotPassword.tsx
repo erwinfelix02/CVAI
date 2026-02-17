@@ -1,18 +1,15 @@
 import { useState, useEffect } from "react";
-import {
-  FaKey,
-  FaEnvelope,
-  FaLock,
-  FaEye,
-  FaEyeSlash,
-} from "react-icons/fa";
+import { FaKey, FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import { Link } from "react-router-dom";
-
+import { useLocation } from "react-router-dom";
+import axios from "axios";
+import { API_BASE_URL } from "../../config";
 import PreRegNavbar from "../../components/PreReg/PreRegNavbar";
 import AuthCard from "../../components/Authentication/AuthCard";
 import Button from "../../components/Authentication/Button";
+import { useNavigate } from "react-router-dom";
 import AuthLayout from "../../components/Authentication/AuthLayout";
-
+import AuthAlert from "../../components/Authentication/AuthAlert";
 import ArrowIcon from "../../assets/arrow-right.png";
 import "../../styles/auth.css";
 
@@ -25,17 +22,39 @@ export default function ForgotPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const forcedEmail = params.get("email");
+  const force = params.get("force");
+  const isForced = force === "true";
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<"success" | "error">("success");
+  const [animateAlert, setAnimateAlert] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const [resendTimer, setResendTimer] = useState(0);
 
-  const isValidEmail = (v: string) =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+ const isValidEmail = (v: string) =>
+  /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(v);
+
 
   const isCodeComplete = code.every((d) => d !== "");
   const isPasswordValid =
-    password.length >= 8 && password === confirmPassword;
+    password.length >= 8 &&
+    /[A-Z]/.test(password) && // At least 1 uppercase
+    /[0-9]/.test(password) && // At least 1 number
+    /[^A-Za-z0-9]/.test(password) && // At least 1 special character
+    password === confirmPassword;
 
   /* ================= RESEND TIMER ================= */
+  useEffect(() => {
+    if (force === "true" && forcedEmail) {
+      setEmail(forcedEmail);
+      setStep(3); // go directly to change password step
+    }
+  }, [force, forcedEmail]);
+
   useEffect(() => {
     if (resendTimer <= 0) return;
 
@@ -53,44 +72,163 @@ export default function ForgotPassword() {
   }, [resendTimer]);
 
   /* ================= SUBMIT ================= */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    if (loading) return;
     if (step === 1) {
       const newErrors: typeof errors = {};
       if (!email) newErrors.email = "Email is required";
-      else if (!isValidEmail(email))
-        newErrors.email = "Invalid email format";
+      else if (!isValidEmail(email)) newErrors.email = "Invalid email format";
 
       setErrors(newErrors);
-      if (Object.keys(newErrors).length > 0) return;
+      if (Object.keys(newErrors).length > 0) {
+        setAlertMessage(newErrors.email || "Please enter a valid email");
+        setAlertType("error");
+        setAnimateAlert(true);
+        return;
+      }
 
-      setStep(2);
-      setResendTimer(30);
+      try {
+        setLoading(true);
+
+        await axios.post(`${API_BASE_URL}/auth/request-reset`, { email });
+
+        setAlertMessage("Reset code sent to your email.");
+        setAlertType("success");
+        setAnimateAlert(true);
+
+        setStep(2);
+        setResendTimer(30);
+      } catch (err: any) {
+        setAlertMessage(
+          err.response?.data?.message || "Failed to send reset code",
+        );
+        setAlertType("error");
+        setAnimateAlert(true);
+      } finally {
+        setLoading(false);
+      }
+
       return;
     }
 
     if (step === 2) {
-      if (!isCodeComplete) return;
-      setStep(3);
+      if (!isCodeComplete) {
+        setAlertMessage("Please enter the 6-digit verification code.");
+        setAlertType("error");
+        setAnimateAlert(true);
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        const fullCode = code.join("");
+
+        await axios.post(`${API_BASE_URL}/auth/verify-reset`, {
+          email,
+          code: fullCode,
+        });
+
+        setAlertMessage("Verification successful.");
+        setAlertType("success");
+        setAnimateAlert(true);
+
+        setStep(3);
+      } catch (err: any) {
+        setCode(Array(6).fill("")); // ✅ clear wrong code
+        setAlertMessage(
+          err.response?.data?.message || "Invalid verification code",
+        );
+        setAlertType("error");
+        setAnimateAlert(true);
+      } finally {
+        setLoading(false);
+      }
+
       return;
     }
 
-    // Step 3 (UI only)
-    console.log("New password:", password);
+    if (step === 3) {
+      try {
+        // Show loading immediately
+        setLoading(true);
+        setAnimateAlert(false);
+
+        setAlertMessage("Updating password...");
+        setAlertType("success");
+        setAnimateAlert(true);
+
+        // 🔥 Call backend ONCE
+        await axios.post(`${API_BASE_URL}/auth/update-password`, {
+          email,
+          password,
+        });
+
+        // Show success message
+        setTimeout(() => {
+          setLoading(false);
+          setAnimateAlert(false);
+
+          setTimeout(() => {
+            setAlertMessage(
+              "Password updated successfully. Redirecting to login...",
+            );
+            setAlertType("success");
+            setAnimateAlert(true);
+          }, 100);
+
+          setTimeout(() => {
+            navigate("/signin");
+          }, 1500);
+        }, 800);
+      } catch (err: any) {
+        setLoading(false);
+        setAnimateAlert(false);
+
+        setTimeout(() => {
+          setAlertMessage(
+            err.response?.data?.message || "Failed to update password",
+          );
+          setAlertType("error");
+          setAnimateAlert(true);
+        }, 100);
+      }
+    }
   };
 
   /* ================= PREVIOUS ================= */
   const handlePrevious = () => {
+    if (isForced) return; // 🔒 Block going back
+
     if (step === 2) setStep(1);
     if (step === 3) setStep(2);
   };
 
   /* ================= RESEND ================= */
-  const handleResend = () => {
+  const handleResend = async () => {
     if (resendTimer > 0) return;
-    setCode(Array(6).fill(""));
-    setResendTimer(30);
+
+    try {
+      setLoading(true);
+
+      await axios.post(`${API_BASE_URL}/auth/request-reset`, {
+        email,
+      });
+
+      setCode(Array(6).fill(""));
+      setResendTimer(30);
+
+      setAlertMessage("New reset code sent.");
+      setAlertType("success");
+      setAnimateAlert(true);
+    } catch (err: any) {
+      setAlertMessage(err.response?.data?.message || "Failed to resend code");
+      setAlertType("error");
+      setAnimateAlert(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   /* ================= CODE INPUT ================= */
@@ -108,28 +246,43 @@ export default function ForgotPassword() {
 
   const handleBackspace = (
     e: React.KeyboardEvent<HTMLInputElement>,
-    index: number
+    index: number,
   ) => {
     if (e.key !== "Backspace") return;
 
     const newCode = [...code];
     if (newCode[index]) newCode[index] = "";
-    else if (index > 0)
-      document.getElementById(`code-${index - 1}`)?.focus();
+    else if (index > 0) document.getElementById(`code-${index - 1}`)?.focus();
 
     setCode(newCode);
   };
+  useEffect(() => {
+    if (!alertMessage) return;
+    const t = setTimeout(() => setAnimateAlert(false), 3000);
+    return () => clearTimeout(t);
+  }, [alertMessage]);
 
   return (
     <>
       <PreRegNavbar />
-
+      <AuthAlert
+        message={alertMessage}
+        type={alertType}
+        visible={animateAlert}
+        loading={loading}
+      />
       <AuthLayout>
         <AuthCard
           header={
             <div className="d-flex justify-content-center mb-3">
               <div className="reset-icon">
-                {step === 3 ? <FaLock /> : step === 2 ? <FaEnvelope /> : <FaKey />}
+                {step === 3 ? (
+                  <FaLock />
+                ) : step === 2 ? (
+                  <FaEnvelope />
+                ) : (
+                  <FaKey />
+                )}
               </div>
             </div>
           }
@@ -137,15 +290,23 @@ export default function ForgotPassword() {
             step === 1
               ? "Reset your password"
               : step === 2
-              ? "Check your email"
-              : "Set a new password"
+                ? "Check your email"
+                : "Set a new password"
           }
           subtitle={
-            step === 1
-              ? "Enter your email and we'll send you a code"
-              : step === 2
-              ? <>We sent a 6-digit code to <strong>{email}</strong></>
-              : <>Create a new password for <strong>{email}</strong></>
+            step === 1 ? (
+              "Enter your email and we'll send you a code"
+            ) : step === 2 ? (
+              <>
+                We sent a 6-digit code to <strong>{email}</strong>
+              </>
+            ) : isForced ? (
+              <>You must change your temporary password</>
+            ) : (
+              <>
+                Create a new password for <strong>{email}</strong>
+              </>
+            )
           }
           footer={
             step === 1 && (
@@ -159,12 +320,16 @@ export default function ForgotPassword() {
         >
           {/* ================= STEPPER ================= */}
           <div className="auth-stepper compact">
-            <div className={`auth-step ${step === 1 ? "active" : step > 1 ? "completed" : ""}`}>
+            <div
+              className={`auth-step ${step === 1 ? "active" : step > 1 ? "completed" : ""}`}
+            >
               <FaEnvelope />
               <span>Email</span>
             </div>
             <div className="auth-step-line" />
-            <div className={`auth-step ${step === 2 ? "active" : step > 2 ? "completed" : ""}`}>
+            <div
+              className={`auth-step ${step === 2 ? "active" : step > 2 ? "completed" : ""}`}
+            >
               <FaKey />
               <span>Verify</span>
             </div>
@@ -207,9 +372,7 @@ export default function ForgotPassword() {
                       maxLength={1}
                       className="code-input text-center"
                       value={digit}
-                      onChange={(e) =>
-                        handleCodeChange(e.target.value, index)
-                      }
+                      onChange={(e) => handleCodeChange(e.target.value, index)}
                       onKeyDown={(e) => handleBackspace(e, index)}
                     />
                   ))}
@@ -221,11 +384,9 @@ export default function ForgotPassword() {
                     type="button"
                     className="resend-btn"
                     onClick={handleResend}
-                    disabled={resendTimer > 0}
+                    disabled={resendTimer > 0 || loading}
                   >
-                    {resendTimer > 0
-                      ? `Resend in ${resendTimer}s`
-                      : "Resend"}
+                    {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend"}
                   </button>
                 </p>
               </>
@@ -274,7 +435,7 @@ export default function ForgotPassword() {
 
             {/* ================= ACTION BUTTONS ================= */}
             <div className="d-flex gap-2">
-              {step > 1 && (
+              {step > 1 && !isForced && (
                 <Button
                   type="button"
                   className="btn-outline w-50"
@@ -286,8 +447,11 @@ export default function ForgotPassword() {
 
               <Button
                 type="submit"
-                className={`btn-brand ${step > 1 ? "w-50" : "w-100"}`}
+                className={`btn-brand ${
+                  step > 1 && !isForced ? "w-50" : "w-100"
+                }`}
                 disabled={
+                  loading || // 🔥 Prevent spam
                   (step === 2 && !isCodeComplete) ||
                   (step === 3 && !isPasswordValid)
                 }
@@ -295,8 +459,8 @@ export default function ForgotPassword() {
                 {step === 1
                   ? "Send Reset Code"
                   : step === 2
-                  ? "Verify Code"
-                  : "Update Password"}
+                    ? "Verify Code"
+                    : "Update Password"}
                 <img src={ArrowIcon} alt="" className="btn-arrow" />
               </Button>
             </div>

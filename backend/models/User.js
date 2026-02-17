@@ -10,17 +10,78 @@ const UserSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true },
     gender: { type: String, required: true },
+
     role: {
       type: String,
       required: true,
-      enum: ["Registrar", "Dept Head", "Finance", "Super Admin", "Faculty", "Student"],
+      enum: [
+        "Registrar",
+        "Dept Head",
+        "Finance",
+        "Super Admin",
+        "Faculty",
+        "Student",
+      ],
     },
-    status: { type: String, default: "active" },
+
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "inactive",
+    },
+    // Add these inside UserSchema
+
+    loginAttempts: {
+      type: Number,
+      default: 0,
+    },
+
+    lockUntil: {
+      type: Date,
+    },
+    isTemporaryPassword: {
+      type: Boolean,
+      default: true, // new accounts start as temporary
+    },
+
     department: { type: String, required: true },
     notes: String,
+    createdBy: {
+      type: String,
+      enum: ["SuperAdmin", "Registrar"],
+      default: "SuperAdmin",
+    },
+
     password: { type: String, required: true },
+
+    credentialsSent: {
+      type: Boolean,
+      default: false,
+    },
+    resetCode: {
+  type: String,
+},
+
+resetCodeExpires: {
+  type: Date,
+},
+
+resetAttempts: {
+  type: Number,
+  default: 0,
+},
+
+resetLockUntil: {
+  type: Date,
+},
+resetVerified: {
+  type: Boolean,
+  default: false,
+},
+
+
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 UserSchema.pre("save", async function () {
@@ -30,6 +91,4 @@ UserSchema.pre("save", async function () {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-
-// 🔑 IMPORTANT (prevents local dev issues)
 export default mongoose.models.User || mongoose.model("User", UserSchema);
