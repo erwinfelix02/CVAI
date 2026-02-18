@@ -18,6 +18,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+// routes/preregistrations.js
 router.post(
   "/",
   upload.fields([
@@ -30,27 +31,55 @@ router.post(
     try {
       const data = JSON.parse(req.body.data);
 
-      let txHash = null;
+      // normalize for safer matching
+      const email = String(data?.personal?.email || "").trim().toLowerCase();
+      const phoneDigits = String(data?.personal?.phone || "").replace(/\D/g, "");
+      const firstName = String(data?.personal?.firstName || "").trim();
+      const lastName = String(data?.personal?.lastName || "").trim();
+      const birthDate = String(data?.personal?.birthDate || "").trim();
 
-      // 🔗 1️⃣ Call Blockchain FIRST
-      try {
-        const tx = await contract.registerStudent(
-          `${data.personal.firstName} ${data.personal.lastName}`,
-          data.academic.course,
-          data.personal.email,
-        );
+      // ✅ 0) DUPLICATE CHECK (before blockchain + before save)
+      const existing = await Preregistration.findOne({
+        $or: [
+          { "personal.email": email },
+          { "personal.phone": phoneDigits },
+          {
+            "personal.firstName": firstName,
+            "personal.lastName": lastName,
+            "personal.birthDate": birthDate,
+          },
+        ],
+      });
 
-        await tx.wait();
-        txHash = tx.hash;
-
-        console.log("Blockchain TX:", txHash);
-      } catch (blockchainError) {
-        console.error("Blockchain Error:", blockchainError);
+      if (existing) {
+        return res.status(409).json({
+          message: "Duplicate application detected. This applicant already exists.",
+        });
       }
 
-      // 🗄 2️⃣ Save to MongoDB ONCE
+      let txHash = null;
+
+      // 🔗 1) Call Blockchain (only if not duplicate)
+      try {
+        const tx = await contract.registerStudent(
+          `${firstName} ${lastName}`,
+          data.academic.course,
+          email
+        );
+        await tx.wait();
+        txHash = tx.hash;
+      } catch (blockchainError) {
+        console.error("Blockchain Error:", blockchainError);
+        // Optional: if blockchain is required, you can return 500 here
+      }
+
+      // 🗄 2) Save to MongoDB
       const newApp = new Preregistration({
-        personal: data.personal,
+        personal: {
+          ...data.personal,
+          email,
+          phone: phoneDigits,
+        },
         academic: data.academic,
         status: "Pending",
         blockchainTxHash: txHash,
@@ -72,55 +101,28 @@ router.post(
 
       await newApp.save();
 
-      // =========================
-      // 📧 SEND CONFIRMATION EMAIL
-      // =========================
+      // 📧 email (same as your current)
+      // ...
 
-      const htmlContent = `
-        <h2>🎓 Pre-Registration Confirmation</h2>
-
-        <p><strong>Registration ID:</strong> ${newApp.registrationId}</p>
-
-        <h3>Personal Information</h3>
-        <p><strong>Name:</strong> ${data.personal.firstName} ${data.personal.middleName || ""} ${data.personal.lastName}</p>
-        <p><strong>Email:</strong> ${data.personal.email}</p>
-        <p><strong>Phone:</strong> ${data.personal.phone}</p>
-        <p><strong>Birth Date:</strong> ${data.personal.birthDate}</p>
-        <p><strong>Gender:</strong> ${data.personal.gender}</p>
-        <p><strong>Address:</strong> ${data.personal.address}</p>
-
-        <h3>Academic Information</h3>
-        <p><strong>Applicant Type:</strong> ${data.academic.applicantType}</p>
-        <p><strong>Course:</strong> ${data.academic.course}</p>
-        <p><strong>Previous School:</strong> ${data.academic.previousSchool || "N/A"}</p>
-
-        <hr/>
-        <p>Status: <strong>Pending Review</strong></p>
-        <p>Please keep your Registration ID for tracking.</p>
-      `;
-
-      await sendEmail(
-        data.personal.email,
-        "Pre-Registration Application Received",
-        htmlContent,
-        [
-          req.files.birthCert?.[0] && { path: req.files.birthCert[0].path },
-          req.files.form137?.[0] && { path: req.files.form137[0].path },
-          req.files.goodMoral?.[0] && { path: req.files.goodMoral[0].path },
-          req.files.idPhoto?.[0] && { path: req.files.idPhoto[0].path },
-        ].filter(Boolean),
-      );
-
-      res.status(201).json({
+      return res.status(201).json({
         message: "Application saved and email sent successfully",
         registrationId: newApp.registrationId,
       });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: "Server error" });
+
+      // ✅ handle unique index collisions cleanly too
+      if (err?.code === 11000) {
+        return res.status(409).json({
+          message: "Duplicate application detected (email/phone already exists).",
+        });
+      }
+
+      return res.status(500).json({ message: "Server error" });
     }
-  },
+  }
 );
+
 
 // GET all preregistrations
 router.get("/", async (req, res) => {

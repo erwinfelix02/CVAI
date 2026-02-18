@@ -1,19 +1,19 @@
 import { X, Calendar, Clock, MapPin, Info } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 type StudentMini = { id: string; name: string; email?: string };
 
 type Props = {
   open: boolean;
   onClose: () => void;
-  students: StudentMini[]; // selected approved students
+  students: StudentMini[];
   onSubmit: (payload: {
     studentIds: string[];
     date: string;
     time: string;
     location: string;
     notes: string;
-  }) => void;
+  }) => Promise<void> | void; // ✅ allow async submit
 };
 
 export default function SendScheduleModal({
@@ -27,11 +27,48 @@ export default function SendScheduleModal({
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
 
-  const count = students.length;
+  const [sending, setSending] = useState(false); // ✅
+  const [error, setError] = useState<string | null>(null); // ✅
 
+  const count = students.length;
   const title = useMemo(() => "Send Enrollment Schedule", []);
 
+  // ✅ reset form every time modal opens
+  useEffect(() => {
+    if (open) {
+      setDate("");
+      setTime("");
+      setLocation("");
+      setNotes("");
+      setError(null);
+      setSending(false);
+    }
+  }, [open]);
+
   if (!open) return null;
+
+  const handleSend = async () => {
+    try {
+      setSending(true);
+      setError(null);
+
+      await onSubmit({
+        studentIds: students.map((s) => s.id),
+        date,
+        time,
+        location,
+        notes,
+      });
+
+      // ✅ close after successful send
+      onClose();
+    } catch (e) {
+      console.error(e);
+      setError((e as Error).message || "Failed to send schedule");
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="rs-modal-backdrop" role="dialog" aria-modal="true">
@@ -47,19 +84,19 @@ export default function SendScheduleModal({
             className="rs-icon-btn"
             onClick={onClose}
             aria-label="Close modal"
+            disabled={sending}
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Body (scrollable) */}
+        {/* Body */}
         <div className="rs-modal-body">
           <p className="rs-muted">
             Send an enrollment schedule notification to <b>{count}</b> selected
             student(s).
           </p>
 
-          {/* Selected students */}
           <div className="rs-student-box">
             {students.map((s) => (
               <div className="rs-student-row" key={s.id}>
@@ -69,7 +106,13 @@ export default function SendScheduleModal({
             ))}
           </div>
 
-          {/* Date + Time (responsive grid) */}
+          {/* ✅ show error */}
+          {error && (
+            <div style={{ marginTop: 10, color: "crimson", fontSize: 14 }}>
+              {error}
+            </div>
+          )}
+
           <div className="rs-grid-2">
             <div className="rs-field">
               <label className="rs-label">
@@ -80,6 +123,7 @@ export default function SendScheduleModal({
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
+                disabled={sending}
               />
             </div>
 
@@ -92,6 +136,7 @@ export default function SendScheduleModal({
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
+                disabled={sending}
               />
             </div>
           </div>
@@ -105,6 +150,7 @@ export default function SendScheduleModal({
               placeholder="e.g. Room 201, Admin Building"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
+              disabled={sending}
             />
           </div>
 
@@ -118,30 +164,27 @@ export default function SendScheduleModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={4}
+              disabled={sending}
             />
           </div>
         </div>
 
         {/* Footer */}
         <div className="rs-modal-footer">
-          <button className="rs-btn rs-btn-ghost" onClick={onClose}>
+          <button
+            className="rs-btn rs-btn-ghost"
+            onClick={onClose}
+            disabled={sending}
+          >
             Cancel
           </button>
 
           <button
             className="rs-btn rs-btn-primary"
-            onClick={() =>
-              onSubmit({
-                studentIds: students.map((s) => s.id),
-                date,
-                time,
-                location,
-                notes,
-              })
-            }
-            disabled={!date || !time || !location || students.length === 0}
+            onClick={handleSend}
+            disabled={!date || !time || !location || students.length === 0 || sending}
           >
-            Send Schedule to {count} Student(s)
+            {sending ? "Sending..." : `Send Schedule to ${count} Student(s)`}
           </button>
         </div>
       </div>

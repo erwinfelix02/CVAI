@@ -14,8 +14,6 @@ function StatusPill({ status }: { status: ApplicationStatus }) {
 type Props = {
   item: ApplicationRow;
   onReview: (id: string) => void;
-
-  // ✅ new
   isApprovedSelected: boolean;
   onToggleApproved: (id: string) => void;
   onSendSchedule: () => void;
@@ -29,12 +27,16 @@ export default function RegistrarApplicationRow({
   onSendSchedule,
 }: Props) {
   const isApproved = item.status === "Approved";
+  const isScheduleSent = Boolean(item.scheduleSent);
+
+  const canSelect = isApproved && !isScheduleSent;
+  const canSendSchedule = isApproved && !isScheduleSent;
 
   return (
     <div className="registrar-app-card">
       <div className="d-flex align-items-center gap-3 min-w-0">
-        {/* ✅ checkbox only for approved */}
-        {isApproved && (
+        {/* ✅ checkbox only for approved AND not sent */}
+        {canSelect && (
           <button
             type="button"
             className={`registrar-check ${isApprovedSelected ? "checked" : ""}`}
@@ -59,14 +61,22 @@ export default function RegistrarApplicationRow({
       <div className="d-flex align-items-center gap-2 registrar-app-actions">
         <StatusPill status={item.status} />
 
+        {/* ✅ Button changes when schedule is sent */}
         {isApproved && (
           <button
             type="button"
-            className="btn registrar-outline-btn"
-            onClick={onSendSchedule} // ✅ opens modal
+            className={`btn ${
+              isScheduleSent
+                ? "btn-success text-white"
+                : "registrar-outline-btn"
+            }`}
+            onClick={canSendSchedule ? onSendSchedule : undefined}
+            disabled={!canSendSchedule}
           >
             <Calendar size={16} />
-            <span className="ms-2">Send Schedule</span>
+            <span className="ms-2">
+              {isScheduleSent ? "Schedule Sent" : "Send Schedule"}
+            </span>
           </button>
         )}
 

@@ -36,12 +36,13 @@ export default function ApplicationsPage() {
         setApplications(data);
 
         const approvedIds = new Set<string>(
-          data
-            .filter((a) => a.status === "Approved")
-            .map((a) => String(a.registrationId)),
-        );
+  data
+    .filter((a) => a.status === "Approved" && !a.scheduleSentAt) // ✅ ADD
+    .map((a) => String(a.registrationId)),
+);
 
-        setSelectedApprovedIds(approvedIds);
+setSelectedApprovedIds(approvedIds);
+
       } catch (err) {
         console.error("Failed to fetch applications", err);
       } finally {
@@ -54,21 +55,22 @@ export default function ApplicationsPage() {
 
   // ✅ map raw DB -> UI row
   const mappedApplications: ApplicationRow[] = useMemo(() => {
-    return applications.map((app) => ({
-      id: String(app.registrationId),
-      initials:
-        (app.personal?.firstName?.[0] || "") +
-        (app.personal?.lastName?.[0] || ""),
-      name: `${app.personal?.firstName ?? ""} ${app.personal?.lastName ?? ""}`.trim(),
-      program: app.academic?.course ?? "-",
-      yearLevel: app.academic?.applicantType ?? "-",
-      submitted: new Date(app.createdAt).toISOString().split("T")[0],
-      status: app.status,
-      accountSent: Boolean(
-        app.accountSent || app.credentialsSent || app.accountCreated,
-      ),
-    }));
-  }, [applications]);
+  return applications.map((app) => ({
+    id: String(app.registrationId),
+    initials:
+      (app.personal?.firstName?.[0] || "") +
+      (app.personal?.lastName?.[0] || ""),
+    name: `${app.personal?.firstName ?? ""} ${app.personal?.lastName ?? ""}`.trim(),
+    program: app.academic?.course ?? "-",
+    yearLevel: app.academic?.applicantType ?? "-",
+    submitted: new Date(app.createdAt).toISOString().split("T")[0],
+    status: app.status,
+    accountSent: Boolean(app.accountSent || app.credentialsSent || app.accountCreated),
+
+    scheduleSent: Boolean(app.scheduleSentAt), // ✅ ADD
+  }));
+}, [applications]);
+
 
   // ✅ quick lookup by registrationId to avoid repeated find()
   const appById = useMemo(() => {
@@ -78,17 +80,21 @@ export default function ApplicationsPage() {
   }, [applications]);
 
   // ✅ build selected students AFTER mappedApplications exists
-  const selectedStudents = useMemo(() => {
-    const selected = mappedApplications.filter(
-      (a) => a.status === "Approved" && selectedApprovedIds.has(a.id),
-    );
+ const selectedStudents = useMemo(() => {
+  const selected = mappedApplications.filter(
+    (a) =>
+      a.status === "Approved" &&
+      !a.scheduleSent &&
+      selectedApprovedIds.has(a.id),
+  );
 
-    return selected.map((a) => ({
-      id: a.id,
-      name: a.name,
-      email: appById.get(a.id)?.personal?.email ?? "",
-    }));
-  }, [mappedApplications, selectedApprovedIds, appById]);
+  return selected.map((a) => ({
+    id: a.id,
+    name: a.name,
+    email: appById.get(a.id)?.personal?.email ?? "",
+  }));
+}, [mappedApplications, selectedApprovedIds, appById]);
+
 
   const pendingCount = useMemo(
     () => mappedApplications.filter((x) => x.status === "Pending").length,
@@ -115,16 +121,21 @@ export default function ApplicationsPage() {
     });
   }, [mappedApplications, query, status]);
 
-  const selectedApprovedCount = selectedApprovedIds.size;
+  const selectedApprovedCount = selectedStudents.length; // ✅
+
 
   const toggleApproved = (id: string) => {
-    setSelectedApprovedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+  const row = mappedApplications.find((a) => a.id === id);
+  if (row?.scheduleSent) return; // ✅ block if already sent
+
+  setSelectedApprovedIds((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
+};
+
 
   const deselectAllApproved = () => setSelectedApprovedIds(new Set<string>());
 
@@ -169,15 +180,52 @@ export default function ApplicationsPage() {
         />
       )}
 
-      <SendScheduleModal
-        open={scheduleOpen}
-        onClose={() => setScheduleOpen(false)}
-        students={selectedStudents}
-        onSubmit={(payload) => {
-          console.log("SEND TO API:", payload);
-          setScheduleOpen(false);
-        }}
-      />
+     <SendScheduleModal
+  open={scheduleOpen}
+  onClose={() => setScheduleOpen(false)}
+  students={selectedStudents}
+  onSubmit={async (payload) => {
+  try {
+    const res = await fetch("http://localhost:5000/api/enrollments/schedule", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Failed to send schedules");
+    }
+
+    const data = await res.json();
+    console.log("✅ sent + saved:", data);
+
+    const sentIds: string[] = data.sentIds ?? payload.studentIds;
+
+    // ✅ 1) Mark schedule as sent locally (instant UI update)
+    setApplications((prev) =>
+      prev.map((a) =>
+        sentIds.includes(String(a.registrationId))
+          ? { ...a, scheduleSentAt: new Date().toISOString() }
+          : a
+      )
+    );
+
+    // ✅ 2) Remove them from selected checkboxes
+    setSelectedApprovedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of sentIds) next.delete(id);
+      return next;
+    });
+
+    setScheduleOpen(false);
+  } catch (e) {
+    console.error(e);
+    alert((e as Error).message);
+  }
+}}
+
+/>
 
       <ApplicationDetailsModal
         open={modalOpen}

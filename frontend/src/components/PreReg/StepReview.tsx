@@ -2,14 +2,22 @@ import {
   BadgeCheck,
   BadgeX,
   Paperclip,
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  VenusAndMars,
+  MapPin,
+  GraduationCap,
+  BookOpen,
+  School,
+  UserCheck,
 } from "lucide-react";
-
 import type {
   AcademicInfo,
   DocumentsState,
   PersonalInfo,
 } from "../../pages/PreReg/StudentPreRegistrationPage";
-
 import { useState, useEffect } from "react";
 
 /* ========================= */
@@ -122,38 +130,76 @@ export default function StepReview({
         {/* PERSONAL */}
         <div className="col-12 col-lg-6">
           <div className="prereg-review-card">
-            <div className="fw-semibold mb-2">Personal Information</div>
-            <div className="small prereg-review-list">
-              <div>{fullName}</div>
-              <div>{personal.email}</div>
-              <div>{personal.phone}</div>
-              <div>{personal.birthDate}</div>
-              <div>{personal.gender}</div>
-              <div>{personal.address}</div>
+            <div className="fw-semibold mb-3 d-flex align-items-center gap-2">
+              <User size={16} />
+              Personal Information
+            </div>
+
+            <div className="small prereg-review-list d-flex flex-column gap-2">
+              <div className="d-flex align-items-center gap-2">
+                <User size={14} /> {fullName}
+              </div>
+
+              <div className="d-flex align-items-center gap-2">
+                <Mail size={14} /> {personal.email}
+              </div>
+
+              <div className="d-flex align-items-center gap-2">
+                <Phone size={14} /> {personal.phone}
+              </div>
+
+              <div className="d-flex align-items-center gap-2">
+                <Calendar size={14} /> {personal.birthDate}
+              </div>
+
+              <div className="d-flex align-items-center gap-2">
+                <VenusAndMars size={14} /> {personal.gender}
+              </div>
+
+              <div className="d-flex align-items-center gap-2">
+                <MapPin size={14} /> {personal.address}
+              </div>
             </div>
           </div>
         </div>
 
-      {/* ACADEMIC */}
-<div className="col-12 col-lg-6">
-  <div className="prereg-review-card">
-    <div className="fw-semibold mb-2">Academic Information</div>
-    <div className="small prereg-review-list">
-      <div>Applicant Type: {academic.applicantType}</div>
-      <div>Course: {academic.course}</div>
+        {/* ACADEMIC */}
+        <div className="col-12 col-lg-6">
+          <div className="prereg-review-card">
+            <div className="fw-semibold mb-3 d-flex align-items-center gap-2">
+              <GraduationCap size={16} />
+              Academic Information
+            </div>
 
-      {academic.applicantType === "Transferee" && (
-        <div>Previous School: {academic.previousSchool}</div>
-      )}
-    </div>
-  </div>
-</div>
+            <div className="small prereg-review-list d-flex flex-column gap-2">
+              <div className="d-flex align-items-center gap-2">
+                <UserCheck size={14} />
+                Applicant Type: {academic.applicantType}
+              </div>
 
+              <div className="d-flex align-items-center gap-2">
+                <BookOpen size={14} />
+                Course: {academic.course}
+              </div>
+
+              {academic.applicantType === "Transferee" && (
+                <div className="d-flex align-items-center gap-2">
+                  <School size={14} />
+                  Previous School: {academic.previousSchool}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* DOCUMENTS */}
         <div className="col-12">
           <div className="prereg-review-card">
-            <div className="fw-semibold mb-2">Documents</div>
+            <div className="fw-semibold mb-2 d-flex align-items-center gap-2">
+              <Paperclip size={16} />
+              Documents
+            </div>
+
             <div className="d-flex flex-wrap gap-2">
               {docList.map((d) => (
                 <DocChip
@@ -199,11 +245,7 @@ export default function StepReview({
                 className="doc-preview-frame"
               />
             ) : (
-              <img
-                src={previewUrl}
-                alt="Preview"
-                className="doc-preview-image"
-              />
+              <img src={previewUrl} alt="Preview" className="doc-preview-image" />
             )}
           </div>
         </div>

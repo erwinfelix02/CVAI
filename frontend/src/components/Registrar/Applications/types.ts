@@ -9,6 +9,7 @@ export type ApplicationRow = {
   submitted: string;
   status: ApplicationStatus;
 
-  // ✅ new
-  accountSent?: boolean; // if true -> show "Account Sent"
+  accountSent?: boolean;
+
+  scheduleSent?: boolean; // ✅ ADD THIS
 };

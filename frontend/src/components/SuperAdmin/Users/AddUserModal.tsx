@@ -31,7 +31,6 @@ export type AddUserPayload = {
   department: string;
   notes: string;
 
-  // ✅ auto-generated (review step)
   tempPassword?: string;
 };
 
@@ -41,13 +40,14 @@ type AddUserFormState = Omit<
 > & {
   gender: Gender | "";
   role: UserRole | "";
-  status: UserStatus; // ✅ Always defined as UserStatus now
+  status: UserStatus;
   department: string | "";
 };
 
 type AddUserErrors = Partial<Record<keyof AddUserFormState, string>>;
+type Touched = Partial<Record<keyof AddUserFormState, boolean>>;
 
-const ROLES: UserRole[] = ["Registrar", "Dept Head", "Finance", "Super Admin"];
+const ROLES: UserRole[] = ["Registrar", "Dept Head", "Finance"];
 
 const DEPARTMENTS = [
   "Computer Science",
@@ -67,6 +67,7 @@ function toTitleCase(str: string) {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
+
 const NAME_REGEX = /^[A-Za-z\s'-]+$/;
 const MAX_NAME_LENGTH = 50;
 
@@ -77,101 +78,30 @@ function sanitizeInput(value: string) {
     .trimStart();
 }
 
-// ✅ Improved regex: ensures domain extension is at least 2 chars
 function isValidEmail(v: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
 }
 
-// ✅ Validates PH Mobile: 09 + 9 digits
 function isValidPHPhone(v: string) {
-  return /^09\d{9}$/.test(v);
-}
-
-function validate(form: AddUserFormState): AddUserErrors {
-  const e: AddUserErrors = {};
-
-  const first = form.firstName.trim();
-  const middle = form.middleName.trim();
-  const last = form.lastName.trim();
-
-  // ✅ FIRST NAME
-  if (!first) {
-    e.firstName = "First name is required.";
-  } else if (!NAME_REGEX.test(first)) {
-    e.firstName = "Only letters allowed.";
-  } else if (first.length < 2) {
-    e.firstName = "Minimum 2 characters required.";
-  } else if (first.length > MAX_NAME_LENGTH) {
-    e.firstName = "Maximum 50 characters allowed.";
-  }
-
-  // ✅ MIDDLE NAME (Optional)
-  if (middle) {
-    if (!NAME_REGEX.test(middle)) {
-      e.middleName = "Only letters allowed.";
-    } else if (middle.length > MAX_NAME_LENGTH) {
-      e.middleName = "Maximum 50 characters allowed.";
-    }
-  }
-
-  // ✅ LAST NAME
-  if (!last) {
-    e.lastName = "Last name is required.";
-  } else if (!NAME_REGEX.test(last)) {
-    e.lastName = "Only letters allowed.";
-  } else if (last.length < 2) {
-    e.lastName = "Minimum 2 characters required.";
-  } else if (last.length > MAX_NAME_LENGTH) {
-    e.lastName = "Maximum 50 characters allowed.";
-  }
-
-  // ✅ ID NUMBER
-  if (!form.idNumber.trim()) {
-    e.idNumber = "ID number is required.";
-  } else if (!/^[A-Za-z0-9-]+$/.test(form.idNumber)) {
-    e.idNumber = "ID can only contain letters, numbers, and dashes.";
-  }
-
-  // ✅ EMAIL
-  if (!form.email.trim()) {
-    e.email = "Email is required.";
-  } else if (!isValidEmail(form.email.trim())) {
-    e.email = "Enter a valid email.";
-  }
-
-  // ✅ PHONE
-  if (!form.phone.trim()) {
-    e.phone = "Phone number is required.";
-  } else if (!isValidPHPhone(form.phone.trim())) {
-    e.phone = "Format: 09xxxxxxxxx (11 digits).";
-  }
-
-  // ✅ REQUIRED SELECTS
-  if (!form.gender) e.gender = "Gender is required.";
-  if (!form.role) e.role = "Role is required.";
-  if (!form.department) e.department = "Department is required.";
-  if (!form.status) e.status = "Status is required.";
-
-  return e;
+  return /^09\d{9}$/.test(v.trim());
 }
 
 function hasErrors(obj: Record<string, unknown>) {
   return Object.keys(obj).length > 0;
 }
 
-// ✅ Updated Props Interface
 type AddUserModalProps = {
   open: boolean;
   onClose: () => void;
   onSubmit: (payload: AddUserPayload) => void;
-  isLoading: boolean; // <--- ✅ NEW PROP
+  isLoading: boolean;
 };
 
 export default function AddUserModal({
   open,
   onClose,
   onSubmit,
-  isLoading, // <--- ✅ Destructured here
+  isLoading,
 }: AddUserModalProps) {
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
@@ -185,12 +115,16 @@ export default function AddUserModal({
   const [gender, setGender] = useState<Gender | "">("");
   const [role, setRole] = useState<UserRole | "">("");
 
-  const [status, setStatus] = useState<UserStatus>("inactive");
+  const [status] = useState<UserStatus>("inactive");
 
   const [department, setDepartment] = useState<string | "">("");
   const [notes, setNotes] = useState("");
 
   const [submitted, setSubmitted] = useState(false);
+
+  // ✅ StepPersonal-style validation state
+  const [localErrors, setLocalErrors] = useState<AddUserErrors>({});
+  const [touched, setTouched] = useState<Touched>({});
 
   // ✅ review step state
   const [showReview, setShowReview] = useState(false);
@@ -228,9 +162,96 @@ export default function AddUserModal({
     ],
   );
 
-  const errors = useMemo(() => validate(form), [form]);
+  // ✅ Field-by-field validation (like StepPersonal)
+  const validateField = (k: keyof AddUserFormState): string => {
+    const first = firstName.trim();
+    const middle = middleName.trim();
+    const last = lastName.trim();
+    const id = idNumber.trim();
+    const em = email.trim();
+    const ph = phone.trim();
 
-  const invalid = (k: keyof AddUserFormState) => submitted && !!errors[k];
+    switch (k) {
+      case "firstName":
+        if (!first) return "First name is required.";
+        if (!NAME_REGEX.test(first)) return "Only letters allowed.";
+        if (first.length < 2) return "Minimum 2 characters required.";
+        if (first.length > MAX_NAME_LENGTH)
+          return "Maximum 50 characters allowed.";
+        return "";
+
+      case "middleName":
+        if (!middle) return "";
+        if (!NAME_REGEX.test(middle)) return "Only letters allowed.";
+        if (middle.length > MAX_NAME_LENGTH)
+          return "Maximum 50 characters allowed.";
+        return "";
+
+      case "lastName":
+        if (!last) return "Last name is required.";
+        if (!NAME_REGEX.test(last)) return "Only letters allowed.";
+        if (last.length < 2) return "Minimum 2 characters required.";
+        if (last.length > MAX_NAME_LENGTH)
+          return "Maximum 50 characters allowed.";
+        return "";
+
+      case "idNumber":
+        if (!id) return "ID number is required.";
+        if (!/^[A-Za-z0-9-]+$/.test(id))
+          return "ID can only contain letters, numbers, and dashes.";
+        return "";
+
+      case "email":
+        if (!em) return "Email is required.";
+        if (!isValidEmail(em)) return "Enter a valid email.";
+        return "";
+
+      case "phone":
+        if (!ph) return "Phone number is required.";
+        if (!isValidPHPhone(ph)) return "Format: 09xxxxxxxxx (11 digits).";
+        return "";
+
+      case "gender":
+        if (!gender) return "Gender is required.";
+        return "";
+
+      case "role":
+        if (!role) return "Role is required.";
+        return "";
+
+      case "department":
+        if (!department) return "Department is required.";
+        return "";
+
+      case "status":
+        if (!status) return "Status is required.";
+        return "";
+
+      default:
+        return "";
+    }
+  };
+
+  const validateAll = () => {
+    const next: AddUserErrors = {};
+    (Object.keys(form) as (keyof AddUserFormState)[]).forEach((k) => {
+      const msg = validateField(k);
+      if (msg) next[k] = msg;
+    });
+    setLocalErrors(next);
+    return next;
+  };
+
+  const onBlurField = (k: keyof AddUserFormState) => {
+    setTouched((prev) => ({ ...prev, [k]: true }));
+    const msg = validateField(k);
+    setLocalErrors((prev) => ({ ...prev, [k]: msg }));
+  };
+
+  const invalid = (k: keyof AddUserFormState) =>
+    (submitted || touched[k]) && !!localErrors[k];
+
+  const getError = (k: keyof AddUserFormState) => localErrors[k] || "";
 
   const labelClass = (k: keyof AddUserFormState) =>
     `users-label ${invalid(k) ? "is-invalid-label" : ""}`;
@@ -241,16 +262,12 @@ export default function AddUserModal({
   const selectClass = (k: keyof AddUserFormState) =>
     `users-select ${invalid(k) ? "is-invalid" : ""}`;
 
-  const errorText = (k: keyof AddUserFormState) =>
-    invalid(k) ? errors[k] : "\u00A0";
-
   // ESC to close + body scroll lock
   useEffect(() => {
     if (!open) return;
 
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key === "Escape") {
-        // ✅ Prevent closing via ESC if loading
         if (isLoading) return;
 
         if (showReview) setShowReview(false);
@@ -282,13 +299,12 @@ export default function AddUserModal({
     setGender("");
     setRole("");
 
-    // ✅ Reset to "active" every time modal opens
-    setStatus("inactive");
-
     setDepartment("");
     setNotes("");
 
     setSubmitted(false);
+    setTouched({});
+    setLocalErrors({});
 
     setShowReview(false);
     setReviewData(null);
@@ -296,11 +312,13 @@ export default function AddUserModal({
 
   if (!open) return null;
 
-  // ✅ Helper to restrict phone input to numbers only
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, ""); // Remove non-digits
+    const val = e.target.value.replace(/\D/g, "");
     if (val.length <= 11) {
       setPhone(val);
+      if (submitted || touched.phone) {
+        setLocalErrors((p) => ({ ...p, phone: validateField("phone") }));
+      }
     }
   };
 
@@ -308,14 +326,13 @@ export default function AddUserModal({
     e.preventDefault();
     setSubmitted(true);
 
-    if (hasErrors(errors as Record<string, unknown>)) return;
+    const all = validateAll();
+    if (hasErrors(all as Record<string, unknown>)) return;
 
-    // ✅ Clean names before review
     const cleanFirst = toTitleCase(firstName);
     const cleanMiddle = toTitleCase(middleName);
     const cleanLast = toTitleCase(lastName);
 
-    // Update form state to reflect changes in UI
     setFirstName(cleanFirst);
     setMiddleName(cleanMiddle);
     setLastName(cleanLast);
@@ -324,12 +341,12 @@ export default function AddUserModal({
       firstName: cleanFirst,
       middleName: cleanMiddle,
       lastName: cleanLast,
-      idNumber,
-      email,
-      phone,
+      idNumber: idNumber.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
       gender: gender as Gender,
       role: role as UserRole,
-      status: status, // This is always "active" now
+      status,
       department: department as string,
       notes,
     });
@@ -344,20 +361,19 @@ export default function AddUserModal({
         <AddUserReviewModal
           open={showReview}
           data={reviewData}
-          isLoading={isLoading} // ✅ PASS LOADING STATE
+          isLoading={isLoading}
           onBack={() => {
             if (!isLoading) setShowReview(false);
           }}
           onConfirm={(payload) => {
             const finalPayload: AddUserPayload = {
               ...payload,
-              middleName: payload.middleName ?? "", // ✅ FIX HERE
+              middleName: payload.middleName ?? "",
               gender: payload.gender as Gender,
               role: payload.role as UserRole,
               status: payload.status as UserStatus,
               notes,
             };
-
             onSubmit(finalPayload);
           }}
         />
@@ -406,39 +422,39 @@ export default function AddUserModal({
                         className={inputClass("firstName")}
                         value={firstName}
                         onChange={(e) =>
-                          setFirstName(
-                            sanitizeInput(toTitleCase(e.target.value)),
-                          )
+                          setFirstName(sanitizeInput(toTitleCase(e.target.value)))
                         }
-                        onBlur={() => setFirstName(toTitleCase(firstName))}
+                        onBlur={() => onBlurField("firstName")}
                         placeholder="Enter first name"
                       />
                     </div>
 
                     <div className="users-invalid-feedback">
-                      {errorText("firstName")}
+                      {invalid("firstName") ? getError("firstName") : "\u00A0"}
                     </div>
                   </div>
 
                   <div className="users-field users-input-with-icon">
-                    <label className="users-label">Middle Name</label>
+                    <label className={labelClass("middleName")}>Middle Name</label>
 
                     <div className="users-input-wrapper">
                       <User className="users-input-icon" size={16} />
                       <input
-                        className="users-input"
+                        className={inputClass("middleName")}
                         value={middleName}
                         onChange={(e) =>
                           setMiddleName(
                             sanitizeInput(toTitleCase(e.target.value)),
                           )
                         }
-                        onBlur={() => setMiddleName(toTitleCase(middleName))}
+                        onBlur={() => onBlurField("middleName")}
                         placeholder="Optional"
                       />
                     </div>
 
-                    <div className="users-invalid-feedback">&nbsp;</div>
+                    <div className="users-invalid-feedback">
+                      {invalid("middleName") ? getError("middleName") : "\u00A0"}
+                    </div>
                   </div>
 
                   <div className="users-field users-input-with-icon">
@@ -452,17 +468,15 @@ export default function AddUserModal({
                         className={inputClass("lastName")}
                         value={lastName}
                         onChange={(e) =>
-                          setLastName(
-                            sanitizeInput(toTitleCase(e.target.value)),
-                          )
+                          setLastName(sanitizeInput(toTitleCase(e.target.value)))
                         }
-                        onBlur={() => setLastName(toTitleCase(lastName))}
+                        onBlur={() => onBlurField("lastName")}
                         placeholder="Enter last name"
                       />
                     </div>
 
                     <div className="users-invalid-feedback">
-                      {errorText("lastName")}
+                      {invalid("lastName") ? getError("lastName") : "\u00A0"}
                     </div>
                   </div>
                 </div>
@@ -479,15 +493,14 @@ export default function AddUserModal({
                       <input
                         className={inputClass("idNumber")}
                         value={idNumber}
-                        onChange={(e) =>
-                          setIdNumber(sanitizeInput(e.target.value))
-                        }
+                        onChange={(e) => setIdNumber(sanitizeInput(e.target.value))}
+                        onBlur={() => onBlurField("idNumber")}
                         placeholder="e.g., STU-2024-001"
                       />
                     </div>
 
                     <div className="users-invalid-feedback">
-                      {errorText("idNumber")}
+                      {invalid("idNumber") ? getError("idNumber") : "\u00A0"}
                     </div>
                   </div>
 
@@ -501,16 +514,15 @@ export default function AddUserModal({
                       <input
                         className={inputClass("email")}
                         value={email}
-                        onChange={(e) =>
-                          setEmail(sanitizeInput(e.target.value))
-                        }
+                        onChange={(e) => setEmail(sanitizeInput(e.target.value))}
+                        onBlur={() => onBlurField("email")}
                         placeholder="Enter email address"
                         type="email"
                       />
                     </div>
 
                     <div className="users-invalid-feedback">
-                      {errorText("email")}
+                      {invalid("email") ? getError("email") : "\u00A0"}
                     </div>
                   </div>
 
@@ -525,6 +537,7 @@ export default function AddUserModal({
                         className={inputClass("phone")}
                         value={phone}
                         onChange={handlePhoneChange}
+                        onBlur={() => onBlurField("phone")}
                         placeholder="09xxxxxxxxx"
                         inputMode="numeric"
                         maxLength={11}
@@ -532,7 +545,7 @@ export default function AddUserModal({
                     </div>
 
                     <div className="users-invalid-feedback">
-                      {errorText("phone")}
+                      {invalid("phone") ? getError("phone") : "\u00A0"}
                     </div>
                   </div>
                 </div>
@@ -549,9 +562,16 @@ export default function AddUserModal({
                       <select
                         className={selectClass("gender")}
                         value={gender}
-                        onChange={(e) =>
-                          setGender(e.target.value as Gender | "")
-                        }
+                        onChange={(e) => {
+                          setGender(e.target.value as Gender | "");
+                          if (submitted || touched.gender) {
+                            setLocalErrors((p) => ({
+                              ...p,
+                              gender: validateField("gender"),
+                            }));
+                          }
+                        }}
+                        onBlur={() => onBlurField("gender")}
                       >
                         <option value="" disabled>
                           Select gender
@@ -565,11 +585,11 @@ export default function AddUserModal({
                     </div>
 
                     <div className="users-invalid-feedback">
-                      {errorText("gender")}
+                      {invalid("gender") ? getError("gender") : "\u00A0"}
                     </div>
                   </div>
 
-                  {/* ✅ STATUS IS NOW READ-ONLY & FIXED */}
+                  {/* Status fixed */}
                   <div className="users-field users-input-with-icon">
                     <label className="users-label">
                       Status <span className="req">*</span>
@@ -600,9 +620,16 @@ export default function AddUserModal({
                       <select
                         className={selectClass("role")}
                         value={role}
-                        onChange={(e) =>
-                          setRole(e.target.value as UserRole | "")
-                        }
+                        onChange={(e) => {
+                          setRole(e.target.value as UserRole | "");
+                          if (submitted || touched.role) {
+                            setLocalErrors((p) => ({
+                              ...p,
+                              role: validateField("role"),
+                            }));
+                          }
+                        }}
+                        onBlur={() => onBlurField("role")}
                       >
                         <option value="" disabled>
                           Select role
@@ -616,7 +643,7 @@ export default function AddUserModal({
                     </div>
 
                     <div className="users-invalid-feedback">
-                      {errorText("role")}
+                      {invalid("role") ? getError("role") : "\u00A0"}
                     </div>
                   </div>
 
@@ -630,7 +657,16 @@ export default function AddUserModal({
                       <select
                         className={selectClass("department")}
                         value={department}
-                        onChange={(e) => setDepartment(e.target.value)}
+                        onChange={(e) => {
+                          setDepartment(e.target.value);
+                          if (submitted || touched.department) {
+                            setLocalErrors((p) => ({
+                              ...p,
+                              department: validateField("department"),
+                            }));
+                          }
+                        }}
+                        onBlur={() => onBlurField("department")}
                       >
                         <option value="" disabled>
                           Select department
@@ -644,7 +680,7 @@ export default function AddUserModal({
                     </div>
 
                     <div className="users-invalid-feedback">
-                      {errorText("department")}
+                      {invalid("department") ? getError("department") : "\u00A0"}
                     </div>
                   </div>
                 </div>
@@ -664,11 +700,7 @@ export default function AddUserModal({
               </div>
 
               <div className="users-modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-light"
-                  onClick={onClose}
-                >
+                <button type="button" className="btn btn-light" onClick={onClose}>
                   Cancel
                 </button>
 

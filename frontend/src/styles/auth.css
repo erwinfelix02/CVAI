@@ -1197,3 +1197,18 @@ input[type="password"]::-webkit-password-toggle-button {
 .auth-alert-text {
   flex: 1;
 }
+.password-hint {
+  margin: 12px 0 16px 0;   /* balanced spacing */
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #6c757d;
+  text-align: center;      /* centers it cleanly */
+  width: 100%;
+}
+.password-hint {
+  margin: 12px 0 16px 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #6c757d;
+  text-align: left;
+}

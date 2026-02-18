@@ -10,7 +10,7 @@ import helmet from "helmet";
 import faqRoutes from "./routes/faqRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import preregistrationRoutes from "./routes/preregistration.js";
-
+import enrollmentsRoute from "./routes/enrollments.js";
 
 const app = express();
 
@@ -55,6 +55,7 @@ app.use("/api/faqs", faqRoutes);
 app.use("/api/ai", aiRoutes);
 
 app.use("/api/preregistrations", preregistrationRoutes);
+app.use("/api/enrollments", enrollmentsRoute);
 
 app.listen(5000, () =>
   console.log("🚀 Server running on http://localhost:5000"),

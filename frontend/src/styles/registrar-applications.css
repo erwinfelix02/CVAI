@@ -486,3 +486,14 @@
     text-align: left;
   }
 }
+.registrar-schedule-sent {
+  background-color: #198754; /* green */
+  border: none;
+  color: #fff;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.registrar-schedule-sent:hover {
+  background-color: #198754;
+}

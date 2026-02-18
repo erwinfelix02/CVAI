@@ -6,8 +6,6 @@ type Props = {
   title: string;
   items: ApplicationRow[];
   onReview: (id: string) => void;
-
-  // ✅ new
   selectedApprovedIds: Set<string>;
   onToggleApproved: (id: string) => void;
   onDeselectAllApproved: () => void;
@@ -23,7 +21,10 @@ export default function RegistrarApplicationsList({
   onDeselectAllApproved,
   onSendSchedule,
 }: Props) {
-  const selectedCount = selectedApprovedIds.size;
+  // ✅ count only selectable approved students (not schedule sent)
+  const selectedCount = items.filter(
+    (a) => a.status === "Approved" && !a.scheduleSent && selectedApprovedIds.has(a.id),
+  ).length;
 
   return (
     <div className="card shadow-sm registrar-card">
@@ -49,7 +50,9 @@ export default function RegistrarApplicationsList({
               key={a.id}
               item={a}
               onReview={onReview}
-              isApprovedSelected={selectedApprovedIds.has(a.id)}
+              isApprovedSelected={
+                a.status === "Approved" && !a.scheduleSent && selectedApprovedIds.has(a.id)
+              } // ✅ only selected if not sent
               onToggleApproved={onToggleApproved}
               onSendSchedule={onSendSchedule}
             />

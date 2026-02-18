@@ -1,3 +1,4 @@
+// models/Preregistration.js
 import mongoose from "mongoose";
 
 function generateRegistrationId() {
@@ -9,17 +10,15 @@ function generateRegistrationId() {
 const preregSchema = new mongoose.Schema(
   {
     blockchainTxHash: String,
-    registrationId: {
-      type: String,
-      unique: true,
-    },
+
+    registrationId: { type: String, unique: true },
 
     personal: {
       firstName: String,
       middleName: String,
       lastName: String,
-      email: String,
-      phone: String,
+      email: { type: String, index: true },
+      phone: { type: String, index: true },
       birthDate: String,
       gender: String,
       address: String,
@@ -38,21 +37,22 @@ const preregSchema = new mongoose.Schema(
       idPhoto: String,
     },
 
-  status: {
-  type: String,
-  enum: ["Pending", "Approved", "Rejected"],
-  default: "Pending",
-},
-
+    status: {
+      type: String,
+      enum: ["Pending", "Approved", "Rejected"],
+      default: "Pending",
+    },
+    scheduleSentAt: { type: Date, default: null },
   },
   { timestamps: true }
 );
 
 preregSchema.pre("save", function () {
-  if (!this.registrationId) {
-    this.registrationId = generateRegistrationId();
-  }
+  if (!this.registrationId) this.registrationId = generateRegistrationId();
 });
 
+// ✅ optional but strong: unique email + phone (sparse lets nulls exist)
+preregSchema.index({ "personal.email": 1 }, { unique: true, sparse: true });
+preregSchema.index({ "personal.phone": 1 }, { unique: true, sparse: true });
 
 export default mongoose.model("Preregistration", preregSchema);

@@ -40,12 +40,20 @@ export default function ForgotPassword() {
 
 
   const isCodeComplete = code.every((d) => d !== "");
-  const isPasswordValid =
-    password.length >= 8 &&
-    /[A-Z]/.test(password) && // At least 1 uppercase
-    /[0-9]/.test(password) && // At least 1 number
-    /[^A-Za-z0-9]/.test(password) && // At least 1 special character
-    password === confirmPassword;
+const hasMinLength = password.length >= 8;
+const hasUppercase = /[A-Z]/.test(password);
+const hasLowercase = /[a-z]/.test(password);
+const hasNumber = /[0-9]/.test(password);
+const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+const isPasswordValid =
+  hasMinLength &&
+  hasUppercase &&
+  hasLowercase &&
+  hasNumber &&
+  hasSpecial &&
+  password === confirmPassword;
+
 
   /* ================= RESEND TIMER ================= */
   useEffect(() => {
@@ -430,7 +438,13 @@ export default function ForgotPassword() {
                     {showConfirm ? <FaEyeSlash /> : <FaEye />}
                   </button>
                 </div>
+               <p className="password-hint">
+  Password must be 8+ characters with uppercase, lowercase, number, and special character.
+</p>
+
+
               </>
+              
             )}
 
             {/* ================= ACTION BUTTONS ================= */}

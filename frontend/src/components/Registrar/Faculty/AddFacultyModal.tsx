@@ -1,6 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import AddUserReviewModal from "../../shared/AddUserReviewModal"; // adjust path if needed
-import { User, Hash, Mail, Phone, Users, Building2,ShieldCheck, X } from "lucide-react";
+import {
+  User,
+  Hash,
+  Mail,
+  Phone,
+  Users,
+  Building2,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 
 const GENDERS = ["Male", "Female", "Prefer not to say"] as const;
 type Gender = (typeof GENDERS)[number];
@@ -9,15 +18,18 @@ type FacultyForm = {
   firstName: string;
   middleName: string;
   lastName: string;
-  idNumber: string;
+  idNumber: string; // FAC-YYYY-###
   email: string;
-  phone: string;
+  phone: string; // +639#########
   gender: Gender | "";
   department: string | "";
   notes: string;
 };
 
 type Errors = Partial<Record<keyof FacultyForm, string>>;
+type Touched = Partial<Record<keyof FacultyForm, boolean>>;
+
+/* ---------------- HELPERS ---------------- */
 
 function capitalizeWords(value: string) {
   return value
@@ -25,92 +37,34 @@ function capitalizeWords(value: string) {
     .toLowerCase()
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
+
 function sanitizeInput(value: string) {
-  return value.replace(/['";`\\]/g, "").replace(/\s+/g, " ");
+  return value
+    .replace(/['";`\\]/g, "")
+    .replace(/\s+/g, " ")
+    .trimStart();
 }
 
 function isValidEmail(v: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
 }
 
-function isValidPHPhone(v: string) {
-  return /^\+639\d{9}$/.test(v);
+// ✅ +639 + 9 digits (total +639######### => 13 chars)
+function isValidPHPhonePlus63(v: string) {
+  return /^\+639\d{9}$/.test(v.trim());
 }
 
-function validate(form: FacultyForm): Errors {
-  const e: Errors = {};
-  const NAME_REGEX = /^[A-Za-z\s'-]+$/;
-  const MAX_NAME_LENGTH = 50;
+const NAME_REGEX = /^[A-Za-z\s'-]+$/;
+const MAX_NAME_LENGTH = 50;
 
-  // FIRST NAME
-  const first = form.firstName.trim();
-
-  if (!first) {
-    e.firstName = "First name is required.";
-  } else if (!NAME_REGEX.test(first)) {
-    e.firstName = "Only letters allowed.";
-  } else if (first.length < 2) {
-    e.firstName = "Minimum 2 characters required.";
-  } else if (first.length > MAX_NAME_LENGTH) {
-    e.firstName = "Maximum 50 characters allowed.";
-  }
-
-  // MIDDLE NAME (Optional)
-  const middle = form.middleName.trim();
-
-  if (middle) {
-    if (!NAME_REGEX.test(middle)) {
-      e.middleName = "Only letters allowed.";
-    } else if (middle.length > MAX_NAME_LENGTH) {
-      e.middleName = "Maximum 50 characters allowed.";
-    }
-  }
-
-  // LAST NAME
-  const last = form.lastName.trim();
-
-  if (!last) {
-    e.lastName = "Last name is required.";
-  } else if (!NAME_REGEX.test(last)) {
-    e.lastName = "Only letters allowed.";
-  } else if (last.length < 2) {
-    e.lastName = "Minimum 2 characters required.";
-  } else if (last.length > MAX_NAME_LENGTH) {
-    e.lastName = "Maximum 50 characters allowed.";
-  }
-
-  const currentYear = new Date().getFullYear();
-  const idPrefix = `FAC-${currentYear}-`;
-
-  const digits = form.idNumber.replace(idPrefix, "");
-
-  if (digits.length !== 3) {
-    e.idNumber = "Enter exactly 3 digits.";
-  }
-
-  if (!form.email.trim()) e.email = "Email is required.";
-  if (!form.phone.trim()) e.phone = "Phone number is required.";
-  if (!form.gender) e.gender = "Gender is required.";
-  if (!form.department) e.department = "Department is required.";
-
-  if (form.idNumber && !/^[A-Za-z0-9-]+$/.test(form.idNumber)) {
-    e.idNumber = "ID can only contain letters, numbers, and dashes.";
-  }
-
-  if (form.email && !isValidEmail(form.email)) e.email = "Enter a valid email.";
-
-  if (form.phone && !isValidPHPhone(form.phone))
-    e.phone = "Format: +639XXXXXXXXX";
-
-  return e;
+function hasErrors(obj: Record<string, unknown>) {
+  return Object.keys(obj).length > 0;
 }
 
 type Props = {
   open: boolean;
   onClose: () => void;
-  onSubmit: (
-    data: FacultyForm & { status: "inactive"; role: "Faculty" },
-  ) => void;
+  onSubmit: (data: FacultyForm & { status: "inactive"; role: "Faculty" }) => void;
   isLoading: boolean;
 };
 
@@ -123,6 +77,7 @@ export default function AddFacultyModal({
   const currentYear = new Date().getFullYear();
   const idPrefix = `FAC-${currentYear}-`;
   const phonePrefix = "+63";
+
   const [form, setForm] = useState<FacultyForm>({
     firstName: "",
     middleName: "",
@@ -136,19 +91,120 @@ export default function AddFacultyModal({
   });
 
   const [submitted, setSubmitted] = useState(false);
-  const [showReview, setShowReview] = useState(false); // 🔥 ADDED
-  const errors = useMemo(() => validate(form), [form]);
-  const invalid = (k: keyof FacultyForm) => submitted && !!errors[k];
+
+  // ✅ StepPersonal-style: touched + local errors
+  const [touched, setTouched] = useState<Touched>({});
+  const [localErrors, setLocalErrors] = useState<Errors>({});
+
+  const [showReview, setShowReview] = useState(false);
+
+  // ✅ Field-by-field validation
+  const validateField = (k: keyof FacultyForm, raw?: string): string => {
+    const v = (raw ?? (form as any)[k] ?? "") as string;
+
+    const first = form.firstName.trim();
+    const middle = form.middleName.trim();
+    const last = form.lastName.trim();
+    const id = form.idNumber.trim();
+    const email = form.email.trim();
+    const phone = form.phone.trim();
+    const gender = form.gender;
+    const dept = form.department;
+
+    switch (k) {
+      case "firstName":
+        if (!first) return "First name is required.";
+        if (!NAME_REGEX.test(first)) return "Only letters allowed.";
+        if (first.length < 2) return "Minimum 2 characters required.";
+        if (first.length > MAX_NAME_LENGTH)
+          return "Maximum 50 characters allowed.";
+        return "";
+
+      case "middleName":
+        if (!middle) return "";
+        if (!NAME_REGEX.test(middle)) return "Only letters allowed.";
+        if (middle.length > MAX_NAME_LENGTH)
+          return "Maximum 50 characters allowed.";
+        return "";
+
+      case "lastName":
+        if (!last) return "Last name is required.";
+        if (!NAME_REGEX.test(last)) return "Only letters allowed.";
+        if (last.length < 2) return "Minimum 2 characters required.";
+        if (last.length > MAX_NAME_LENGTH)
+          return "Maximum 50 characters allowed.";
+        return "";
+
+      case "idNumber": {
+        if (!id) return "ID number is required.";
+        // must be FAC-YYYY-###
+        const pattern = new RegExp(`^FAC-${currentYear}-\\d{3}$`);
+        if (!pattern.test(id)) return `Format: ${idPrefix}### (3 digits).`;
+
+        // extra safety
+        if (!/^[A-Za-z0-9-]+$/.test(id))
+          return "ID can only contain letters, numbers, and dashes.";
+        return "";
+      }
+
+      case "email":
+        if (!email) return "Email is required.";
+        if (!isValidEmail(email)) return "Enter a valid email.";
+        return "";
+
+      case "phone":
+        if (!phone) return "Phone number is required.";
+        if (!isValidPHPhonePlus63(phone)) return "Format: +639XXXXXXXXX";
+        return "";
+
+      case "gender":
+        if (!gender) return "Gender is required.";
+        return "";
+
+      case "department":
+        if (!dept) return "Department is required.";
+        return "";
+
+      case "notes":
+        // optional, but keep it safe
+        if (v && v.length > 300) return "Maximum 300 characters allowed.";
+        return "";
+
+      default:
+        return "";
+    }
+  };
+
+  const validateAll = () => {
+    const next: Errors = {};
+    (Object.keys(form) as (keyof FacultyForm)[]).forEach((k) => {
+      const msg = validateField(k);
+      if (msg) next[k] = msg;
+    });
+    setLocalErrors(next);
+    return next;
+  };
+
+  const onBlurField = (k: keyof FacultyForm) => {
+    setTouched((p) => ({ ...p, [k]: true }));
+    const msg = validateField(k);
+    setLocalErrors((p) => ({ ...p, [k]: msg }));
+  };
+
+  const invalid = (k: keyof FacultyForm) =>
+    (submitted || touched[k]) && !!localErrors[k];
 
   const errorText = (k: keyof FacultyForm) =>
-    invalid(k) ? errors[k] : "\u00A0";
+    invalid(k) ? localErrors[k] : "\u00A0";
 
+  // ESC to close + scroll lock
   useEffect(() => {
     if (!open) return;
 
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !isLoading) {
-        onClose();
+        if (showReview) setShowReview(false);
+        else onClose();
       }
     };
 
@@ -159,8 +215,9 @@ export default function AddFacultyModal({
       window.removeEventListener("keydown", handleEsc);
       document.body.style.overflow = "";
     };
-  }, [open, onClose, isLoading]);
+  }, [open, onClose, isLoading, showReview]);
 
+  // reset when open
   useEffect(() => {
     if (!open) return;
 
@@ -177,27 +234,38 @@ export default function AddFacultyModal({
     });
 
     setSubmitted(false);
+    setTouched({});
+    setLocalErrors({});
     setShowReview(false);
   }, [open]);
 
   if (!open) return null;
 
+  // ✅ update helper (like StepPersonal)
   const update = (key: keyof FacultyForm, value: string) => {
     const cleanValue = sanitizeInput(value);
-    setForm((prev) => ({ ...prev, [key]: cleanValue }));
+
+    setForm((prev) => {
+      const next = { ...prev, [key]: cleanValue };
+      return next;
+    });
+
+    // validate live after touched/submitted
+    if (submitted || touched[key]) {
+      const msg = validateField(key, cleanValue);
+      setLocalErrors((p) => ({ ...p, [key]: msg }));
+    }
   };
 
   const handleSubmit = () => {
-    const validationErrors = validate(form);
-
     setSubmitted(true);
 
-    if (Object.keys(validationErrors).length > 0) return;
+    const all = validateAll();
+    if (hasErrors(all as Record<string, unknown>)) return;
 
     setShowReview(true);
   };
 
-  // 🔥 CONFIRM FROM REVIEW MODAL
   const handleConfirm = () => {
     onSubmit({
       ...form,
@@ -230,6 +298,7 @@ export default function AddFacultyModal({
                 type="button"
                 className="users-modal-close"
                 onClick={onClose}
+                aria-label="Close"
               >
                 <X size={18} />
               </button>
@@ -242,20 +311,24 @@ export default function AddFacultyModal({
                 <div className="users-name-row users-col-span-2">
                   <div className="users-field users-input-with-icon">
                     <label
-                      className={`users-label ${invalid("firstName") ? "is-invalid-label" : ""}`}
+                      className={`users-label ${
+                        invalid("firstName") ? "is-invalid-label" : ""
+                      }`}
                     >
                       First Name <span className="req">*</span>
                     </label>
 
                     <div className="users-input-wrapper">
                       <User className="users-input-icon" size={16} />
-
                       <input
-                        className={`users-input ${invalid("firstName") ? "is-invalid" : ""}`}
+                        className={`users-input ${
+                          invalid("firstName") ? "is-invalid" : ""
+                        }`}
                         value={form.firstName}
                         onChange={(e) =>
                           update("firstName", capitalizeWords(e.target.value))
                         }
+                        onBlur={() => onBlurField("firstName")}
                         placeholder="Enter first name"
                       />
                     </div>
@@ -266,40 +339,54 @@ export default function AddFacultyModal({
                   </div>
 
                   <div className="users-field users-input-with-icon">
-                    <label className="users-label">Middle Name</label>
+                    <label
+                      className={`users-label ${
+                        invalid("middleName") ? "is-invalid-label" : ""
+                      }`}
+                    >
+                      Middle Name
+                    </label>
 
                     <div className="users-input-wrapper">
                       <User className="users-input-icon" size={16} />
-
                       <input
-                        className="users-input"
+                        className={`users-input ${
+                          invalid("middleName") ? "is-invalid" : ""
+                        }`}
                         value={form.middleName}
                         onChange={(e) =>
                           update("middleName", capitalizeWords(e.target.value))
                         }
+                        onBlur={() => onBlurField("middleName")}
                         placeholder="Optional"
                       />
                     </div>
 
-                    <div className="users-invalid-feedback">&nbsp;</div>
+                    <div className="users-invalid-feedback">
+                      {invalid("middleName") ? errorText("middleName") : "\u00A0"}
+                    </div>
                   </div>
 
                   <div className="users-field users-input-with-icon">
                     <label
-                      className={`users-label ${invalid("lastName") ? "is-invalid-label" : ""}`}
+                      className={`users-label ${
+                        invalid("lastName") ? "is-invalid-label" : ""
+                      }`}
                     >
                       Last Name <span className="req">*</span>
                     </label>
 
                     <div className="users-input-wrapper">
                       <User className="users-input-icon" size={16} />
-
                       <input
-                        className={`users-input ${invalid("lastName") ? "is-invalid" : ""}`}
+                        className={`users-input ${
+                          invalid("lastName") ? "is-invalid" : ""
+                        }`}
                         value={form.lastName}
                         onChange={(e) =>
                           update("lastName", capitalizeWords(e.target.value))
                         }
+                        onBlur={() => onBlurField("lastName")}
                         placeholder="Enter last name"
                       />
                     </div>
@@ -314,38 +401,35 @@ export default function AddFacultyModal({
                 <div className="users-row-3 users-col-span-2">
                   <div className="users-field users-input-with-icon">
                     <label
-                      className={`users-label ${invalid("idNumber") ? "is-invalid-label" : ""}`}
+                      className={`users-label ${
+                        invalid("idNumber") ? "is-invalid-label" : ""
+                      }`}
                     >
                       ID Number <span className="req">*</span>
                     </label>
 
                     <div className="users-input-wrapper">
                       <Hash className="users-input-icon" size={16} />
-
                       <input
-                        className={`users-input ${invalid("idNumber") ? "is-invalid" : ""}`}
+                        className={`users-input ${
+                          invalid("idNumber") ? "is-invalid" : ""
+                        }`}
                         value={form.idNumber}
                         onChange={(e) => {
                           let value = e.target.value;
 
-                          // Remove prefix if manually typed
                           if (value.startsWith(idPrefix)) {
                             value = value.replace(idPrefix, "");
                           }
 
-                          // Allow only digits, max 3
                           const digits = value.replace(/\D/g, "").slice(0, 3);
-
-                          // If user typed something, auto prepend prefix
                           const finalValue =
                             digits.length > 0 ? idPrefix + digits : "";
 
-                          setForm((prev) => ({
-                            ...prev,
-                            idNumber: finalValue,
-                          }));
+                          update("idNumber", finalValue);
                         }}
-                        placeholder="Enter Id Number"
+                        onBlur={() => onBlurField("idNumber")}
+                        placeholder={`e.g., ${idPrefix}001`}
                       />
                     </div>
 
@@ -356,19 +440,24 @@ export default function AddFacultyModal({
 
                   <div className="users-field users-input-with-icon">
                     <label
-                      className={`users-label ${invalid("email") ? "is-invalid-label" : ""}`}
+                      className={`users-label ${
+                        invalid("email") ? "is-invalid-label" : ""
+                      }`}
                     >
                       Email <span className="req">*</span>
                     </label>
 
                     <div className="users-input-wrapper">
                       <Mail className="users-input-icon" size={16} />
-
                       <input
-                        className={`users-input ${invalid("email") ? "is-invalid" : ""}`}
+                        className={`users-input ${
+                          invalid("email") ? "is-invalid" : ""
+                        }`}
                         value={form.email}
                         onChange={(e) => update("email", e.target.value)}
+                        onBlur={() => onBlurField("email")}
                         placeholder="Enter email address"
+                        type="email"
                       />
                     </div>
 
@@ -379,45 +468,42 @@ export default function AddFacultyModal({
 
                   <div className="users-field users-input-with-icon">
                     <label
-                      className={`users-label ${invalid("phone") ? "is-invalid-label" : ""}`}
+                      className={`users-label ${
+                        invalid("phone") ? "is-invalid-label" : ""
+                      }`}
                     >
                       Phone <span className="req">*</span>
                     </label>
 
                     <div className="users-input-wrapper">
                       <Phone className="users-input-icon" size={16} />
-
                       <input
-                        className={`users-input ${invalid("phone") ? "is-invalid" : ""}`}
+                        className={`users-input ${
+                          invalid("phone") ? "is-invalid" : ""
+                        }`}
                         value={form.phone}
                         onChange={(e) => {
                           let value = e.target.value;
 
-                          // Remove prefix if manually typed
                           if (value.startsWith(phonePrefix)) {
                             value = value.replace(phonePrefix, "");
                           }
 
-                          // Remove non-digits
                           let digits = value.replace(/\D/g, "");
 
-                          // Force first digit to be 9
+                          // force first digit to be 9 (PH mobile after +63)
                           if (digits.length > 0 && digits[0] !== "9") {
                             digits = "9" + digits.slice(1);
                           }
 
-                          // Limit to 10 digits after +63
+                          // limit to 10 digits after +63
                           digits = digits.slice(0, 10);
 
-                          const finalValue =
-                            digits.length > 0 ? phonePrefix + digits : "";
-
-                          setForm((prev) => ({
-                            ...prev,
-                            phone: finalValue,
-                          }));
+                          const finalValue = digits.length > 0 ? "+63" + digits : "";
+                          update("phone", finalValue);
                         }}
-                        placeholder="Enter Phone Number"
+                        onBlur={() => onBlurField("phone")}
+                        placeholder="+639XXXXXXXXX"
                       />
                     </div>
 
@@ -431,22 +517,28 @@ export default function AddFacultyModal({
                 <div className="users-row-2 users-col-span-2">
                   <div className="users-field users-input-with-icon has-select">
                     <label
-                      className={`users-label ${invalid("gender") ? "is-invalid-label" : ""}`}
+                      className={`users-label ${
+                        invalid("gender") ? "is-invalid-label" : ""
+                      }`}
                     >
                       Gender <span className="req">*</span>
                     </label>
 
                     <div className="users-input-wrapper">
                       <Users className="users-input-icon" size={16} />
-
                       <select
-                        className={`users-select ${invalid("gender") ? "is-invalid" : ""}`}
+                        className={`users-select ${
+                          invalid("gender") ? "is-invalid" : ""
+                        }`}
                         value={form.gender}
                         onChange={(e) => update("gender", e.target.value)}
+                        onBlur={() => onBlurField("gender")}
                       >
                         <option value="">Select gender</option>
                         {GENDERS.map((g) => (
-                          <option key={g}>{g}</option>
+                          <option key={g} value={g}>
+                            {g}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -458,23 +550,27 @@ export default function AddFacultyModal({
 
                   <div className="users-field users-input-with-icon has-select">
                     <label
-                      className={`users-label ${invalid("department") ? "is-invalid-label" : ""}`}
+                      className={`users-label ${
+                        invalid("department") ? "is-invalid-label" : ""
+                      }`}
                     >
                       Department <span className="req">*</span>
                     </label>
 
                     <div className="users-input-wrapper">
                       <Building2 className="users-input-icon" size={16} />
-
                       <select
-                        className={`users-select ${invalid("department") ? "is-invalid" : ""}`}
+                        className={`users-select ${
+                          invalid("department") ? "is-invalid" : ""
+                        }`}
                         value={form.department}
                         onChange={(e) => update("department", e.target.value)}
+                        onBlur={() => onBlurField("department")}
                       >
                         <option value="">Select department</option>
-                        <option>Computer Science</option>
-                        <option>Engineering</option>
-                        <option>Business</option>
+                        <option value="Computer Science">Computer Science</option>
+                        <option value="Engineering">Engineering</option>
+                        <option value="Business">Business</option>
                       </select>
                     </div>
 
@@ -487,36 +583,32 @@ export default function AddFacultyModal({
                 {/* STATUS / ROLE */}
                 <div className="users-row-2 users-col-span-2">
                   <div className="users-field users-input-with-icon">
-  <label className="users-label">
-    Status
-  </label>
+                    <label className="users-label">Status</label>
 
-  <div className="users-input-wrapper">
-    <ShieldCheck className="users-input-icon" size={16} />
-    <input
-      className="users-input users-status-inactive text-center"
-      value="Inactive"
-      readOnly
-    />
-  </div>
+                    <div className="users-input-wrapper">
+                      <ShieldCheck className="users-input-icon" size={16} />
+                      <input
+                        className="users-input users-status-inactive text-center"
+                        value="Inactive"
+                        readOnly
+                      />
+                    </div>
 
-  <div className="users-invalid-feedback">&nbsp;</div>
-</div>
-
+                    <div className="users-invalid-feedback">&nbsp;</div>
+                  </div>
 
                   <div className="users-field users-input-with-icon">
-  <label className="users-label">Portal Role</label>
-  <div className="users-input-wrapper">
-    <ShieldCheck className="users-input-icon" size={16} />
-    <input
-      className="users-input users-status-active text-center"
-      value="Faculty"
-      readOnly
-    />
-  </div>
-  <div className="users-invalid-feedback">&nbsp;</div>
-</div>
-
+                    <label className="users-label">Portal Role</label>
+                    <div className="users-input-wrapper">
+                      <ShieldCheck className="users-input-icon" size={16} />
+                      <input
+                        className="users-input users-status-active text-center"
+                        value="Faculty"
+                        readOnly
+                      />
+                    </div>
+                    <div className="users-invalid-feedback">&nbsp;</div>
+                  </div>
                 </div>
 
                 {/* NOTES */}
@@ -529,6 +621,7 @@ export default function AddFacultyModal({
                     className="users-textarea"
                     value={form.notes}
                     onChange={(e) => update("notes", e.target.value)}
+                    onBlur={() => onBlurField("notes")}
                     placeholder="Add additional remarks if necessary"
                     rows={3}
                   />
@@ -548,6 +641,7 @@ export default function AddFacultyModal({
                 type="button"
                 className="btn btn-primary"
                 onClick={handleSubmit}
+                disabled={isLoading}
               >
                 Review
               </button>
@@ -555,6 +649,7 @@ export default function AddFacultyModal({
           </div>
         </div>
       )}
+
       {/* REVIEW MODAL */}
       <AddUserReviewModal
         open={showReview}
