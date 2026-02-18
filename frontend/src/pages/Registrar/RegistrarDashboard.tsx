@@ -99,12 +99,13 @@ useEffect(() => {
    ], [pendingCount]);
 
   const quickActions: QuickActionItem[] = [
-    {
-      label: "Review Applications",
-      icon: FileText,
-      badge: 48,
-      to: "/registrar/applications",
-    },
+     {
+    label: "Review Applications",
+    icon: FileText,
+    badge: pendingCount, // ✅ dynamic
+    to: "/registrar/applications",
+  },
+
     { label: "Enroll Student", icon: UserPlus, to: "/registrar/enrollment" },
     { label: "View All Students", icon: Users, to: "/registrar/students" },
     {

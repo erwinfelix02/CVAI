@@ -157,4 +157,43 @@ router.get("/recent", async (req, res) => {
   }
 });
 
+// ✅ Approve or Reject application
+router.patch("/:id/status", async (req, res) => {
+  try {
+    const { status } = req.body; // "Approved" or "Rejected"
+
+    if (!["Approved", "Rejected"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    const updated = await Preregistration.findOneAndUpdate(
+      { registrationId: req.params.id },
+      { status },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    // 📧 Optional: Send approval/rejection email
+    const emailHtml = `
+      <h2>Application Status Update</h2>
+      <p>Your registration ID: <strong>${updated.registrationId}</strong></p>
+      <p>Status: <strong>${status}</strong></p>
+    `;
+
+    await sendEmail(
+      updated.personal.email,
+      "Application Status Update",
+      emailHtml
+    );
+
+    res.json({ message: "Status updated successfully", updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 export default router;

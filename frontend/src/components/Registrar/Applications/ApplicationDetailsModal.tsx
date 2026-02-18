@@ -21,9 +21,24 @@ export default function ApplicationDetailsModal({
   if (!open || !application) return null;
 
   const { personal, academic, documents, status } = application;
+  const updateStatus = async (newStatus: "Approved" | "Rejected") => {
+    try {
+      await fetch(
+        `http://localhost:5000/api/preregistrations/${application.registrationId}/status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus }),
+        },
+      );
+
+      window.location.reload(); // simple for now
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
-    
     <div className="app-modal-backdrop" onClick={onClose}>
       <div className="app-modal" onClick={(e) => e.stopPropagation()}>
         {/* HEADER */}
@@ -225,44 +240,51 @@ export default function ApplicationDetailsModal({
             </div>
           )}
         </div>
-{previewFile && (
-  <div className="preview-overlay" onClick={() => setPreviewFile(null)}>
-    <div
-      className="preview-modal"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="preview-header">
-        <h5>Document Preview</h5>
-        <button onClick={() => setPreviewFile(null)}>
-          <X size={18} />
-        </button>
-      </div>
+        {previewFile && (
+          <div className="preview-overlay" onClick={() => setPreviewFile(null)}>
+            <div className="preview-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="preview-header">
+                <h5>Document Preview</h5>
+                <button onClick={() => setPreviewFile(null)}>
+                  <X size={18} />
+                </button>
+              </div>
 
-{previewFile.toLowerCase().endsWith(".pdf") ? (
-  <iframe
-    src={`http://localhost:5000${previewFile}`}
-    width="100%"
-    height="600px"
-    title="PDF Preview"
-  />
-) : (
-  <img
-    src={`http://localhost:5000${previewFile}`}
-    alt="Preview"
-    style={{ maxWidth: "100%", maxHeight: "600px" }}
-  />
-)}
-
-    </div>
-  </div>
-)}
-
-
+              {previewFile.toLowerCase().endsWith(".pdf") ? (
+                <iframe
+                  src={`http://localhost:5000${previewFile}`}
+                  width="100%"
+                  height="600px"
+                  title="PDF Preview"
+                />
+              ) : (
+                <img
+                  src={`http://localhost:5000${previewFile}`}
+                  alt="Preview"
+                  style={{ maxWidth: "100%", maxHeight: "600px" }}
+                />
+              )}
+            </div>
+          </div>
+        )}
         {/* FOOTER */}
-        <div className="app-modal-footer">
-          <button className="btn btn-outline-danger">Reject</button>
-          <button className="btn btn-primary">Approve & Create Account</button>
-        </div>
+        {status !== "Approved" && (
+          <div className="app-modal-footer">
+            <button
+              className="btn btn-outline-danger"
+              onClick={() => updateStatus("Rejected")}
+            >
+              Reject
+            </button>
+
+            <button
+              className="btn btn-primary"
+              onClick={() => updateStatus("Approved")}
+            >
+              Approve Registration
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,21 +1,48 @@
-import { Eye } from "lucide-react";
+import { Eye, Calendar } from "lucide-react";
 import type { ApplicationRow, ApplicationStatus } from "./types";
 
 function StatusPill({ status }: { status: ApplicationStatus }) {
   const cls =
-    status === "Approved" ? "approved" : status === "Rejected" ? "rejected" : "pending";
+    status === "Approved"
+      ? "approved"
+      : status === "Rejected"
+        ? "rejected"
+        : "pending";
   return <span className={`registrar-status ${cls}`}>{status}</span>;
 }
 
 type Props = {
   item: ApplicationRow;
   onReview: (id: string) => void;
+
+  // ✅ new
+  isApprovedSelected: boolean;
+  onToggleApproved: (id: string) => void;
+  onSendSchedule: () => void;
 };
 
-export default function RegistrarApplicationRow({ item, onReview }: Props) {
+export default function RegistrarApplicationRow({
+  item,
+  onReview,
+  isApprovedSelected,
+  onToggleApproved,
+  onSendSchedule,
+}: Props) {
+  const isApproved = item.status === "Approved";
+
   return (
     <div className="registrar-app-card">
       <div className="d-flex align-items-center gap-3 min-w-0">
+        {/* ✅ checkbox only for approved */}
+        {isApproved && (
+          <button
+            type="button"
+            className={`registrar-check ${isApprovedSelected ? "checked" : ""}`}
+            onClick={() => onToggleApproved(item.id)}
+            aria-label="Select approved application"
+          />
+        )}
+
         <div className="registrar-avatar">{item.initials}</div>
 
         <div className="min-w-0">
@@ -31,6 +58,17 @@ export default function RegistrarApplicationRow({ item, onReview }: Props) {
 
       <div className="d-flex align-items-center gap-2 registrar-app-actions">
         <StatusPill status={item.status} />
+
+        {isApproved && (
+          <button
+            type="button"
+            className="btn registrar-outline-btn"
+            onClick={onSendSchedule} // ✅ opens modal
+          >
+            <Calendar size={16} />
+            <span className="ms-2">Send Schedule</span>
+          </button>
+        )}
 
         <button
           type="button"

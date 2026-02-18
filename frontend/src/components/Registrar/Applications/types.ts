@@ -1,11 +1,14 @@
 export type ApplicationStatus = "Pending" | "Approved" | "Rejected";
 
 export type ApplicationRow = {
-  id: string;           // ENR-24001
-  initials: string;     // MS
+  id: string;
+  initials: string;
   name: string;
   program: string;
-  yearLevel: string;    // Year 1
-  submitted: string;    // YYYY-MM-DD
+  yearLevel: string;
+  submitted: string;
   status: ApplicationStatus;
+
+  // ✅ new
+  accountSent?: boolean; // if true -> show "Account Sent"
 };

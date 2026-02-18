@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, Calendar, Filter } from "lucide-react";
 import type { ApplicationStatus } from "./types";
 
 type Props = {
@@ -6,6 +6,10 @@ type Props = {
   setQuery: (v: string) => void;
   status: ApplicationStatus | "All";
   setStatus: (v: ApplicationStatus | "All") => void;
+
+  // ✅ new
+  selectedApprovedCount: number;
+  onSendSchedule: () => void;
 };
 
 export default function RegistrarApplicationsFilters({
@@ -13,12 +17,13 @@ export default function RegistrarApplicationsFilters({
   setQuery,
   status,
   setStatus,
+  selectedApprovedCount,
+  onSendSchedule,
 }: Props) {
   return (
     <div className="card shadow-sm registrar-card mb-3 mb-md-4">
       <div className="card-body registrar-filters-body">
         <div className="row g-2 align-items-center">
-          {/* Search */}
           <div className="col-12 col-lg">
             <div className="input-group registrar-search">
               <span className="input-group-text bg-white">
@@ -33,11 +38,10 @@ export default function RegistrarApplicationsFilters({
             </div>
           </div>
 
-          {/* Status dropdown */}
           <div className="col-12 col-lg-auto">
             <div className="registrar-select">
               <div className="registrar-select-ic">
-                <SlidersHorizontal size={16} />
+                <Filter size={16} />
               </div>
 
               <select
@@ -53,6 +57,21 @@ export default function RegistrarApplicationsFilters({
 
               <ChevronDown size={16} className="registrar-select-caret" />
             </div>
+          </div>
+
+          {/* ✅ Send Schedule */}
+          <div className="col-12 col-lg-auto">
+            <button
+              type="button"
+              className="btn registrar-primary-btn"
+              onClick={onSendSchedule}
+              disabled={selectedApprovedCount === 0}
+            >
+              <Calendar size={16} />
+              <span className="ms-2">
+                Send Schedule ({selectedApprovedCount})
+              </span>
+            </button>
           </div>
         </div>
       </div>
