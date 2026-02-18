@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import AuthAlert from "../../components/Authentication/AuthAlert";
 
 import Stepper from "../../components/PreReg/Stepper";
 import type { StepKey } from "../../components/PreReg/Stepper";
@@ -27,9 +29,9 @@ export type PersonalInfo = {
 };
 
 export type AcademicInfo = {
+  applicantType: "Freshman" | "Transferee" | "Returning" | "";
   course: string;
-  yearLevel: string;
-  transferee: "Yes" | "No" | "";
+  previousSchool?: string;
 };
 
 export type DocumentsState = {
@@ -93,9 +95,15 @@ function validatePersonal(v: PersonalInfo): PersonalErrors {
 
 function validateAcademic(v: AcademicInfo): AcademicErrors {
   const e: AcademicErrors = {};
+
+  if (!v.applicantType) e.applicantType = "Applicant type is required.";
+
   if (!v.course.trim()) e.course = "Course is required.";
-  if (!v.yearLevel.trim()) e.yearLevel = "Year level is required.";
-  if (!v.transferee) e.transferee = "Transferee status is required.";
+
+  if (v.applicantType === "Transferee" && !v.previousSchool?.trim()) {
+    e.previousSchool = "Previous school is required for transferees.";
+  }
+
   return e;
 }
 
@@ -117,6 +125,10 @@ function hasErrors(obj: Record<string, unknown>) {
 export default function StudentPreRegistrationPage() {
   const [activeStep, setActiveStep] = useState<StepKey>("personal");
   const navigate = useNavigate();
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<"success" | "error">("success");
+  const [showAlert, setShowAlert] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [personal, setPersonal] = useState<PersonalInfo>({
     firstName: "",
@@ -130,9 +142,9 @@ export default function StudentPreRegistrationPage() {
   });
 
   const [academic, setAcademic] = useState<AcademicInfo>({
+    applicantType: "",
     course: "",
-    yearLevel: "",
-    transferee: "",
+    previousSchool: "",
   });
 
   const [docs, setDocs] = useState<DocumentsState>({
@@ -155,21 +167,31 @@ export default function StudentPreRegistrationPage() {
 
   const stepIndex = useMemo(
     () => steps.findIndex((s) => s.key === activeStep),
-    [activeStep]
+    [activeStep],
   );
 
   // ✅ update error live AFTER first submit click
-  useMemo(() => {
+  useEffect(() => {
     if (submitted.personal) setPersonalErrors(validatePersonal(personal));
   }, [personal, submitted.personal]);
 
-  useMemo(() => {
+  useEffect(() => {
     if (submitted.academic) setAcademicErrors(validateAcademic(academic));
   }, [academic, submitted.academic]);
 
-  useMemo(() => {
+  useEffect(() => {
     if (submitted.documents) setDocsErrors(validateDocs(docs));
   }, [docs, submitted.documents]);
+// 🔥 Auto-hide alert after 3 seconds
+useEffect(() => {
+  if (showAlert) {
+    const timer = setTimeout(() => {
+      setShowAlert(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }
+}, [showAlert]);
 
   function validateCurrentStep(): boolean {
     if (activeStep === "personal") {
@@ -209,10 +231,11 @@ export default function StudentPreRegistrationPage() {
     if (prev) setActiveStep(prev);
   }
 
-  function handleSubmit() {
-    // validate everything
+  async function handleSubmit() {
+    if (isSubmitting) return; // 🔒 prevent double click
+    setIsSubmitting(true);
     setSubmitted({ personal: true, academic: true, documents: true });
-
+ setShowAlert(false);
     const pe = validatePersonal(personal);
     const ae = validateAcademic(academic);
     const de = validateDocs(docs);
@@ -226,15 +249,56 @@ export default function StudentPreRegistrationPage() {
       hasErrors(ae as Record<string, unknown>) ||
       hasErrors(de as Record<string, unknown>)
     ) {
-      // jump to first invalid step
       if (hasErrors(pe as Record<string, unknown>)) setActiveStep("personal");
-      else if (hasErrors(ae as Record<string, unknown>)) setActiveStep("academic");
+      else if (hasErrors(ae as Record<string, unknown>))
+        setActiveStep("academic");
       else setActiveStep("documents");
+      setIsSubmitting(false);
       return;
     }
 
-    console.log("Submitting...", { personal, academic, docs });
-    alert("Submitted! Check console.");
+    try {
+      const formData = new FormData();
+
+      // attach JSON data
+      formData.append(
+        "data",
+        JSON.stringify({
+          personal,
+          academic,
+        }),
+      );
+
+      // attach files
+      if (docs.birthCert) formData.append("birthCert", docs.birthCert);
+      if (docs.form137) formData.append("form137", docs.form137);
+      if (docs.goodMoral) formData.append("goodMoral", docs.goodMoral);
+      if (docs.idPhoto) formData.append("idPhoto", docs.idPhoto);
+
+      const response = await fetch(
+        "http://localhost:5000/api/preregistrations",
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
+
+      if (!response.ok) throw new Error("Submission failed");
+
+      setAlertMessage("Application submitted successfully!");
+      setAlertType("success");
+      setShowAlert(true);
+
+      // Redirect after 2.5 seconds
+      setTimeout(() => {
+        navigate("/"); // landing page
+      }, 2500);
+    } catch (err) {
+       setAlertMessage("Something went wrong. Please try again.");
+    setAlertType("error");
+    setShowAlert(true);
+    setIsSubmitting(false);
+    }
   }
 
   function handleStepChange(nextKey: StepKey) {
@@ -254,109 +318,128 @@ export default function StudentPreRegistrationPage() {
   }
 
   return (
-    <div className="prereg-shell">
-      <PreRegNavbar />
+    <>
+      <AuthAlert
+        message={alertMessage}
+        type={alertType}
+        visible={showAlert}
+        loading={false}
+      />
+      <div className="prereg-shell">
+        <PreRegNavbar />
 
-      {/* BACK BUTTON */}
-      <div className="container prereg-back-wrap">
-        <button
-          type="button"
-          className="prereg-back-btn d-inline-flex align-items-center gap-2"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft size={18} />
-          <span>Back</span>
-        </button>
-      </div>
-
-      <div className="container prereg-page">
-        {/* Hero */}
-        <div className="text-center prereg-hero">
-          <h1 className="fw-bold prereg-title">Student Pre-Registration</h1>
-          <p className="text-muted mb-0">
-            Complete the form below to submit your enrollment application
-          </p>
+        {/* BACK BUTTON */}
+        <div className="container prereg-back-wrap">
+          <button
+            type="button"
+            className="prereg-back-btn d-inline-flex align-items-center gap-2"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft size={18} />
+            <span>Back</span>
+          </button>
         </div>
 
-        {/* Stepper */}
-        <div className="d-flex justify-content-center prereg-stepper-wrap">
-          <Stepper steps={steps} active={activeStep} onChange={handleStepChange} />
-        </div>
+        <div className="container prereg-page">
+          {/* Hero */}
+          <div className="text-center prereg-hero">
+            <h1 className="fw-bold prereg-title">Student Pre-Registration</h1>
+            <p className="text-muted mb-0">
+              Complete the form below to submit your enrollment application
+            </p>
+          </div>
 
-        {/* Card */}
-        <div className="card prereg-card">
-          <div className="card-body prereg-card-body">
-            {activeStep === "personal" && (
-              <StepPersonal
-                value={personal}
-                onChange={setPersonal}
-                submitted={submitted.personal}
-                errors={personalErrors}
-              />
-            )}
+          {/* Stepper */}
+          <div className="d-flex justify-content-center prereg-stepper-wrap">
+            <Stepper
+              steps={steps}
+              active={activeStep}
+              onChange={handleStepChange}
+            />
+          </div>
 
-            {activeStep === "academic" && (
-              <StepAcademic
-                value={academic}
-                onChange={setAcademic}
-                submitted={submitted.academic}
-                errors={academicErrors}
-              />
-            )}
+          {/* Card */}
+          <div className="card prereg-card">
+            <div className="card-body prereg-card-body">
+              {activeStep === "personal" && (
+                <StepPersonal
+                  value={personal}
+                  onChange={setPersonal}
+                  submitted={submitted.personal}
+                  errors={personalErrors}
+                />
+              )}
 
-            {activeStep === "documents" && (
-              <StepDocuments
-                value={docs}
-                onChange={setDocs}
-                submitted={submitted.documents}
-                errors={docsErrors}
-              />
-            )}
+              {activeStep === "academic" && (
+                <StepAcademic
+                  value={academic}
+                  onChange={setAcademic}
+                  submitted={submitted.academic}
+                  errors={academicErrors}
+                />
+              )}
 
-            {activeStep === "review" && (
-              <StepReview personal={personal} academic={academic} docs={docs} />
-            )}
+              {activeStep === "documents" && (
+                <StepDocuments
+                  value={docs}
+                  onChange={setDocs}
+                  submitted={submitted.documents}
+                  errors={docsErrors}
+                />
+              )}
 
-            {/* FOOTER */}
-            <div className="prereg-footer">
-              <div className="prereg-footer-left">
-                {stepIndex > 0 && (
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary prereg-btn d-inline-flex align-items-center gap-2"
-                    onClick={goPrev}
-                  >
-                    <ArrowLeft size={16} />
-                    <span>Previous</span>
-                  </button>
-                )}
-              </div>
+              {activeStep === "review" && (
+                <StepReview
+                  personal={personal}
+                  academic={academic}
+                  docs={docs}
+                />
+              )}
 
-              <div className="prereg-footer-right">
-                {activeStep !== "review" ? (
-                  <button
-                    type="button"
-                    className="btn btn-primary prereg-btn d-inline-flex align-items-center gap-2"
-                    onClick={goNext}
-                  >
-                    <span>Next</span>
-                    <ArrowRight size={16} />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn btn-primary prereg-btn d-inline-flex align-items-center gap-2"
-                    onClick={handleSubmit}
-                  >
-                    <CheckCircle2 size={16} />
-                    <span>Submit Application</span>
-                  </button>
-                )}
+              {/* FOOTER */}
+              <div className="prereg-footer">
+                <div className="prereg-footer-left">
+                  {stepIndex > 0 && (
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary prereg-btn d-inline-flex align-items-center gap-2"
+                      onClick={goPrev}
+                    >
+                      <ArrowLeft size={16} />
+                      <span>Previous</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="prereg-footer-right">
+                  {activeStep !== "review" ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary prereg-btn d-inline-flex align-items-center gap-2"
+                      onClick={goNext}
+                    >
+                      <span>Next</span>
+                      <ArrowRight size={16} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      className="btn btn-primary prereg-btn d-inline-flex align-items-center gap-2"
+                      onClick={handleSubmit}
+                    >
+                      <CheckCircle2 size={16} />
+                      <span>
+                        {isSubmitting ? "Submitting..." : "Submit Application"}
+                      </span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

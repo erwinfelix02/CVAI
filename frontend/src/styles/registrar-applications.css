@@ -6,6 +6,12 @@
   border-radius: 16px;
   border: 1px solid rgba(15, 23, 42, 0.08);
 }
+.registrar-applications {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 
 /* Header pill (smaller) */
 .registrar-pill {

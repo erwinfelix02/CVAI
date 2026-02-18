@@ -1,0 +1,274 @@
+.app-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  z-index: 999;
+}
+
+.app-modal {
+  width: 100%;
+  max-width: 760px;
+  background: #f9fafb;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+/* HEADER */
+.app-modal-header {
+  background: #f3f4f6;
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* STATUS */
+.status-badge {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.status-badge.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.approved {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.tab-container {
+  display: flex;
+  background: #e5e7eb;
+  margin: 12px 16px;          /* less margin */
+  padding: 4px;               /* thinner container */
+  border-radius: 999px;       /* pill style */
+}
+
+/* TAB BUTTONS */
+.tab-container button {
+  flex: 1;
+  padding: 6px 0;             /* smaller height */
+  font-size: 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: 0.2s ease;
+}
+
+/* ACTIVE TAB */
+.tab-container button.active {
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* BODY */
+.app-modal-body {
+  padding: 0 24px 24px 24px;
+  overflow-y: auto;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.info-label {
+  font-size: 14px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.info-value {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* FOOTER */
+.app-modal-footer {
+  padding: 16px 24px;
+  background: #f3f4f6;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* MOBILE */
+@media (max-width: 576px) {
+  .app-modal {
+    max-width: 100%;
+    border-radius: 12px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* DOCUMENT CARD LIST */
+.doc-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* DOCUMENT CARD */
+.doc-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: #eaf7ef;
+  border: 1px solid #b7e4c7;
+  transition: 0.2s ease;
+}
+
+.doc-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* LEFT SIDE */
+.doc-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+}
+
+/* ICON */
+.doc-icon {
+  font-size: 18px;
+  color: #2d6a4f;
+}
+
+/* STATUS BADGE */
+.doc-status {
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* UPLOADED */
+.doc-status.uploaded {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+/* MISSING */
+.doc-status.missing {
+  background: #fee2e2;
+  color: #7f1d1d;
+  border: 1px solid #ef4444;
+}
+
+/* MOBILE RESPONSIVE */
+@media (max-width: 576px) {
+  .doc-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .doc-status {
+    align-self: flex-end;
+  }
+}
+.doc-card {
+  background: #eaf6ef;
+  border: 1px solid #b7e4c7;
+  padding: 14px 16px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+}
+
+.doc-card.clickable {
+  cursor: pointer;
+}
+
+.doc-card.clickable:hover {
+  background: #d8f3dc;
+  transform: translateY(-2px);
+}
+
+.doc-status.uploaded {
+  background: #ffffff;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.doc-status.missing {
+  color: #b02a37;
+  font-weight: 600;
+}
+.preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.preview-modal {
+  background: white;
+  width: 90%;
+  max-width: 900px;
+  height: 80vh;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.preview-header {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+}

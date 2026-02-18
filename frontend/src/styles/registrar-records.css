@@ -11,6 +11,11 @@
   border-radius: 14px;
   padding: 10px 16px;
 }
+.registrar-records {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
 
 /* =========================
    Mini stat cards (4 boxes)

@@ -17,7 +17,7 @@ import {
   Bot,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -33,7 +33,6 @@ const nav = [
     label: "Applications",
     icon: FileText,
     path: "/registrar/applications",
-    badge: 48,
   },
   { label: "Students", icon: Users, path: "/registrar/students" },
   { label: "Enrollment", icon: UserPlus, path: "/registrar/enrollment" },
@@ -58,6 +57,27 @@ export default function RegistrarSidebar({
   const location = useLocation();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [pendingCount, setPendingCount] = useState<number>(0);
+
+  useEffect(() => {
+    async function fetchPendingCount() {
+      try {
+        const res = await fetch(
+          "http://localhost:5000/api/preregistrations/pending-count",
+        );
+        const data = await res.json();
+        setPendingCount(data.count || 0);
+      } catch (err) {
+        console.error("Failed to fetch pending count", err);
+      }
+    }
+
+    fetchPendingCount();
+
+    // Optional: refresh every 10 seconds
+    const interval = setInterval(fetchPendingCount, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <aside
@@ -127,9 +147,19 @@ export default function RegistrarSidebar({
                   {(!collapsed || isMobile) && <span>{label}</span>}
                 </div>
 
-                {(!collapsed || isMobile) && badge && (
-                  <span className="badge bg-primary">{badge}</span>
-                )}
+                {(!collapsed || isMobile) &&
+                  label === "Applications" &&
+                  pendingCount > 0 && (
+                    <span className="badge bg-warning text-dark">
+                      {pendingCount}
+                    </span>
+                  )}
+
+                {(!collapsed || isMobile) &&
+                  badge &&
+                  label !== "Applications" && (
+                    <span className="badge bg-primary">{badge}</span>
+                  )}
               </div>
             </Link>
           );

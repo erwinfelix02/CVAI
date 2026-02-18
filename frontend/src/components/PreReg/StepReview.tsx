@@ -1,13 +1,7 @@
 import {
   BadgeCheck,
   BadgeX,
-  User,
-  GraduationCap,
   Paperclip,
-  Mail,
-  Phone,
-  Calendar,
-  MapPin,
 } from "lucide-react";
 
 import type {
@@ -140,17 +134,21 @@ export default function StepReview({
           </div>
         </div>
 
-        {/* ACADEMIC */}
-        <div className="col-12 col-lg-6">
-          <div className="prereg-review-card">
-            <div className="fw-semibold mb-2">Academic Information</div>
-            <div className="small prereg-review-list">
-              <div>Course: {academic.course}</div>
-              <div>Year Level: {academic.yearLevel}</div>
-              <div>Transferee: {academic.transferee}</div>
-            </div>
-          </div>
-        </div>
+      {/* ACADEMIC */}
+<div className="col-12 col-lg-6">
+  <div className="prereg-review-card">
+    <div className="fw-semibold mb-2">Academic Information</div>
+    <div className="small prereg-review-list">
+      <div>Applicant Type: {academic.applicantType}</div>
+      <div>Course: {academic.course}</div>
+
+      {academic.applicantType === "Transferee" && (
+        <div>Previous School: {academic.previousSchool}</div>
+      )}
+    </div>
+  </div>
+</div>
+
 
         {/* DOCUMENTS */}
         <div className="col-12">

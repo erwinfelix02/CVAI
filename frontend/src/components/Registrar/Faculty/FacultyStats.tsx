@@ -1,9 +1,25 @@
-export default function FacultyStats() {
+type Props = {
+  total: number;
+  active: number;
+  inactive: number;
+};
+
+export default function FacultyStats({
+  total,
+  active,
+  inactive,
+}: Props) {
+
   return (
     <div className="row g-4 mb-4">
-      <StatCard title="Total Faculty" value={3} />
-      <StatCard title="Active" value={2} tone="success" />
-      <StatCard title="Pending Activation" value={1} tone="warning" />
+     <StatCard title="Total Faculty" value={total} />
+<StatCard title="Active" value={active} tone="success" />
+<StatCard
+  title="Pending Activation"
+  value={inactive}
+  tone="warning"
+/>
+
     </div>
   );
 }

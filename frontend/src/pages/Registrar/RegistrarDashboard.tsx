@@ -7,6 +7,8 @@ import {
   FileText,
   UserPlus,
 } from "lucide-react";
+import { useState } from "react";
+
 
 import StatCard from "../../components/Registrar/Dashboard/StatCard";
 import type { Props as StatCardProps } from "../../components/Registrar/Dashboard/StatCard";
@@ -24,6 +26,7 @@ import "../../styles/registrar-dashboard.css";
 export default function RegistrarDashboard() {
   const quickRef = useRef<HTMLDivElement | null>(null);
   const recentRef = useRef<HTMLDivElement | null>(null);
+const [pendingCount, setPendingCount] = useState(0);
 
   // 🔥 Sync Recent Applications height to Quick Actions
   useEffect(() => {
@@ -46,6 +49,21 @@ export default function RegistrarDashboard() {
       window.removeEventListener("resize", syncHeight);
     };
   }, []);
+useEffect(() => {
+  const fetchPending = async () => {
+    try {
+      const res = await fetch(
+        "http://localhost:5000/api/preregistrations/pending-count"
+      );
+      const data = await res.json();
+      setPendingCount(data.count);
+    } catch (err) {
+      console.error("Failed to fetch pending count", err);
+    }
+  };
+
+  fetchPending();
+}, []);
 
   const stats = useMemo<StatCardProps[]>(
     () => [
@@ -56,13 +74,14 @@ export default function RegistrarDashboard() {
         icon: Users,
         tone: "blue",
       },
-      {
-        label: "Pending Applications",
-        value: "48",
-        helper: "New this semester",
-        icon: ClipboardList,
-        tone: "orange",
-      },
+     {
+  label: "Pending Applications",
+  value: pendingCount.toString(),
+  helper: "Awaiting review",
+  icon: ClipboardList,
+  tone: "orange",
+}
+,
       {
         label: "Active Enrollments",
         value: "2,341",
@@ -77,9 +96,7 @@ export default function RegistrarDashboard() {
         icon: UserX,
         tone: "red",
       },
-    ],
-    []
-  );
+   ], [pendingCount]);
 
   const quickActions: QuickActionItem[] = [
     {
@@ -98,48 +115,44 @@ export default function RegistrarDashboard() {
     },
   ];
 
-  const recent: RecentApplication[] = [
-    {
-      initials: "MS",
-      name: "Maria Santos",
-      program: "BS Computer Science",
-      ref: "ENR-24001",
-      date: "2024-01-20",
-      status: "Pending",
-    },
-    {
-      initials: "JDC",
-      name: "Juan Dela Cruz",
-      program: "BS Information Technology",
-      ref: "ENR-24002",
-      date: "2024-01-20",
-      status: "Pending",
-    },
-    {
-      initials: "AR",
-      name: "Ana Reyes",
-      program: "BS Civil Engineering",
-      ref: "ENR-24003",
-      date: "2024-01-19",
-      status: "Approved",
-    },
-    {
-      initials: "CG",
-      name: "Carlos Garcia",
-      program: "BS Business Admin",
-      ref: "ENR-24004",
-      date: "2024-01-19",
-      status: "Pending",
-    },
-    {
-      initials: "EC",
-      name: "Elena Cruz",
-      program: "BS Nursing",
-      ref: "ENR-24005",
-      date: "2024-01-18",
-      status: "Rejected",
-    },
-  ];
+  const [recent, setRecent] = useState<RecentApplication[]>([]);
+
+useEffect(() => {
+  const fetchRecent = async () => {
+    try {
+      const res = await fetch(
+        "http://localhost:5000/api/preregistrations/recent"
+      );
+      const data = await res.json();
+
+      const mapped = data.map((app: any) => ({
+        initials:
+          app.personal.firstName[0] +
+          app.personal.lastName[0],
+
+        name:
+          app.personal.firstName +
+          " " +
+          app.personal.lastName,
+
+        program: app.academic.course,
+        ref: app.registrationId,
+        date: new Date(app.createdAt)
+          .toISOString()
+          .split("T")[0],
+
+        status: app.status,
+      }));
+
+      setRecent(mapped);
+    } catch (err) {
+      console.error("Failed to fetch recent applications", err);
+    }
+  };
+
+  fetchRecent();
+}, []);
+
 
   return (<ProtectedLayout>
     <div className="registrar-dashboard">

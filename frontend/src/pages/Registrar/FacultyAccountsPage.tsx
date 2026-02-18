@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import FacultyStats from "../../components/Registrar/Faculty/FacultyStats";
 import FacultyToolbar from "../../components/Registrar/Faculty/FacultyToolbar";
 import FacultyTable from "../../components/Registrar/Faculty/FacultyTable";
@@ -13,6 +13,20 @@ import AuthAlert from "../../components/Authentication/AuthAlert";
 export default function FacultyAccountsPage() {
   const [open, setOpen] = useState(false);
   const [facultyList, setFacultyList] = useState<Faculty[]>([]);
+  const stats = useMemo(() => {
+  const total = facultyList.length;
+
+  const active = facultyList.filter(
+    (f) => f.status === "Active"
+  ).length;
+
+  const inactive = facultyList.filter(
+    (f) => f.status === "Inactive"
+  ).length;
+
+  return { total, active, inactive };
+}, [facultyList]);
+
   const [isLoading, setIsLoading] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
   const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null);
@@ -176,7 +190,12 @@ export default function FacultyAccountsPage() {
           </button>
         </div>
 
-        <FacultyStats />
+       <FacultyStats
+  total={stats.total}
+  active={stats.active}
+  inactive={stats.inactive}
+/>
+
         <FacultyToolbar
           query={query}
           onQueryChange={setQuery}
