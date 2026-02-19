@@ -1,29 +1,30 @@
-import { UserPlus } from "lucide-react";
+import { ClipboardCheck } from "lucide-react";
 
 type EnrollmentItem = {
   _id: string;
   registrationId: string;
-  studentName?: string; // ✅ optional to prevent crash on old records
+  studentName?: string;
   status: "Scheduled" | "Enrolled" | "Cancelled";
-  schedule: { date: string; time: string; location: string; notes?: string };
 
-  // optional if you included snapshot
   personal?: { firstName?: string; lastName?: string };
+  academic?: { program?: string; yearLevel?: string | number };
 };
 
 export default function PendingEnrollmentList({
   items,
   loading,
+  titleCount,
 }: {
   items: EnrollmentItem[];
   loading: boolean;
+  titleCount: number;
 }) {
   return (
     <div className="card shadow-sm enroll-card">
       <div className="card-body">
         <h5 className="fw-bold mb-3 d-flex align-items-center gap-2">
-          <UserPlus size={18} />
-          Pending Enrollment ({items.length})
+          <ClipboardCheck size={18} />
+          Pending Evaluation ({titleCount})
         </h5>
 
         {loading ? (
@@ -43,23 +44,34 @@ export default function PendingEnrollmentList({
                 .map((x) => x[0]?.toUpperCase())
                 .join("");
 
+              const program = s.academic?.program?.trim();
+              const yearLevel = s.academic?.yearLevel?.toString().trim();
+
+              const programLine =
+                program && yearLevel
+                  ? `${program} • Year ${yearLevel}`
+                  : program
+                  ? program
+                  : "";
+
               return (
                 <div key={s._id} className="enroll-student-row">
                   <div className="d-flex align-items-center gap-3">
                     <div className="enroll-avatar">{initials}</div>
-                    <div>
+
+                    <div className="min-w-0">
                       <div className="fw-semibold">{fullName}</div>
                       <div className="text-muted small">{s.registrationId}</div>
-                      <div className="text-muted small">
-                        {s.schedule?.date ?? "-"} • {s.schedule?.time ?? "-"} •{" "}
-                        {s.schedule?.location ?? "-"}
-                      </div>
+
+                      {programLine ? (
+                        <div className="text-muted small">{programLine}</div>
+                      ) : null}
                     </div>
                   </div>
 
-                  <button className="btn btn-primary enroll-btn">
-                    <UserPlus size={16} />
-                    Assign Section
+                  <button className="btn enroll-eval-btn">
+                    <ClipboardCheck size={16} />
+                    Evaluate
                   </button>
                 </div>
               );

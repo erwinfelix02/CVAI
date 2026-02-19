@@ -8,10 +8,33 @@
   border: 1px solid #e2e8f0;
 }
 
+/* Stats */
+.stat-card .card-body {
+  padding: 22px;
+}
+
+.stat-label {
+  font-size: 14px;
+}
+
+.stat-number {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.05;
+  margin-top: 4px;
+}
+
+.stat-semester {
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1.05;
+  margin-top: 4px;
+}
+
 /* Stats icons */
 .stat-icon {
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 56px;
   border-radius: 14px;
   display: grid;
   place-items: center;
@@ -20,17 +43,40 @@
 .stat-icon.yellow { background: #fef3c7; color: #d97706; }
 .stat-icon.blue   { background: #dbeafe; color: #2563eb; }
 .stat-icon.green  { background: #dcfce7; color: #16a34a; }
+.stat-icon.gray   { background: #f1f5f9; color: #64748b; }
 
-/* Search */
-.enroll-search input {
-  box-shadow: none;
+/* Search bar (match screenshot: icon inside, rounded, subtle border) */
+.enroll-searchbar {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+}
+
+.enroll-search-icon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.enroll-search-input {
+  border: 0;
+  outline: 0;
+  width: 100%;
+  font-size: 15px;
+}
+
+.enroll-search-input::placeholder {
+  color: #94a3b8;
 }
 
 /* Student rows */
 .enroll-student-row {
   border: 1px solid #e2e8f0;
   border-radius: 14px;
-  padding: 14px;
+  padding: 16px 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -38,20 +84,33 @@
 }
 
 .enroll-avatar {
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   border-radius: 999px;
   background: #e2e8f0;
+  color: #0f172a;
   display: grid;
   place-items: center;
+  font-weight: 800;
+}
+
+/* Evaluate button (teal-ish like screenshot) */
+.enroll-eval-btn {
+  background: #0a4d63;
+  color: #ffffff;
+  border: 0;
+  border-radius: 14px;
+  padding: 10px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
   font-weight: 700;
 }
 
-.enroll-btn {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  white-space: nowrap;
+.enroll-eval-btn:hover {
+  background: #083c4d;
+  color: #ffffff;
 }
 
 /* Section capacity */
@@ -67,12 +126,11 @@
   padding: 4px 10px;
   font-weight: 700;
   font-size: 13px;
-  line-height: 1;           /* 🔥 prevents vertical overflow */
-  white-space: nowrap;      /* 🔥 prevents wrapping */
-  flex-shrink: 0;           /* 🔥 prevents squeezing */
-  align-self: flex-start;   /* 🔥 locks it inside the card */
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: flex-start;
 }
-
 
 /* Responsive */
 @media (max-width: 575px) {
@@ -81,7 +139,7 @@
     align-items: flex-start;
   }
 
-  .enroll-btn {
+  .enroll-eval-btn {
     width: 100%;
     justify-content: center;
   }

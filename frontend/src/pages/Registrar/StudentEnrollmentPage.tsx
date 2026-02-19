@@ -1,4 +1,4 @@
-import { Users } from "lucide-react";
+import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import EnrollmentStats from "../../components/Registrar/Enrollment/EnrollmentStats";
@@ -10,11 +10,17 @@ import "../../styles/registrar-enrollment.css";
 type EnrollmentItem = {
   _id: string;
   registrationId: string;
-  studentName: string;
-  email: string;
+  studentName?: string;
+  email?: string;
+
+  // status for pending evaluation list
   status: "Scheduled" | "Enrolled" | "Cancelled";
-  schedule: { date: string; time: string; location: string; notes?: string };
-  createdAt: string;
+
+  // optional snapshot fields (if you have them)
+  personal?: { firstName?: string; lastName?: string };
+  academic?: { program?: string; yearLevel?: string | number };
+
+  createdAt?: string;
 };
 
 export default function StudentEnrollmentPage() {
@@ -48,15 +54,13 @@ export default function StudentEnrollmentPage() {
         setLoading(true);
 
         const url = new URL("http://localhost:5000/api/enrollments");
-        url.searchParams.set("status", "Scheduled");
+        url.searchParams.set("status", "Scheduled"); // pending evaluation
         if (query.trim()) url.searchParams.set("q", query.trim());
 
         const res = await fetch(url.toString());
         const data = await res.json();
 
         setEnrollments(Array.isArray(data) ? data : []);
-
-        // ✅ refresh stats too (so numbers stay correct after changes)
         await fetchStats();
       } catch (e) {
         console.error("Failed to load enrollments", e);
@@ -67,7 +71,7 @@ export default function StudentEnrollmentPage() {
     })();
   }, [query]);
 
-  // ✅ show filtered count during search, otherwise show real DB count
+  // show filtered count during search, otherwise show real DB count
   const pendingCount = query.trim()
     ? enrollments.length
     : (stats?.pending ?? enrollments.length);
@@ -81,20 +85,20 @@ export default function StudentEnrollmentPage() {
 
       <EnrollmentStats
         pending={pendingCount}
+        enrolled={stats?.enrolled ?? 0}
         availableSections={4}
-        semesterLabel={stats?.semesterLabel ?? "—"}
+        semesterLabel="2nd Sem 2024"
       />
 
+      {/* Search (match screenshot) */}
       <div className="card shadow-sm enroll-card mt-3 mt-md-4">
         <div className="card-body">
-          <div className="input-group enroll-search">
-            <span className="input-group-text bg-white border-end-0">
-              <Users size={18} />
-            </span>
+          <div className="enroll-searchbar">
+            <Search size={18} className="enroll-search-icon" />
             <input
               type="text"
-              className="form-control border-start-0"
-              placeholder="Search pending students by name or ID..."
+              className="enroll-search-input"
+              placeholder="Search students by name or ID..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -103,7 +107,11 @@ export default function StudentEnrollmentPage() {
       </div>
 
       <div className="mt-3 mt-md-4">
-        <PendingEnrollmentList loading={loading} items={enrollments} />
+        <PendingEnrollmentList
+          loading={loading}
+          items={enrollments}
+          titleCount={pendingCount}
+        />
       </div>
 
       <div className="mt-3 mt-md-4">

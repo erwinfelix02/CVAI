@@ -37,7 +37,9 @@ export default function Navbar() {
             <div className="navbar-school">
               Graystone Institute of the Philippines
             </div>
-            <div className="navbar-title">CampusAI</div>
+            <div className="navbar-title">
+              Campus Virtual Assistance for Information
+            </div>
           </div>
         </button>
 
