@@ -42,17 +42,16 @@ export default function SectionCapacityGrid() {
             return (
               <div key={s.code} className="col-12 col-md-6">
                 <div className="capacity-card">
-                 <div className="d-flex align-items-start justify-content-between gap-2">
-  <div>
-    <div className="fw-bold">{s.code}</div>
-    <div className="text-muted">{s.program}</div>
-  </div>
+                  <div className="d-flex align-items-start justify-content-between gap-2">
+                    <div>
+                      <div className="fw-bold">{s.code}</div>
+                      <div className="text-muted">{s.program}</div>
+                    </div>
 
-  <span className="capacity-pill">
-    {s.used}/{s.total}
-  </span>
-</div>
-
+                    <span className="capacity-pill">
+                      {s.used}/{s.total}
+                    </span>
+                  </div>
 
                   <div className="progress my-2">
                     <div
@@ -63,15 +62,12 @@ export default function SectionCapacityGrid() {
                     />
                   </div>
 
-                  <div className="text-muted small">
-                    Adviser: {s.adviser}
-                  </div>
+                  <div className="text-muted small">Adviser: {s.adviser}</div>
                 </div>
               </div>
             );
           })}
         </div>
-
       </div>
     </div>
   );

@@ -17,8 +17,8 @@ export default function RegistrarAIAssistantSuggestions({
   return (
     <div className="registrar-ai-suggestions mt-4">
       <div className="row g-3">
-        {suggestions.map((text) => (
-          <div key={text} className="col-12 col-sm-6">
+        {suggestions.slice(0, 4).map((text) => (
+          <div key={text} className="col-6">
             <button
               type="button"
               className="registrar-ai-suggestion-btn"

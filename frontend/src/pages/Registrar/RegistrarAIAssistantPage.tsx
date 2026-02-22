@@ -31,7 +31,7 @@ export default function RegistrarAIAssistantPage() {
 
   const activeChat = useMemo(
     () => chats.find((c) => c.id === activeChatId) || null,
-    [chats, activeChatId]
+    [chats, activeChatId],
   );
 
   // =========================
@@ -44,12 +44,9 @@ export default function RegistrarAIAssistantPage() {
       if (!token) return;
 
       try {
-        const res = await axios.get(
-          "http://localhost:5000/api/ai/history",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const res = await axios.get("http://localhost:5000/api/ai/history", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         const grouped = res.data;
         if (!grouped || Object.keys(grouped).length === 0) {
@@ -63,9 +60,7 @@ export default function RegistrarAIAssistantPage() {
             id: sessionId,
             title: logs[0]?.message?.slice(0, 30) || "Chat",
             createdAt: new Date(logs[0].createdAt).getTime(),
-            updatedAt: new Date(
-              logs[logs.length - 1].updatedAt
-            ).getTime(),
+            updatedAt: new Date(logs[logs.length - 1].updatedAt).getTime(),
             messages: logs.flatMap((log: any) => [
               { type: "user", text: log.message },
               {
@@ -80,7 +75,6 @@ export default function RegistrarAIAssistantPage() {
         const sorted = chatsArray.reverse();
         setChats(sorted);
         setActiveChatId(sorted[0]?.id ?? null);
-
       } catch (err) {
         console.error("Failed to load chat history", err);
       }
@@ -132,19 +126,15 @@ export default function RegistrarAIAssistantPage() {
     if (!token) return;
 
     try {
-      await axios.delete(
-        `http://localhost:5000/api/ai/history/${chatId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await axios.delete(`http://localhost:5000/api/ai/history/${chatId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       setChats((prev) => prev.filter((c) => c.id !== chatId));
 
       if (activeChatId === chatId) {
         setActiveChatId(null);
       }
-
     } catch (err) {
       console.error("Failed to delete chat", err);
     }
@@ -182,8 +172,8 @@ export default function RegistrarAIAssistantPage() {
               messages: [...c.messages, { type: "user", text: trimmed }],
               updatedAt: Date.now(),
             }
-          : c
-      )
+          : c,
+      ),
     );
 
     setInputText("");
@@ -198,7 +188,7 @@ export default function RegistrarAIAssistantPage() {
         },
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       // ADD AI MESSAGE
@@ -217,10 +207,9 @@ export default function RegistrarAIAssistantPage() {
                 ],
                 updatedAt: Date.now(),
               }
-            : c
-        )
+            : c,
+        ),
       );
-
     } catch (err) {
       console.error("AI Error:", err);
 
@@ -237,8 +226,8 @@ export default function RegistrarAIAssistantPage() {
                   },
                 ],
               }
-            : c
-        )
+            : c,
+        ),
       );
     }
 
@@ -249,6 +238,7 @@ export default function RegistrarAIAssistantPage() {
   // UI
   // =========================
   return (
+      <div className="registrar-ai-page">
     <div className="registrar-ai-layout">
       <RegistrarAIChatSidebar
         chats={chats}
@@ -260,12 +250,16 @@ export default function RegistrarAIAssistantPage() {
 
       <div className="registrar-ai-main">
         <div className="registrar-ai-body">
-          {!activeChat || activeChat.messages.length === 0 ? (
-            <div className="registrar-ai-intro">
-              <RegistrarAIAssistantHero />
-              <RegistrarAIAssistantSuggestions onPick={setInputText} />
-            </div>
-          ) : (
+          {/* ✅ HERO ALWAYS VISIBLE */}
+          <RegistrarAIAssistantHero />
+
+          {/* ✅ Suggestions only when no messages */}
+          {(!activeChat || activeChat.messages.length === 0) && (
+            <RegistrarAIAssistantSuggestions onPick={setInputText} />
+          )}
+
+          {/* ✅ Messages show below hero */}
+          {activeChat && activeChat.messages.length > 0 && (
             <div className="chat-messages">
               {activeChat.messages.map((msg, i) => (
                 <div key={i} className={`chat-row ${msg.type}`}>
@@ -306,6 +300,7 @@ export default function RegistrarAIAssistantPage() {
             disabled={isSending}
           />
         </div>
+      </div>
       </div>
     </div>
   );

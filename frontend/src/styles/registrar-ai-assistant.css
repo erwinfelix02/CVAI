@@ -246,11 +246,31 @@
   min-height: 0;
   width: 100%;
 }
-.registrar-ai-layout {
-  margin-left: -16px;
-  margin-right: -16px;
+/* same idea as registrar-docs-page */
+.registrar-ai-page {
+  width: 100%;
+  height: 100%;
+  padding: 0;      /* remove outer padding */
+  margin: 0;
 }
 
+/* ensure layout fills available space */
+.registrar-ai-layout {
+  width: 100%;
+  min-height: calc(100vh - 0px);
+  margin: 0;
+}
+/* remove bootstrap/card spacing around AI page */
+.registrar-ai-page,
+.registrar-ai-page .container,
+.registrar-ai-page .container-fluid,
+.registrar-ai-page .card,
+.registrar-ai-page .card-body {
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
 .ai-sidebar {
   width: 280px;
   min-width: 280px;
@@ -483,16 +503,9 @@
   min-height: 0;
   overflow: hidden;
 }
-
 @media (max-width: 768px) {
-  .ai-sidebar {
-    position: absolute;
-    z-index: 1000;
-    height: 100%;
-  }
-
   .ai-sidebar.collapsed {
-    transform: translateX(-100%);
+    transform: none;
   }
 }
 .ai-sidebar-collapsed {
@@ -519,4 +532,146 @@
 
 .ai-sidebar-collapsed button:hover {
   background: #e2e8f0;
+}
+/* Make suggestion button layout work in 2 columns */
+.registrar-ai-suggestion-btn {
+  min-height: 56px;
+}
+
+/* Prevent ugly wrapping; show ellipsis instead */
+.registrar-ai-suggestion-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}@media (max-width: 575.98px) {
+  .registrar-ai-suggestion-btn {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .registrar-ai-suggestion-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  .registrar-ai-suggestion-text {
+    font-size: 13px;
+  }
+}
+/* Fix: don't shift layout off-screen on mobile */
+@media (max-width: 768px) {
+  .registrar-ai-layout {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+/* Anchor for the absolute sidebar on mobile */
+.registrar-ai-layout {
+  position: relative;
+}
+/* ===== MOBILE SIDEBAR FULL FIX ===== */
+@media (max-width: 768px) {
+  /* stop the layout shifting */
+  .registrar-ai-layout {
+    margin-left: 0;
+    margin-right: 0;
+    position: relative; /* anchor absolute sidebar */
+  }
+
+  /* sidebar becomes an overlay panel but still visible when collapsed */
+  .ai-sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    z-index: 1000;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+
+    /* default (expanded) */
+    width: 280px;
+    max-width: 85vw;
+
+    /* animate width instead of translate */
+    transition: width 0.25s ease, padding 0.25s ease;
+    transform: none; /* IMPORTANT */
+  }
+
+  /* collapsed = mini bar visible */
+  .ai-sidebar.collapsed {
+    width: 70px;
+    min-width: 70px;
+    padding: 20px 0;
+    transform: none; /* IMPORTANT */
+  }
+
+  /* push content so it doesn't hide behind sidebar */
+  .registrar-ai-main {
+    margin-left: 280px;
+    transition: margin-left 0.25s ease;
+  }
+
+  /* when sidebar is collapsed, only push 70px */
+  .ai-sidebar.collapsed ~ .registrar-ai-main {
+    margin-left: 70px;
+  }
+}
+/* ===== MOBILE SIDEBAR FIX ===== */
+@media (max-width: 768px) {
+  .registrar-ai-layout {
+    position: relative;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .ai-sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    z-index: 1000;
+    background: #fff;
+    width: 280px;
+    max-width: 85vw;
+    transition: width 0.25s ease;
+    transform: none;
+  }
+
+  .ai-sidebar.collapsed {
+    width: 70px;
+    min-width: 70px;
+    transform: none;
+  }
+
+  .registrar-ai-main {
+    margin-left: 280px;
+    transition: margin-left 0.25s ease;
+  }
+
+  .ai-sidebar.collapsed ~ .registrar-ai-main {
+    margin-left: 70px;
+  }
+}
+
+/* shrink hero when chatting */
+.registrar-ai-body.has-messages .registrar-ai-hero {
+  margin-bottom: 16px;
+}
+
+.registrar-ai-body.has-messages .registrar-ai-icon {
+  width: 52px;
+  height: 52px;
+}
+
+.registrar-ai-body.has-messages .registrar-ai-title {
+  font-size: 18px;
+}
+.ai-empty {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #94a3b8;
+  text-align: center;
 }

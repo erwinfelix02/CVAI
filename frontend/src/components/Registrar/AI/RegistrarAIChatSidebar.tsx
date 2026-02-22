@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   Plus,
   Search,
-  History,
   PanelLeftClose,
   PanelLeftOpen,
   Trash2,   // ✅ Added
@@ -69,18 +68,12 @@ export default function RegistrarAIChatSidebar({
 
       {/* COLLAPSED MODE */}
       {collapsed && (
-        <div className="ai-sidebar-collapsed">
-          <button onClick={onNewChat}>
-            <Plus size={18} />
-          </button>
-          <button>
-            <Search size={18} />
-          </button>
-          <button>
-            <History size={18} />
-          </button>
-        </div>
-      )}
+  <div className="ai-sidebar-collapsed">
+    <button onClick={onNewChat}>
+      <Plus size={18} />
+    </button>
+  </div>
+)}
 
       {/* EXPANDED MODE */}
       {!collapsed && (
@@ -95,31 +88,35 @@ export default function RegistrarAIChatSidebar({
           </div>
 
           <div className="ai-chat-list">
-            {filtered.map((chat) => (
-              <div
-                key={chat.id}
-                className={`ai-chat-item ${
-                  activeChatId === chat.id ? "active" : ""
-                }`}
-                onClick={() => onSelectChat(chat.id)}
-              >
-                <span className="chat-title">
-                  {chat.title}
-                </span>
+  {filtered.length === 0 ? (
+    <div className="ai-empty">
+      No chat history yet.
+    </div>
+  ) : (
+    filtered.map((chat) => (
+      <div
+        key={chat.id}
+        className={`ai-chat-item ${
+          activeChatId === chat.id ? "active" : ""
+        }`}
+        onClick={() => onSelectChat(chat.id)}
+      >
+        <span className="ai-chat-title">{chat.title}</span>
 
-                <button
-                  className="delete-btn"
-                  onClick={(e) => {
-                    e.stopPropagation(); // ✅ prevent selecting chat
-                    onDeleteChat(chat.id);
-                  }}
-                  aria-label="Delete chat"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
+        <button
+          className="delete-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDeleteChat(chat.id);
+          }}
+          aria-label="Delete chat"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+    ))
+  )}
+</div>
         </>
       )}
     </div>
