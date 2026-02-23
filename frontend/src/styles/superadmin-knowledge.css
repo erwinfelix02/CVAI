@@ -9,7 +9,74 @@
   max-width: 980px;     /* matches centered look */
   margin: 0 auto;
 }
+.kb-answer-textarea {
+  max-height: 180px;
+  resize: vertical;     /* allow vertical resize only */
+  overflow-y: auto;     /* scroll if content exceeds height */
+}
 
+.kb-review {
+  display: grid;
+  gap: 14px;
+}
+
+/* Card */
+.kb-review-card {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 18px;
+  background: #fff;
+  display: grid;
+  gap: 18px;
+}
+
+/* Each block */
+.kb-review-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Label on top */
+.kb-review-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* Icon subtle */
+.kb-review-icon {
+  opacity: 0.75;
+}
+
+/* Value */
+.kb-review-value {
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.9);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* Preserve formatting for answer */
+.kb-review-answer {
+  white-space: pre-wrap;
+}
+
+/* Subtle info note */
+.kb-review-note {
+  border: 1px solid rgba(13, 110, 253, 0.15);
+  background: rgba(13, 110, 253, 0.06);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.75);
+}
 /* title icon */
 .superadmin-kb-titleicon {
   width: 34px;
@@ -22,7 +89,18 @@
   flex: 0 0 auto;
   margin-top: 2px;
 }
+.kb-empty-state {
+  border: 1px dashed rgba(0, 0, 0, 0.12);
+  border-radius: 14px;
+  padding: 28px 18px;
+  text-align: center;
+  background: #fff;
+}
 
+.kb-empty-icon {
+  font-size: 34px;
+  margin-bottom: 8px;
+}
 /* banner */
 .superadmin-kb-banner {
   border-radius: 18px;

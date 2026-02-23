@@ -46,10 +46,9 @@ app.use(
 
 
 connectDB();
-
+app.use("/uploads", express.static("uploads"));
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
-
 
 app.use("/api/faqs", faqRoutes);
 app.use("/api/ai", aiRoutes);

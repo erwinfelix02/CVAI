@@ -1,267 +1,19 @@
-.registrar-ai-shell {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.registrar-ai-body {
-  flex: 1;
-  min-height: 0;
-  padding: 32px 12px;
-  overflow-y: auto;
-}
-.ai-chat-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #475569; /* softer gray */
-  transition:
-    background 0.2s ease,
-    color 0.2s ease;
-}
-
-.ai-chat-item:hover {
-  background: #f1f5f9;
-  color: #0f172a;
-}
-
-.delete-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  opacity: 0.6;
-  transition: 0.2s;
-  display: flex;
-  align-items: center;
-}
-
-.delete-btn:hover {
-  opacity: 1;
-  color: #dc3545; /* red hover */
-}
-
-@media (min-width: 768px) {
-  .registrar-ai-body {
-    padding: 48px 16px;
-  }
-}
-
-/* HERO */
-.registrar-ai-hero {
-  margin-bottom: 32px;
-}
-
-.registrar-ai-icon {
-  width: 72px;
-  height: 72px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #0ea5e9, #0284c7);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 18px 45px rgba(2, 132, 199, 0.18);
-}
-
-.registrar-ai-title {
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.registrar-ai-subtitle {
-  color: #64748b;
-}
-
-/* Suggestions */
-.registrar-ai-suggestion-btn {
-  width: 100%;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 14px;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  transition: all 0.15s ease;
-}
-
-.registrar-ai-suggestion-btn:hover {
-  border-color: #bae6fd;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
-  transform: translateY(-1px);
-}
-
-.registrar-ai-suggestion-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  background: #e0f2fe;
-  color: #0284c7;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Input */
-.registrar-ai-input-wrap {
-  position: relative;
-}
-
-.registrar-ai-input {
-  height: 56px;
-  border-radius: 999px;
-  border: 1px solid #e5e7eb;
-  padding-left: 18px;
-  padding-right: 54px;
-}
-
-.registrar-ai-send-btn {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  background: #0284c7;
-  border: none;
-  color: #fff;
-}
-
-/* Mobile */
-@media (max-width: 575.98px) {
-  .registrar-ai-body {
-    padding: 22px 8px;
-  }
-
-  .registrar-ai-suggestion-btn:active {
-    transform: scale(0.98);
-  }
-}
-.chat-messages {
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 10px 20px;
-}
-
-.chat-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.chat-row.ai {
-  justify-content: flex-start;
-}
-
-.chat-row.user {
-  justify-content: flex-end;
-}
-.chat-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.chat-avatar.ai {
-  background: #e3f2fd;
-  color: #0d6efd;
-}
-
-.chat-avatar.user {
-  background: #dbeafe;
-  color: #0d6efd;
-}
-.chat-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.chat-avatar.ai {
-  background: #e3f2fd;
-  color: #0d6efd;
-}
-
-.chat-avatar.user {
-  background: #dbeafe;
-  color: #0d6efd;
-}
-.chat-bubble small {
-  display: block;
-  margin-top: 6px;
-  font-size: 12px;
-  opacity: 0.7;
-}
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.registrar-ai-intro {
-  transition: opacity 0.2s ease;
-}
-.registrar-ai-intro.hidden {
-  display: none;
-}
-.registrar-ai-shell {
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.registrar-ai-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-}
-.registrar-ai-footer {
-  padding: 15px 20px;
-  border-top: 1px solid #e5e7eb;
-  background: white;
-}
-.registrar-ai-layout {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-}
-/* same idea as registrar-docs-page */
+/* =======================================
+   1. PAGE & LAYOUT LOCK
+   ======================================= */
 .registrar-ai-page {
   width: 100%;
-  height: 100%;
-  padding: 0;      /* remove outer padding */
-  margin: 0;
+  height: 100vh; /* Locks the app to the exact screen height */
+  overflow: hidden; /* Prevents the whole browser from scrolling */
+  display: flex;
+  flex-direction: column;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
-/* ensure layout fills available space */
-.registrar-ai-layout {
-  width: 100%;
-  min-height: calc(100vh - 0px);
-  margin: 0;
-}
-/* remove bootstrap/card spacing around AI page */
-.registrar-ai-page,
+/* Remove bootstrap/card spacing around AI page */
 .registrar-ai-page .container,
 .registrar-ai-page .container-fluid,
 .registrar-ai-page .card,
@@ -271,150 +23,114 @@
   border-radius: 0 !important;
   box-shadow: none !important;
 }
+
+.registrar-ai-layout {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  height: 100%; /* Fills the locked page */
+  overflow: hidden; 
+  position: relative;
+  margin: 0;
+}
+
+/* =======================================
+   2. MAIN CHAT AREA
+   ======================================= */
+.registrar-ai-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  height: 100%; 
+  min-width: 0;
+}
+
+.registrar-ai-body {
+  flex: 1;
+  overflow-y: auto; /* ONLY the messages area will scroll now */
+  padding: 32px 16px;
+}
+
+@media (min-width: 768px) {
+  .registrar-ai-body {
+    padding: 48px 16px;
+  }
+}
+
+.registrar-ai-footer {
+  flex-shrink: 0; /* Prevents the input from ever being crushed */
+  padding: 15px 20px;
+  border-top: 1px solid #e5e7eb;
+  background: white;
+  z-index: 10;
+}
+
+.registrar-ai-shell {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.registrar-ai-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* =======================================
+   3. SIDEBAR (DESKTOP)
+   ======================================= */
 .ai-sidebar {
   width: 280px;
-  min-width: 280px;
+  /* 1. REMOVED min-width so flex-shrink can handle the sizing smoothly */
   background: #ffffff;
   color: #0f172a;
   padding: 24px 20px;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
+  flex-shrink: 0; /* Prevents the main area from crushing the sidebar */
   border-right: 1px solid #e5e7eb;
+  transition: width 0.3s ease, padding 0.3s ease;
+  height: 100%; 
+  
+  /* 2. ADDED to prevent text from wrapping and causing jank during animation */
+  overflow-x: hidden; 
+  overflow-y: hidden;
+  white-space: nowrap; 
 }
 
+.ai-sidebar.collapsed {
+  width: 70px;
+  /* REMOVED min-width here too */
+  padding: 20px 0;
+  align-items: center;
+}
 .ai-sidebar.collapsed {
   width: 70px;
   min-width: 70px;
   padding: 20px 0;
   align-items: center;
 }
+
+.ai-sidebar-top {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  height: 44px;
+  margin-bottom: 24px;
+}
+
 .ai-sidebar.collapsed .ai-sidebar-top {
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.ai-chat-item.active {
-  background: #e0f2fe;
-  color: #0284c7;
-  font-weight: 600;
-}
-
-.ai-chat-title {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ai-chat-title {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ai-delete-btn {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  cursor: pointer;
-  opacity: 0;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-}
-
-/* Show on hover desktop */
-@media (hover: hover) {
-  .ai-chat-item:hover .ai-delete-btn {
-    opacity: 1;
-  }
-}
-
-/* Always visible on mobile */
-@media (hover: none) {
-  .ai-delete-btn {
-    opacity: 1;
-  }
-}
-
-.ai-delete-btn:hover {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.ai-delete-btn:active {
-  transform: scale(0.9);
-}
-
-/* Show delete only on hover (desktop) */
-@media (hover: hover) {
-  .ai-chat-item:hover .ai-delete-btn {
-    opacity: 1;
-  }
-}
-
-/* Always visible on mobile */
-@media (hover: none) {
-  .ai-delete-btn {
-    opacity: 1;
-  }
-}
-
-.ai-delete-btn:hover {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-}
-
-.ai-delete-btn:active {
-  transform: scale(0.9);
-}
-
-/* Desktop hover */
-@media (hover: hover) {
-  .ai-chat-item:hover .ai-delete-btn {
-    opacity: 1;
-  }
-}
-
-/* Mobile (no hover devices) → always visible */
-@media (hover: none) {
-  .ai-delete-btn {
-    opacity: 1;
-  }
-}
-
-/* Hover effect */
-.ai-delete-btn:hover {
-  color: #ef4444;
-  transform: scale(1.1);
-}
-
-/* Touch active effect */
-.ai-delete-btn:active {
-  transform: scale(0.9);
-}
-
-.ai-delete-btn:hover {
-  color: #ef4444;
-}
-.registrar-ai-send-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.ai-sidebar-top {
-  display: grid;
-  grid-template-columns: 1fr auto; /* title takes full space, toggle fixed */
-  align-items: center;
-  height: 44px;
-  margin-bottom: 24px;
-}
 .ai-sidebar-title {
   font-weight: 700;
   font-size: 16px;
@@ -425,7 +141,6 @@
   align-items: center;
 }
 
-/* Toggle button INSIDE */
 .ai-toggle {
   width: 36px;
   height: 36px;
@@ -438,7 +153,7 @@
   justify-content: center;
   cursor: pointer;
   transition: 0.2s ease;
-  flex-shrink: 0; /* prevents movement */
+  flex-shrink: 0;
 }
 
 .ai-toggle:hover {
@@ -451,6 +166,7 @@
   flex-direction: column;
   gap: 14px;
 }
+
 .ai-new-chat {
   width: 100%;
   background: #0284c7;
@@ -487,6 +203,7 @@
   outline: none;
   font-size: 14px;
   color: #0f172a;
+  width: 100%;
 }
 
 .ai-chat-list {
@@ -495,19 +212,14 @@
   flex: 1;
 }
 
-.registrar-ai-main {
-  flex: 1;
-  background: #f8fafc;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
+.ai-empty {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #94a3b8;
+  text-align: center;
 }
-@media (max-width: 768px) {
-  .ai-sidebar.collapsed {
-    transform: none;
-  }
-}
+
+/* Collapsed Sidebar Items */
 .ai-sidebar-collapsed {
   margin-top: 30px;
   display: flex;
@@ -520,9 +232,9 @@
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: #f1f5f9;   /* light gray */
+  background: #f1f5f9; 
   border: none;
-  color: #0f172a;        /* dark icon */
+  color: #0f172a;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -533,130 +245,171 @@
 .ai-sidebar-collapsed button:hover {
   background: #e2e8f0;
 }
-/* Make suggestion button layout work in 2 columns */
-.registrar-ai-suggestion-btn {
-  min-height: 56px;
+
+/* =======================================
+   4. CHAT HISTORY ITEMS
+   ======================================= */
+.ai-chat-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #475569;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-/* Prevent ugly wrapping; show ellipsis instead */
-.registrar-ai-suggestion-text {
+.ai-chat-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.ai-chat-item.active {
+  background: #e0f2fe;
+  color: #0284c7;
+  font-weight: 600;
+}
+
+.ai-chat-title {
   flex: 1;
-  min-width: 0;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}@media (max-width: 575.98px) {
-  .registrar-ai-suggestion-btn {
-    padding: 12px;
-    gap: 10px;
-  }
-
-  .registrar-ai-suggestion-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-  }
-
-  .registrar-ai-suggestion-text {
-    font-size: 13px;
-  }
+  white-space: nowrap;
 }
-/* Fix: don't shift layout off-screen on mobile */
-@media (max-width: 768px) {
-  .registrar-ai-layout {
-    margin-left: 0;
-    margin-right: 0;
-  }
+
+/* Chat Delete Button */
+.ai-delete-btn, .delete-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
 }
-/* Anchor for the absolute sidebar on mobile */
-.registrar-ai-layout {
-  position: relative;
-}
-/* ===== MOBILE SIDEBAR FULL FIX ===== */
-@media (max-width: 768px) {
-  /* stop the layout shifting */
-  .registrar-ai-layout {
-    margin-left: 0;
-    margin-right: 0;
-    position: relative; /* anchor absolute sidebar */
-  }
 
-  /* sidebar becomes an overlay panel but still visible when collapsed */
-  .ai-sidebar {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    z-index: 1000;
-    background: #fff;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
-
-    /* default (expanded) */
-    width: 280px;
-    max-width: 85vw;
-
-    /* animate width instead of translate */
-    transition: width 0.25s ease, padding 0.25s ease;
-    transform: none; /* IMPORTANT */
-  }
-
-  /* collapsed = mini bar visible */
-  .ai-sidebar.collapsed {
-    width: 70px;
-    min-width: 70px;
-    padding: 20px 0;
-    transform: none; /* IMPORTANT */
-  }
-
-  /* push content so it doesn't hide behind sidebar */
-  .registrar-ai-main {
-    margin-left: 280px;
-    transition: margin-left 0.25s ease;
-  }
-
-  /* when sidebar is collapsed, only push 70px */
-  .ai-sidebar.collapsed ~ .registrar-ai-main {
-    margin-left: 70px;
-  }
-}
-/* ===== MOBILE SIDEBAR FIX ===== */
-@media (max-width: 768px) {
-  .registrar-ai-layout {
-    position: relative;
-    margin-left: 0;
-    margin-right: 0;
-  }
-
-  .ai-sidebar {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    z-index: 1000;
-    background: #fff;
-    width: 280px;
-    max-width: 85vw;
-    transition: width 0.25s ease;
-    transform: none;
-  }
-
-  .ai-sidebar.collapsed {
-    width: 70px;
-    min-width: 70px;
-    transform: none;
-  }
-
-  .registrar-ai-main {
-    margin-left: 280px;
-    transition: margin-left 0.25s ease;
-  }
-
-  .ai-sidebar.collapsed ~ .registrar-ai-main {
-    margin-left: 70px;
+@media (hover: hover) {
+  .ai-chat-item:hover .ai-delete-btn, 
+  .ai-chat-item:hover .delete-btn {
+    opacity: 1;
   }
 }
 
-/* shrink hero when chatting */
+@media (hover: none) {
+  .ai-delete-btn, 
+  .delete-btn {
+    opacity: 1;
+  }
+}
+
+.ai-delete-btn:hover, 
+.delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  transform: scale(1.1);
+}
+
+.ai-delete-btn:active, 
+.delete-btn:active {
+  transform: scale(0.9);
+}
+
+/* =======================================
+   5. CHAT MESSAGES
+   ======================================= */
+.chat-messages {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 10px 20px;
+}
+
+.chat-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.chat-row.ai {
+  justify-content: flex-start;
+}
+
+.chat-row.user {
+  justify-content: flex-end;
+}
+
+.chat-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.chat-avatar.ai {
+  background: #e3f2fd;
+  color: #0d6efd;
+}
+
+.chat-avatar.user {
+  background: #dbeafe;
+  color: #0d6efd;
+}
+
+.chat-bubble small {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =======================================
+   6. HERO SECTION
+   ======================================= */
+.registrar-ai-hero {
+  margin-bottom: 32px;
+  transition: all 0.3s ease;
+}
+
+.registrar-ai-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 18px 45px rgba(2, 132, 199, 0.18);
+  transition: all 0.3s ease;
+}
+
+.registrar-ai-title {
+  font-weight: 800;
+  color: #0f172a;
+  transition: all 0.3s ease;
+}
+
+.registrar-ai-subtitle {
+  color: #64748b;
+}
+
 .registrar-ai-body.has-messages .registrar-ai-hero {
   margin-bottom: 16px;
 }
@@ -669,9 +422,208 @@
 .registrar-ai-body.has-messages .registrar-ai-title {
   font-size: 18px;
 }
-.ai-empty {
-  margin-top: 20px;
-  font-size: 14px;
-  color: #94a3b8;
-  text-align: center;
+
+.registrar-ai-intro {
+  transition: opacity 0.2s ease;
+}
+
+.registrar-ai-intro.hidden {
+  display: none;
+}
+
+/* =======================================
+   7. SUGGESTIONS
+   ======================================= */
+.registrar-ai-suggestion-btn {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  transition: all 0.15s ease;
+  min-height: 56px;
+}
+
+.registrar-ai-suggestion-btn:hover {
+  border-color: #bae6fd;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+}
+
+.registrar-ai-suggestion-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.registrar-ai-suggestion-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =======================================
+   8. INPUT
+   ======================================= */
+.registrar-ai-input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.registrar-ai-input {
+  height: 56px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  padding-left: 18px;
+  padding-right: 54px;
+  width: 100%;
+}
+
+.registrar-ai-send-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: #0284c7;
+  border: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.registrar-ai-send-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =======================================
+   9. MOBILE QUERIES
+   ======================================= */
+@media (max-width: 768px) {
+  /* Stop layout shifting on mobile */
+  .registrar-ai-layout {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  /* Make the sidebar float completely on top */
+  .ai-sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    z-index: 1000;
+    box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+    max-width: 85vw;
+    transform: none;
+  }
+  
+  /* Collapsed state for mobile overlay */
+  .ai-sidebar.collapsed {
+    width: 70px;
+    min-width: 70px;
+    padding: 20px 0;
+    transform: none;
+    box-shadow: none;
+    border-right: 1px solid #e5e7eb;
+  }
+
+  /* Give the main chat full width, just leaving 70px for the collapsed buttons */
+  .registrar-ai-main {
+    margin-left: 70px; 
+    transition: margin-left 0.3s ease;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .registrar-ai-body {
+    padding: 22px 8px;
+  }
+
+  .registrar-ai-suggestion-btn {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .registrar-ai-suggestion-btn:active {
+    transform: scale(0.98);
+  }
+
+  .registrar-ai-suggestion-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  .registrar-ai-suggestion-text {
+    font-size: 13px;
+  }
+}
+/* =========================================
+   AI FOLLOW-UP BUBBLE
+========================================= */
+.chat-row.ai.follow-up-row {
+  margin-top: 4px; /* Keeps it close to the main answer */
+}
+
+.chat-bubble.ai.follow-up-bubble {
+  background-color: #f8fafc; /* Slightly lighter/different background */
+  font-style: italic;
+  border: 1px solid #e2e8f0; /* Subtle border to distinguish it */
+  color: #475569; /* Slightly muted text color */
+  font-size: 0.95em; /* Make it just a tiny bit smaller than the main text */
+}
+
+
+/* =========================================
+   CHAT ANIMATIONS & TYPING INDICATOR
+========================================= */
+/* Smooth pop-in for all new messages */
+@keyframes popIn {
+  0% { opacity: 0; transform: translateY(10px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.chat-row {
+  animation: popIn 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+/* Bouncing dots for the typing indicator */
+.typing-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 4px;
+}
+
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  background-color: #94a3b8;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
 }

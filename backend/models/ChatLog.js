@@ -7,20 +7,18 @@ const chatLogSchema = new mongoose.Schema(
       ref: "User",
       required: true
     },
-
     sessionId: {
       type: String,
       required: true
     },
-
     message: { type: String, required: true },
     answer: { type: String, required: true },
     confidence: { type: Number, default: 0 },
     role: { type: String, required: true },
-    cached: { type: Boolean, default: false }
+    cached: { type: Boolean, default: false },
+    follow_up: { type: String, default: null },
   },
   { timestamps: true }
 );
-
 
 export default mongoose.model("ChatLog", chatLogSchema);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, User } from "lucide-react";
 import RegistrarAIAssistantHero from "../../components/Registrar/AI/RegistrarAIAssistantHero";
 import RegistrarAIAssistantSuggestions from "../../components/Registrar/AI/RegistrarAIAssistantSuggestions";
@@ -11,6 +11,7 @@ type Message = {
   type: "user" | "ai";
   text: string;
   confidence?: number;
+  followUp?: string | null;
 };
 
 type Chat = {
@@ -67,6 +68,7 @@ export default function RegistrarAIAssistantPage() {
                 type: "ai",
                 text: log.answer,
                 confidence: log.confidence,
+                followUp: log.follow_up,
               },
             ]),
           };
@@ -203,6 +205,7 @@ export default function RegistrarAIAssistantPage() {
                     type: "ai",
                     text: res.data.answer ?? "No response.",
                     confidence: res.data.confidence,
+                    followUp: res.data.follow_up,
                   },
                 ],
                 updatedAt: Date.now(),
@@ -259,34 +262,69 @@ export default function RegistrarAIAssistantPage() {
           )}
 
           {/* ✅ Messages show below hero */}
+          {/* ✅ Messages show below hero */}
           {activeChat && activeChat.messages.length > 0 && (
             <div className="chat-messages">
               {activeChat.messages.map((msg, i) => (
-                <div key={i} className={`chat-row ${msg.type}`}>
-                  {msg.type === "ai" ? (
-                    <>
+                <React.Fragment key={i}>
+                  
+                  {/* --- 1. MAIN MESSAGE BUBBLE --- */}
+                  <div className={`chat-row ${msg.type}`}>
+                    {msg.type === "ai" ? (
+                      <>
+                        <div className="chat-avatar ai">
+                          <Bot size={18} />
+                        </div>
+                        <div className="chat-bubble ai">
+                          <p>{msg.text}</p>
+                          {msg.confidence !== undefined && (
+                            <small>Confidence: {msg.confidence}</small>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="chat-bubble user">
+                          <p>{msg.text}</p>
+                        </div>
+                        <div className="chat-avatar user">
+                          <User size={18} />
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                 {/* --- 2. SEPARATE FOLLOW-UP PROMPT BUBBLE --- */}
+                  {msg.type === "ai" && msg.followUp && (
+                    <div className="chat-row ai follow-up-row">
                       <div className="chat-avatar ai">
                         <Bot size={18} />
                       </div>
-                      <div className="chat-bubble ai">
-                        <p>{msg.text}</p>
-                        {msg.confidence !== undefined && (
-                          <small>Confidence: {msg.confidence}</small>
-                        )}
+                      <div className="chat-bubble ai follow-up-bubble">
+                        <p>{msg.followUp}</p>
                       </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="chat-bubble user">
-                        <p>{msg.text}</p>
-                      </div>
-                      <div className="chat-avatar user">
-                        <User size={18} />
-                      </div>
-                    </>
+                    </div>
                   )}
-                </div>
+
+              </React.Fragment>
               ))}
+
+              {/* --- 3. TYPING INDICATOR (Shows while waiting for API) --- */}
+              {isSending && (
+                <div className="chat-row ai">
+                  <div className="chat-avatar ai">
+                    <Bot size={18} />
+                  </div>
+                  <div className="chat-bubble ai" style={{ width: 'max-content' }}>
+                    <div className="typing-dots">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div ref={messagesEndRef} />
             </div>
           )}

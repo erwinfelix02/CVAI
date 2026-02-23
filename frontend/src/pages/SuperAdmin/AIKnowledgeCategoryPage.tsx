@@ -106,15 +106,25 @@ export default function AIKnowledgeCategoryPage() {
         </div>
 
         <div className="mt-3">
-          <FaqList
-            items={filtered}
-            onEdit={(id) => handleEdit(id)}
-            onDelete={async (id) => {
-              await axios.delete(`http://localhost:5000/api/faqs/${id}`);
-              setFaqs((prev) => prev.filter((f: any) => f.id !== id));
-            }}
-          />
-        </div>
+  {filtered.length > 0 ? (
+    <FaqList
+      items={filtered}
+      onEdit={(id) => handleEdit(id)}
+      onDelete={async (id) => {
+        await axios.delete(`http://localhost:5000/api/faqs/${id}`);
+        setFaqs((prev) => prev.filter((f: any) => f.id !== id));
+      }}
+    />
+  ) : (
+    <div className="kb-empty-state">
+      <div className="kb-empty-icon">📭</div>
+      <h5 className="fw-semibold mb-1">No FAQs found</h5>
+      <p className="text-muted mb-0">
+        Try adjusting your search or filters.
+      </p>
+    </div>
+  )}
+</div>
       </div>
       {/* Add FAQ Modal */}
       {showModal && (
