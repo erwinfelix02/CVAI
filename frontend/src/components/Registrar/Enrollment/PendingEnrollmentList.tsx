@@ -5,7 +5,6 @@ type EnrollmentItem = {
   registrationId: string;
   studentName?: string;
   status: "Scheduled" | "Enrolled" | "Cancelled";
-
   personal?: { firstName?: string; lastName?: string };
   academic?: { program?: string; yearLevel?: string | number };
 };
@@ -14,10 +13,12 @@ export default function PendingEnrollmentList({
   items,
   loading,
   titleCount,
+  onEvaluate,
 }: {
   items: EnrollmentItem[];
   loading: boolean;
   titleCount: number;
+  onEvaluate: (item: EnrollmentItem) => void;
 }) {
   return (
     <div className="card shadow-sm enroll-card">
@@ -62,14 +63,16 @@ export default function PendingEnrollmentList({
                     <div className="min-w-0">
                       <div className="fw-semibold">{fullName}</div>
                       <div className="text-muted small">{s.registrationId}</div>
-
                       {programLine ? (
                         <div className="text-muted small">{programLine}</div>
                       ) : null}
                     </div>
                   </div>
 
-                  <button className="btn enroll-eval-btn">
+                  <button
+                    className="btn enroll-eval-btn"
+                    onClick={() => onEvaluate(s)}
+                  >
                     <ClipboardCheck size={16} />
                     Evaluate
                   </button>

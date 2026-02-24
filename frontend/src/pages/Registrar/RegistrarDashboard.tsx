@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
 import {
   Users,
   ClipboardList,
@@ -7,8 +7,6 @@ import {
   FileText,
   UserPlus,
 } from "lucide-react";
-import { useState } from "react";
-
 
 import StatCard from "../../components/Registrar/Dashboard/StatCard";
 import type { Props as StatCardProps } from "../../components/Registrar/Dashboard/StatCard";
@@ -20,21 +18,29 @@ import RecentApplicationsCard from "../../components/Registrar/Dashboard/RecentA
 import type { RecentApplication } from "../../components/Registrar/Dashboard/RecentApplicationsCard";
 
 import EnrollmentStatusCard from "../../components/Registrar/Dashboard/EnrollmentStatusCard";
+import AIInsightsCard from "../../components/Registrar/Dashboard/AIInsightsCard";
+
 import ProtectedLayout from "../../layouts/ProtectedLayout";
 import "../../styles/registrar-dashboard.css";
 
 export default function RegistrarDashboard() {
   const quickRef = useRef<HTMLDivElement | null>(null);
   const recentRef = useRef<HTMLDivElement | null>(null);
-const [pendingCount, setPendingCount] = useState(0);
 
-  // 🔥 Sync Recent Applications height to Quick Actions
+  const [pendingCount, setPendingCount] = useState(0);
+  const [recent, setRecent] = useState<RecentApplication[]>([]);
+
+  // 🔥 Sync Recent Applications height to Quick Actions (ONLY on LG+)
   useEffect(() => {
     if (!quickRef.current || !recentRef.current) return;
 
     const syncHeight = () => {
-      recentRef.current!.style.height =
-        quickRef.current!.offsetHeight + "px";
+      const isLgUp = window.matchMedia("(min-width: 992px)").matches;
+      if (!isLgUp) {
+        recentRef.current!.style.height = "auto";
+        return;
+      }
+      recentRef.current!.style.height = quickRef.current!.offsetHeight + "px";
     };
 
     syncHeight();
@@ -49,21 +55,23 @@ const [pendingCount, setPendingCount] = useState(0);
       window.removeEventListener("resize", syncHeight);
     };
   }, []);
-useEffect(() => {
-  const fetchPending = async () => {
-    try {
-      const res = await fetch(
-        "http://localhost:5000/api/preregistrations/pending-count"
-      );
-      const data = await res.json();
-      setPendingCount(data.count);
-    } catch (err) {
-      console.error("Failed to fetch pending count", err);
-    }
-  };
 
-  fetchPending();
-}, []);
+  // ✅ Pending count
+  useEffect(() => {
+    const fetchPending = async () => {
+      try {
+        const res = await fetch(
+          "http://localhost:5000/api/preregistrations/pending-count",
+        );
+        const data = await res.json();
+        setPendingCount(data.count);
+      } catch (err) {
+        console.error("Failed to fetch pending count", err);
+      }
+    };
+
+    fetchPending();
+  }, []);
 
   const stats = useMemo<StatCardProps[]>(
     () => [
@@ -74,14 +82,13 @@ useEffect(() => {
         icon: Users,
         tone: "blue",
       },
-     {
-  label: "Pending Applications",
-  value: pendingCount.toString(),
-  helper: "Awaiting review",
-  icon: ClipboardList,
-  tone: "orange",
-}
-,
+      {
+        label: "Pending Applications",
+        value: pendingCount.toString(),
+        helper: "Awaiting review",
+        icon: ClipboardList,
+        tone: "orange",
+      },
       {
         label: "Active Enrollments",
         value: "2,341",
@@ -96,16 +103,17 @@ useEffect(() => {
         icon: UserX,
         tone: "red",
       },
-   ], [pendingCount]);
+    ],
+    [pendingCount],
+  );
 
   const quickActions: QuickActionItem[] = [
-     {
-    label: "Review Applications",
-    icon: FileText,
-    badge: pendingCount, // ✅ dynamic
-    to: "/registrar/applications",
-  },
-
+    {
+      label: "Review Applications",
+      icon: FileText,
+      badge: pendingCount,
+      to: "/registrar/applications",
+    },
     { label: "Enroll Student", icon: UserPlus, to: "/registrar/enrollment" },
     { label: "View All Students", icon: Users, to: "/registrar/students" },
     {
@@ -116,99 +124,92 @@ useEffect(() => {
     },
   ];
 
-  const [recent, setRecent] = useState<RecentApplication[]>([]);
+  // ✅ Recent preregistrations
+  useEffect(() => {
+    const fetchRecent = async () => {
+      try {
+        const res = await fetch(
+          "http://localhost:5000/api/preregistrations/recent",
+        );
+        const data = await res.json();
 
-useEffect(() => {
-  const fetchRecent = async () => {
-    try {
-      const res = await fetch(
-        "http://localhost:5000/api/preregistrations/recent"
-      );
-      const data = await res.json();
+        const mapped = data.map((app: any) => ({
+          initials: app.personal.firstName[0] + app.personal.lastName[0],
+          name: app.personal.firstName + " " + app.personal.lastName,
+          program: app.academic.course,
+          ref: app.registrationId,
+          date: new Date(app.createdAt).toISOString().split("T")[0],
+          status: app.status,
+        }));
 
-      const mapped = data.map((app: any) => ({
-        initials:
-          app.personal.firstName[0] +
-          app.personal.lastName[0],
+        setRecent(mapped);
+      } catch (err) {
+        console.error("Failed to fetch recent applications", err);
+      }
+    };
 
-        name:
-          app.personal.firstName +
-          " " +
-          app.personal.lastName,
+    fetchRecent();
+  }, []);
 
-        program: app.academic.course,
-        ref: app.registrationId,
-        date: new Date(app.createdAt)
-          .toISOString()
-          .split("T")[0],
+  return (
+    <ProtectedLayout>
+      <div className="registrar-dashboard">
+        {/* Header */}
+        <div className="mb-3 mb-md-4">
+          <h2 className="fw-bold mb-1">Registrar Dashboard</h2>
+          <p className="text-muted mb-0">
+            Manage student enrollments, applications, and records
+          </p>
+        </div>
 
-        status: app.status,
-      }));
+        {/* Stats */}
+        <div className="row g-3 g-md-4 mb-3">
+          {stats.map((s) => (
+            <div key={s.label} className="col-12 col-sm-6 col-xl-3">
+              <StatCard {...s} />
+            </div>
+          ))}
+        </div>
 
-      setRecent(mapped);
-    } catch (err) {
-      console.error("Failed to fetch recent applications", err);
-    }
-  };
-
-  fetchRecent();
-}, []);
-
-
-  return (<ProtectedLayout>
-    <div className="registrar-dashboard">
-      {/* Header */}
-      <div className="mb-3 mb-md-4">
-        <h2 className="fw-bold mb-1">Registrar Dashboard</h2>
-        <p className="text-muted mb-0">
-          Manage student enrollments, applications, and records
-        </p>
-      </div>
-
-      {/* Stats */}
-      <div className="row g-3 g-md-4 mb-3 mb-md-4">
-        {stats.map((s) => (
-          <div key={s.label} className="col-12 col-sm-6 col-xl-3">
-            <StatCard {...s} />
-          </div>
-        ))}
-      </div>
-
-      {/* Middle row */}
-      <div className="row g-3 g-md-4 mb-3 mb-md-4">
-        <div className="col-12 col-lg-4">
-          <div ref={quickRef}>
-            <QuickActionsCard title="Quick Actions" items={quickActions} />
+        {/* ✅ AI Insights FULL WIDTH under stats */}
+        <div className="row g-3 g-md-4 mb-3 mb-md-4">
+          <div className="col-12">
+            <AIInsightsCard />
           </div>
         </div>
 
-    <div className="col-12 col-lg-8">
-  <RecentApplicationsCard
-    ref={recentRef}
-    title="Recent Applications"
-    viewAllLabel="View All"
-    viewAllTo="/registrar/applications"
-    items={recent}
-  />
-</div>
+        {/* Middle row */}
+        <div className="row g-3 g-md-4 mb-3 mb-md-4">
+          <div className="col-12 col-lg-4">
+            <div ref={quickRef}>
+              <QuickActionsCard title="Quick Actions" items={quickActions} />
+            </div>
+          </div>
 
+          <div className="col-12 col-lg-8">
+            <RecentApplicationsCard
+              ref={recentRef}
+              title="Recent Applications"
+              viewAllLabel="View All"
+              viewAllTo="/registrar/applications"
+              items={recent}
+            />
+          </div>
+        </div>
 
-
-      </div>
-
-      {/* Enrollment status */}
-      <div className="row g-3 g-md-4">
-        <div className="col-12">
-          <EnrollmentStatusCard
-            title="Enrollment Period Status"
-            started="Jan 5, 2024"
-            deadline="Feb 15, 2024"
-            percent={65}
-            rightLabel="65% Complete"
-          />
+        {/* Enrollment status */}
+        <div className="row g-3 g-md-4">
+          <div className="col-12">
+            <EnrollmentStatusCard
+              title="Enrollment Period Status"
+              started="Jan 5, 2024"
+              deadline="Feb 15, 2024"
+              percent={65}
+              rightLabel="65% Complete"
+            />
+          </div>
         </div>
       </div>
-    </div>
     </ProtectedLayout>
   );
 }

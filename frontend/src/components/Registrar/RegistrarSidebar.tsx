@@ -15,6 +15,7 @@ import {
   GraduationCap,
   X,
   Bot,
+  BookOpen,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -37,6 +38,7 @@ const nav = [
   { label: "Students", icon: Users, path: "/registrar/students" },
   { label: "Enrollment", icon: UserPlus, path: "/registrar/enrollment" },
   { label: "Sections", icon: Layers, path: "/registrar/sections" },
+   { label: "Courses", icon: BookOpen, path: "/registrar/courses" },
   { label: "Faculty Accounts", icon: Users, path: "/registrar/faculty" },
   { label: "Documents", icon: FolderOpen, path: "/registrar/documents" },
   {

@@ -11,7 +11,10 @@ import faqRoutes from "./routes/faqRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import preregistrationRoutes from "./routes/preregistration.js";
 import enrollmentsRoute from "./routes/enrollments.js";
-
+import aiInsightRoutes from "./routes/aiInsightRoutes.js";
+import sectionRoutes from "./routes/sectionRoutes.js";
+import courseRoutes from "./routes/courseRoutes.js";
+import enrollmentRoutes from "./routes/enrollmentRoutes.js";
 const app = express();
 
 app.use(cors());
@@ -55,6 +58,13 @@ app.use("/api/ai", aiRoutes);
 
 app.use("/api/preregistrations", preregistrationRoutes);
 app.use("/api/enrollments", enrollmentsRoute);
+app.use("/api/aiinsight", aiInsightRoutes);
+app.use("/api/enrollment", enrollmentRoutes);
+
+
+
+app.use("/api/sections", sectionRoutes);
+app.use("/api/courses", courseRoutes);
 
 app.listen(5000, () =>
   console.log("🚀 Server running on http://localhost:5000"),

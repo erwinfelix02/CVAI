@@ -42,6 +42,7 @@ import StudentEnrollmentPage from "./pages/Registrar/StudentEnrollmentPage";
 import SectionsManagementPage from "./pages/Registrar/SectionsManagementPage";
 import DocumentRequestsPage from "./pages/Registrar/DocumentRequestsPage";
 import FacultyAccountsPage from "./pages/Registrar/FacultyAccountsPage";
+import CoursesPage from "./pages/Registrar/CoursesManagementPage";
 
 
 import SuperAdminLayoutPage from "./pages/SuperAdmin/SuperAdminLayoutPage";
@@ -135,6 +136,7 @@ export default function App() {
         <Route path="faculty" element={<FacultyAccountsPage />} />
         <Route path="documents" element={<DocumentRequestsPage />} />
         <Route path="ai-assistant" element={<RegistrarAIAssistantPage />} />
+        <Route path="/registrar/courses" element={<CoursesPage />} />
 
       </Route>
 

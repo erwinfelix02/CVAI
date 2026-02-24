@@ -17,8 +17,8 @@ const preregSchema = new mongoose.Schema(
       firstName: String,
       middleName: String,
       lastName: String,
-      email: { type: String, index: true },
-      phone: { type: String, index: true },
+    email: String,
+  phone: String,
       birthDate: String,
       gender: String,
       address: String,
@@ -55,4 +55,8 @@ preregSchema.pre("save", function () {
 preregSchema.index({ "personal.email": 1 }, { unique: true, sparse: true });
 preregSchema.index({ "personal.phone": 1 }, { unique: true, sparse: true });
 
-export default mongoose.model("Preregistration", preregSchema);
+const Preregistration =
+  mongoose.models.Preregistration ||
+  mongoose.model("Preregistration", preregSchema);
+
+export default Preregistration;

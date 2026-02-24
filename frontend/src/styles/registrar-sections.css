@@ -160,3 +160,323 @@
     font-size: 18px;
   }
 }
+/* Backdrop */
+.sec-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+/* Overlay clickcatch (for outside click) */
+.sec-modal-clickcatch {
+  position: fixed;
+  inset: 0;
+  border: 0;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+/* Modal */
+.sec-modal {
+  position: relative;
+  z-index: 1051;
+  width: min(720px, calc(100vw - 32px));
+  max-height: min(86vh, 720px);
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 18px 60px rgba(15, 23, 42, 0.24);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.sec-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.sec-modal-title {
+  font-weight: 800;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.sec-modal-close {
+  border: 0;
+  background: transparent;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #0f172a;
+  opacity: 0.8;
+}
+.sec-modal-close:hover {
+  opacity: 1;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+/* Body */
+.sec-modal-body {
+  padding: 16px 18px;
+  overflow: auto;
+}
+
+/* Footer */
+.sec-modal-footer {
+  padding: 14px 18px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Form layout */
+.sec-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 14px;
+}
+
+.sec-span-2 {
+  grid-column: span 2;
+}
+
+.sec-field {
+  min-width: 0;
+}
+
+.sec-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.sec-input,
+.sec-select {
+  border-radius: 14px;
+  height: 46px;
+}
+
+.sec-error {
+  font-size: 12px;
+  margin-top: 6px;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+/* Small screens: 1 column */
+@media (max-width: 575.98px) {
+  .sec-modal {
+    width: calc(100vw - 24px);
+    max-height: 90vh;
+    border-radius: 16px;
+  }
+
+  .sec-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sec-span-2 {
+    grid-column: span 1;
+  }
+
+  .sec-modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .sec-modal-footer .btn {
+    width: 100%;
+  }
+}
+/* Reserve constant space for per-field errors (prevents layout jump) */
+.sec-error-slot {
+  min-height: 16px;     /* fixed reserved space */
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #b91c1c;
+  line-height: 1.2;
+}
+
+/* Optional form-level message that doesn't push layout much */
+.sec-form-error {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #991b1b;
+  font-weight: 700;
+  font-size: 13px;
+}
+/* ✅ Kebab dropdown */
+.sections-menu-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.sections-menu {
+  position: absolute;
+  right: 0;
+  top: 28px;
+  z-index: 50;
+
+  width: 190px;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 14px 30px rgba(2, 6, 23, 0.12);
+  padding: 8px;
+
+  animation: secMenuPop 0.12s ease-out;
+  transform-origin: top right;
+}
+
+@keyframes secMenuPop {
+  from {
+    opacity: 0;
+    transform: scale(0.98) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.sections-menu-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 10px 10px;
+  border-radius: 12px;
+
+  color: #0f172a;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sections-menu-item:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.sections-menu-item.danger {
+  color: #dc2626;
+}
+
+.sections-menu-item.danger:hover {
+  background: rgba(220, 38, 38, 0.08);
+}
+.sec-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  padding: 16px;
+}
+
+.sec-confirm-popup {
+  width: min(440px, 100%);
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: confirmFade 0.2s ease-out;
+}
+
+.sec-confirm-header {
+  padding: 16px 20px;
+  font-weight: 800;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.sec-confirm-body {
+  padding: 18px 20px;
+}
+
+.sec-confirm-footer {
+  padding: 14px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+@keyframes confirmFade {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+/* MAIN MODAL BACKDROP */
+.sec-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55); /* ✅ dim overlay */
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 16px;
+}
+
+/* MAIN MODAL CARD */
+.sec-modal {
+  width: min(820px, 100%);
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+/* If your modal becomes too tall on small screens */
+.sec-modal-body {
+  max-height: calc(100vh - 180px);
+  overflow: auto;
+}
+.sec-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  padding: 16px;
+}
+
+.sec-confirm-popup {
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: confirmFade 0.2s ease-out;
+}

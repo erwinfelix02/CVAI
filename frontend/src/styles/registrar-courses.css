@@ -1,0 +1,276 @@
+.registrar-courses-page .courses-add-btn {
+  border-radius: 12px;
+  padding: 12px 18px;
+}
+
+.stats-card {
+  border-radius: 16px;
+}
+
+.stats-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bg-soft-primary {
+  background: #e7f1ff;
+  color: #0d6efd;
+}
+.bg-soft-success {
+  background: #e9f8ef;
+  color: #198754;
+}
+.bg-soft-secondary {
+  background: #eef2f7;
+  color: #6c757d;
+}
+
+.stats-number {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Search */
+.courses-toolbar {
+  width: 100%;
+}
+
+.courses-search {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+}
+
+.courses-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+}
+
+.courses-search-input {
+  padding-left: 42px;
+  border-radius: 12px;
+  height: 44px;
+}
+
+/* Table */
+.courses-table thead th {
+  font-weight: 600;
+  border-bottom: 1px solid #e9ecef !important;
+}
+
+.courses-table tbody td {
+  border-top: 1px solid #f0f2f5 !important;
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.status-active {
+  background: #0b4a6f;
+  color: #fff;
+}
+
+.status-inactive {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.action-btn {
+  color: #0d6efd;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1050;
+}
+
+/* Make dialog full width on small screens */
+@media (max-width: 576px) {
+  .modal-dialog {
+    width: 100%;
+    margin: 0;
+  }
+  .courses-search {
+    max-width: 100%;
+  }
+}
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  z-index: 1050;
+}
+
+/* Modal container look */
+.courses-modal {
+  border-radius: 18px;
+  padding: 8px;
+  background: #fff !important;
+  opacity: 1 !important;
+}
+
+/* Inputs match screenshot */
+.courses-input {
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid #e6edf5;
+  background: #fff;
+}
+
+.courses-input:focus {
+  box-shadow: none;
+  border-color: #cfe2ff;
+}
+
+/* Blue focus ring style like screenshot */
+.courses-input-focus:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+}
+
+/* Buttons */
+.courses-btn-cancel {
+  border-radius: 12px;
+  height: 44px;
+  padding: 0 16px;
+}
+
+.courses-btn-primary {
+  border-radius: 12px;
+  height: 44px;
+  padding: 0 18px;
+}
+
+/* Make modal full-width on small screens */
+@media (max-width: 576px) {
+  .modal-dialog {
+    margin: 0;
+    max-width: 100%;
+  }
+
+  .courses-modal {
+    border-radius: 16px;
+  }
+}
+/* Overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1050;
+}
+
+/* ✅ Constrain modal width and keep centered */
+.courses-modal-dialog {
+  width: 100%;
+  max-width: 760px;     /* desktop size like screenshot */
+  margin: 0 auto;
+}
+
+/* Modal look */
+.courses-modal {
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+/* Inputs */
+.courses-input {
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid #e6edf5;
+}
+
+.courses-input:focus {
+  box-shadow: none;
+  border-color: #cfe2ff;
+}
+
+.courses-input-focus:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+}
+
+/* Buttons */
+.courses-btn-cancel,
+.courses-btn-primary {
+  border-radius: 12px;
+  height: 44px;
+  padding: 0 18px;
+}
+
+/* ✅ Mobile: full width but still looks like modal */
+@media (max-width: 576px) {
+  .courses-modal-dialog {
+    max-width: 100%;
+  }
+}
+/* Confirmation popup inside modal */
+.sec-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2100;
+  padding: 16px;
+}
+
+.sec-confirm-popup {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.sec-confirm-header {
+  padding: 14px 16px;
+  font-weight: 800;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.sec-confirm-body {
+  padding: 14px 16px;
+}
+
+.sec-confirm-footer {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #eef2f7;
+}

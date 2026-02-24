@@ -7,7 +7,114 @@
 .registrar-dashboard * {
   box-sizing: border-box;
 }
+/* -------------------------
+   Right column stack (Recent + AI Insights)
+-------------------------- */
+.registrar-right-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.spin {
+  animation: spin 0.9s linear infinite;
+}
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+/* On large screens, keep spacing slightly larger */
+@media (min-width: 992px) {
+  .registrar-right-stack {
+    gap: 18px;
+  }
+}.ai-refresh-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #f1f3f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-refresh-btn:hover {
+  background: #e9ecef;
+  transform: rotate(10deg);
+}
+
+.ai-refresh-btn:active {
+  transform: scale(0.95);
+}
+
+.ai-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* -------------------------
+   AI Insights tiles
+-------------------------- */
+.registrar-ai-tile {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 12px 12px;
+  width: 100%;
+}
+
+.registrar-ai-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  flex: 0 0 auto;
+}
+
+.registrar-ai-label {
+  font-weight: 800;
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+.registrar-ai-hint {
+  color: #64748b;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.registrar-ai-value {
+  font-weight: 900;
+  color: #0f172a;
+  background: rgba(148, 163, 184, 0.22);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Mobile: make tiles a bit roomier */
+@media (max-width: 575.98px) {
+  .registrar-ai-tile {
+    padding: 14px 14px;
+  }
+}
 .registrar-dashboard {
   width: 100%;
   max-width: 100%;
@@ -253,4 +360,62 @@
 .registrar-recent-scroll {
   overflow-y: auto;
   min-height: 0;
+}
+/* Empty state (Recent Applications) */
+.registrar-empty-state {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 18px;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  min-height: 180px;
+}
+
+.registrar-empty-icon {
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+.ai-tile-clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ai-tile-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+.ai-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.ai-modal-card {
+  width: 100%;
+  max-width: 750px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+}
+
+.ai-flagged-list {
+  max-height: 65vh;
+  overflow: auto;
+  padding-right: 6px;
+}
+
+.ai-flagged-item {
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 10px;
 }
