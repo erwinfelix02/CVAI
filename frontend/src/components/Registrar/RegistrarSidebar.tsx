@@ -1,5 +1,5 @@
 import "../../styles/registrar-sidebar.css";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   FileText,
@@ -17,8 +17,7 @@ import {
   Bot,
   BookOpen,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -28,26 +27,42 @@ interface SidebarProps {
   isMobile?: boolean;
 }
 
-const nav = [
+/**
+ * ✅ This is Registrar portal sidebar.
+ * So we DO NOT read role from localStorage.
+ */
+const REGISTRAR_ROLE_ID = "registrar";
+
+type NavItem = {
+  label: string;
+  icon: any;
+  path: string;
+  badge?: string;
+  controlled?: boolean; // ✅ only for the 4 permission-controlled items
+};
+
+const nav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/registrar" },
-  {
-    label: "Applications",
-    icon: FileText,
-    path: "/registrar/applications",
-  },
-  { label: "Students", icon: Users, path: "/registrar/students" },
-  { label: "Enrollment", icon: UserPlus, path: "/registrar/enrollment" },
+
+  // ✅ permission-controlled (only these 4)
+  { label: "Applications", icon: FileText, path: "/registrar/applications", controlled: true },
+  { label: "Students", icon: Users, path: "/registrar/students", controlled: true },
+  { label: "Enrollment", icon: UserPlus, path: "/registrar/enrollment", controlled: true },
+  { label: "Documents", icon: FolderOpen, path: "/registrar/documents", controlled: true },
+
+  // ✅ always visible
   { label: "Sections", icon: Layers, path: "/registrar/sections" },
-   { label: "Courses", icon: BookOpen, path: "/registrar/courses" },
+  { label: "Courses", icon: BookOpen, path: "/registrar/courses" },
   { label: "Faculty Accounts", icon: Users, path: "/registrar/faculty" },
-  { label: "Documents", icon: FolderOpen, path: "/registrar/documents" },
-  {
-    label: "AI Assistant",
-    icon: Bot,
-    path: "/registrar/ai-assistant",
-    badge: "AI",
-  },
+  { label: "AI Assistant", icon: Bot, path: "/registrar/ai-assistant", badge: "AI" },
 ];
+
+const CONTROLLED_PERM: Record<string, string> = {
+  Applications: "process_applications",
+  Students: "manage_students",
+  Enrollment: "manage_enrollment",
+  Documents: "manage_documents",
+};
 
 export default function RegistrarSidebar({
   collapsed = false,
@@ -58,15 +73,43 @@ export default function RegistrarSidebar({
 }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [pendingCount, setPendingCount] = useState<number>(0);
 
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [loadingPerms, setLoadingPerms] = useState(true);
+
+  // ✅ Load registrar permissions from DB
+  useEffect(() => {
+    async function loadPerms() {
+      setLoadingPerms(true);
+      try {
+        const res = await fetch(`http://localhost:5000/api/roles/${REGISTRAR_ROLE_ID}`);
+        if (!res.ok) {
+          console.error("Failed to fetch role perms:", res.status);
+          setPermissions([]);
+          return;
+        }
+
+        const role = await res.json();
+        setPermissions(Array.isArray(role?.permissions) ? role.permissions : []);
+      } catch (e) {
+        console.error("Failed to load permissions", e);
+        setPermissions([]);
+      } finally {
+        setLoadingPerms(false);
+      }
+    }
+
+    loadPerms();
+  }, []);
+
+  // ✅ Pending applications count (only matters if Applications is visible)
   useEffect(() => {
     async function fetchPendingCount() {
       try {
-        const res = await fetch(
-          "http://localhost:5000/api/preregistrations/pending-count",
-        );
+        const res = await fetch("http://localhost:5000/api/preregistrations/pending-count");
         const data = await res.json();
         setPendingCount(data.count || 0);
       } catch (err) {
@@ -75,11 +118,24 @@ export default function RegistrarSidebar({
     }
 
     fetchPendingCount();
-
-    // Optional: refresh every 10 seconds
     const interval = setInterval(fetchPendingCount, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  // ✅ Filter nav:
+  // - Always show non-controlled items
+  // - Show controlled items only if permission exists
+  const visibleNav = useMemo(() => {
+    return nav.filter((item) => {
+      if (!item.controlled) return true; // always visible
+
+      // while loading perms, hide only controlled items
+      if (loadingPerms) return false;
+
+      const permKey = CONTROLLED_PERM[item.label];
+      return permissions.includes(permKey);
+    });
+  }, [permissions, loadingPerms]);
 
   return (
     <aside
@@ -103,7 +159,6 @@ export default function RegistrarSidebar({
           </div>
         )}
 
-        {/* Desktop collapse toggle */}
         {!isMobile && toggleCollapsed && (
           <button
             className="btn p-0 d-flex align-items-center justify-content-center"
@@ -114,7 +169,6 @@ export default function RegistrarSidebar({
           </button>
         )}
 
-        {/* Mobile close */}
         {isMobile && mobileOpen && setMobileOpen && (
           <button
             className="btn p-0 d-flex align-items-center justify-content-center"
@@ -128,7 +182,7 @@ export default function RegistrarSidebar({
 
       {/* Nav */}
       <nav className="registrar-sidebar-nav">
-        {nav.map(({ label, icon: Icon, badge, path }) => {
+        {visibleNav.map(({ label, icon: Icon, badge, path }) => {
           const isActive =
             path === "/registrar"
               ? location.pathname === path
@@ -180,7 +234,9 @@ export default function RegistrarSidebar({
           }}
         >
           <div
-            className={`nav-item ${location.pathname.startsWith("/registrar/settings") ? "active" : ""}`}
+            className={`nav-item ${
+              location.pathname.startsWith("/registrar/settings") ? "active" : ""
+            }`}
           >
             <div className="nav-label">
               <Settings size={18} />
@@ -197,7 +253,9 @@ export default function RegistrarSidebar({
           }}
         >
           <div
-            className={`nav-item ${location.pathname.startsWith("/registrar/help") ? "active" : ""}`}
+            className={`nav-item ${
+              location.pathname.startsWith("/registrar/help") ? "active" : ""
+            }`}
           >
             <div className="nav-label">
               <HelpCircle size={18} />
@@ -217,6 +275,7 @@ export default function RegistrarSidebar({
           </div>
         </div>
       </div>
+
       {showLogoutConfirm && (
         <div className="logout-overlay">
           <div className="logout-modal">
@@ -234,6 +293,7 @@ export default function RegistrarSidebar({
               <button
                 className="btn btn-danger btn-sm"
                 onClick={() => {
+                  // optional: clear storage if you use it, not required
                   localStorage.removeItem("token");
                   localStorage.removeItem("user");
 

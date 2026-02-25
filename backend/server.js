@@ -18,6 +18,10 @@ import enrollmentRoutes from "./routes/enrollmentRoutes.js";
 import studentRoutes from "./routes/studentRoutes.js";
 import accountRoutes from "./routes/accountRoutes.js";
 import registrarSettingsRoutes from "./routes/registrarSettingsRoutes.js";
+import roleRoutes from "./routes/roleRoutes.js";
+import { seedRolesIfMissing } from "./utils/seedRoles.js";
+
+
 const app = express();
 
 app.use(cors());
@@ -51,29 +55,37 @@ app.use(
 );
 
 
-connectDB();
-app.use("/uploads", express.static("uploads"));
-app.use("/api/users", userRoutes);
-app.use("/api/auth", authRoutes);
+// ✅ Start server only after DB is connected
+const startServer = async () => {
+  try {
+    await connectDB();              // ✅ wait for mongo connect
+    await seedRolesIfMissing();     // ✅ seed after connect
 
-app.use("/api/faqs", faqRoutes);
-app.use("/api/ai", aiRoutes);
+    app.use("/uploads", express.static("uploads"));
+    app.use("/api/users", userRoutes);
+    app.use("/api/auth", authRoutes);
+    app.use("/api/faqs", faqRoutes);
+    app.use("/api/ai", aiRoutes);
+    app.use("/api/preregistrations", preregistrationRoutes);
+    app.use("/api/enrollments", enrollmentsRoute);
+    app.use("/api/aiinsight", aiInsightRoutes);
+    app.use("/api/enrollment", enrollmentRoutes);
+    app.use("/api/sections", sectionRoutes);
+    app.use("/api/courses", courseRoutes);
+    app.use("/api/students", studentRoutes);
+    app.use("/api/accounts", accountRoutes);
+    app.use("/api/registrar/settings", registrarSettingsRoutes);
 
-app.use("/api/preregistrations", preregistrationRoutes);
-app.use("/api/enrollments", enrollmentsRoute);
-app.use("/api/aiinsight", aiInsightRoutes);
-app.use("/api/enrollment", enrollmentRoutes);
+    // ✅ NEW
+    app.use("/api/roles", roleRoutes);
 
+    app.listen(5000, () => {
+      console.log("🚀 Server running on http://localhost:5000");
+    });
+  } catch (err) {
+    console.error("❌ Server failed to start:", err);
+    process.exit(1);
+  }
+};
 
-
-app.use("/api/sections", sectionRoutes);
-app.use("/api/courses", courseRoutes);
-app.use("/api/students", studentRoutes);
-app.use("/api/accounts", accountRoutes);
-
-
-app.use("/api/registrar/settings", registrarSettingsRoutes);
-
-app.listen(5000, () =>
-  console.log("🚀 Server running on http://localhost:5000"),
-);
+startServer();

@@ -20,7 +20,9 @@ import type {
   Gender,
 } from "../../components/SuperAdmin/Roles/types";
 
+import AuthAlert from "../../components/Authentication/AuthAlert";
 import { getUsers } from "../../api/userService";
+import { getRoles, updateRolePermissions } from "../../api/roleService";
 import "../../styles/superadmin-roles.css";
 
 /* ================= HELPERS ================= */
@@ -44,128 +46,95 @@ function roleToRoleId(role: string): string {
   }
 }
 
-const makeFullName = (
-  firstName: string,
-  middleName: string,
-  lastName: string,
-) =>
-  [firstName, middleName, lastName]
-    .filter((x) => x && x.trim())
-    .join(" ")
-    .trim();
+const makeFullName = (firstName: string, middleName: string, lastName: string) =>
+  [firstName, middleName, lastName].filter((x) => x && x.trim()).join(" ").trim();
+
+const ROLE_UI: Record<
+  string,
+  { tone: RoleCardItem["tone"]; icon: RoleCardItem["icon"]; nameFallback: string }
+> = {
+  superadmin: { tone: "purple", icon: Shield, nameFallback: "Super Admin" },
+  registrar: { tone: "blue", icon: ClipboardList, nameFallback: "Registrar" },
+  depthead: { tone: "orange", icon: Building2, nameFallback: "Department Head" },
+  finance: { tone: "green", icon: Wallet, nameFallback: "Finance" },
+  faculty: { tone: "teal", icon: BookOpen, nameFallback: "Faculty" },
+  student: { tone: "indigo", icon: GraduationCap, nameFallback: "Student" },
+};
 
 /* ================= PAGE ================= */
 
 export default function RoleManagementPage() {
-  /* ---------- ROLES (STATIC) ---------- */
-  const seedRoles = useMemo<RoleCardItem[]>(
-    () => [
-      {
-        id: "superadmin",
-        name: "Super Admin",
-        users: 0,
-        tone: "purple",
-        icon: Shield,
-        permissions: [
-          "manage_users",
-          "manage_roles",
-          "manage_portals",
-          "view_system_logs",
-          "manage_ai_knowledge",
-        ],
-      },
-      {
-        id: "registrar",
-        name: "Registrar",
-        users: 0,
-        tone: "blue",
-        icon: ClipboardList,
-        permissions: [
-          "manage_students",
-          "process_applications",
-          "manage_enrollment",
-        ],
-      },
-      {
-        id: "depthead",
-        name: "Department Head",
-        users: 0,
-        tone: "orange",
-        icon: Building2,
-        permissions: [
-          "manage_schedules",
-          "assign_rooms",
-          "manage_faculty_loads",
-        ],
-      },
-      {
-        id: "finance",
-        name: "Finance",
-        users: 0,
-        tone: "green",
-        icon: Wallet,
-        permissions: ["fee_management", "scholarships", "financial_reports"],
-      },
-      {
-        id: "faculty",
-        name: "Faculty",
-        users: 0,
-        tone: "teal",
-        icon: BookOpen,
-        permissions: ["grade_management", "class_materials", "attendance"],
-      },
-      {
-        id: "student",
-        name: "Student",
-        users: 0,
-        tone: "indigo",
-        icon: GraduationCap,
-        permissions: ["view_grades", "view_schedule", "ai_assistant"],
-      },
-    ],
-    [],
-  );
-
-  const [roles, setRoles] = useState<RoleCardItem[]>(seedRoles);
-
-  /* ---------- USERS (FROM DB) ---------- */
+  const [roles, setRoles] = useState<RoleCardItem[]>([]);
   const [users, setUsers] = useState<UserItem[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // ✅ AuthAlert state (same pattern as UsersPage)
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<"success" | "error">("success");
+  const [animateAlert, setAnimateAlert] = useState(false);
+
+  const showAlert = (message: string, type: "success" | "error") => {
+    setAnimateAlert(false);
+    setTimeout(() => {
+      setAlertMessage(message);
+      setAlertType(type);
+      setAnimateAlert(true);
+    }, 50);
+  };
 
   useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        setLoadingUsers(true);
-        const data = await getUsers();
+    if (!animateAlert) return;
+    const t = setTimeout(() => setAnimateAlert(false), 3000);
+    return () => clearTimeout(t);
+  }, [animateAlert]);
 
-        const mapped: UserItem[] = data.map((u: any) => ({
-          id: u._id,
-          userId: u.idNumber,
-          firstName: u.firstName,
-          middleName: u.middleName || "",
-          lastName: u.lastName,
-          fullName: makeFullName(
-            u.firstName,
-            u.middleName || "",
-            u.lastName,
-          ),
-          email: u.email,
-          phone: u.phone,
-          gender: u.gender as Gender,
-          status: u.status === "active" ? "Active" : "Inactive",
-          roleId: roleToRoleId(u.role),
-          createdAt: u.createdAt,
-        }));
+  const reloadRolesAndUsers = async () => {
+    try {
+      setLoading(true);
 
-        setUsers(mapped);
-      } catch (err) {
-        console.error("❌ Failed to fetch users", err);
-      } finally {
-        setLoadingUsers(false);
-      }
-    };
+      // ✅ load roles
+      const rolesData = await getRoles();
+      const mappedRoles: RoleCardItem[] = (Array.isArray(rolesData) ? rolesData : []).map(
+        (r: any) => ({
+          id: r.roleId,
+          name: r.name ?? ROLE_UI[r.roleId]?.nameFallback ?? r.roleId,
+          users: 0,
+          tone: ROLE_UI[r.roleId]?.tone ?? "indigo",
+          icon: ROLE_UI[r.roleId]?.icon ?? Shield,
+          permissions: Array.isArray(r.permissions) ? r.permissions : [],
+        }),
+      );
+      setRoles(mappedRoles);
 
-    loadUsers();
+      // ✅ load users
+      const usersData = await getUsers();
+      const mappedUsers: UserItem[] = usersData.map((u: any) => ({
+        id: u._id,
+        userId: u.idNumber,
+        firstName: u.firstName,
+        middleName: u.middleName || "",
+        lastName: u.lastName,
+        fullName: makeFullName(u.firstName, u.middleName || "", u.lastName),
+        email: u.email,
+        phone: u.phone,
+        gender: u.gender as Gender,
+        status: u.status === "active" ? "Active" : "Inactive",
+        roleId: roleToRoleId(u.role),
+        createdAt: u.createdAt,
+      }));
+      setUsers(mappedUsers);
+    } catch (err) {
+      console.error("❌ Failed to load roles/users", err);
+      setRoles([]);
+      setUsers([]);
+      showAlert("Failed to load roles/users.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    reloadRolesAndUsers();
   }, []);
 
   /* ---------- VIEW STATE ---------- */
@@ -182,6 +151,7 @@ export default function RoleManagementPage() {
   /* ---------- ROLE COUNTS ---------- */
   const rolesWithCounts = useMemo(() => {
     const counts = users.reduce<Record<string, number>>((acc, u) => {
+      if (!u.roleId) return acc;
       acc[u.roleId] = (acc[u.roleId] ?? 0) + 1;
       return acc;
     }, {});
@@ -201,12 +171,29 @@ export default function RoleManagementPage() {
     ? rolesWithCounts.find((r) => r.id === editRoleId) ?? null
     : null;
 
-  const saveRolePermissions = (roleId: string, perms: any[]) => {
-    setRoles((prev) =>
-      prev.map((r) => (r.id === roleId ? { ...r, permissions: perms } : r)),
-    );
-    setEditRoleId(null);
-    setDetailsRoleId(null);
+  // ✅ Save permissions + alert
+  const saveRolePermissions = async (roleId: string, perms: string[]) => {
+    try {
+      setLoading(true);
+
+      const updated = await updateRolePermissions(roleId, perms);
+
+      setRoles((prev) =>
+        prev.map((r) =>
+          r.id === roleId ? { ...r, permissions: updated?.permissions ?? perms } : r,
+        ),
+      );
+
+      setEditRoleId(null);
+      setDetailsRoleId(null);
+
+      showAlert("Role permissions updated successfully!", "success");
+    } catch (err: any) {
+      console.error("❌ Failed to save permissions", err);
+      showAlert(err?.response?.data?.message || "Failed to update permissions.", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openRoleDetailsPage = (id: string) => {
@@ -214,56 +201,71 @@ export default function RoleManagementPage() {
     setView("details");
   };
 
-  /* ================= RENDER ================= */
-
   return (
-    <div className="superadmin-roles container-fluid py-3 py-md-4">
-      {view === "list" && (
-        <>
-          <RoleHeader
-            title="Role Management"
-            subtitle="Configure portal access and permissions"
-            onAction={() => {}}
-            actionLabel=""
-          />
+    <>
+      <AuthAlert
+        message={alertMessage}
+        type={alertType}
+        visible={animateAlert}
+        loading={loading}
+      />
 
-          {loadingUsers ? (
-            <div className="text-muted small">Loading users…</div>
-          ) : (
-            <RoleGrid
-              items={rolesWithCounts}
-              onOpen={openRoleDetailsPage}
-              onSettings={(id) => setDetailsRoleId(id)}
+      <div className="superadmin-roles container-fluid py-3 py-md-4">
+        {view === "list" && (
+          <>
+            <RoleHeader
+              title="Role Management"
+              subtitle="Configure portal access and permissions"
+              onAction={() => {}}
+              actionLabel=""
             />
-          )}
-        </>
-      )}
 
-      {view === "details" && selectedRole && (
-        <RoleDetailsView
-          role={selectedRole}
-          users={users}
-          onBack={() => setView("list")}
-          onUpdateUser={() => {}}
-          onRemoveUserFromRole={() => {}}
-        />
-      )}
+            {loading ? (
+              <div className="text-muted small">Loading…</div>
+            ) : rolesWithCounts.length > 0 ? (
+              <RoleGrid
+                items={rolesWithCounts}
+                onOpen={openRoleDetailsPage}
+                onSettings={(id) => setDetailsRoleId(id)}
+              />
+            ) : (
+              <div className="users-empty-state">
+                <div className="users-empty-icon">📭</div>
+                <h5 className="fw-semibold mb-1">No roles found</h5>
+                <p className="text-muted mb-0">
+                  Make sure <b>/api/roles</b> returns data.
+                </p>
+              </div>
+            )}
+          </>
+        )}
 
-      {detailsRole && (
-        <RoleDetailsModal
-          role={detailsRole}
-          onClose={() => setDetailsRoleId(null)}
-          onEdit={() => setEditRoleId(detailsRole.id)}
-        />
-      )}
+        {view === "details" && selectedRole && (
+          <RoleDetailsView
+            role={selectedRole}
+            users={users}
+            onBack={() => setView("list")}
+            onUpdateUser={() => {}}
+            onRemoveUserFromRole={() => {}}
+          />
+        )}
 
-      {editRole && (
-        <EditRoleModal
-          role={editRole}
-          onClose={() => setEditRoleId(null)}
-          onSave={(perms) => saveRolePermissions(editRole.id, perms)}
-        />
-      )}
-    </div>
+        {detailsRole && (
+          <RoleDetailsModal
+            role={detailsRole}
+            onClose={() => setDetailsRoleId(null)}
+            onEdit={() => setEditRoleId(detailsRole.id)}
+          />
+        )}
+
+        {editRole && (
+          <EditRoleModal
+            role={editRole}
+            onClose={() => setEditRoleId(null)}
+            onSave={(perms) => saveRolePermissions(editRole.id, perms)}
+          />
+        )}
+      </div>
+    </>
   );
 }

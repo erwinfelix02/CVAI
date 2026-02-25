@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Users,
   Shield,
@@ -22,16 +22,54 @@ import QuickActionsGrid, {
   type QuickAction,
 } from "../../components/SuperAdmin/Dashboard/QuickActionsGrid";
 
+import { getUsers } from "../../api/userService";
+import { getFaqs } from "../../api/faqService";
+
 import "../../styles/superadmin-dashboard.css";
 
 export default function SuperAdminDashboard() {
-  // ✅ IMPORTANT: keep tone typed (prevents "string not assignable" error)
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [aiItems, setAiItems] = useState(0);
+
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingFaqs, setLoadingFaqs] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      // users count
+      try {
+        setLoadingUsers(true);
+        const users = await getUsers();
+        setTotalUsers(Array.isArray(users) ? users.length : 0);
+      } catch (err) {
+        console.error("❌ Failed to load users count", err);
+        setTotalUsers(0);
+      } finally {
+        setLoadingUsers(false);
+      }
+
+      // faq count (AI knowledge items)
+      try {
+        setLoadingFaqs(true);
+        const faqs = await getFaqs();
+        setAiItems(Array.isArray(faqs) ? faqs.length : 0);
+      } catch (err) {
+        console.error("❌ Failed to load FAQ count", err);
+        setAiItems(0);
+      } finally {
+        setLoadingFaqs(false);
+      }
+    };
+
+    load();
+  }, []);
+
   const stats = useMemo(
     () =>
       [
         {
           label: "Total Users",
-          value: "342",
+          value: loadingUsers ? "…" : String(totalUsers),
           icon: Users,
           tone: "blue",
         },
@@ -43,7 +81,7 @@ export default function SuperAdminDashboard() {
         },
         {
           label: "AI Knowledge Items",
-          value: "156",
+          value: loadingFaqs ? "…" : String(aiItems),
           icon: MessageSquareText,
           tone: "green",
         },
@@ -54,7 +92,7 @@ export default function SuperAdminDashboard() {
           tone: "orange",
         },
       ] as const,
-    []
+    [totalUsers, aiItems, loadingUsers, loadingFaqs],
   );
 
   const portals: PortalStatusRow[] = [
@@ -99,13 +137,17 @@ export default function SuperAdminDashboard() {
   const quick: QuickAction[] = [
     { label: "Manage Users", icon: Users, to: "/superadmin/users" },
     { label: "Manage Roles", icon: Shield, to: "/superadmin/roles" },
-    { label: "AI Knowledge", icon: MessageSquareText, to: "/superadmin/aiknowledge", badge: "AI" },
+    {
+      label: "AI Knowledge",
+      icon: MessageSquareText,
+      to: "/superadmin/aiknowledge",
+      badge: "AI",
+    },
     { label: "View Logs", icon: Clock, to: "/superadmin/logs" },
   ];
 
   return (
     <div className="superadmin-dashboard">
-      {/* Header */}
       <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-3 mb-md-4">
         <div>
           <h2 className="fw-bold mb-1">Super Admin Dashboard</h2>
@@ -115,7 +157,6 @@ export default function SuperAdminDashboard() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="row g-3 g-md-4 mb-3 mb-md-4">
         {stats.map((s) => (
           <div key={s.label} className="col-12 col-sm-6 col-xl-3">
@@ -124,7 +165,6 @@ export default function SuperAdminDashboard() {
         ))}
       </div>
 
-      {/* Portal Status + Recent Activity */}
       <div className="row g-3 g-md-4 mb-3 mb-md-4">
         <div className="col-12 col-lg-6">
           <PortalStatusCard title="Portal Status" rightPill="All Systems Online" rows={portals} />
@@ -141,7 +181,6 @@ export default function SuperAdminDashboard() {
         </div>
       </div>
 
-      {/* Quick Actions */}
       <div className="row g-3 g-md-4">
         <div className="col-12">
           <QuickActionsGrid title="Quick Actions" items={quick} />

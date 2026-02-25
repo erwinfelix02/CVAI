@@ -44,7 +44,7 @@ export default function RoleDetailsModal({
               <span className="rbac-check">
                 <Check size={16} />
               </span>
-              <span>{PERMISSIONS[k].label}</span>
+             <span>{PERMISSIONS[k]?.label ?? k}</span>
             </div>
           ))}
         </div>
