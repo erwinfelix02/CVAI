@@ -58,6 +58,7 @@ import DepartmentHeadLayoutPage from "./pages/DepartmentHead/DepartmentHeadLayou
 import DepartmentHeadDashboard from "./pages/DepartmentHead/DepartmentHeadDashboard";
 import ScheduleManagementPage from "./pages/DepartmentHead/ScheduleManagementPage";
 import RegistrarAIAssistantPage from "./pages/Registrar/RegistrarAIAssistantPage";
+import RegistrarSettings from "./pages/Registrar/RegistrarSettings";
 
 export default function App() {
   return (
@@ -137,7 +138,7 @@ export default function App() {
         <Route path="documents" element={<DocumentRequestsPage />} />
         <Route path="ai-assistant" element={<RegistrarAIAssistantPage />} />
         <Route path="/registrar/courses" element={<CoursesPage />} />
-
+        <Route path="settings" element={<RegistrarSettings />} />
       </Route>
 
       {/* ✅ Super Admin */}

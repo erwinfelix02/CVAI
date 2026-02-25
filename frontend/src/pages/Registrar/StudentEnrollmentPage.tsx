@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import EnrollmentStats from "../../components/Registrar/Enrollment/EnrollmentStats";
 import PendingEnrollmentList from "../../components/Registrar/Enrollment/PendingEnrollmentList";
@@ -30,14 +30,20 @@ export default function StudentEnrollmentPage() {
 
   // ✅ data
   const [enrollments, setEnrollments] = useState<EnrollmentItem[]>([]);
-  const [enrolledStudents, setEnrolledStudents] = useState<EnrollmentItem[]>([]);
+  const [enrolledStudents, setEnrolledStudents] = useState<EnrollmentItem[]>(
+    [],
+  );
 
-  // ✅ stats
+  // ✅ stats (keep for counts)
   const [stats, setStats] = useState<{
     pending: number;
     enrolled: number;
     semesterLabel: string;
   } | null>(null);
+
+  // ✅ registrar settings semester label (NEW)
+  const [settingsSemesterLabel, setSettingsSemesterLabel] =
+    useState<string>("—");
 
   // ✅ sections
   const [sections, setSections] = useState<SectionItem[]>([]);
@@ -55,7 +61,7 @@ export default function StudentEnrollmentPage() {
   const [credTargets, setCredTargets] = useState<StudentItem[]>([]);
   const [credLoading, setCredLoading] = useState(false);
 
-  // ✅ NEW: store which ENROLLMENT IDs are being sent (bulk or single)
+  // ✅ store enrollment ids used in modal so we can update UI
   const [credEnrollmentIds, setCredEnrollmentIds] = useState<string[]>([]);
 
   /* ================= API LOADERS ================= */
@@ -70,22 +76,43 @@ export default function StudentEnrollmentPage() {
     }
   };
 
+  // ✅ NEW: fetch semester label from registrar settings
+const fetchRegistrarSettingsSemester = async () => {
+  try {
+    const res = await fetch("http://localhost:5000/api/registrar/settings");
+    const data = await res.json();
+
+    if (!res.ok) {
+      setSettingsSemesterLabel("—");
+      return;
+    }
+
+    // ✅ ONLY semester
+    setSettingsSemesterLabel(data?.semester || "—");
+  } catch (e) {
+    console.error(e);
+    setSettingsSemesterLabel("—");
+  }
+};
+
   const loadSections = async () => {
     try {
       setSectionsLoading(true);
       const data = await getSections();
 
-      const mapped: SectionItem[] = (Array.isArray(data) ? data : []).map((s: any) => ({
-        id: s._id,
-        code: s.code,
-        yearLevel: s.yearLevel,
-        program: s.program,
-        adviser: s.adviser ?? "TBA",
-        room: s.room,
-        schedule: s.schedule,
-        enrolled: s.enrolled ?? 0,
-        capacity: s.capacity ?? 0,
-      }));
+      const mapped: SectionItem[] = (Array.isArray(data) ? data : []).map(
+        (s: any) => ({
+          id: s._id,
+          code: s.code,
+          yearLevel: s.yearLevel,
+          program: s.program,
+          adviser: s.adviser ?? "TBA",
+          room: s.room,
+          schedule: s.schedule,
+          enrolled: s.enrolled ?? 0,
+          capacity: s.capacity ?? 0,
+        }),
+      );
 
       setSections(mapped);
     } catch (e) {
@@ -146,9 +173,18 @@ export default function StudentEnrollmentPage() {
 
   useEffect(() => {
     fetchStats();
+    fetchRegistrarSettingsSemester(); // ✅ NEW
     loadSections();
     loadPending(query);
     loadEnrolled(enrolledQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ✅ Optional: auto-update semester label when settings page saves
+  useEffect(() => {
+    const handler = () => fetchRegistrarSettingsSemester();
+    window.addEventListener("registrar-settings-updated", handler);
+    return () => window.removeEventListener("registrar-settings-updated", handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -226,18 +262,13 @@ export default function StudentEnrollmentPage() {
 
   const pendingCount = query.trim()
     ? enrollments.length
-    : stats?.pending ?? enrollments.length;
+    : (stats?.pending ?? enrollments.length);
 
   const enrolledCount = enrolledQuery.trim()
     ? enrolledStudents.length
-    : stats?.enrolled ?? enrolledStudents.length;
+    : (stats?.enrolled ?? enrolledStudents.length);
 
   /* ================= SELECTION HELPERS ================= */
-
-  const enrolledIds = useMemo(
-    () => enrolledStudents.map((x) => x._id),
-    [enrolledStudents],
-  );
 
   const toggleSelectEnrolled = (id: string) => {
     setSelectedEnrolledIds((prev) =>
@@ -245,10 +276,11 @@ export default function StudentEnrollmentPage() {
     );
   };
 
-  const selectAllEnrolled = () => setSelectedEnrolledIds(enrolledIds);
+  const selectAllEnrolled = (ids: string[]) => setSelectedEnrolledIds(ids);
+
   const clearAllEnrolled = () => setSelectedEnrolledIds([]);
 
-  /* ================= CREDENTIALS MODAL FLOW (STUDENT TABLE) ================= */
+  /* ================= CREDENTIALS MODAL FLOW ================= */
 
   const openCredentialsForSelected = async () => {
     if (selectedEnrolledIds.length === 0) return;
@@ -264,10 +296,7 @@ export default function StudentEnrollmentPage() {
       }
 
       setCredTargets(students);
-
-      // ✅ IMPORTANT: store enrollment ids for UI update later
       setCredEnrollmentIds(selectedEnrolledIds);
-
       setCredOpen(true);
     } catch (e: any) {
       console.error(e);
@@ -289,10 +318,7 @@ export default function StudentEnrollmentPage() {
       }
 
       setCredTargets(students);
-
-      // ✅ IMPORTANT: store enrollment id for UI update later
       setCredEnrollmentIds([enrollmentId]);
-
       setCredOpen(true);
     } catch (e: any) {
       console.error(e);
@@ -304,51 +330,57 @@ export default function StudentEnrollmentPage() {
 
   /* ================= SEND CREDENTIALS ================= */
 
-const sendCredentialsApi = async ({
-  studentIds,
-  subject,
-  message,
-}: {
-  studentIds: string[];
-  subject?: string;
-  message?: string;
-}) => {
-  const res = await fetch("http://localhost:5000/api/accounts/send-credentials", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ studentIds, subject, message }),
-  });
-
-  const data = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    throw new Error(data?.message || "Failed to send credentials.");
-  }
-
-  // ✅ students that actually succeeded
-  const sentStudentIds: string[] = Array.isArray(data?.sentStudentIds) ? data.sentStudentIds : [];
-
-  // ✅ mark the enrollment rows as sent (based on what you opened in the modal)
-  // If your Enrollment rows represent EnrollmentIDs, we use credEnrollmentIds
-  // but ONLY if there is at least 1 successful student send
-  if (sentStudentIds.length > 0) {
-    setEnrolledStudents((prev) =>
-      prev.map((enr) =>
-        credEnrollmentIds.includes(enr._id)
-          ? { ...enr, credentialsSent: true }
-          : enr,
-      ),
+  const sendCredentialsApi = async ({
+    studentIds,
+    subject,
+    message,
+  }: {
+    studentIds: string[];
+    subject?: string;
+    message?: string;
+  }) => {
+    const res = await fetch(
+      "http://localhost:5000/api/accounts/send-credentials",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentIds, subject, message }),
+      },
     );
-  }
 
-  // refresh for consistency
-  await loadEnrolled(enrolledQuery);
+    const data = await res.json().catch(() => null);
 
-  const sent = (data?.results || []).filter((r: any) => r.status === "sent").length;
-  alert(`Done! Sent credentials to ${sent} student(s).`);
+    if (!res.ok) {
+      throw new Error(data?.message || "Failed to send credentials.");
+    }
 
-  return data;
-};
+    const sentStudentIds: string[] = Array.isArray(data?.sentStudentIds)
+      ? data.sentStudentIds
+      : [];
+
+    if (sentStudentIds.length > 0) {
+      setEnrolledStudents((prev) =>
+        prev.map((enr) =>
+          credEnrollmentIds.includes(enr._id)
+            ? { ...enr, credentialsSent: true }
+            : enr,
+        ),
+      );
+
+      setSelectedEnrolledIds((prev) =>
+        prev.filter((id) => !credEnrollmentIds.includes(id)),
+      );
+    }
+
+    await loadEnrolled(enrolledQuery);
+
+    const sent = (data?.results || []).filter(
+      (r: any) => r.status === "sent",
+    ).length;
+    alert(`Done! Sent credentials to ${sent} student(s).`);
+
+    return data;
+  };
 
   /* ================= RENDER ================= */
 
@@ -363,7 +395,7 @@ const sendCredentialsApi = async ({
         pending={pendingCount}
         enrolled={stats?.enrolled ?? 0}
         availableSections={sections.length}
-        semesterLabel={stats?.semesterLabel ?? "—"}
+        semesterLabel={settingsSemesterLabel} // ✅ FROM REGISTRAR SETTINGS
       />
 
       <div className="card shadow-sm enroll-card mt-3 mt-md-4">

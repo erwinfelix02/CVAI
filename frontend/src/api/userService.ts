@@ -29,3 +29,26 @@ export const sendCredentials = async (id: string) => {
 
   return data;
 };
+
+
+
+export async function getStudentUsers(params?: {
+  q?: string;
+  status?: string;
+  course?: string;
+}) {
+  const url = new URL("http://localhost:5000/api/users/students");
+
+  if (params?.q) url.searchParams.set("q", params.q);
+  if (params?.status) url.searchParams.set("status", params.status);
+  if (params?.course) url.searchParams.set("course", params.course);
+
+  const res = await fetch(url.toString());
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(data?.message || "Failed to load student users.");
+  }
+
+  return Array.isArray(data) ? data : [];
+}

@@ -5,14 +5,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 type CourseOption = {
   id: string;
   code: string;
-  name: string; // display name
-  yearLevels: number; // 1..N
+  name: string;
+  yearLevels: number;
 };
 
 type Payload = {
   code: string;
   yearLevel: string;
-  program: string; // store course NAME (or change to courseId if you want)
+  program: string;
   capacity: number | "";
   room: string;
   schedule: string;
@@ -24,9 +24,10 @@ type Props = {
   initial?: SectionItem | null;
   onCreate: (item: SectionItem) => void;
   onUpdate: (item: SectionItem) => void;
-
-  // ✅ now based on DB
   courses: CourseOption[];
+
+  // ✅ NEW
+  maxCapacity: number;
 };
 
 function makeId(code: string) {
@@ -43,8 +44,7 @@ function isLikelyTimeSchedule(v: string) {
   return hasDigit && hasTimeHint;
 }
 function yearLabel(n: number) {
-  const suffix =
-    n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th";
+  const suffix = n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th";
   return `${n}${suffix} Year`;
 }
 
@@ -57,22 +57,22 @@ export default function AddSectionModal({
   onCreate,
   onUpdate,
   courses,
+  maxCapacity,
 }: Props) {
   const isEdit = !!initial;
 
-  // ✅ courses from DB; fallback when empty
-  const courseList = useMemo(() => Array.isArray(courses) ? courses : [], [courses]);
+  const courseList = useMemo(
+    () => (Array.isArray(courses) ? courses : []),
+    [courses],
+  );
 
-  // ✅ pick selected course details
   const selectedCourse = useMemo(() => {
     if (!courseList.length) return null;
     const selectedName =
-      (initial?.program as string | undefined) ??
-      (courseList[0]?.name ?? "");
+      (initial?.program as string | undefined) ?? (courseList[0]?.name ?? "");
     return courseList.find((c) => c.name === selectedName) ?? courseList[0];
   }, [courseList, initial]);
 
-  // ✅ year options depend on selected course yearLevels
   const yearOptions = useMemo(() => {
     const maxYears = selectedCourse?.yearLevels ?? 0;
     if (!maxYears) return [];
@@ -89,27 +89,26 @@ export default function AddSectionModal({
   });
 
   const [touched, setTouched] = useState<Partial<Record<keyof Payload, boolean>>>(
-    {}
+    {},
   );
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string>("");
 
-  // ✅ confirm popup state
   const [confirmOpen, setConfirmOpen] = useState(false);
   const confirmingRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
 
-    // ✅ default program when opening
     const defaultProgram = courseList[0]?.name ?? "";
+    const defaultYear = yearOptions[0] ?? "";
 
     if (isEdit && initial) {
       const existingProgram = initial.program ?? defaultProgram;
 
-      // if course list changed and existing program no longer exists, fallback safely
       const safeProgram =
-        courseList.find((c) => c.name === existingProgram)?.name ?? defaultProgram;
+        courseList.find((c) => c.name === existingProgram)?.name ??
+        defaultProgram;
 
       const safeCourse = courseList.find((c) => c.name === safeProgram) ?? null;
       const safeYears = safeCourse?.yearLevels ?? 0;
@@ -117,7 +116,6 @@ export default function AddSectionModal({
         ? Array.from({ length: safeYears }, (_, i) => yearLabel(i + 1))
         : [];
 
-      // keep yearLevel only if still valid
       const initialYear = (initial as any).yearLevel ?? "";
       const safeYear = safeYearOptions.includes(initialYear)
         ? initialYear
@@ -127,20 +125,16 @@ export default function AddSectionModal({
         code: initial.code ?? "",
         yearLevel: safeYear,
         program: safeProgram,
-        capacity: initial.capacity ?? 40,
+        capacity: Math.min(initial.capacity ?? 40, maxCapacity),
         room: initial.room ?? "",
         schedule: initial.schedule ?? "",
       });
     } else {
-      const safeCourse = courseList[0] ?? null;
-      const safeYears = safeCourse?.yearLevels ?? 0;
-      const safeYear = safeYears ? yearLabel(1) : "";
-
       setForm({
         code: "",
-        yearLevel: safeYear,
+        yearLevel: defaultYear,
         program: defaultProgram,
-        capacity: 40,
+        capacity: Math.min(40, maxCapacity),
         room: "",
         schedule: "",
       });
@@ -151,9 +145,8 @@ export default function AddSectionModal({
     setFormError("");
     setConfirmOpen(false);
     confirmingRef.current = false;
-  }, [open, isEdit, initial, courseList]);
+  }, [open, isEdit, initial, courseList, maxCapacity, yearOptions]);
 
-  // lock body scroll while modal open
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -163,7 +156,6 @@ export default function AddSectionModal({
     };
   }, [open]);
 
-  // esc to close: closes confirm first, then main modal
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -187,7 +179,6 @@ export default function AddSectionModal({
 
     if (!data.program) e.program = "Course/Program is required.";
 
-    // ✅ year level must be one of dynamic options
     if (!data.yearLevel) e.yearLevel = "Year Level is required.";
     else if (yearOptions.length && !yearOptions.includes(data.yearLevel))
       e.yearLevel = "Year Level is not valid for the selected course.";
@@ -195,7 +186,8 @@ export default function AddSectionModal({
     const cap = data.capacity === "" ? NaN : Number(data.capacity);
     if (!Number.isFinite(cap)) e.capacity = "Capacity is required.";
     else if (cap < 1) e.capacity = "Capacity must be at least 1.";
-    else if (cap > 500) e.capacity = "Capacity looks too large (max 500).";
+    else if (cap > maxCapacity)
+      e.capacity = `Capacity cannot exceed ${maxCapacity} (Registrar Settings).`;
 
     if (!data.room.trim()) e.room = "Room is required.";
     else if (data.room.trim().length < 3) e.room = "Room is too short.";
@@ -204,8 +196,8 @@ export default function AddSectionModal({
     else if (!isLikelyTimeSchedule(data.schedule))
       e.schedule = "Enter a schedule like “MWF 8:00-9:30 AM”.";
 
-    // ✅ if no courses exist at all
-    if (!courseList.length) e.program = "No courses available. Please add a course first.";
+    if (!courseList.length)
+      e.program = "No courses available. Please add a course first.";
 
     return e;
   };
@@ -220,7 +212,6 @@ export default function AddSectionModal({
     setErrors(validate(form));
   };
 
-  // ✅ when program changes, refresh year options + default year
   const onProgramChange = (programName: string) => {
     setField("program", programName);
 
@@ -231,17 +222,14 @@ export default function AddSectionModal({
       ? Array.from({ length: maxYears }, (_, i) => yearLabel(i + 1))
       : [];
 
-    // reset year if invalid
     setForm((prev) => {
-      const nextYear =
-        nextYearOptions.includes(prev.yearLevel)
-          ? prev.yearLevel
-          : nextYearOptions[0] ?? "";
+      const nextYear = nextYearOptions.includes(prev.yearLevel)
+        ? prev.yearLevel
+        : nextYearOptions[0] ?? "";
       return { ...prev, program: programName, yearLevel: nextYear };
     });
   };
 
-  // Step 1: validate then open confirmation popup
   const onSubmit = () => {
     setTouched({
       code: true,
@@ -264,13 +252,13 @@ export default function AddSectionModal({
     setConfirmOpen(true);
   };
 
-  // Step 2: confirmed => create/update
   const onConfirm = () => {
     if (confirmingRef.current) return;
     confirmingRef.current = true;
 
     const code = normalizeCode(form.code);
-    const cap = Number(form.capacity);
+    const capRaw = Number(form.capacity);
+    const cap = Math.min(Math.max(capRaw, 1), maxCapacity);
 
     if (isEdit && initial) {
       const updated: SectionItem = {
@@ -352,10 +340,12 @@ export default function AddSectionModal({
                 onChange={(e) => setField("code", e.target.value)}
                 onBlur={() => markTouched("code")}
               />
-              <div className="sec-error-slot">{fieldError("code") || "\u00A0"}</div>
+              <div className="sec-error-slot">
+                {fieldError("code") || "\u00A0"}
+              </div>
             </div>
 
-            {/* Year Level (dynamic) */}
+            {/* Year Level */}
             <div className="sec-field">
               <label className="sec-label">Year Level</label>
               <select
@@ -375,10 +365,12 @@ export default function AddSectionModal({
                   ))
                 )}
               </select>
-              <div className="sec-error-slot">{fieldError("yearLevel") || "\u00A0"}</div>
+              <div className="sec-error-slot">
+                {fieldError("yearLevel") || "\u00A0"}
+              </div>
             </div>
 
-            {/* Program (from DB courses) */}
+            {/* Program */}
             <div className="sec-field sec-span-2">
               <label className="sec-label">Course/Program</label>
               <select
@@ -401,23 +393,33 @@ export default function AddSectionModal({
                   </>
                 )}
               </select>
-              <div className="sec-error-slot">{fieldError("program") || "\u00A0"}</div>
+              <div className="sec-error-slot">
+                {fieldError("program") || "\u00A0"}
+              </div>
             </div>
 
             {/* Capacity */}
             <div className="sec-field">
-              <label className="sec-label">Capacity</label>
+              <label className="sec-label">
+                Capacity <span className="text-muted small">(Max {maxCapacity})</span>
+              </label>
               <input
                 className={`form-control sec-input ${fieldError("capacity") ? "is-invalid" : ""}`}
                 type="number"
                 min={1}
+                max={maxCapacity} // ✅ enforce in UI
                 value={form.capacity}
                 onChange={(e) =>
-                  setField("capacity", e.target.value === "" ? "" : Number(e.target.value))
+                  setField(
+                    "capacity",
+                    e.target.value === "" ? "" : Number(e.target.value),
+                  )
                 }
                 onBlur={() => markTouched("capacity")}
               />
-              <div className="sec-error-slot">{fieldError("capacity") || "\u00A0"}</div>
+              <div className="sec-error-slot">
+                {fieldError("capacity") || "\u00A0"}
+              </div>
             </div>
 
             {/* Room */}
@@ -430,7 +432,9 @@ export default function AddSectionModal({
                 onChange={(e) => setField("room", e.target.value)}
                 onBlur={() => markTouched("room")}
               />
-              <div className="sec-error-slot">{fieldError("room") || "\u00A0"}</div>
+              <div className="sec-error-slot">
+                {fieldError("room") || "\u00A0"}
+              </div>
             </div>
 
             {/* Schedule */}
@@ -443,7 +447,9 @@ export default function AddSectionModal({
                 onChange={(e) => setField("schedule", e.target.value)}
                 onBlur={() => markTouched("schedule")}
               />
-              <div className="sec-error-slot">{fieldError("schedule") || "\u00A0"}</div>
+              <div className="sec-error-slot">
+                {fieldError("schedule") || "\u00A0"}
+              </div>
             </div>
           </div>
 
@@ -451,7 +457,12 @@ export default function AddSectionModal({
         </div>
 
         <div className="sec-modal-footer">
-          <button type="button" className="btn btn-light" onClick={onClose} disabled={confirmOpen}>
+          <button
+            type="button"
+            className="btn btn-light"
+            onClick={onClose}
+            disabled={confirmOpen}
+          >
             Cancel
           </button>
           <button type="button" className="btn btn-primary" onClick={onSubmit}>
@@ -459,7 +470,6 @@ export default function AddSectionModal({
           </button>
         </div>
 
-        {/* CONFIRM POPUP */}
         {confirmOpen ? (
           <div
             className="sec-confirm-backdrop"
@@ -470,7 +480,10 @@ export default function AddSectionModal({
               if (e.target === e.currentTarget) setConfirmOpen(false);
             }}
           >
-            <div className="sec-confirm-popup" onMouseDown={(e) => e.stopPropagation()}>
+            <div
+              className="sec-confirm-popup"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
               <div className="sec-confirm-header">
                 {isEdit ? "Confirm Update" : "Confirm Creation"}
               </div>
@@ -487,7 +500,10 @@ export default function AddSectionModal({
               </div>
 
               <div className="sec-confirm-footer">
-                <button className="btn btn-light" onClick={() => setConfirmOpen(false)}>
+                <button
+                  className="btn btn-light"
+                  onClick={() => setConfirmOpen(false)}
+                >
                   Cancel
                 </button>
                 <button className="btn btn-primary" onClick={onConfirm}>

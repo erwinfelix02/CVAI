@@ -232,3 +232,72 @@ export const getUsers = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch users" });
   }
 };
+
+
+/* ================================
+   GET USERS STUDENTS (FOR RECORDS PAGE)
+================================ */
+export const getStudentUsers = async (req, res) => {
+  try {
+    const { q = "", status = "All", course = "All" } = req.query;
+
+    // ✅ base filter: Students only
+    const filter = { role: "Student" };
+
+    // ✅ optional status filter (maps your UI values to DB)
+    // UI: "Active" | "Dropped" | "Graduated" | "All"
+    // DB: "active" | "inactive"
+    if (status !== "All") {
+      if (status === "Active") filter.status = "active";
+      else filter.status = "inactive"; // Dropped/Graduated -> treat as inactive unless you add fields
+    }
+
+    // ✅ optional search (name or idNumber)
+    const search = String(q).trim();
+    if (search) {
+      filter.$or = [
+        { idNumber: { $regex: search, $options: "i" } },
+        { firstName: { $regex: search, $options: "i" } },
+        { lastName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // ✅ optional "course" filter
+    // NOTE: your UserSchema does NOT have course/section/year.
+    // If you want this filter to work, you must add these fields to User or join another collection.
+    // For now we ignore course unless you add it.
+    // if (course !== "All") filter.course = course;
+
+    const users = await User.find(filter)
+      .select("firstName middleName lastName idNumber email status department role")
+      .sort({ createdAt: -1 });
+
+    // ✅ map to frontend rows
+    const rows = users.map((u) => {
+      const fullName = `${u.firstName} ${u.middleName ? u.middleName + " " : ""}${u.lastName}`.trim();
+      const initials = fullName
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((x) => x[0]?.toUpperCase())
+        .join("");
+
+      return {
+        id: u.idNumber,
+        initials,
+        name: fullName,
+        email: u.email,
+        course: u.department || "—", // ✅ placeholder (since User has no course)
+        section: "—",               // ✅ placeholder
+        year: 0,                    // ✅ placeholder
+        status: u.status === "active" ? "Active" : "Dropped",
+      };
+    });
+
+    return res.json(rows);
+  } catch (err) {
+    console.error("getStudentUsers error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};

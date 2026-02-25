@@ -44,20 +44,25 @@ export default function EnrolledStudentsList({
               program && yearLevel
                 ? `${program} • Year ${yearLevel}`
                 : program
-                ? program
-                : "";
+                  ? program
+                  : "";
 
-            const checked = selectedIds.includes(s._id);
             const credentialsSent = !!s.credentialsSent;
+            const checked = selectedIds.includes(s._id);
 
             return (
               <div key={s._id} className="enroll-student-row enrolled-row">
-                <button
-                  type="button"
-                  className={`enrolled-circle-check ${checked ? "is-checked" : ""}`}
-                  onClick={() => onToggleSelect(s._id)}
-                  aria-label={`Select ${fullName}`}
-                />
+                {/* ✅ selector hidden when sent */}
+                {!credentialsSent ? (
+                  <button
+                    type="button"
+                    className={`enrolled-circle-check ${checked ? "is-checked" : ""}`}
+                    onClick={() => onToggleSelect(s._id)}
+                    aria-label={`Select ${fullName}`}
+                  />
+                ) : (
+                  <div className="enrolled-circle-check is-disabled" aria-hidden="true" />
+                )}
 
                 <div className="d-flex align-items-center gap-3 flex-grow-1 min-w-0">
                   <div className="enroll-avatar">{initials}</div>
@@ -99,9 +104,7 @@ export default function EnrolledStudentsList({
           })}
 
           {items.length === 0 ? (
-            <div className="text-muted text-center py-4">
-              No enrolled students found.
-            </div>
+            <div className="text-muted text-center py-4">No enrolled students found.</div>
           ) : null}
         </>
       )}

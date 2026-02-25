@@ -1,0 +1,101 @@
+/* Page-only styles (Registrar Settings) */
+
+.rs-page {
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+/* header */
+.rs-page-title {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.rs-subtitle {
+  color: #6c757d;
+}
+
+/* card */
+.rs-card {
+  border: 1px solid #e9ecef;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.rs-card-title {
+  font-weight: 800;
+  margin: 0;
+}
+
+.rs-card-subtitle {
+  color: #6c757d;
+  margin: 2px 0 0 0;
+  font-size: 0.95rem;
+}
+
+/* icon bubble */
+.rs-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #e6f2f7;
+  color: #0d5b75;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+/* labels + help */
+.rs-label {
+  font-weight: 600;
+}
+
+.rs-help {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+/* divider */
+.rs-divider {
+  border-top: 1px solid #e9ecef;
+  margin: 1rem 0;
+}
+
+/* inputs */
+.rs-form-control {
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+}
+
+/* switch sizing */
+.rs-switch .form-check-input {
+  width: 3rem;
+  height: 1.6rem;
+  cursor: pointer;
+}
+
+.rs-switch .form-check-input:checked {
+  background-color: #0d5b75;
+  border-color: #0d5b75;
+}
+
+/* sticky save bar */
+.rs-savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: rgba(248, 250, 252, 0.9);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid #e9ecef;
+}
+
+/* save button */
+.rs-save-btn {
+  background: #0d5b75 !important;
+  color: #fff !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 20px rgba(13, 91, 117, 0.25);
+  border: none !important;
+}

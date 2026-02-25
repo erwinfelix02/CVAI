@@ -26,10 +26,48 @@ import "../../styles/registrar-dashboard.css";
 export default function RegistrarDashboard() {
   const quickRef = useRef<HTMLDivElement | null>(null);
   const recentRef = useRef<HTMLDivElement | null>(null);
-
+  const [totalStudents, setTotalStudents] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [recent, setRecent] = useState<RecentApplication[]>([]);
+  const [enrollmentCounts, setEnrollmentCounts] = useState({
+    scheduled: 0,
+    enrolled: 0,
+    cancelled: 0,
+  });
 
+  useEffect(() => {
+    const fetchEnrollmentCounts = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/enrollments/counts");
+        const data = await res.json();
+
+        setEnrollmentCounts({
+          scheduled: Number(data?.scheduled ?? 0),
+          enrolled: Number(data?.enrolled ?? 0),
+          cancelled: Number(data?.cancelled ?? 0),
+        });
+      } catch (err) {
+        console.error("Failed to fetch enrollment counts", err);
+        setEnrollmentCounts({ scheduled: 0, enrolled: 0, cancelled: 0 });
+      }
+    };
+
+    fetchEnrollmentCounts();
+  }, []);
+  useEffect(() => {
+    const fetchTotalStudents = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/students/count");
+        const data = await res.json();
+        setTotalStudents(Number(data?.total ?? 0));
+      } catch (err) {
+        console.error("Failed to fetch total students", err);
+        setTotalStudents(0);
+      }
+    };
+
+    fetchTotalStudents();
+  }, []);
   // 🔥 Sync Recent Applications height to Quick Actions (ONLY on LG+)
   useEffect(() => {
     if (!quickRef.current || !recentRef.current) return;
@@ -77,8 +115,8 @@ export default function RegistrarDashboard() {
     () => [
       {
         label: "Total Students",
-        value: "2,547",
-        helper: "+12% this semester",
+        value: totalStudents.toLocaleString(),
+        helper: "From student records",
         icon: Users,
         tone: "blue",
       },
@@ -91,20 +129,20 @@ export default function RegistrarDashboard() {
       },
       {
         label: "Active Enrollments",
-        value: "2,341",
-        helper: "+5% this semester",
+        value: enrollmentCounts.enrolled.toLocaleString(),
+        helper: "Enrolled students",
         icon: UserCheck,
         tone: "green",
       },
       {
         label: "Dropped/Inactive",
-        value: "206",
-        helper: "-2% this semester",
+        value: enrollmentCounts.cancelled.toLocaleString(),
+        helper: "Cancelled enrollments",
         icon: UserX,
         tone: "red",
       },
     ],
-    [pendingCount],
+    [pendingCount, totalStudents, enrollmentCounts],
   );
 
   const quickActions: QuickActionItem[] = [

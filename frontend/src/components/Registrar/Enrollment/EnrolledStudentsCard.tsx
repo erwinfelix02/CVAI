@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Search, Mail, Users } from "lucide-react";
 
 import EnrolledStudentsList from "./EnrolledStudentsList";
@@ -15,13 +15,12 @@ export type EnrolledStudentsCardProps = {
 
   selectedIds: string[];
   onToggleSelect: (id: string) => void;
-  onSelectAll: () => void;
+
+  // ✅ now accepts ids
+  onSelectAll: (ids: string[]) => void;
   onClearAll: () => void;
 
-  // ✅ bulk send
   onSendCredentials: () => void;
-
-  // ✅ per-student send
   onSendCredentialsOne: (enrollmentId: string) => void;
 };
 
@@ -38,29 +37,33 @@ export default function EnrolledStudentsCard({
   onSendCredentials,
   onSendCredentialsOne,
 }: EnrolledStudentsCardProps) {
+  // ✅ only selectable if NOT yet sent
+  const selectableIds = useMemo(
+    () => items.filter((x) => !x.credentialsSent).map((x) => x._id),
+    [items],
+  );
+
   const selectedCount = selectedIds.length;
-  const allSelected = items.length > 0 && selectedCount === items.length;
+  const allSelected =
+    selectableIds.length > 0 && selectedCount === selectableIds.length;
 
   return (
     <div className="card shadow-sm enroll-card mt-3 mt-md-4">
       <div className="card-body">
-        {/* ✅ HEADER (like Applications) */}
         <div className="enrolled-head">
           <h5 className="fw-bold mb-0">Enrolled Students ({enrolledCount})</h5>
 
           <div className="enrolled-head-actions">
-            {/* link-style select all (like "Deselect All Approved") */}
             <button
               type="button"
               className="enrolled-link-btn"
-              onClick={allSelected ? onClearAll : onSelectAll}
-              disabled={items.length === 0}
+              onClick={allSelected ? onClearAll : () => onSelectAll(selectableIds)}
+              disabled={selectableIds.length === 0}
             >
               <Users size={18} />
               {allSelected ? "Deselect All" : "Select All"}
             </button>
 
-            {/* main action button */}
             <button
               type="button"
               className="btn-teal"
@@ -73,7 +76,6 @@ export default function EnrolledStudentsCard({
           </div>
         </div>
 
-        {/* ✅ SEARCH (full-width like Applications) */}
         <div className="mt-3">
           <div className="enroll-searchbar">
             <Search size={18} className="enroll-search-icon" />

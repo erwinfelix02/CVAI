@@ -615,3 +615,8 @@
   padding: 18px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
 }
+.enrolled-circle-check.is-disabled {
+  pointer-events: none;
+  opacity: 0;
+}
+

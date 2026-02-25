@@ -27,6 +27,8 @@ type CourseOption = {
   yearLevels: number;
 };
 
+const SETTINGS_URL = "http://localhost:5000/api/registrar/settings";
+
 export default function SectionsManagementPage() {
   const [q, setQ] = useState("");
   const [courseFilter, setCourseFilter] = useState<string>("All Courses");
@@ -36,6 +38,9 @@ export default function SectionsManagementPage() {
 
   const [sections, setSections] = useState<SectionItem[]>([]);
   const [courses, setCourses] = useState<CourseOption[]>([]);
+
+  // ✅ NEW: max capacity from registrar settings
+  const [maxCapacity, setMaxCapacity] = useState<number>(45);
 
   const [isLoading, setIsLoading] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
@@ -57,7 +62,25 @@ export default function SectionsManagementPage() {
     return () => clearTimeout(t);
   }, [animateAlert]);
 
-  // ✅ LOAD COURSES (for modal + filter + yearLevels)
+  // ✅ NEW: LOAD REGISTRAR SETTINGS (max capacity)
+  const loadRegistrarSettings = async () => {
+    try {
+      const res = await fetch(SETTINGS_URL);
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("Failed to load registrar settings", data);
+        return;
+      }
+
+      const max = Number(data?.maxStudentsPerSection ?? 45);
+      setMaxCapacity(Number.isFinite(max) && max > 0 ? max : 45);
+    } catch (err) {
+      console.error("Failed to fetch registrar settings", err);
+    }
+  };
+
+  // ✅ LOAD COURSES
   const loadCourses = async () => {
     try {
       const data = await getCourses();
@@ -68,14 +91,17 @@ export default function SectionsManagementPage() {
           code: c.code,
           name: c.name,
           yearLevels: Number(c.yearLevels ?? 4),
-        })
+        }),
       );
 
       setCourses(mapped);
     } catch (err: any) {
       console.error(err);
       setCourses([]);
-      showAlert(err.response?.data?.message || "Failed to load courses.", "error");
+      showAlert(
+        err.response?.data?.message || "Failed to load courses.",
+        "error",
+      );
     }
   };
 
@@ -95,7 +121,7 @@ export default function SectionsManagementPage() {
           schedule: s.schedule,
           enrolled: s.enrolled ?? 0,
           capacity: s.capacity,
-        })
+        }),
       );
 
       setSections(mapped);
@@ -104,17 +130,17 @@ export default function SectionsManagementPage() {
       setSections([]);
       showAlert(
         err.response?.data?.message || "Failed to load sections.",
-        "error"
+        "error",
       );
     }
   };
 
-  // ✅ INITIAL LOAD (courses + sections)
+  // ✅ INITIAL LOAD (settings + courses + sections)
   useEffect(() => {
     (async () => {
       try {
         setIsLoading(true);
-        await Promise.all([loadCourses(), loadSections()]);
+        await Promise.all([loadRegistrarSettings(), loadCourses(), loadSections()]);
       } finally {
         setIsLoading(false);
       }
@@ -123,6 +149,7 @@ export default function SectionsManagementPage() {
   }, []);
 
   const openCreate = () => {
+    // ✅ IMPORTANT: clear editing first so modal is CREATE mode
     setEditing(null);
     setOpenAdd(true);
   };
@@ -130,6 +157,13 @@ export default function SectionsManagementPage() {
   const openEdit = (item: SectionItem) => {
     setEditing(item);
     setOpenAdd(true);
+  };
+
+  // helper: clamp capacity to max
+  const clampCapacity = (cap: number) => {
+    const n = Number(cap);
+    if (!Number.isFinite(n)) return 1;
+    return Math.min(Math.max(n, 1), maxCapacity);
   };
 
   // ✅ CREATE -> DB
@@ -141,7 +175,7 @@ export default function SectionsManagementPage() {
         code: newItem.code,
         yearLevel: (newItem as any).yearLevel,
         program: newItem.program,
-        capacity: newItem.capacity,
+        capacity: clampCapacity(newItem.capacity),
         room: newItem.room,
         schedule: newItem.schedule,
         adviser: newItem.adviser ?? "TBA",
@@ -153,7 +187,7 @@ export default function SectionsManagementPage() {
     } catch (err: any) {
       showAlert(
         err.response?.data?.message || "Failed to create section.",
-        "error"
+        "error",
       );
     } finally {
       setIsLoading(false);
@@ -169,7 +203,7 @@ export default function SectionsManagementPage() {
         code: updated.code,
         yearLevel: (updated as any).yearLevel,
         program: updated.program,
-        capacity: updated.capacity,
+        capacity: clampCapacity(updated.capacity),
         room: updated.room,
         schedule: updated.schedule,
         adviser: updated.adviser ?? "TBA",
@@ -181,7 +215,7 @@ export default function SectionsManagementPage() {
     } catch (err: any) {
       showAlert(
         err.response?.data?.message || "Failed to update section.",
-        "error"
+        "error",
       );
     } finally {
       setIsLoading(false);
@@ -198,7 +232,7 @@ export default function SectionsManagementPage() {
     } catch (err: any) {
       showAlert(
         err.response?.data?.message || "Failed to delete section.",
-        "error"
+        "error",
       );
     } finally {
       setIsLoading(false);
@@ -209,13 +243,11 @@ export default function SectionsManagementPage() {
     showAlert(`View students for ${item.code}`, "success");
   };
 
-  // ✅ FILTER OPTIONS NOW COME FROM COURSES (not sections)
   const courseOptions = useMemo(() => {
     const unique = courses.map((c) => c.name);
     return ["All Courses", ...unique];
   }, [courses]);
 
-  // ✅ FILTER SECTIONS
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
 
@@ -232,13 +264,14 @@ export default function SectionsManagementPage() {
     });
   }, [sections, q, courseFilter]);
 
-  // ✅ STATS
   const totals = useMemo(() => {
     const totalSections = sections.length;
     const totalEnrolled = sections.reduce((a, s) => a + (s.enrolled || 0), 0);
     const totalCapacity = sections.reduce((a, s) => a + (s.capacity || 0), 0);
     const utilization =
-      totalCapacity === 0 ? 0 : Math.round((totalEnrolled / totalCapacity) * 100);
+      totalCapacity === 0
+        ? 0
+        : Math.round((totalEnrolled / totalCapacity) * 100);
 
     return { totalSections, totalEnrolled, totalCapacity, utilization };
   }, [sections]);
@@ -287,7 +320,6 @@ export default function SectionsManagementPage() {
           courseOptions={courseOptions}
         />
 
-        {/* ✅ If NO COURSES at all, show prompt */}
         {!hasCourses ? (
           <div className="card shadow-sm border-0">
             <div className="card-body p-4">
@@ -321,14 +353,16 @@ export default function SectionsManagementPage() {
           </div>
         )}
 
-        {/* ✅ UPDATED MODAL PROP: courses (not courseOptions) */}
+        {/* ✅ PASS maxCapacity AND force remount by key */}
         <AddSectionModal
+          key={editing ? `edit-${editing.id}` : "create"} // ✅ fixes stale values
           open={openAdd}
           onClose={() => setOpenAdd(false)}
           initial={editing}
           onCreate={onCreateSection}
           onUpdate={onUpdateSection}
           courses={courses}
+          maxCapacity={maxCapacity} // ✅ NEW
         />
       </div>
     </>

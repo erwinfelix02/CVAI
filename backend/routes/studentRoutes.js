@@ -27,4 +27,15 @@ router.post("/by-enrollment", async (req, res) => {
   }
 });
 
+
+router.get("/count", async (req, res) => {
+  try {
+    const total = await Student.countDocuments();
+    return res.json({ total });
+  } catch (err) {
+    console.error("students count error:", err);
+    return res.status(500).json({ message: "Server error." });
+  }
+});
+
 export default router;

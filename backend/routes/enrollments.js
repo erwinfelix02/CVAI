@@ -162,4 +162,20 @@ router.get("/stats", async (req, res) => {
   }
 });
 
+router.get("/counts", async (req, res) => {
+  try {
+    const [total, scheduled, enrolled, cancelled] = await Promise.all([
+      Enrollment.countDocuments(),
+      Enrollment.countDocuments({ status: "Scheduled" }),
+      Enrollment.countDocuments({ status: "Enrolled" }),
+      Enrollment.countDocuments({ status: "Cancelled" }),
+    ]);
+
+    return res.json({ total, scheduled, enrolled, cancelled });
+  } catch (err) {
+    console.error("enrollments counts error:", err);
+    return res.status(500).json({ message: "Server error." });
+  }
+});
+
 export default router;

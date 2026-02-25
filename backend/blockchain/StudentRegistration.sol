@@ -4,21 +4,26 @@ pragma solidity ^0.8.20;
 contract StudentRegistration {
 
     struct Student {
-        string name;
-        string course;
-        string email;
+        bytes32 dataHash;   // hashed student data
         uint256 timestamp;
     }
 
     Student[] public students;
 
+    // Register student using hash instead of full strings
     function registerStudent(
         string memory _name,
         string memory _course,
         string memory _email
     ) public {
+
+        // Create hash of all data
+        bytes32 hash = keccak256(
+            abi.encodePacked(_name, _course, _email)
+        );
+
         students.push(
-            Student(_name, _course, _email, block.timestamp)
+            Student(hash, block.timestamp)
         );
     }
 
@@ -26,13 +31,12 @@ contract StudentRegistration {
         return students.length;
     }
 
-    function getStudent(uint256 index) public view returns (
-        string memory,
-        string memory,
-        string memory,
-        uint256
-    ) {
+    function getStudent(uint256 index)
+        public
+        view
+        returns (bytes32, uint256)
+    {
         Student memory s = students[index];
-        return (s.name, s.course, s.email, s.timestamp);
+        return (s.dataHash, s.timestamp);
     }
 }
