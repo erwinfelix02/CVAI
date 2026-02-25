@@ -164,28 +164,24 @@ export default function CoursesManagementPage() {
     }
   };
 
-  // ✅ DELETE -> DB
-  const onDelete = async (id: string) => {
-    const ok = window.confirm("Delete this course?");
-    if (!ok) return;
+// ✅ DELETE -> DB (NO window.confirm here)
+const onDelete = async (id: string) => {
+  try {
+    setIsLoading(true);
 
-    try {
-      setIsLoading(true);
+    await deleteCourse(id);
+    await loadCourses();
 
-      await deleteCourse(id);
-
-      await loadCourses();
-
-      showAlert("Course deleted successfully.", "success");
-    } catch (err: any) {
-      showAlert(
-        err.response?.data?.message || "Failed to delete course.",
-        "error"
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    showAlert("Course deleted successfully.", "success");
+  } catch (err: any) {
+    showAlert(
+      err.response?.data?.message || "Failed to delete course.",
+      "error"
+    );
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // ✅ EMPTY STATE uses same style as UsersPage
   const hasRows = filtered.length > 0;

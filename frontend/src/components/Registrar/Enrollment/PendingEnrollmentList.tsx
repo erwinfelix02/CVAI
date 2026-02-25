@@ -20,6 +20,8 @@ export default function PendingEnrollmentList({
   titleCount: number;
   onEvaluate: (item: EnrollmentItem) => void;
 }) {
+  const hasItems = items.length > 0;
+
   return (
     <div className="card shadow-sm enroll-card">
       <div className="card-body">
@@ -30,7 +32,7 @@ export default function PendingEnrollmentList({
 
         {loading ? (
           <div className="text-muted text-center py-4">Loading...</div>
-        ) : (
+        ) : hasItems ? (
           <div className="d-flex flex-column gap-3">
             {items.map((s) => {
               const fullName =
@@ -79,12 +81,15 @@ export default function PendingEnrollmentList({
                 </div>
               );
             })}
-
-            {items.length === 0 && (
-              <div className="text-muted text-center py-4">
-                No pending students.
-              </div>
-            )}
+          </div>
+        ) : (
+          // ✅ Empty state (like UsersPage)
+          <div className="users-empty-state">
+            <div className="users-empty-icon">📭</div>
+            <h5 className="fw-semibold mb-1">No pending students</h5>
+            <p className="text-muted mb-0">
+              You're all caught up. Pending evaluations will appear here.
+            </p>
           </div>
         )}
       </div>

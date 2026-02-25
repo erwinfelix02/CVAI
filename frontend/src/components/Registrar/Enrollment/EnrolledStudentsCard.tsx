@@ -47,6 +47,8 @@ export default function EnrolledStudentsCard({
   const allSelected =
     selectableIds.length > 0 && selectedCount === selectableIds.length;
 
+  const hasItems = items.length > 0;
+
   return (
     <div className="card shadow-sm enroll-card mt-3 mt-md-4">
       <div className="card-body">
@@ -85,18 +87,32 @@ export default function EnrolledStudentsCard({
               placeholder="Filter enrolled students by name or ID..."
               value={enrolledQuery}
               onChange={(e) => setEnrolledQuery(e.target.value)}
+              disabled={!loading && !hasItems} // optional: disable when empty
             />
           </div>
         </div>
 
         <div className="mt-3">
-          <EnrolledStudentsList
-            loading={loading}
-            items={items}
-            selectedIds={selectedIds}
-            onToggleSelect={onToggleSelect}
-            onSendCredentialsOne={onSendCredentialsOne}
-          />
+          {loading ? (
+            <div className="text-muted text-center py-4">Loading...</div>
+          ) : hasItems ? (
+            <EnrolledStudentsList
+              loading={loading}
+              items={items}
+              selectedIds={selectedIds}
+              onToggleSelect={onToggleSelect}
+              onSendCredentialsOne={onSendCredentialsOne}
+            />
+          ) : (
+            // ✅ Empty state (same feel as UsersPage)
+            <div className="users-empty-state">
+              <div className="users-empty-icon">📭</div>
+              <h5 className="fw-semibold mb-1">No enrolled students found</h5>
+              <p className="text-muted mb-0">
+                Try adjusting your search or check back after enrollment updates.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -23,8 +23,13 @@ export default function RegistrarApplicationsList({
 }: Props) {
   // ✅ count only selectable approved students (not schedule sent)
   const selectedCount = items.filter(
-    (a) => a.status === "Approved" && !a.scheduleSent && selectedApprovedIds.has(a.id),
+    (a) =>
+      a.status === "Approved" &&
+      !a.scheduleSent &&
+      selectedApprovedIds.has(a.id),
   ).length;
+
+  const hasItems = items.length > 0;
 
   return (
     <div className="card shadow-sm registrar-card">
@@ -45,22 +50,29 @@ export default function RegistrarApplicationsList({
         </div>
 
         <div className="d-flex flex-column gap-3">
-          {items.map((a) => (
-            <RegistrarApplicationRow
-              key={a.id}
-              item={a}
-              onReview={onReview}
-              isApprovedSelected={
-                a.status === "Approved" && !a.scheduleSent && selectedApprovedIds.has(a.id)
-              } // ✅ only selected if not sent
-              onToggleApproved={onToggleApproved}
-              onSendSchedule={onSendSchedule}
-            />
-          ))}
-
-          {items.length === 0 && (
-            <div className="text-muted text-center py-4">
-              No applications found.
+          {hasItems ? (
+            items.map((a) => (
+              <RegistrarApplicationRow
+                key={a.id}
+                item={a}
+                onReview={onReview}
+                isApprovedSelected={
+                  a.status === "Approved" &&
+                  !a.scheduleSent &&
+                  selectedApprovedIds.has(a.id)
+                }
+                onToggleApproved={onToggleApproved}
+                onSendSchedule={onSendSchedule}
+              />
+            ))
+          ) : (
+            // ✅ Empty state like UsersPage
+            <div className="users-empty-state py-5">
+              <div className="users-empty-icon">📭</div>
+              <h5 className="fw-semibold mb-1">No applications found</h5>
+              <p className="text-muted mb-0">
+                Applications will appear here once submitted.
+              </p>
             </div>
           )}
         </div>
