@@ -10,25 +10,35 @@ const enrollmentSchema = new mongoose.Schema(
 
     registrationId: { type: String, required: true },
 
-    // ✅ REQUIRED for frontend list display (fix undefined studentName)
     studentName: { type: String, required: true },
     email: { type: String, required: true },
 
-    // ✅ store prereg info (NO blockchain)
+    studentIdNumber: { type: String, default: "" },
+
+    studentRef: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Student",
+      default: null,
+    },
+
     personal: {
       firstName: String,
       middleName: String,
       lastName: String,
       email: String,
       phone: String,
-      birthDate: String,
-      gender: String,
       address: String,
+      birthdate: String,
+      guardian: String,
+      guardianPhone: String,
+      gender: String,
     },
 
     academic: {
+      program: String,
+      yearLevel: String,
+      department: String,
       applicantType: String,
-      course: String,
       previousSchool: String,
     },
 
@@ -39,18 +49,19 @@ const enrollmentSchema = new mongoose.Schema(
       idPhoto: String,
     },
 
-    // ✅ credentials (store what you need)
     credentials: {
       username: { type: String, default: "" },
       passwordHash: { type: String, default: "" },
       credentialsSentAt: { type: Date, default: null },
     },
 
-    // ✅ schedule info
+    // ✅ ONE ONLY
+    credentialsSent: { type: Boolean, default: false },
+
     schedule: {
-      date: { type: String, required: true },
-      time: { type: String, required: true },
-      location: { type: String, required: true },
+      date: { type: String },
+      time: { type: String },
+      location: { type: String },
       notes: { type: String, default: "" },
     },
 
@@ -60,9 +71,13 @@ const enrollmentSchema = new mongoose.Schema(
       default: "Scheduled",
     },
 
+    verifiedDocs: { type: [String], default: [] },
+    evaluationNotes: { type: String, default: "" },
+    evaluatedAt: { type: Date, default: null },
+
     sentAt: { type: Date, default: Date.now },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model("Enrollment", enrollmentSchema);

@@ -1,75 +1,64 @@
 import { Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import EnrollmentStats from "../../components/Registrar/Enrollment/EnrollmentStats";
 import PendingEnrollmentList from "../../components/Registrar/Enrollment/PendingEnrollmentList";
 import SectionCapacityGrid from "../../components/Registrar/Enrollment/SectionCapacityGrid";
 import EnrollmentEvaluationModal from "../../components/Registrar/Enrollment/EnrollmentEvaluationModal";
 
+import EnrolledStudentsCard from "../../components/Registrar/Enrollment/EnrolledStudentsCard";
+import SendCredentialsModal from "../../components/Registrar/Enrollment/SendCredentialsModal";
+
+import type { StudentItem } from "../../components/Registrar/Enrollment/studentTypes";
+import { getStudentsByEnrollmentIds } from "../../api/studentService";
+
 import type { SectionItem } from "../../components/Registrar/Sections/types";
+import type { EnrollmentItem } from "../../components/Registrar/Enrollment/types";
+
 import { getSections } from "../../api/sectionService";
 
 import "../../styles/registrar-enrollment.css";
-
-/* ================= TYPES ================= */
-
-type EnrollmentItem = {
-  _id: string;
-  registrationId: string;
-  studentName?: string;
-  email?: string;
-
-  status: "Scheduled" | "Enrolled" | "Cancelled";
-
-  personal?: {
-    firstName?: string;
-    lastName?: string;
-    phone?: string;
-    address?: string;
-    birthdate?: string;
-    guardian?: string;
-    guardianPhone?: string;
-  };
-
-  academic?: {
-    program?: string;
-    yearLevel?: string | number;
-    department?: string;
-  };
-
-  createdAt?: string;
-};
-
-/* ================= PAGE ================= */
 
 export default function StudentEnrollmentPage() {
   // ✅ pending search
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // ✅ enrolled search (separate filter)
+  // ✅ enrolled search
   const [enrolledQuery, setEnrolledQuery] = useState("");
   const [enrolledLoading, setEnrolledLoading] = useState(true);
 
-  // ✅ pending list
+  // ✅ data
   const [enrollments, setEnrollments] = useState<EnrollmentItem[]>([]);
-
-  // ✅ enrolled list
   const [enrolledStudents, setEnrolledStudents] = useState<EnrollmentItem[]>([]);
 
+  // ✅ stats
   const [stats, setStats] = useState<{
     pending: number;
     enrolled: number;
     semesterLabel: string;
   } | null>(null);
 
-  // ✅ OFFICIAL SECTIONS FROM DB
+  // ✅ sections
   const [sections, setSections] = useState<SectionItem[]>([]);
   const [sectionsLoading, setSectionsLoading] = useState(false);
 
-  // ✅ EVALUATION MODAL STATE
+  // ✅ evaluation modal
   const [evalOpen, setEvalOpen] = useState(false);
   const [selected, setSelected] = useState<EnrollmentItem | null>(null);
+
+  // ✅ enrolled selection (bulk)
+  const [selectedEnrolledIds, setSelectedEnrolledIds] = useState<string[]>([]);
+
+  // ✅ credentials modal (Student table)
+  const [credOpen, setCredOpen] = useState(false);
+  const [credTargets, setCredTargets] = useState<StudentItem[]>([]);
+  const [credLoading, setCredLoading] = useState(false);
+
+  // ✅ NEW: store which ENROLLMENT IDs are being sent (bulk or single)
+  const [credEnrollmentIds, setCredEnrollmentIds] = useState<string[]>([]);
+
+  /* ================= API LOADERS ================= */
 
   const fetchStats = async () => {
     try {
@@ -81,25 +70,22 @@ export default function StudentEnrollmentPage() {
     }
   };
 
-  // ✅ LOAD OFFICIAL SECTIONS
   const loadSections = async () => {
     try {
       setSectionsLoading(true);
       const data = await getSections();
 
-      const mapped: SectionItem[] = (Array.isArray(data) ? data : []).map(
-        (s: any) => ({
-          id: s._id,
-          code: s.code,
-          yearLevel: s.yearLevel,
-          program: s.program,
-          adviser: s.adviser ?? "TBA",
-          room: s.room,
-          schedule: s.schedule,
-          enrolled: s.enrolled ?? 0,
-          capacity: s.capacity ?? 0,
-        })
-      );
+      const mapped: SectionItem[] = (Array.isArray(data) ? data : []).map((s: any) => ({
+        id: s._id,
+        code: s.code,
+        yearLevel: s.yearLevel,
+        program: s.program,
+        adviser: s.adviser ?? "TBA",
+        room: s.room,
+        schedule: s.schedule,
+        enrolled: s.enrolled ?? 0,
+        capacity: s.capacity ?? 0,
+      }));
 
       setSections(mapped);
     } catch (e) {
@@ -110,7 +96,6 @@ export default function StudentEnrollmentPage() {
     }
   };
 
-  // ✅ LOAD PENDING ENROLLMENTS (Scheduled)
   const loadPending = async (search: string) => {
     try {
       setLoading(true);
@@ -131,7 +116,6 @@ export default function StudentEnrollmentPage() {
     }
   };
 
-  // ✅ LOAD ENROLLED STUDENTS (Enrolled)
   const loadEnrolled = async (search: string) => {
     try {
       setEnrolledLoading(true);
@@ -143,14 +127,22 @@ export default function StudentEnrollmentPage() {
       const res = await fetch(url.toString());
       const data = await res.json();
 
-      setEnrolledStudents(Array.isArray(data) ? data : []);
+      const list: EnrollmentItem[] = Array.isArray(data) ? data : [];
+      setEnrolledStudents(list);
+
+      // ✅ keep selections valid
+      const ids = new Set(list.map((x) => x._id));
+      setSelectedEnrolledIds((prev) => prev.filter((id) => ids.has(id)));
     } catch (e) {
       console.error("Failed to load enrolled students", e);
       setEnrolledStudents([]);
+      setSelectedEnrolledIds([]);
     } finally {
       setEnrolledLoading(false);
     }
   };
+
+  /* ================= EFFECTS ================= */
 
   useEffect(() => {
     fetchStats();
@@ -160,25 +152,23 @@ export default function StudentEnrollmentPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // pending filter
   useEffect(() => {
     loadPending(query);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
-  // enrolled filter
   useEffect(() => {
     loadEnrolled(enrolledQuery);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enrolledQuery]);
 
-  // ✅ Evaluate click
+  /* ================= ACTIONS ================= */
+
   const onEvaluate = (item: EnrollmentItem) => {
     setSelected(item);
     setEvalOpen(true);
   };
 
-  // ✅ Final submit (called by modal)
   const handleEnroll = async ({
     enrollmentId,
     updatedInfo,
@@ -209,7 +199,7 @@ export default function StudentEnrollmentPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ updatedInfo, notes, verifiedDocs }),
-        }
+        },
       );
 
       if (!res.ok) {
@@ -217,11 +207,9 @@ export default function StudentEnrollmentPage() {
         throw new Error(err?.message || "Failed to submit evaluation.");
       }
 
-      // close modal
       setEvalOpen(false);
       setSelected(null);
 
-      // refresh everything
       await Promise.all([
         loadPending(query),
         loadEnrolled(enrolledQuery),
@@ -234,7 +222,8 @@ export default function StudentEnrollmentPage() {
     }
   };
 
-  // show filtered count during search, otherwise show real DB count
+  /* ================= COUNTS ================= */
+
   const pendingCount = query.trim()
     ? enrollments.length
     : stats?.pending ?? enrollments.length;
@@ -242,6 +231,126 @@ export default function StudentEnrollmentPage() {
   const enrolledCount = enrolledQuery.trim()
     ? enrolledStudents.length
     : stats?.enrolled ?? enrolledStudents.length;
+
+  /* ================= SELECTION HELPERS ================= */
+
+  const enrolledIds = useMemo(
+    () => enrolledStudents.map((x) => x._id),
+    [enrolledStudents],
+  );
+
+  const toggleSelectEnrolled = (id: string) => {
+    setSelectedEnrolledIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const selectAllEnrolled = () => setSelectedEnrolledIds(enrolledIds);
+  const clearAllEnrolled = () => setSelectedEnrolledIds([]);
+
+  /* ================= CREDENTIALS MODAL FLOW (STUDENT TABLE) ================= */
+
+  const openCredentialsForSelected = async () => {
+    if (selectedEnrolledIds.length === 0) return;
+
+    try {
+      setCredLoading(true);
+
+      const students = await getStudentsByEnrollmentIds(selectedEnrolledIds);
+
+      if (!students || students.length === 0) {
+        alert("No Student records found for the selected enrollment(s).");
+        return;
+      }
+
+      setCredTargets(students);
+
+      // ✅ IMPORTANT: store enrollment ids for UI update later
+      setCredEnrollmentIds(selectedEnrolledIds);
+
+      setCredOpen(true);
+    } catch (e: any) {
+      console.error(e);
+      alert(e?.message || "Failed to load student records.");
+    } finally {
+      setCredLoading(false);
+    }
+  };
+
+  const openCredentialsForOne = async (enrollmentId: string) => {
+    try {
+      setCredLoading(true);
+
+      const students = await getStudentsByEnrollmentIds([enrollmentId]);
+
+      if (!students || students.length === 0) {
+        alert("No Student record found for this enrollment.");
+        return;
+      }
+
+      setCredTargets(students);
+
+      // ✅ IMPORTANT: store enrollment id for UI update later
+      setCredEnrollmentIds([enrollmentId]);
+
+      setCredOpen(true);
+    } catch (e: any) {
+      console.error(e);
+      alert(e?.message || "Failed to load student record.");
+    } finally {
+      setCredLoading(false);
+    }
+  };
+
+  /* ================= SEND CREDENTIALS ================= */
+
+const sendCredentialsApi = async ({
+  studentIds,
+  subject,
+  message,
+}: {
+  studentIds: string[];
+  subject?: string;
+  message?: string;
+}) => {
+  const res = await fetch("http://localhost:5000/api/accounts/send-credentials", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentIds, subject, message }),
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(data?.message || "Failed to send credentials.");
+  }
+
+  // ✅ students that actually succeeded
+  const sentStudentIds: string[] = Array.isArray(data?.sentStudentIds) ? data.sentStudentIds : [];
+
+  // ✅ mark the enrollment rows as sent (based on what you opened in the modal)
+  // If your Enrollment rows represent EnrollmentIDs, we use credEnrollmentIds
+  // but ONLY if there is at least 1 successful student send
+  if (sentStudentIds.length > 0) {
+    setEnrolledStudents((prev) =>
+      prev.map((enr) =>
+        credEnrollmentIds.includes(enr._id)
+          ? { ...enr, credentialsSent: true }
+          : enr,
+      ),
+    );
+  }
+
+  // refresh for consistency
+  await loadEnrolled(enrolledQuery);
+
+  const sent = (data?.results || []).filter((r: any) => r.status === "sent").length;
+  alert(`Done! Sent credentials to ${sent} student(s).`);
+
+  return data;
+};
+
+  /* ================= RENDER ================= */
 
   return (
     <div className="registrar-enrollment container-fluid px-3 px-md-4">
@@ -257,7 +366,6 @@ export default function StudentEnrollmentPage() {
         semesterLabel={stats?.semesterLabel ?? "—"}
       />
 
-      {/* ✅ Pending Search */}
       <div className="card shadow-sm enroll-card mt-3 mt-md-4">
         <div className="card-body">
           <div className="enroll-searchbar">
@@ -273,7 +381,6 @@ export default function StudentEnrollmentPage() {
         </div>
       </div>
 
-      {/* ✅ Pending List */}
       <div className="mt-3">
         <PendingEnrollmentList
           loading={loading}
@@ -283,37 +390,31 @@ export default function StudentEnrollmentPage() {
         />
       </div>
 
-      {/* ✅ ENROLLED CARD (UNDER PENDING) */}
-      <div className="card shadow-sm enroll-card mt-3 mt-md-4">
-        <div className="card-body">
-          <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-            <h5 className="fw-bold mb-0">Enrolled Students ({enrolledCount})</h5>
-          </div>
+      <EnrolledStudentsCard
+        enrolledCount={enrolledCount}
+        enrolledQuery={enrolledQuery}
+        setEnrolledQuery={setEnrolledQuery}
+        loading={enrolledLoading || credLoading}
+        items={enrolledStudents}
+        selectedIds={selectedEnrolledIds}
+        onToggleSelect={toggleSelectEnrolled}
+        onSelectAll={selectAllEnrolled}
+        onClearAll={clearAllEnrolled}
+        onSendCredentials={openCredentialsForSelected}
+        onSendCredentialsOne={openCredentialsForOne}
+      />
 
-          {/* ✅ filter for enrolled list */}
-          <div className="enroll-searchbar">
-            <Search size={18} className="enroll-search-icon" />
-            <input
-              type="text"
-              className="enroll-search-input"
-              placeholder="Filter enrolled students by name or ID..."
-              value={enrolledQuery}
-              onChange={(e) => setEnrolledQuery(e.target.value)}
-            />
-          </div>
+      <SendCredentialsModal
+        open={credOpen}
+        onClose={() => setCredOpen(false)}
+        students={credTargets}
+        onSend={sendCredentialsApi}
+      />
 
-          <div className="mt-3">
-            <EnrolledStudentsList loading={enrolledLoading} items={enrolledStudents} />
-          </div>
-        </div>
-      </div>
-
-      {/* ✅ capacity grid still uses OFFICIAL DB sections */}
       <div className="mt-3 mt-md-4">
         <SectionCapacityGrid loading={sectionsLoading} sections={sections} />
       </div>
 
-      {/* ✅ EVALUATION MODAL */}
       <EnrollmentEvaluationModal
         open={evalOpen}
         onClose={() => {
@@ -325,76 +426,6 @@ export default function StudentEnrollmentPage() {
         loading={loading || sectionsLoading}
         onEnroll={handleEnroll}
       />
-    </div>
-  );
-}
-
-/* ================= ENROLLED LIST (simple) ================= */
-
-function EnrolledStudentsList({
-  items,
-  loading,
-}: {
-  items: EnrollmentItem[];
-  loading: boolean;
-}) {
-  return (
-    <div className="d-flex flex-column gap-3">
-      {loading ? (
-        <div className="text-muted text-center py-4">Loading...</div>
-      ) : (
-        <>
-          {items.map((s) => {
-            const fullName =
-              s.studentName ||
-              `${s.personal?.firstName ?? ""} ${s.personal?.lastName ?? ""}`.trim() ||
-              "Unknown Student";
-
-            const initials = fullName
-              .split(" ")
-              .filter(Boolean)
-              .slice(0, 2)
-              .map((x) => x[0]?.toUpperCase())
-              .join("");
-
-            const program = s.academic?.program?.trim();
-            const yearLevel = s.academic?.yearLevel?.toString().trim();
-
-            const programLine =
-              program && yearLevel
-                ? `${program} • Year ${yearLevel}`
-                : program
-                ? program
-                : "";
-
-            return (
-              <div key={s._id} className="enroll-student-row">
-                <div className="d-flex align-items-center gap-3">
-                  <div className="enroll-avatar">{initials}</div>
-
-                  <div className="min-w-0">
-                    <div className="fw-semibold">{fullName}</div>
-                    <div className="text-muted small">{s.registrationId}</div>
-                    {programLine ? (
-                      <div className="text-muted small">{programLine}</div>
-                    ) : null}
-                  </div>
-                </div>
-
-                <span className="badge rounded-pill bg-success-subtle text-success border">
-                  Enrolled
-                </span>
-              </div>
-            );
-          })}
-
-          {items.length === 0 ? (
-            <div className="text-muted text-center py-4">
-              No enrolled students found.
-            </div>
-          ) : null}
-        </>
-      )}
     </div>
   );
 }

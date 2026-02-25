@@ -309,3 +309,309 @@
   gap: 10px;
   padding: 12px 18px 16px;
 }
+/* ===== Enrolled header layout (like Applications) ===== */
+.enrolled-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.enrolled-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* link-style button like "Deselect All Approved" */
+.enrolled-link-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #111827;
+  font-weight: 600;
+}
+
+.enrolled-link-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* action button spacing/icon alignment */
+.enrolled-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+/* ===== Row checkbox like Applications (circle) ===== */
+.enrolled-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* circle check button */
+.enrolled-circle-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 2px solid #0b4b5a;
+  background: #fff;
+  flex: 0 0 auto;
+  padding: 0;
+}
+
+/* checked state (dot inside like radio) */
+.enrolled-circle-check.is-checked {
+  background: radial-gradient(circle at center, #0b4b5a 0 45%, #fff 46% 100%);
+}
+
+/* ===== Mobile responsiveness ===== */
+@media (max-width: 576px) {
+  .enrolled-head-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .enrolled-action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+/* ✅ registrar-enrollment.css (ADD/KEEP THESE) */
+
+.enrolled-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.enrolled-send-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+@media (max-width: 576px) {
+  .enrolled-row-actions {
+    width: 100%;
+    justify-content: flex-start;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+
+  .enrolled-send-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+/* =========================================
+   PRIMARY TEAL BUTTON (like Evaluate)
+========================================= */
+
+.btn-teal {
+  background-color: #0f4c5c;
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 22px;
+  font-weight: 600;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-teal:hover {
+  background-color: #0c3f4d;
+  color: #ffffff;
+}
+
+.btn-teal:active {
+  background-color: #08323d;
+}
+
+.btn-teal:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+
+/* =========================================
+   OUTLINE TEAL BUTTON (like Send Schedule)
+========================================= */
+
+/* Filled Teal Button */
+.btn-teal {
+  background-color: #0f4c5c;
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-teal:hover {
+  background-color: #0c3f4d;
+  color: #ffffff;
+}
+
+.btn-teal:active {
+  background-color: #08323d;
+}
+
+.btn-teal:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+
+/* =========================================
+   ROW ACTION ALIGNMENT
+========================================= */
+
+.enrolled-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.enrolled-send-btn {
+  white-space: nowrap;
+}
+
+
+/* =========================================
+   RESPONSIVE FIXES
+========================================= */
+
+@media (max-width: 768px) {
+  .btn-teal {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  .btn-teal-outline {
+    padding: 6px 14px;
+    font-size: 13px;
+  }
+
+  .enrolled-row-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+/* ===== Custom Modal (matches your Send Schedule layout) ===== */
+/* ===== Custom Modal (fixed size + proper overlay) ===== */
+.modal-backdrop-custom{
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+ z-index: 9999;
+}
+
+.modal-card-custom{
+  width: min(720px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+
+  /* prevent huge height */
+  max-height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-head-custom{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid #e5e7eb;
+  flex: 0 0 auto;
+}
+
+.modal-x-btn{
+  border: none;
+  background: #f3f4f6;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+
+.modal-x-btn:hover{
+  background: #e5e7eb;
+}
+
+/* ✅ make body scroll inside modal */
+.modal-body-custom{
+  padding: 16px 18px;
+  overflow: auto;
+  flex: 1 1 auto;
+}
+
+.modal-foot-custom{
+  padding: 14px 18px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+/* responsive */
+@media (max-width: 640px){
+  .modal-card-custom{
+    width: 100%;
+    border-radius: 14px;
+  }
+
+  .modal-foot-custom{
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999; /* higher than your main modal */
+}
+
+.confirm-card {
+  width: 420px;
+  max-width: 92vw;
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+}

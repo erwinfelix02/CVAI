@@ -44,14 +44,14 @@ export const evaluateEnrollment = async (req, res) => {
     }
 
     // ✅ prevent double evaluation
-    if (enrollment.studentId) {
+    if (enrollment.studentRef) {
       return res.status(409).json({ message: "This enrollment was already evaluated." });
     }
 
-    const regId = String(updatedInfo.studentId).trim();
+    const studentIdNumber = String(updatedInfo.studentId).trim();
 
-    // ✅ prevent duplicate student registrationId
-    const existingStudent = await Student.findOne({ registrationId: regId });
+    // ✅ prevent duplicate studentIdNumber
+    const existingStudent = await Student.findOne({ studentIdNumber });
     if (existingStudent) {
       return res.status(409).json({ message: "A student with this Student ID already exists." });
     }
@@ -59,7 +59,8 @@ export const evaluateEnrollment = async (req, res) => {
     // ✅ CREATE STUDENT
     const studentDoc = await Student.create({
       enrollmentId: enrollment._id,
-      registrationId: regId,
+      studentIdNumber,
+
       fullName: String(updatedInfo.fullName).trim(),
       email: String(updatedInfo.email).trim(),
       phone: String(updatedInfo.phone).trim(),
@@ -79,26 +80,33 @@ export const evaluateEnrollment = async (req, res) => {
 
     // ✅ UPDATE ENROLLMENT
     enrollment.status = "Enrolled";
-    enrollment.studentId = studentDoc._id;
+    enrollment.studentIdNumber = studentIdNumber;
+    enrollment.studentRef = studentDoc._id;
+
+    // keep top-level in sync for list display
+    enrollment.email = String(updatedInfo.email).trim();
+    enrollment.studentName = String(updatedInfo.fullName).trim();
+
     enrollment.verifiedDocs = Array.isArray(verifiedDocs) ? verifiedDocs : [];
     enrollment.evaluationNotes = String(notes || "").trim();
     enrollment.evaluatedAt = new Date();
 
-    // ✅ optional sync back to enrollment doc
+    // sync into nested objects
     enrollment.personal = {
       ...(enrollment.personal || {}),
-      phone: updatedInfo.phone,
-      address: updatedInfo.address,
-      birthdate: updatedInfo.birthdate, // keep as string if your Enrollment schema uses string
-      guardian: updatedInfo.guardian,
-      guardianPhone: updatedInfo.guardianPhone,
+      email: String(updatedInfo.email).trim(),
+      phone: String(updatedInfo.phone).trim(),
+      address: String(updatedInfo.address).trim(),
+      birthdate: String(updatedInfo.birthdate).trim(),
+      guardian: String(updatedInfo.guardian).trim(),
+      guardianPhone: String(updatedInfo.guardianPhone).trim(),
     };
 
     enrollment.academic = {
       ...(enrollment.academic || {}),
-      program: updatedInfo.program,
-      yearLevel: updatedInfo.yearLevel,
-      department: updatedInfo.department,
+      program: String(updatedInfo.program).trim(),
+      yearLevel: String(updatedInfo.yearLevel).trim(),
+      department: String(updatedInfo.department).trim(),
     };
 
     await enrollment.save();
@@ -111,9 +119,8 @@ export const evaluateEnrollment = async (req, res) => {
   } catch (err) {
     console.error(err);
 
-    // ✅ handle unique constraint error nicely
     if (err?.code === 11000) {
-      return res.status(409).json({ message: "Duplicate student registrationId/email." });
+      return res.status(409).json({ message: "Duplicate student id/email." });
     }
 
     return res.status(500).json({ message: "Server error." });

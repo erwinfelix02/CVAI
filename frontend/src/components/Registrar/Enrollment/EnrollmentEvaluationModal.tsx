@@ -6,19 +6,29 @@ import type { SectionItem } from "../../Registrar/Sections/types";
 
 type EnrollmentItem = {
   _id: string;
+
+  // ✅ Application tracking ID (NOT the registrar Student ID number)
   registrationId: string;
+
+  // ✅ Registrar input Student ID number (saved on Enrollment after evaluation)
+  studentIdNumber?: string;
+
   studentName?: string;
   email?: string;
+
   status: "Scheduled" | "Enrolled" | "Cancelled";
+
   personal?: {
     firstName?: string;
     lastName?: string;
+    email?: string;
     phone?: string;
     address?: string;
-    birthdate?: string; // ✅ from DB
+    birthdate?: string;
     guardian?: string;
     guardianPhone?: string;
   };
+
   academic?: {
     program?: string;
     yearLevel?: string | number;
@@ -37,7 +47,10 @@ type Props = {
     enrollmentId: string;
     updatedInfo: {
       fullName: string;
+
+      // ✅ Registrar-entered Student ID number
       studentId: string;
+
       email: string;
       phone: string;
       address: string;
@@ -84,7 +97,10 @@ export default function EnrollmentEvaluationModal({
 
   // STEP 1 fields
   const [fullName, setFullName] = useState("");
+
+  // ✅ registrar Student ID number
   const [studentId, setStudentId] = useState("");
+
   const [program, setProgram] = useState("");
   const [yearLevel, setYearLevel] = useState("");
   const [email, setEmail] = useState("");
@@ -131,7 +147,7 @@ export default function EnrollmentEvaluationModal({
   const programOptions = useMemo(() => {
     const set = new Set<string>();
     sections.forEach((s) => {
-      if (s.program) set.add(String(s.program));
+      if ((s as any).program) set.add(String((s as any).program));
     });
     const arr = Array.from(set);
     if (arr.length === 0) return ["BS Computer Science", "BS Information Technology"];
@@ -151,8 +167,7 @@ export default function EnrollmentEvaluationModal({
       `${student.personal?.firstName ?? ""} ${student.personal?.lastName ?? ""}`.trim();
 
     setFullName(computedName);
-    setStudentId(student.registrationId || "");
-    setEmail(student.email || "");
+    setEmail(student.email || student.personal?.email || "");
     setPhone(student.personal?.phone || "");
     setAddress(student.personal?.address || "");
     setBirthdate(toISODate(student.personal?.birthdate));
@@ -160,6 +175,11 @@ export default function EnrollmentEvaluationModal({
     setGuardianPhone(student.personal?.guardianPhone || "");
     setProgram(student.academic?.program || "");
     setYearLevel(student.academic?.yearLevel?.toString() || "");
+
+    // ✅ IMPORTANT CHANGE:
+    // Do NOT set studentId from registrationId (application id)
+    // Prefill only if studentIdNumber exists (re-open evaluation)
+    setStudentId(student.studentIdNumber || "");
 
     setNotes("");
     setFinalConfirm(false);
@@ -171,7 +191,7 @@ export default function EnrollmentEvaluationModal({
 
   const verifiedCount = useMemo(
     () => Object.values(docsChecked).filter(Boolean).length,
-    [docsChecked]
+    [docsChecked],
   );
 
   const step1Valid =
@@ -194,14 +214,12 @@ export default function EnrollmentEvaluationModal({
   const goNext = () => setStep((s) => (s === 1 ? 2 : s === 2 ? 3 : 3));
   const goBack = () => setStep((s) => (s === 3 ? 2 : 1));
 
-  // ✅ open confirmation instead of direct submit
   const onEnrollClick = () => {
     if (loading) return;
     if (!step1Valid || !step2Valid || !step3Valid) return;
     setConfirmOpen(true);
   };
 
-  // ✅ real submit only after confirm
   const confirmEnroll = async () => {
     if (submittingRef.current) return;
     submittingRef.current = true;
@@ -215,7 +233,10 @@ export default function EnrollmentEvaluationModal({
         enrollmentId: student._id,
         updatedInfo: {
           fullName: fullName.trim(),
+
+          // ✅ registrar-entered Student ID number
           studentId: studentId.trim(),
+
           email: email.trim(),
           phone: phone.trim(),
           address: address.trim(),
@@ -224,7 +245,9 @@ export default function EnrollmentEvaluationModal({
           guardianPhone: guardianPhone.trim(),
           program: program.trim(),
           yearLevel: yearLevel.trim(),
-          department: program.trim(),
+
+          // ✅ use your current behavior, but department should come from a field if you have one
+          department: (student.academic?.department || program).trim(),
         },
         notes: notes.trim(),
         verifiedDocs,
@@ -244,7 +267,6 @@ export default function EnrollmentEvaluationModal({
       aria-modal="true"
       aria-label="Enrollment Evaluation"
       onMouseDown={(e) => {
-        // click outside closes only if confirm isn't open
         if (e.target === e.currentTarget && !confirmOpen) onClose();
       }}
     >
@@ -279,21 +301,30 @@ export default function EnrollmentEvaluationModal({
                 Fill in missing info (required) and verify everything is correct.
               </div>
 
+              {/* ✅ helpful info line */}
+              <div className="text-muted small mb-3">
+                Application ID: <span className="fw-semibold">{student.registrationId}</span>
+              </div>
+
               <div className="card border-0 shadow-sm">
                 <div className="card-body">
                   <div className="row g-3">
                     <FieldInput label="Full Name" value={fullName} onChange={setFullName} required />
-                    <FieldInput label="Student ID" value={studentId} onChange={setStudentId} required />
+
+                    {/* ✅ registrar input Student ID number */}
+                    <FieldInput
+                      label="Student ID Number"
+                      value={studentId}
+                      onChange={setStudentId}
+                      required
+                      placeholder="Enter assigned Student ID (ex: 2026-000123)"
+                    />
 
                     <div className="col-12 col-md-6">
                       <label className="form-label fw-semibold">
                         Course / Program <span className="text-danger">*</span>
                       </label>
-                      <select
-                        className="form-select"
-                        value={program}
-                        onChange={(e) => setProgram(e.target.value)}
-                      >
+                      <select className="form-select" value={program} onChange={(e) => setProgram(e.target.value)}>
                         <option value="">Select course/program...</option>
                         {programOptions.map((p) => (
                           <option key={p} value={p}>
@@ -307,11 +338,7 @@ export default function EnrollmentEvaluationModal({
                       <label className="form-label fw-semibold">
                         Year Level <span className="text-danger">*</span>
                       </label>
-                      <select
-                        className="form-select"
-                        value={yearLevel}
-                        onChange={(e) => setYearLevel(e.target.value)}
-                      >
+                      <select className="form-select" value={yearLevel} onChange={(e) => setYearLevel(e.target.value)}>
                         <option value="">Select year level...</option>
                         {yearOptions.map((y) => (
                           <option key={y} value={y}>
@@ -338,18 +365,11 @@ export default function EnrollmentEvaluationModal({
                     </div>
 
                     <FieldInput label="Guardian" value={guardian} onChange={setGuardian} required />
-                    <FieldInput
-                      label="Guardian Phone"
-                      value={guardianPhone}
-                      onChange={setGuardianPhone}
-                      required
-                    />
+                    <FieldInput label="Guardian Phone" value={guardianPhone} onChange={setGuardianPhone} required />
                   </div>
 
                   {!step1Valid ? (
-                    <div className="text-danger small mt-3">
-                      Please complete all required fields (*).
-                    </div>
+                    <div className="text-danger small mt-3">Please complete all required fields (*).</div>
                   ) : null}
                 </div>
               </div>
@@ -372,9 +392,7 @@ export default function EnrollmentEvaluationModal({
                           type="checkbox"
                           className="form-check-input mt-0"
                           checked={checked}
-                          onChange={(e) =>
-                            setDocsChecked((p) => ({ ...p, [d]: e.target.checked }))
-                          }
+                          onChange={(e) => setDocsChecked((p) => ({ ...p, [d]: e.target.checked }))}
                         />
                         <div className="fw-semibold">{d}</div>
                       </div>
@@ -393,17 +411,13 @@ export default function EnrollmentEvaluationModal({
                   <div
                     className="progress-bar"
                     role="progressbar"
-                    style={{
-                      width: `${Math.round((verifiedCount / requiredDocs.length) * 100)}%`,
-                    }}
+                    style={{ width: `${Math.round((verifiedCount / requiredDocs.length) * 100)}%` }}
                   />
                 </div>
               </div>
 
               {!step2Valid ? (
-                <div className="text-danger small mt-3">
-                  Verify at least 1 document to continue.
-                </div>
+                <div className="text-danger small mt-3">Verify at least 1 document to continue.</div>
               ) : null}
             </>
           )}
@@ -438,9 +452,7 @@ export default function EnrollmentEvaluationModal({
                   </label>
 
                   {!step3Valid ? (
-                    <div className="text-danger small mt-2">
-                      Please confirm to enable submission.
-                    </div>
+                    <div className="text-danger small mt-2">Please confirm to enable submission.</div>
                   ) : null}
                 </div>
               </div>
@@ -467,11 +479,7 @@ export default function EnrollmentEvaluationModal({
               <button
                 className="btn btn-primary"
                 onClick={goNext}
-                disabled={
-                  loading ||
-                  confirmOpen ||
-                  (step === 1 ? !step1Valid : step === 2 ? !step2Valid : false)
-                }
+                disabled={loading || confirmOpen || (step === 1 ? !step1Valid : step === 2 ? !step2Valid : false)}
               >
                 Next
               </button>
@@ -512,11 +520,7 @@ export default function EnrollmentEvaluationModal({
                 <button className="btn btn-light" onClick={() => setConfirmOpen(false)}>
                   Cancel
                 </button>
-                <button
-                  className="btn btn-primary"
-                  onClick={confirmEnroll}
-                  disabled={loading}
-                >
+                <button className="btn btn-primary" onClick={confirmEnroll} disabled={loading}>
                   Yes, Enroll
                 </button>
               </div>
@@ -558,11 +562,13 @@ function FieldInput({
   value,
   onChange,
   required,
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   required?: boolean;
+  placeholder?: string;
 }) {
   return (
     <div className="col-12 col-md-6">
@@ -573,7 +579,7 @@ function FieldInput({
         className="form-control"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={label}
+        placeholder={placeholder || label}
       />
     </div>
   );

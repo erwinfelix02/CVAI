@@ -15,6 +15,8 @@ import aiInsightRoutes from "./routes/aiInsightRoutes.js";
 import sectionRoutes from "./routes/sectionRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
 import enrollmentRoutes from "./routes/enrollmentRoutes.js";
+import studentRoutes from "./routes/studentRoutes.js";
+import accountRoutes from "./routes/accountRoutes.js";
 const app = express();
 
 app.use(cors());
@@ -65,6 +67,8 @@ app.use("/api/enrollment", enrollmentRoutes);
 
 app.use("/api/sections", sectionRoutes);
 app.use("/api/courses", courseRoutes);
+app.use("/api/students", studentRoutes);
+app.use("/api/accounts", accountRoutes);
 
 app.listen(5000, () =>
   console.log("🚀 Server running on http://localhost:5000"),

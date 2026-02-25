@@ -8,10 +8,11 @@ const studentSchema = new mongoose.Schema(
       required: true,
     },
 
-    registrationId: {
+    // ✅ registrar-entered Student ID number
+    studentIdNumber: {
       type: String,
       required: true,
-      unique: true, // ✅ add this (recommended)
+      unique: true,
       index: true,
       trim: true,
     },
@@ -47,7 +48,7 @@ const studentSchema = new mongoose.Schema(
       default: "Active",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model("Student", studentSchema);
