@@ -231,7 +231,7 @@ useEffect(() => {
     if (prev) setActiveStep(prev);
   }
 
-  async function handleSubmit() {
+async function handleSubmit() {
   if (isSubmitting) return;
   setIsSubmitting(true);
 
@@ -254,6 +254,7 @@ useEffect(() => {
     if (hasErrors(pe as Record<string, unknown>)) setActiveStep("personal");
     else if (hasErrors(ae as Record<string, unknown>)) setActiveStep("academic");
     else setActiveStep("documents");
+
     setIsSubmitting(false);
     return;
   }
@@ -272,13 +273,11 @@ useEffect(() => {
       body: formData,
     });
 
-    // ✅ handle duplicate
     if (response.status === 409) {
       const body = await response.json().catch(() => null);
       setAlertMessage(body?.message || "Duplicate application found.");
       setAlertType("error");
       setShowAlert(true);
-      setIsSubmitting(false);
       return;
     }
 
@@ -296,53 +295,10 @@ useEffect(() => {
     setAlertMessage(err?.message || "Something went wrong. Please try again.");
     setAlertType("error");
     setShowAlert(true);
+  } finally {
     setIsSubmitting(false);
   }
-
-
-    try {
-      const formData = new FormData();
-
-      // attach JSON data
-      formData.append(
-        "data",
-        JSON.stringify({
-          personal,
-          academic,
-        }),
-      );
-
-      // attach files
-      if (docs.birthCert) formData.append("birthCert", docs.birthCert);
-      if (docs.form137) formData.append("form137", docs.form137);
-      if (docs.goodMoral) formData.append("goodMoral", docs.goodMoral);
-      if (docs.idPhoto) formData.append("idPhoto", docs.idPhoto);
-
-      const response = await fetch(
-        "http://localhost:5000/api/preregistrations",
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
-
-      if (!response.ok) throw new Error("Submission failed");
-
-      setAlertMessage("Application submitted successfully!");
-      setAlertType("success");
-      setShowAlert(true);
-
-      // Redirect after 2.5 seconds
-      setTimeout(() => {
-        navigate("/"); // landing page
-      }, 2500);
-    } catch (err) {
-       setAlertMessage("Something went wrong. Please try again.");
-    setAlertType("error");
-    setShowAlert(true);
-    setIsSubmitting(false);
-    }
-  }
+}
 
   function handleStepChange(nextKey: StepKey) {
     const nextIndex = steps.findIndex((s) => s.key === nextKey);
