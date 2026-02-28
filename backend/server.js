@@ -21,7 +21,7 @@ import registrarSettingsRoutes from "./routes/registrarSettingsRoutes.js";
 import roleRoutes from "./routes/roleRoutes.js";
 import { seedRolesIfMissing } from "./utils/seedRoles.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
-
+import securitySettingsRoutes from "./routes/securitySettingsRoutes.js";
 
 const app = express();
 
@@ -77,7 +77,7 @@ const startServer = async () => {
     app.use("/api/accounts", accountRoutes);
     app.use("/api/registrar/settings", registrarSettingsRoutes);
     app.use("/api/settings", settingsRoutes);
-
+app.use("/api/security-settings", securitySettingsRoutes);
     // ✅ NEW
     app.use("/api/roles", roleRoutes);
 

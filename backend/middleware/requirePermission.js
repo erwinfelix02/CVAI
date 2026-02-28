@@ -24,13 +24,15 @@ function roleToRoleId(role) {
   }
 }
 
-exports.requirePermission = (permissionKey) => {
+export const requirePermission = (permissionKey) => {
   return async (req, res, next) => {
     try {
-      const roleName = req.user?.role; // depends on your auth middleware
+      const roleName = req.user?.role;
       const roleId = roleToRoleId(roleName);
 
-      if (!roleId) return res.status(403).json({ message: "Forbidden" });
+      if (!roleId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
 
       const roleDoc = await Role.findOne({ roleId }).lean();
       const perms = roleDoc?.permissions || [];

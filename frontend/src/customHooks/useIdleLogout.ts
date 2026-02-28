@@ -1,15 +1,18 @@
 import { useEffect } from "react";
 
-const IDLE_TIME = 30 * 60 * 1000; // 15 minutes
-
-export default function useIdleLogout(): void {
+export default function useIdleLogout(sessionTimeoutMinutes?: number): void {
   useEffect(() => {
+    // fallback to 30 while loading
+    const minutes = sessionTimeoutMinutes ?? 30;
+    const IDLE_TIME = minutes * 60 * 1000;
+
     const update = (): void => {
       localStorage.setItem("lastActivity", Date.now().toString());
     };
 
     const logout = (): void => {
       localStorage.removeItem("token");
+      localStorage.removeItem("sessionToken");
       localStorage.removeItem("lastActivity");
       window.location.href = "/signin";
     };
@@ -25,7 +28,12 @@ export default function useIdleLogout(): void {
       "mousemove",
       "keydown",
       "click",
+      "scroll",
+      "touchstart",
     ];
+
+    // initialize activity if missing
+    if (!localStorage.getItem("lastActivity")) update();
 
     events.forEach((e) => window.addEventListener(e, update));
     const interval = window.setInterval(check, 5000);
@@ -34,5 +42,5 @@ export default function useIdleLogout(): void {
       events.forEach((e) => window.removeEventListener(e, update));
       window.clearInterval(interval);
     };
-  }, []);
+  }, [sessionTimeoutMinutes]);
 }
