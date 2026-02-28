@@ -3,9 +3,10 @@ import FacultyRow, { type Faculty } from "./FacultyRow";
 type Props = {
   faculty: Faculty[];
   onSendCredentials: (faculty: Faculty) => void;
+  onViewDetails: (faculty: Faculty) => void; // ✅ NEW
 };
 
-export default function FacultyTable({ faculty, onSendCredentials }: Props) {
+export default function FacultyTable({ faculty, onSendCredentials, onViewDetails }: Props) {
   return (
     <div className="card shadow-sm faculty-card">
       <div className="card-body p-0">
@@ -31,6 +32,7 @@ export default function FacultyTable({ faculty, onSendCredentials }: Props) {
                   key={f.id}
                   faculty={f}
                   onSendCredentials={onSendCredentials}
+                  onViewDetails={onViewDetails} // ✅ NEW
                 />
               ))}
             </tbody>

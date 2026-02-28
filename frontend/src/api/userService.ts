@@ -52,3 +52,14 @@ export async function getStudentUsers(params?: {
 
   return Array.isArray(data) ? data : [];
 }
+
+export const getUserById = async (id: string) => {
+  const res = await fetch(`${API_URL}/${id}`);
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(data?.message || "Failed to load user details");
+  }
+
+  return data;
+};

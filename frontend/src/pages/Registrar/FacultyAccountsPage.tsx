@@ -7,37 +7,66 @@ import AddFacultyModal from "../../components/Registrar/Faculty/AddFacultyModal"
 import "../../styles/faculty.css";
 import SendCredentialsModal from "../../components/SuperAdmin/Users/SendCredentialsModal";
 import type { Faculty } from "../../components/Registrar/Faculty/FacultyRow";
-import { createUser, getUsers, sendCredentials } from "../../api/userService";
+import {
+  createUser,
+  getUsers,
+  sendCredentials,
+  getUserById,
+} from "../../api/userService";
 import AuthAlert from "../../components/Authentication/AuthAlert";
+import FacultyDetailsModal from "../../components/Registrar/Faculty/FacultyDetailsModal";
+
+/** ✅ FULL FACULTY (FROM DATABASE) */
+type FacultyDB = {
+  _id: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  idNumber: string;
+  email: string;
+  phone: string;
+  gender: string;
+  role: string;
+  status: "active" | "inactive";
+  department: string;
+  notes?: string;
+  createdBy?: string;
+  credentialsSent?: boolean;
+  isTemporaryPassword?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
 
 export default function FacultyAccountsPage() {
   const [open, setOpen] = useState(false);
   const [facultyList, setFacultyList] = useState<Faculty[]>([]);
+
   const stats = useMemo(() => {
-  const total = facultyList.length;
-
-  const active = facultyList.filter(
-    (f) => f.status === "Active"
-  ).length;
-
-  const inactive = facultyList.filter(
-    (f) => f.status === "Inactive"
-  ).length;
-
-  return { total, active, inactive };
-}, [facultyList]);
+    const total = facultyList.length;
+    const active = facultyList.filter((f) => f.status === "Active").length;
+    const inactive = facultyList.filter((f) => f.status === "Inactive").length;
+    return { total, active, inactive };
+  }, [facultyList]);
 
   const [isLoading, setIsLoading] = useState(false);
+
   const [sendOpen, setSendOpen] = useState(false);
   const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null);
+
+  // ✅ DETAILS MODAL STATE
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [facultyDetails, setFacultyDetails] = useState<FacultyDB | null>(null);
+
   const [query, setQuery] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
 
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "active" | "inactive"
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">(
+    "all",
+  );
+
   const filteredFaculty = facultyList.filter((f) => {
     const q = query.toLowerCase();
 
@@ -53,9 +82,9 @@ export default function FacultyAccountsPage() {
 
     return matchesQuery && matchesStatus;
   });
+
   const showAlert = (message: string, type: "success" | "error") => {
     setAnimateAlert(false);
-
     setTimeout(() => {
       setAlertMessage(message);
       setAlertType(type);
@@ -63,28 +92,19 @@ export default function FacultyAccountsPage() {
     }, 50);
   };
 
-  /* ===============================
-     LOAD FACULTY FROM DATABASE
-  =============================== */
   useEffect(() => {
     loadFaculty();
   }, []);
 
   useEffect(() => {
     if (!animateAlert) return;
-
-    const t = setTimeout(() => {
-      setAnimateAlert(false);
-    }, 3000);
-
+    const t = setTimeout(() => setAnimateAlert(false), 3000);
     return () => clearTimeout(t);
   }, [animateAlert]);
 
   const loadFaculty = async () => {
     try {
       const users = await getUsers();
-      console.log("RAW USERS:", users);
-      console.log("Is array?", Array.isArray(users));
 
       const facultyOnly = users
         .filter((u: any) => u.role?.toLowerCase() === "faculty")
@@ -96,13 +116,13 @@ export default function FacultyAccountsPage() {
             .join(" "),
           email: u.email,
           department: u.department,
-          status:
-            u.status?.toLowerCase() === "inactive" ? "Inactive" : "Active",
+          status: u.status?.toLowerCase() === "inactive" ? "Inactive" : "Active",
         }));
 
       setFacultyList(facultyOnly);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to load faculty", err);
+      showAlert(err?.message || "Failed to load faculty.", "error");
     }
   };
 
@@ -110,14 +130,31 @@ export default function FacultyAccountsPage() {
     setSelectedFaculty(faculty);
     setSendOpen(true);
   };
+
+  // ✅ Eye click: fetch full details from DB
+  const handleViewDetails = async (faculty: Faculty) => {
+    try {
+      setDetailsOpen(true);
+      setDetailsLoading(true);
+      setFacultyDetails(null);
+
+      const full = await getUserById(faculty.id);
+      setFacultyDetails(full);
+    } catch (err: any) {
+      showAlert(err?.message || "Failed to load faculty details.", "error");
+      setDetailsOpen(false);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
   const confirmSendCredentials = async () => {
     if (!selectedFaculty) return;
 
     try {
       setIsLoading(true);
 
-      await sendCredentials(selectedFaculty.id); // MongoDB _id
-
+      await sendCredentials(selectedFaculty.id);
       await loadFaculty();
 
       setSendOpen(false);
@@ -125,18 +162,12 @@ export default function FacultyAccountsPage() {
 
       showAlert("Credentials sent and faculty activated!", "success");
     } catch (err: any) {
-      showAlert(
-        err.response?.data?.message || "Failed to send credentials.",
-        "error",
-      );
+      showAlert(err?.message || "Failed to send credentials.", "error");
     } finally {
       setIsLoading(false);
     }
   };
 
-  /* ===============================
-     CREATE FACULTY (DATABASE)
-  =============================== */
   const handleCreateFaculty = async (data: any) => {
     try {
       setIsLoading(true);
@@ -153,10 +184,7 @@ export default function FacultyAccountsPage() {
 
       showAlert("Faculty account created successfully!", "success");
     } catch (err: any) {
-      showAlert(
-        err.response?.data?.message || "Failed to create faculty.",
-        "error",
-      );
+      showAlert(err?.message || "Failed to create faculty.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -172,7 +200,6 @@ export default function FacultyAccountsPage() {
       />
 
       <div className="container-fluid py-4">
-        {/* Header */}
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
           <div>
             <h2 className="fw-bold mb-1">Faculty Accounts</h2>
@@ -190,11 +217,11 @@ export default function FacultyAccountsPage() {
           </button>
         </div>
 
-       <FacultyStats
-  total={stats.total}
-  active={stats.active}
-  inactive={stats.inactive}
-/>
+        <FacultyStats
+          total={stats.total}
+          active={stats.active}
+          inactive={stats.inactive}
+        />
 
         <FacultyToolbar
           query={query}
@@ -207,6 +234,7 @@ export default function FacultyAccountsPage() {
           <FacultyTable
             faculty={filteredFaculty}
             onSendCredentials={handleSendClick}
+            onViewDetails={handleViewDetails}
           />
         ) : (
           <div className="card shadow-sm border-0">
@@ -228,6 +256,7 @@ export default function FacultyAccountsPage() {
           onSubmit={handleCreateFaculty}
           isLoading={isLoading}
         />
+
         <SendCredentialsModal
           open={sendOpen}
           user={
@@ -246,6 +275,14 @@ export default function FacultyAccountsPage() {
           onClose={() => setSendOpen(false)}
           onConfirm={confirmSendCredentials}
           isLoading={isLoading}
+        />
+
+        {/* ✅ DETAILS MODAL */}
+        <FacultyDetailsModal
+          open={detailsOpen}
+          faculty={facultyDetails}
+          loading={detailsLoading}
+          onClose={() => setDetailsOpen(false)}
         />
       </div>
     </>

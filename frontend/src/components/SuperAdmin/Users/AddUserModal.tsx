@@ -58,6 +58,10 @@ const DEPARTMENTS = [
   "Arts & Sciences",
 ];
 
+// ✅ Special departments
+const REGISTRAR_DEPT = "Registrar Office";
+const FINANCE_DEPT = "Finance Office";
+
 // ✅ Helper: Formats "john doe" -> "John Doe"
 function toTitleCase(str: string) {
   if (!str) return "";
@@ -122,11 +126,9 @@ export default function AddUserModal({
 
   const [submitted, setSubmitted] = useState(false);
 
-  // ✅ StepPersonal-style validation state
   const [localErrors, setLocalErrors] = useState<AddUserErrors>({});
   const [touched, setTouched] = useState<Touched>({});
 
-  // ✅ review step state
   const [showReview, setShowReview] = useState(false);
   const [reviewData, setReviewData] = useState<Omit<
     AddUserPayload,
@@ -162,7 +164,60 @@ export default function AddUserModal({
     ],
   );
 
-  // ✅ Field-by-field validation (like StepPersonal)
+  /* =========================================================
+     ✅ ROLE-BASED DEPARTMENT RULES
+     Registrar -> Registrar Office (locked)
+     Finance   -> Finance Office (locked)
+     Dept Head -> can choose, but hide Registrar/Finance Office
+  ========================================================== */
+
+  const departmentLocked = role === "Registrar" || role === "Finance";
+
+  const departmentOptions = useMemo(() => {
+    if (role === "Dept Head") {
+      // hide registrar & finance for dept head
+      return DEPARTMENTS.filter(
+        (d) => d !== REGISTRAR_DEPT && d !== FINANCE_DEPT,
+      );
+    }
+    return DEPARTMENTS;
+  }, [role]);
+
+  // auto-assign department when role changes
+  useEffect(() => {
+    if (!open) return;
+
+    if (role === "Registrar") {
+      setDepartment(REGISTRAR_DEPT);
+      setLocalErrors((p) => ({ ...p, department: "" }));
+      return;
+    }
+
+    if (role === "Finance") {
+      setDepartment(FINANCE_DEPT);
+      setLocalErrors((p) => ({ ...p, department: "" }));
+      return;
+    }
+
+    // If switched to Dept Head and current dept is invalid, clear it
+    if (role === "Dept Head") {
+      if (department === REGISTRAR_DEPT || department === FINANCE_DEPT) {
+        setDepartment("");
+      }
+    }
+  }, [role, open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // validate department whenever role locks it
+  useEffect(() => {
+    if (!open) return;
+    if (!departmentLocked) return;
+
+    // mark touched so it doesn't show red while auto-setting
+    setTouched((t) => ({ ...t, department: false }));
+  }, [departmentLocked, open]);
+
+  /* ================= VALIDATION ================= */
+
   const validateField = (k: keyof AddUserFormState): string => {
     const first = firstName.trim();
     const middle = middleName.trim();
@@ -422,7 +477,9 @@ export default function AddUserModal({
                         className={inputClass("firstName")}
                         value={firstName}
                         onChange={(e) =>
-                          setFirstName(sanitizeInput(toTitleCase(e.target.value)))
+                          setFirstName(
+                            sanitizeInput(toTitleCase(e.target.value)),
+                          )
                         }
                         onBlur={() => onBlurField("firstName")}
                         placeholder="Enter first name"
@@ -435,7 +492,9 @@ export default function AddUserModal({
                   </div>
 
                   <div className="users-field users-input-with-icon">
-                    <label className={labelClass("middleName")}>Middle Name</label>
+                    <label className={labelClass("middleName")}>
+                      Middle Name
+                    </label>
 
                     <div className="users-input-wrapper">
                       <User className="users-input-icon" size={16} />
@@ -453,7 +512,9 @@ export default function AddUserModal({
                     </div>
 
                     <div className="users-invalid-feedback">
-                      {invalid("middleName") ? getError("middleName") : "\u00A0"}
+                      {invalid("middleName")
+                        ? getError("middleName")
+                        : "\u00A0"}
                     </div>
                   </div>
 
@@ -468,7 +529,9 @@ export default function AddUserModal({
                         className={inputClass("lastName")}
                         value={lastName}
                         onChange={(e) =>
-                          setLastName(sanitizeInput(toTitleCase(e.target.value)))
+                          setLastName(
+                            sanitizeInput(toTitleCase(e.target.value)),
+                          )
                         }
                         onBlur={() => onBlurField("lastName")}
                         placeholder="Enter last name"
@@ -493,7 +556,9 @@ export default function AddUserModal({
                       <input
                         className={inputClass("idNumber")}
                         value={idNumber}
-                        onChange={(e) => setIdNumber(sanitizeInput(e.target.value))}
+                        onChange={(e) =>
+                          setIdNumber(sanitizeInput(e.target.value))
+                        }
                         onBlur={() => onBlurField("idNumber")}
                         placeholder="e.g., STU-2024-001"
                       />
@@ -514,7 +579,9 @@ export default function AddUserModal({
                       <input
                         className={inputClass("email")}
                         value={email}
-                        onChange={(e) => setEmail(sanitizeInput(e.target.value))}
+                        onChange={(e) =>
+                          setEmail(sanitizeInput(e.target.value))
+                        }
                         onBlur={() => onBlurField("email")}
                         placeholder="Enter email address"
                         type="email"
@@ -589,7 +656,6 @@ export default function AddUserModal({
                     </div>
                   </div>
 
-                  {/* Status fixed */}
                   <div className="users-field users-input-with-icon">
                     <label className="users-label">
                       Status <span className="req">*</span>
@@ -621,12 +687,24 @@ export default function AddUserModal({
                         className={selectClass("role")}
                         value={role}
                         onChange={(e) => {
-                          setRole(e.target.value as UserRole | "");
+                          const nextRole = e.target.value as UserRole | "";
+                          setRole(nextRole);
+
                           if (submitted || touched.role) {
                             setLocalErrors((p) => ({
                               ...p,
                               role: validateField("role"),
                             }));
+                          }
+
+                          // ✅ optional: also validate dept when role changes
+                          if (submitted || touched.department) {
+                            setTimeout(() => {
+                              setLocalErrors((p) => ({
+                                ...p,
+                                department: validateField("department"),
+                              }));
+                            }, 0);
                           }
                         }}
                         onBlur={() => onBlurField("role")}
@@ -654,33 +732,47 @@ export default function AddUserModal({
 
                     <div className="users-input-wrapper">
                       <Building2 className="users-input-icon" size={16} />
-                      <select
-                        className={selectClass("department")}
-                        value={department}
-                        onChange={(e) => {
-                          setDepartment(e.target.value);
-                          if (submitted || touched.department) {
-                            setLocalErrors((p) => ({
-                              ...p,
-                              department: validateField("department"),
-                            }));
-                          }
-                        }}
-                        onBlur={() => onBlurField("department")}
-                      >
-                        <option value="" disabled>
-                          Select department
-                        </option>
-                        {DEPARTMENTS.map((d) => (
-                          <option key={d} value={d}>
-                            {d}
+
+                      {/* ✅ LOCKED input for Registrar / Finance */}
+                      {departmentLocked ? (
+                        <input
+                          className={inputClass("department")}
+                          value={department}
+                          readOnly
+                          onBlur={() => onBlurField("department")}
+                        />
+                      ) : (
+                        <select
+                          className={selectClass("department")}
+                          value={department}
+                          onChange={(e) => {
+                            setDepartment(e.target.value);
+                            if (submitted || touched.department) {
+                              setLocalErrors((p) => ({
+                                ...p,
+                                department: validateField("department"),
+                              }));
+                            }
+                          }}
+                          onBlur={() => onBlurField("department")}
+                        >
+                          <option value="" disabled>
+                            Select department
                           </option>
-                        ))}
-                      </select>
+
+                          {departmentOptions.map((d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
 
                     <div className="users-invalid-feedback">
-                      {invalid("department") ? getError("department") : "\u00A0"}
+                      {invalid("department")
+                        ? getError("department")
+                        : "\u00A0"}
                     </div>
                   </div>
                 </div>
@@ -700,7 +792,11 @@ export default function AddUserModal({
               </div>
 
               <div className="users-modal-footer">
-                <button type="button" className="btn btn-light" onClick={onClose}>
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  onClick={onClose}
+                >
                   Cancel
                 </button>
 

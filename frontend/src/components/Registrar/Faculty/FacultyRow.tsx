@@ -1,8 +1,8 @@
 import { Send, Eye } from "lucide-react";
 
 export type Faculty = {
-  id: string; // MongoDB _id
-  idNumber: string; // display ID
+  id: string;
+  idNumber: string;
   name: string;
   email: string;
   department: string;
@@ -12,18 +12,19 @@ export type Faculty = {
 type RowProps = {
   faculty: Faculty;
   onSendCredentials: (faculty: Faculty) => void;
+  onViewDetails: (faculty: Faculty) => void; // ✅ NEW
 };
 
-export default function FacultyRow({ faculty, onSendCredentials }: RowProps) {
+export default function FacultyRow({ faculty, onSendCredentials, onViewDetails }: RowProps) {
   const initials = faculty.name
     .split(" ")
+    .filter(Boolean)
     .map((n) => n[0])
     .slice(0, 2)
     .join("");
 
   return (
     <tr className="faculty-row align-middle">
-      {/* Faculty */}
       <td>
         <div className="d-flex align-items-center gap-3">
           <div className="avatar">{initials}</div>
@@ -35,27 +36,17 @@ export default function FacultyRow({ faculty, onSendCredentials }: RowProps) {
         </div>
       </td>
 
-      {/* Faculty ID */}
       <td className="text-nowrap">{faculty.idNumber}</td>
-
-      {/* Department */}
       <td>{faculty.department}</td>
 
-      {/* Status */}
       <td>
-        <span
-          className={`status-pill ${
-            faculty.status === "Active" ? "status-active" : "status-inactive"
-          }`}
-        >
+        <span className={`status-pill ${faculty.status === "Active" ? "status-active" : "status-inactive"}`}>
           {faculty.status}
         </span>
       </td>
 
-      {/* Actions */}
       <td className="text-end align-middle">
         <div className="d-inline-flex align-items-center gap-2">
-          {/* Send (only if inactive) */}
           {faculty.status === "Inactive" && (
             <button
               className="btn btn-icon action-btn"
@@ -66,11 +57,11 @@ export default function FacultyRow({ faculty, onSendCredentials }: RowProps) {
             </button>
           )}
 
-          {/* View (Eye icon) */}
           <button
             className="btn btn-icon action-btn"
             title="View faculty details"
             aria-label="View faculty details"
+            onClick={() => onViewDetails(faculty)} // ✅ NEW
           >
             <Eye size={18} />
           </button>

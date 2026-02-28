@@ -301,3 +301,19 @@ export const getStudentUsers = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id).select(
+      "firstName middleName lastName idNumber email phone gender role status department notes createdBy credentialsSent isTemporaryPassword createdAt updatedAt"
+    );
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    return res.status(200).json(user);
+  } catch (err) {
+    return res.status(500).json({ message: "Failed to fetch user" });
+  }
+};

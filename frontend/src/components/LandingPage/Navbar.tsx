@@ -5,16 +5,45 @@ import { ArrowRight } from "lucide-react";
 import Button from "../Authentication/Button";
 import "../../styles/navbar.css";
 import Logo from "../../assets/graystone1.jpg";
+import { getGeneralSettings } from "../../api/settingsService";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
 
+  // ✅ dynamic branding state
+  const [siteName, setSiteName] = useState(
+    "Graystone Institute of the Philippines"
+  );
+  const [siteDescription, setSiteDescription] = useState(
+    "Campus Virtual Assistance for Information"
+  );
+
+  // scroll effect
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 0);
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // ✅ fetch general settings
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await getGeneralSettings();
+
+        if (data?.siteName) {
+          setSiteName(data.siteName);
+        }
+
+        if (data?.siteDescription) {
+          setSiteDescription(data.siteDescription);
+        }
+      } catch (err) {
+        console.warn("Failed to load general settings");
+      }
+    })();
   }, []);
 
   return (
@@ -34,12 +63,8 @@ export default function Navbar() {
           </span>
 
           <div className="navbar-text text-start">
-            <div className="navbar-school">
-              Graystone Institute of the Philippines
-            </div>
-            <div className="navbar-title">
-              Campus Virtual Assistance for Information
-            </div>
+            <div className="navbar-school">{siteName}</div>
+            <div className="navbar-title">{siteDescription}</div>
           </div>
         </button>
 
