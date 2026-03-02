@@ -3,10 +3,13 @@ import FacultyRow, { type Faculty } from "./FacultyRow";
 type Props = {
   faculty: Faculty[];
   onSendCredentials: (faculty: Faculty) => void;
-  onViewDetails: (faculty: Faculty) => void; // ✅ NEW
+  onViewDetails: (faculty: Faculty) => void;
+  onEdit: (faculty: Faculty) => void;
 };
 
-export default function FacultyTable({ faculty, onSendCredentials, onViewDetails }: Props) {
+export default function FacultyTable(props: Props) {
+  const { faculty, onSendCredentials, onViewDetails, onEdit } = props;
+
   return (
     <div className="card shadow-sm faculty-card">
       <div className="card-body p-0">
@@ -27,14 +30,23 @@ export default function FacultyTable({ faculty, onSendCredentials, onViewDetails
             </thead>
 
             <tbody>
-              {faculty.map((f) => (
-                <FacultyRow
-                  key={f.id}
-                  faculty={f}
-                  onSendCredentials={onSendCredentials}
-                  onViewDetails={onViewDetails} // ✅ NEW
-                />
-              ))}
+              {faculty.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center text-muted py-4">
+                    No faculty found.
+                  </td>
+                </tr>
+              ) : (
+                faculty.map((f) => (
+                  <FacultyRow
+                    key={f.id}
+                    faculty={f}
+                    onSendCredentials={onSendCredentials}
+                    onViewDetails={onViewDetails}
+                    onEdit={onEdit}
+                  />
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -7,6 +7,7 @@ type CourseOption = {
   code: string;
   name: string;
   yearLevels: number;
+  status: "Active" | "Inactive";
 };
 
 type Payload = {
@@ -25,8 +26,6 @@ type Props = {
   onCreate: (item: SectionItem) => void;
   onUpdate: (item: SectionItem) => void;
   courses: CourseOption[];
-
-  // ✅ NEW
   maxCapacity: number;
 };
 
@@ -61,16 +60,22 @@ export default function AddSectionModal({
 }: Props) {
   const isEdit = !!initial;
 
-  const courseList = useMemo(
-    () => (Array.isArray(courses) ? courses : []),
-    [courses],
-  );
+  // ✅ ONLY ACTIVE COURSES GO TO DROPDOWN
+  const courseList = useMemo(() => {
+    const list = Array.isArray(courses) ? courses : [];
+    return list.filter((c) => c.status === "Active");
+  }, [courses]);
 
+  // ✅ pick safe default program
+  const defaultProgram = courseList[0]?.name ?? "";
+
+  // ✅ selected course = initial.program if active, else first active
   const selectedCourse = useMemo(() => {
     if (!courseList.length) return null;
-    const selectedName =
-      (initial?.program as string | undefined) ?? (courseList[0]?.name ?? "");
-    return courseList.find((c) => c.name === selectedName) ?? courseList[0];
+
+    const fromInitial = initial?.program ?? "";
+    const found = courseList.find((c) => c.name === fromInitial);
+    return found ?? courseList[0];
   }, [courseList, initial]);
 
   const yearOptions = useMemo(() => {
@@ -100,20 +105,18 @@ export default function AddSectionModal({
   useEffect(() => {
     if (!open) return;
 
-    const defaultProgram = courseList[0]?.name ?? "";
     const defaultYear = yearOptions[0] ?? "";
 
     if (isEdit && initial) {
-      const existingProgram = initial.program ?? defaultProgram;
-
+      // ✅ keep initial program ONLY if it's still active
       const safeProgram =
-        courseList.find((c) => c.name === existingProgram)?.name ??
+        courseList.find((c) => c.name === initial.program)?.name ??
         defaultProgram;
 
       const safeCourse = courseList.find((c) => c.name === safeProgram) ?? null;
-      const safeYears = safeCourse?.yearLevels ?? 0;
-      const safeYearOptions = safeYears
-        ? Array.from({ length: safeYears }, (_, i) => yearLabel(i + 1))
+
+      const safeYearOptions = safeCourse?.yearLevels
+        ? Array.from({ length: safeCourse.yearLevels }, (_, i) => yearLabel(i + 1))
         : [];
 
       const initialYear = (initial as any).yearLevel ?? "";
@@ -145,7 +148,7 @@ export default function AddSectionModal({
     setFormError("");
     setConfirmOpen(false);
     confirmingRef.current = false;
-  }, [open, isEdit, initial, courseList, maxCapacity, yearOptions]);
+  }, [open, isEdit, initial, courseList, maxCapacity, yearOptions, defaultProgram]);
 
   useEffect(() => {
     if (!open) return;
@@ -197,7 +200,7 @@ export default function AddSectionModal({
       e.schedule = "Enter a schedule like “MWF 8:00-9:30 AM”.";
 
     if (!courseList.length)
-      e.program = "No courses available. Please add a course first.";
+      e.program = "No ACTIVE courses available. Activate/add a course first.";
 
     return e;
   };
@@ -330,11 +333,12 @@ export default function AddSectionModal({
 
         <div className="sec-modal-body">
           <div className="sec-grid">
-            {/* Section Name */}
             <div className="sec-field">
               <label className="sec-label">Section Name</label>
               <input
-                className={`form-control sec-input ${fieldError("code") ? "is-invalid" : ""}`}
+                className={`form-control sec-input ${
+                  fieldError("code") ? "is-invalid" : ""
+                }`}
                 placeholder="e.g., BSCS-1C"
                 value={form.code}
                 onChange={(e) => setField("code", e.target.value)}
@@ -345,11 +349,12 @@ export default function AddSectionModal({
               </div>
             </div>
 
-            {/* Year Level */}
             <div className="sec-field">
               <label className="sec-label">Year Level</label>
               <select
-                className={`form-select sec-select ${fieldError("yearLevel") ? "is-invalid" : ""}`}
+                className={`form-select sec-select ${
+                  fieldError("yearLevel") ? "is-invalid" : ""
+                }`}
                 value={form.yearLevel}
                 onChange={(e) => setField("yearLevel", e.target.value)}
                 onBlur={() => markTouched("yearLevel")}
@@ -370,18 +375,19 @@ export default function AddSectionModal({
               </div>
             </div>
 
-            {/* Program */}
             <div className="sec-field sec-span-2">
               <label className="sec-label">Course/Program</label>
               <select
-                className={`form-select sec-select ${fieldError("program") ? "is-invalid" : ""}`}
+                className={`form-select sec-select ${
+                  fieldError("program") ? "is-invalid" : ""
+                }`}
                 value={form.program}
                 onChange={(e) => onProgramChange(e.target.value)}
                 onBlur={() => markTouched("program")}
                 disabled={!courseList.length}
               >
                 {!courseList.length ? (
-                  <option value="">No courses available</option>
+                  <option value="">No ACTIVE courses available</option>
                 ) : (
                   <>
                     <option value="">Select course</option>
@@ -398,16 +404,18 @@ export default function AddSectionModal({
               </div>
             </div>
 
-            {/* Capacity */}
             <div className="sec-field">
               <label className="sec-label">
-                Capacity <span className="text-muted small">(Max {maxCapacity})</span>
+                Capacity{" "}
+                <span className="text-muted small">(Max {maxCapacity})</span>
               </label>
               <input
-                className={`form-control sec-input ${fieldError("capacity") ? "is-invalid" : ""}`}
+                className={`form-control sec-input ${
+                  fieldError("capacity") ? "is-invalid" : ""
+                }`}
                 type="number"
                 min={1}
-                max={maxCapacity} // ✅ enforce in UI
+                max={maxCapacity}
                 value={form.capacity}
                 onChange={(e) =>
                   setField(
@@ -422,11 +430,12 @@ export default function AddSectionModal({
               </div>
             </div>
 
-            {/* Room */}
             <div className="sec-field">
               <label className="sec-label">Room</label>
               <input
-                className={`form-control sec-input ${fieldError("room") ? "is-invalid" : ""}`}
+                className={`form-control sec-input ${
+                  fieldError("room") ? "is-invalid" : ""
+                }`}
                 placeholder="Room 301"
                 value={form.room}
                 onChange={(e) => setField("room", e.target.value)}
@@ -437,11 +446,12 @@ export default function AddSectionModal({
               </div>
             </div>
 
-            {/* Schedule */}
             <div className="sec-field sec-span-2">
               <label className="sec-label">Schedule</label>
               <input
-                className={`form-control sec-input ${fieldError("schedule") ? "is-invalid" : ""}`}
+                className={`form-control sec-input ${
+                  fieldError("schedule") ? "is-invalid" : ""
+                }`}
                 placeholder="e.g., MWF 8:00-9:30 AM"
                 value={form.schedule}
                 onChange={(e) => setField("schedule", e.target.value)}

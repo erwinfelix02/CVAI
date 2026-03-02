@@ -317,3 +317,68 @@ export const getUserById = async (req, res) => {
     return res.status(500).json({ message: "Failed to fetch user" });
   }
 };
+
+
+export const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { phone, department, status } = req.body;
+
+    const update = {};
+
+    // ✅ Phone validation (same rules you used in createUser)
+    if (phone !== undefined) {
+      let cleanPhone = String(phone).trim().replace(/\s+/g, "");
+
+      if (/^09\d{9}$/.test(cleanPhone)) {
+        cleanPhone = "+63" + cleanPhone.slice(1);
+      }
+      if (/^639\d{9}$/.test(cleanPhone)) {
+        cleanPhone = "+" + cleanPhone;
+      }
+      if (!/^\+639\d{9}$/.test(cleanPhone)) {
+        return res.status(400).json({
+          message: "Phone must be in format +639XXXXXXXXX.",
+        });
+      }
+
+      update.phone = cleanPhone;
+    }
+
+    // ✅ Department sanitize
+    if (department !== undefined) {
+      const cleanDepartment = validator.escape(String(department).trim());
+      if (!cleanDepartment) {
+        return res.status(400).json({ message: "Department is required." });
+      }
+      update.department = cleanDepartment;
+    }
+
+    // ✅ Optional: allow status update if you want
+    // If you don't want to edit status from UI, you can delete this block.
+    if (status !== undefined) {
+      if (!["active", "inactive"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status." });
+      }
+      update.status = status;
+    }
+
+    const user = await User.findByIdAndUpdate(id, update, {
+      new: true,
+      runValidators: true,
+    }).select(
+      "firstName middleName lastName idNumber email phone gender role status department notes createdBy credentialsSent isTemporaryPassword createdAt updatedAt"
+    );
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    return res.status(200).json({
+      message: "User updated successfully.",
+      user,
+    });
+  } catch (err) {
+    console.error("updateUser error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};

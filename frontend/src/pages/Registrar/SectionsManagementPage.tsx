@@ -25,6 +25,7 @@ type CourseOption = {
   code: string;
   name: string;
   yearLevels: number;
+   status: "Active" | "Inactive";
 };
 
 const SETTINGS_URL = "http://localhost:5000/api/registrar/settings";
@@ -79,31 +80,33 @@ export default function SectionsManagementPage() {
       console.error("Failed to fetch registrar settings", err);
     }
   };
+// ✅ LOAD COURSES
+const loadCourses = async () => {
+  try {
+    const data = await getCourses();
 
-  // ✅ LOAD COURSES
-  const loadCourses = async () => {
-    try {
-      const data = await getCourses();
+    const mapped: CourseOption[] = (Array.isArray(data) ? data : [])
+      .map((c: any): CourseOption => {
+        const status: CourseOption["status"] =
+          c.status === "Inactive" ? "Inactive" : "Active";
 
-      const mapped: CourseOption[] = (Array.isArray(data) ? data : []).map(
-        (c: any) => ({
+        return {
           id: c._id,
           code: c.code,
           name: c.name,
           yearLevels: Number(c.yearLevels ?? 4),
-        }),
-      );
+          status,
+        };
+      })
+      .filter((c) => c.status === "Active"); // ✅ ONLY ACTIVE COURSES
 
-      setCourses(mapped);
-    } catch (err: any) {
-      console.error(err);
-      setCourses([]);
-      showAlert(
-        err.response?.data?.message || "Failed to load courses.",
-        "error",
-      );
-    }
-  };
+    setCourses(mapped);
+  } catch (err: any) {
+    console.error(err);
+    setCourses([]);
+    showAlert(err.response?.data?.message || "Failed to load courses.", "error");
+  }
+};
 
   // ✅ LOAD SECTIONS
   const loadSections = async () => {

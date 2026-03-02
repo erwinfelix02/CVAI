@@ -12,9 +12,11 @@ import {
   getUsers,
   sendCredentials,
   getUserById,
+  updateUser,
 } from "../../api/userService";
 import AuthAlert from "../../components/Authentication/AuthAlert";
 import FacultyDetailsModal from "../../components/Registrar/Faculty/FacultyDetailsModal";
+import EditFacultyModal from "../../components/Registrar/Faculty/EditFacultyModal";
 
 /** ✅ FULL FACULTY (FROM DATABASE) */
 type FacultyDB = {
@@ -58,14 +60,25 @@ export default function FacultyAccountsPage() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [facultyDetails, setFacultyDetails] = useState<FacultyDB | null>(null);
 
+  // ✅ EDIT MODAL STATE
+  const [editOpen, setEditOpen] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editFaculty, setEditFaculty] = useState<{
+    id: string;
+    name: string;
+    email: string;
+    idNumber: string;
+    phone?: string;
+    department?: string;
+    status?: "active" | "inactive";
+  } | null>(null);
+
   const [query, setQuery] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
 
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">(
-    "all",
-  );
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
 
   const filteredFaculty = facultyList.filter((f) => {
     const q = query.toLowerCase();
@@ -106,20 +119,25 @@ export default function FacultyAccountsPage() {
     try {
       const users = await getUsers();
 
-      const facultyOnly = users
-        .filter((u: any) => u.role?.toLowerCase() === "faculty")
-        .map((u: any) => ({
-          id: u._id,
-          idNumber: u.idNumber,
-          name: [u.firstName, u.middleName, u.lastName]
-            .filter(Boolean)
-            .join(" "),
-          email: u.email,
-          department: u.department,
-          status: u.status?.toLowerCase() === "inactive" ? "Inactive" : "Active",
-        }));
+     const facultyOnly: Faculty[] = users
+  .filter((u: any) => u.role?.toLowerCase() === "faculty")
+  .map((u: any) => {
+    const status: Faculty["status"] =
+      u.status?.toLowerCase() === "inactive" ? "Inactive" : "Active";
 
-      setFacultyList(facultyOnly);
+    return {
+      id: u._id,
+      idNumber: u.idNumber,
+      name: [u.firstName, u.middleName, u.lastName].filter(Boolean).join(" "),
+      email: u.email,
+      department: u.department,
+      phone: u.phone,
+      credentialsSent: !!u.credentialsSent,
+      status, // ✅ now typed as "Active" | "Inactive"
+    };
+  });
+
+setFacultyList(facultyOnly);
     } catch (err: any) {
       console.error("Failed to load faculty", err);
       showAlert(err?.message || "Failed to load faculty.", "error");
@@ -131,7 +149,7 @@ export default function FacultyAccountsPage() {
     setSendOpen(true);
   };
 
-  // ✅ Eye click: fetch full details from DB
+  // ✅ View details
   const handleViewDetails = async (faculty: Faculty) => {
     try {
       setDetailsOpen(true);
@@ -145,6 +163,37 @@ export default function FacultyAccountsPage() {
       setDetailsOpen(false);
     } finally {
       setDetailsLoading(false);
+    }
+  };
+
+  // ✅ Edit (only if credentials already sent)
+  const handleEditClick = async (faculty: Faculty) => {
+    if (!faculty.credentialsSent) {
+      showAlert("You can edit only after credentials are sent.", "error");
+      return;
+    }
+
+    try {
+      setEditOpen(true);
+      setEditLoading(true);
+      setEditFaculty(null);
+
+      const full: FacultyDB = await getUserById(faculty.id);
+
+      setEditFaculty({
+        id: full._id,
+        name: [full.firstName, full.middleName, full.lastName].filter(Boolean).join(" "),
+        email: full.email,
+        idNumber: full.idNumber,
+        phone: full.phone,
+        department: full.department,
+        status: full.status, // displayed only in edit modal (not editable)
+      });
+    } catch (err: any) {
+      showAlert(err?.message || "Failed to load faculty for editing.", "error");
+      setEditOpen(false);
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -190,6 +239,27 @@ export default function FacultyAccountsPage() {
     }
   };
 
+  // ✅ Save edits (ONLY phone + department)
+  const handleSaveEdits = async (payload: { phone: string; department: string }) => {
+    if (!editFaculty) return;
+
+    try {
+      setIsLoading(true);
+
+      await updateUser(editFaculty.id, payload);
+      await loadFaculty();
+
+      setEditOpen(false);
+      setEditFaculty(null);
+
+      showAlert("Faculty account updated successfully!", "success");
+    } catch (err: any) {
+      showAlert(err?.message || "Failed to update faculty.", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <>
       <AuthAlert
@@ -203,9 +273,7 @@ export default function FacultyAccountsPage() {
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
           <div>
             <h2 className="fw-bold mb-1">Faculty Accounts</h2>
-            <p className="text-muted mb-0">
-              Create and manage faculty portal accounts
-            </p>
+            <p className="text-muted mb-0">Create and manage faculty portal accounts</p>
           </div>
 
           <button
@@ -217,11 +285,7 @@ export default function FacultyAccountsPage() {
           </button>
         </div>
 
-        <FacultyStats
-          total={stats.total}
-          active={stats.active}
-          inactive={stats.inactive}
-        />
+        <FacultyStats total={stats.total} active={stats.active} inactive={stats.inactive} />
 
         <FacultyToolbar
           query={query}
@@ -235,6 +299,7 @@ export default function FacultyAccountsPage() {
             faculty={filteredFaculty}
             onSendCredentials={handleSendClick}
             onViewDetails={handleViewDetails}
+            onEdit={handleEditClick}
           />
         ) : (
           <div className="card shadow-sm border-0">
@@ -242,9 +307,7 @@ export default function FacultyAccountsPage() {
               <div className="users-empty-state">
                 <div className="users-empty-icon">📭</div>
                 <h5 className="fw-semibold mb-1">No faculty accounts found</h5>
-                <p className="text-muted mb-0">
-                  Try creating a faculty account to get started.
-                </p>
+                <p className="text-muted mb-0">Try creating a faculty account to get started.</p>
               </div>
             </div>
           </div>
@@ -267,8 +330,7 @@ export default function FacultyAccountsPage() {
                   email: selectedFaculty.email,
                   userCode: selectedFaculty.idNumber,
                   role: "Faculty",
-                  status:
-                    selectedFaculty.status === "Active" ? "active" : "inactive",
+                  status: selectedFaculty.status === "Active" ? "active" : "inactive",
                 }
               : null
           }
@@ -277,12 +339,20 @@ export default function FacultyAccountsPage() {
           isLoading={isLoading}
         />
 
-        {/* ✅ DETAILS MODAL */}
         <FacultyDetailsModal
           open={detailsOpen}
           faculty={facultyDetails}
           loading={detailsLoading}
           onClose={() => setDetailsOpen(false)}
+        />
+
+        <EditFacultyModal
+          open={editOpen}
+          faculty={editFaculty}
+          loading={editLoading}
+          onClose={() => setEditOpen(false)}
+          onSave={handleSaveEdits} // ✅ now only phone+department
+          isSaving={isLoading}
         />
       </div>
     </>

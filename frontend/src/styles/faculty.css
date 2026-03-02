@@ -605,3 +605,12 @@
     transform: scale(1);
   }
 }
+
+.fdm-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;              /* ✅ adds space between buttons */
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+}

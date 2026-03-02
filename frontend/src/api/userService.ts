@@ -30,8 +30,6 @@ export const sendCredentials = async (id: string) => {
   return data;
 };
 
-
-
 export async function getStudentUsers(params?: {
   q?: string;
   status?: string;
@@ -59,6 +57,23 @@ export const getUserById = async (id: string) => {
 
   if (!res.ok) {
     throw new Error(data?.message || "Failed to load user details");
+  }
+
+  return data;
+};
+
+// ✅ NEW: Update user fields (status/phone/department)
+export const updateUser = async (id: string, payload: any) => {
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "PATCH", // change to PUT if your backend uses PUT
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(data?.message || "Failed to update user");
   }
 
   return data;

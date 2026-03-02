@@ -16,6 +16,11 @@ export type FacultyDB = {
   notes?: string;
   createdBy?: string;
   createdAt?: string;
+
+  // ✅ optional (if present)
+  credentialsSent?: boolean;
+  isTemporaryPassword?: boolean;
+  updatedAt?: string;
 };
 
 type Props = {
@@ -33,12 +38,8 @@ export default function FacultyDetailsModal({
 }: Props) {
   if (!open) return null;
 
-  /* ===============================
-     FORMAT DATE (Readable Text)
-  ================================ */
   const formatDate = (dateString?: string) => {
     if (!dateString) return "—";
-
     const date = new Date(dateString);
 
     return (
@@ -87,7 +88,6 @@ export default function FacultyDetailsModal({
         aria-label="Faculty Details"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="fdm-header">
           <h5 className="mb-0 fw-bold">Faculty Details</h5>
           <button className="fdm-close" onClick={onClose} aria-label="Close">
@@ -95,7 +95,6 @@ export default function FacultyDetailsModal({
           </button>
         </div>
 
-        {/* Body */}
         <div className="fdm-body">
           {loading ? (
             <div className="text-muted">Loading faculty details…</div>
@@ -103,7 +102,6 @@ export default function FacultyDetailsModal({
             <div className="text-muted">No details found.</div>
           ) : (
             <div className="fdm-card">
-              {/* Top Section */}
               <div className="d-flex align-items-center gap-3">
                 <div className="fdm-avatar">{initials}</div>
 
@@ -125,7 +123,6 @@ export default function FacultyDetailsModal({
 
               <hr className="my-3" />
 
-              {/* Grid Details */}
               <div className="fdm-grid">
                 <div className="fdm-item">
                   <div className="fdm-label">Email</div>
@@ -134,22 +131,22 @@ export default function FacultyDetailsModal({
 
                 <div className="fdm-item">
                   <div className="fdm-label">Phone</div>
-                  <div className="fdm-value">{faculty.phone}</div>
+                  <div className="fdm-value">{faculty.phone || "—"}</div>
                 </div>
 
                 <div className="fdm-item">
                   <div className="fdm-label">Gender</div>
-                  <div className="fdm-value">{faculty.gender}</div>
+                  <div className="fdm-value">{faculty.gender || "—"}</div>
                 </div>
 
                 <div className="fdm-item">
                   <div className="fdm-label">Department</div>
-                  <div className="fdm-value">{faculty.department}</div>
+                  <div className="fdm-value">{faculty.department || "—"}</div>
                 </div>
 
                 <div className="fdm-item">
                   <div className="fdm-label">Role</div>
-                  <div className="fdm-value">{faculty.role}</div>
+                  <div className="fdm-value">{faculty.role || "—"}</div>
                 </div>
 
                 <div className="fdm-item">
@@ -159,9 +156,7 @@ export default function FacultyDetailsModal({
 
                 <div className="fdm-item">
                   <div className="fdm-label">Created At</div>
-                  <div className="fdm-value">
-                    {formatDate(faculty.createdAt)}
-                  </div>
+                  <div className="fdm-value">{formatDate(faculty.createdAt)}</div>
                 </div>
 
                 <div className="fdm-item" style={{ gridColumn: "1 / -1" }}>
@@ -173,7 +168,6 @@ export default function FacultyDetailsModal({
           )}
         </div>
 
-        {/* Footer */}
         <div className="fdm-footer">
           <button className="btn btn-outline-secondary" onClick={onClose}>
             Close
