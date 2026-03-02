@@ -2,7 +2,7 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: "http://localhost:5000/api",
-  withCredentials: true,
+  // withCredentials: true, // ❌ remove this if you don't need cookies
 });
 
 export const getDepartments = async () => {
@@ -32,10 +32,5 @@ export const updateDepartment = async (
   }
 ) => {
   const res = await api.put(`/departments/${id}`, payload);
-  return res.data;
-};
-
-export const deleteDepartment = async (id: string) => {
-  const res = await api.delete(`/departments/${id}`);
   return res.data;
 };

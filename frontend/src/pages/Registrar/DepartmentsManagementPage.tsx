@@ -5,9 +5,16 @@ import AuthAlert from "../../components/Authentication/AuthAlert";
 import DepartmentStatsRow from "../../components/Registrar/Departments/DepartmentStatsRow";
 import DepartmentsToolbar from "../../components/Registrar/Departments/DepartmentsToolbar";
 import DepartmentsTable from "../../components/Registrar/Departments/DepartmentsTable";
+import AddDepartmentModal from "../../components/Registrar/Departments/AddDepartmentModal";
 
 import type { DepartmentItem } from "../../components/Registrar/Departments/types";
-import { getDepartments } from "../../api/departmentService";
+
+import {
+  getDepartments,
+  createDepartment,
+  updateDepartment,
+  // deleteDepartment, // later
+} from "../../api/departmentService";
 
 import "../../styles/departments.css";
 
@@ -15,6 +22,10 @@ export default function DepartmentsManagementPage() {
   const [items, setItems] = useState<DepartmentItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [query, setQuery] = useState("");
+
+  // modal
+  const [openAdd, setOpenAdd] = useState(false);
+  const [editing, setEditing] = useState<DepartmentItem | null>(null);
 
   // ✅ AuthAlert state
   const [alertMessage, setAlertMessage] = useState("");
@@ -88,6 +99,71 @@ export default function DepartmentsManagementPage() {
 
   const hasRows = filtered.length > 0;
 
+  const openCreate = () => {
+    setEditing(null);
+    setOpenAdd(true);
+  };
+
+  const openEdit = (item: DepartmentItem) => {
+    setEditing(item);
+    setOpenAdd(true);
+  };
+
+  const onCreate = async (payload: Omit<DepartmentItem, "id">) => {
+    try {
+      setIsLoading(true);
+      await createDepartment({
+        code: payload.code,
+        name: payload.name,
+        description: payload.description,
+        head: payload.head,
+        status: payload.status,
+      });
+
+      await loadDepartments();
+      showAlert("Department created successfully!", "success");
+      setOpenAdd(false);
+      setEditing(null);
+    } catch (err: any) {
+      showAlert(
+        err.response?.data?.message || "Failed to create department.",
+        "error",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onUpdate = async (payload: DepartmentItem) => {
+    try {
+      setIsLoading(true);
+      await updateDepartment(payload.id, {
+        code: payload.code,
+        name: payload.name,
+        description: payload.description,
+        head: payload.head,
+        status: payload.status,
+      });
+
+      await loadDepartments();
+      showAlert("Department updated successfully!", "success");
+      setOpenAdd(false);
+      setEditing(null);
+    } catch (err: any) {
+      showAlert(
+        err.response?.data?.message || "Failed to update department.",
+        "error",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onDelete = () => {
+    // you said later, so placeholder for now
+    showAlert("Delete modal not implemented yet.", "error");
+  };
+
   return (
     <>
       <AuthAlert
@@ -106,12 +182,9 @@ export default function DepartmentsManagementPage() {
             </p>
           </div>
 
-          {/* ✅ No modal yet */}
           <button
             className="btn btn-primary btn-lg sad-dept-add-btn"
-            onClick={() =>
-              showAlert("Add Department modal not implemented yet.", "error")
-            }
+            onClick={openCreate}
             disabled={isLoading}
             type="button"
           >
@@ -133,8 +206,8 @@ export default function DepartmentsManagementPage() {
             {hasRows ? (
               <DepartmentsTable
                 items={filtered}
-                onEdit={() => showAlert("Edit modal not implemented yet.", "error")}
-                onDelete={() => showAlert("Delete modal not implemented yet.", "error")}
+                onEdit={openEdit}
+                onDelete={onDelete}
               />
             ) : (
               <div className="sad-empty">
@@ -149,6 +222,21 @@ export default function DepartmentsManagementPage() {
             )}
           </div>
         </div>
+
+        {/* ✅ Modal */}
+        <AddDepartmentModal
+          key={editing ? `edit-${editing.id}` : "create"}
+          open={openAdd}
+          onClose={() => {
+            if (isLoading) return;
+            setOpenAdd(false);
+            setEditing(null);
+          }}
+          initial={editing}
+          onCreate={onCreate}
+          onUpdate={onUpdate}
+          isLoading={isLoading}
+        />
       </div>
     </>
   );

@@ -22,6 +22,7 @@ import roleRoutes from "./routes/roleRoutes.js";
 import { seedRolesIfMissing } from "./utils/seedRoles.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
 import securitySettingsRoutes from "./routes/securitySettingsRoutes.js";
+import departmentRoutes from "./routes/departmentRoutes.js";
 
 const app = express();
 
@@ -45,22 +46,21 @@ app.use(
         res.setHeader("Content-Type", "image/png");
       }
     },
-  })
+  }),
 );
 
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
     contentSecurityPolicy: false,
-  })
+  }),
 );
-
 
 // ✅ Start server only after DB is connected
 const startServer = async () => {
   try {
-    await connectDB();              // ✅ wait for mongo connect
-    await seedRolesIfMissing();     // ✅ seed after connect
+    await connectDB(); // ✅ wait for mongo connect
+    await seedRolesIfMissing(); // ✅ seed after connect
 
     app.use("/uploads", express.static("uploads"));
     app.use("/api/users", userRoutes);
@@ -77,9 +77,10 @@ const startServer = async () => {
     app.use("/api/accounts", accountRoutes);
     app.use("/api/registrar/settings", registrarSettingsRoutes);
     app.use("/api/settings", settingsRoutes);
-app.use("/api/security-settings", securitySettingsRoutes);
-    // ✅ NEW
+    app.use("/api/security-settings", securitySettingsRoutes);
+
     app.use("/api/roles", roleRoutes);
+    app.use("/api/departments", departmentRoutes);
 
     app.listen(5000, () => {
       console.log("🚀 Server running on http://localhost:5000");

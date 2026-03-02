@@ -148,3 +148,299 @@
     white-space: normal;
   }
 }
+
+/* =========================
+   Department Modal (Responsive)
+========================= */
+.dept-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 14px;
+  z-index: 2000;
+}
+
+.dept-modal {
+  width: 100%;
+  max-width: 780px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.dept-modal-header {
+  padding: 18px 18px 12px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dept-modal-title {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.dept-modal-close {
+  border: none;
+  background: transparent;
+  padding: 6px;
+  border-radius: 10px;
+}
+.dept-modal-close:hover {
+  background: #f1f5f9;
+}
+
+.dept-modal-body {
+  padding: 10px 18px 6px 18px;
+}
+
+.dept-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+}
+
+.dept-span-2 {
+  grid-column: span 2;
+}
+
+.dept-label {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 6px;
+  display: block;
+  color: #0f172a;
+}
+
+.dept-input,
+.dept-select,
+.dept-textarea {
+  border-radius: 12px;
+}
+
+.dept-textarea {
+  resize: vertical;
+}
+
+.dept-error-slot {
+  font-size: 12px;
+  color: #dc2626;
+  min-height: 16px;
+  margin-top: 6px;
+}
+
+.dept-form-error {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff1f2;
+  color: #9f1239;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.dept-modal-footer {
+  padding: 14px 18px 18px 18px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Mobile: stack fields */
+@media (max-width: 576px) {
+  .dept-modal {
+    max-width: 100%;
+    border-radius: 14px;
+  }
+
+  .dept-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dept-span-2 {
+    grid-column: span 1;
+  }
+
+  .dept-modal-footer {
+    flex-direction: column;
+  }
+
+  .dept-modal-footer .btn {
+    width: 100%;
+  }
+}
+/* ===== Department name/desc (optional but nice) ===== */
+.sad-dept-name {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.sad-dept-desc {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* ===== Status pill (match screenshot) ===== */
+.sad-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
+  border: 1px solid transparent;
+}
+
+/* Dark blue pill */
+.sad-status-pill-active {
+  background: #0b4a6f; /* dark blue */
+  color: #fff;
+}
+
+/* Light gray pill */
+.sad-status-pill-inactive {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+/* ===== Actions (icon buttons like screenshot) ===== */
+.sad-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.sad-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+
+.sad-icon-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.sad-icon-btn:active {
+  transform: scale(0.98);
+}
+
+.sad-icon-btn svg {
+  color: #0f172a;
+}
+
+/* Trash = red like screenshot */
+.sad-icon-btn-danger {
+  border-color: rgba(220, 38, 38, 0.25);
+}
+
+.sad-icon-btn-danger svg {
+  color: #dc2626;
+}
+
+.sad-icon-btn-danger:hover {
+  background: rgba(220, 38, 38, 0.06);
+  border-color: rgba(220, 38, 38, 0.35);
+}
+
+/* ===== Confirmation dialog inside modal ===== */
+.dept-confirm-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+}
+
+.dept-confirm-card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+  padding: 16px;
+}
+
+.dept-confirm-title {
+  font-weight: 800;
+  font-size: 16px;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.dept-confirm-text {
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 14px;
+}
+
+.dept-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 576px) {
+  .dept-confirm-actions {
+    flex-direction: column;
+  }
+  .dept-confirm-actions .btn {
+    width: 100%;
+  }
+}
+/* ===== Delete Confirmation Modal ===== */
+
+.sad-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 2100;
+}
+
+.sad-confirm-card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+  padding: 20px;
+}
+
+.sad-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 576px) {
+  .sad-confirm-actions {
+    flex-direction: column;
+  }
+
+  .sad-confirm-actions .btn {
+    width: 100%;
+  }
+}
