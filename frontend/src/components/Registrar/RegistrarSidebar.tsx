@@ -16,6 +16,7 @@ import {
   X,
   Bot,
   BookOpen,
+  Building2, // ✅ NEW (Departments icon)
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -45,14 +46,33 @@ const nav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/registrar" },
 
   // ✅ permission-controlled (only these 4)
-  { label: "Applications", icon: FileText, path: "/registrar/applications", controlled: true },
+  {
+    label: "Applications",
+    icon: FileText,
+    path: "/registrar/applications",
+    controlled: true,
+  },
   { label: "Students", icon: Users, path: "/registrar/students", controlled: true },
-  { label: "Enrollment", icon: UserPlus, path: "/registrar/enrollment", controlled: true },
-  { label: "Documents", icon: FolderOpen, path: "/registrar/documents", controlled: true },
+  {
+    label: "Enrollment",
+    icon: UserPlus,
+    path: "/registrar/enrollment",
+    controlled: true,
+  },
+  {
+    label: "Documents",
+    icon: FolderOpen,
+    path: "/registrar/documents",
+    controlled: true,
+  },
 
   // ✅ always visible
   { label: "Sections", icon: Layers, path: "/registrar/sections" },
   { label: "Courses", icon: BookOpen, path: "/registrar/courses" },
+
+  // ✅ NEW: Departments
+  { label: "Departments", icon: Building2, path: "/registrar/departments" },
+
   { label: "Faculty Accounts", icon: Users, path: "/registrar/faculty" },
   { label: "AI Assistant", icon: Bot, path: "/registrar/ai-assistant", badge: "AI" },
 ];
@@ -85,7 +105,9 @@ export default function RegistrarSidebar({
     async function loadPerms() {
       setLoadingPerms(true);
       try {
-        const res = await fetch(`http://localhost:5000/api/roles/${REGISTRAR_ROLE_ID}`);
+        const res = await fetch(
+          `http://localhost:5000/api/roles/${REGISTRAR_ROLE_ID}`,
+        );
         if (!res.ok) {
           console.error("Failed to fetch role perms:", res.status);
           setPermissions([]);
@@ -109,7 +131,9 @@ export default function RegistrarSidebar({
   useEffect(() => {
     async function fetchPendingCount() {
       try {
-        const res = await fetch("http://localhost:5000/api/preregistrations/pending-count");
+        const res = await fetch(
+          "http://localhost:5000/api/preregistrations/pending-count",
+        );
         const data = await res.json();
         setPendingCount(data.count || 0);
       } catch (err) {
@@ -164,6 +188,7 @@ export default function RegistrarSidebar({
             className="btn p-0 d-flex align-items-center justify-content-center"
             onClick={toggleCollapsed}
             aria-label="Toggle sidebar"
+            type="button"
           >
             {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
           </button>
@@ -174,6 +199,7 @@ export default function RegistrarSidebar({
             className="btn p-0 d-flex align-items-center justify-content-center"
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
+            type="button"
           >
             <X size={20} />
           </button>
@@ -286,14 +312,15 @@ export default function RegistrarSidebar({
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={() => setShowLogoutConfirm(false)}
+                type="button"
               >
                 Cancel
               </button>
 
               <button
                 className="btn btn-danger btn-sm"
+                type="button"
                 onClick={() => {
-                  // optional: clear storage if you use it, not required
                   localStorage.removeItem("token");
                   localStorage.removeItem("user");
 

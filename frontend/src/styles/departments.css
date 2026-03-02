@@ -1,0 +1,150 @@
+/* Page wrapper */
+.sad-dept-page {
+  padding-bottom: 24px;
+}
+
+/* Header button */
+.sad-dept-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 14px;
+  padding: 12px 18px;
+  white-space: nowrap;
+}
+
+@media (max-width: 576px) {
+  .sad-dept-add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ===== Stats row ===== */
+.sad-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .sad-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sad-stat-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.sad-stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+}
+
+.sad-stat-icon-blue {
+  background: #e6f2ff;
+  color: #2563eb;
+}
+
+.sad-stat-icon-green {
+  background: #e9f9ef;
+  color: #16a34a;
+}
+
+.sad-stat-icon-red {
+  background: #ffecec;
+  color: #dc2626;
+}
+
+.sad-stat-num {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.sad-stat-label {
+  color: #64748b;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+/* ===== Toolbar ===== */
+.sad-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.sad-search {
+  position: relative;
+  width: 100%;
+}
+
+.sad-search-ico {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  display: inline-flex;
+}
+
+.sad-search-input {
+  padding-left: 42px;
+  border-radius: 14px;
+}
+
+/* Empty state */
+.sad-empty {
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 16px;
+  padding: 28px 16px;
+}
+
+.sad-empty-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 20px;
+  background: #f1f5f9;
+  color: #334155;
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+}
+
+/* Make the table area scrollable on small screens */
+.sad-dept-page .sad-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sad-dept-page table td,
+.sad-dept-page table th {
+  vertical-align: middle;
+}
+
+@media (max-width: 420px) {
+  .sad-dept-page table td,
+  .sad-dept-page table th {
+    white-space: normal;
+  }
+}

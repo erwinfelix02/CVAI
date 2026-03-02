@@ -31,7 +31,24 @@
 
   border-bottom: 1px solid #e5e7eb;
 }
+/* Make sidebar text smaller */
+.registrar-sidebar .nav-label span {
+  font-size: 0.85rem;   /* smaller than default */
+}
 
+/* Slightly reduce nav item height */
+.registrar-sidebar .nav-item {
+  padding: 8px 10px;    /* was 10px 12px */
+}
+
+/* Reduce header text size slightly */
+.brand-text {
+  font-size: 0.95rem;
+}
+
+.sidebar-description {
+  font-size: 0.7rem;
+}
 .brand-container {
   display: flex;
   gap: 10px;
@@ -58,10 +75,10 @@
    Nav (Scrollable middle)
 ============================== */
 .registrar-sidebar-nav {
-  padding: 6px 10px 2px 10px;  /* less bottom padding */
+  padding: 6px 10px 0px 10px;  /* less bottom padding */
   display: flex;
   flex-direction: column;
-  gap: 4px;                   /* slightly reduce spacing */
+  gap: 2px;                   /* slightly reduce spacing */
 
   flex: 1;
   min-height: 0;
@@ -106,14 +123,14 @@
 ============================== */
 .registrar-sidebar-bottom {
   margin-top: auto;
-  padding: 10px;
+  padding: 6px 10px 0px 10px;
   flex-shrink: 0;
 }
 
 .sidebar-separator {
   height: 1px;
   background: #e5e7eb;
-  margin: 10px 0;
+  margin: 4px 0;
 }
 
 .nav-item-danger {
