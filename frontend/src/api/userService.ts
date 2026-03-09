@@ -7,15 +7,15 @@ export const createUser = async (payload: any) => {
     body: JSON.stringify(payload),
   });
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message);
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.message || "Failed to create user");
   return data;
 };
 
 export const getUsers = async () => {
   const res = await fetch(API_URL);
-  const data = await res.json();
-  if (!res.ok) throw new Error("Failed to load users");
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.message || "Failed to load users");
   return data;
 };
 
@@ -24,8 +24,8 @@ export const sendCredentials = async (id: string) => {
     method: "POST",
   });
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message);
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.message || "Failed to send credentials");
 
   return data;
 };
@@ -62,10 +62,9 @@ export const getUserById = async (id: string) => {
   return data;
 };
 
-// ✅ NEW: Update user fields (status/phone/department)
 export const updateUser = async (id: string, payload: any) => {
   const res = await fetch(`${API_URL}/${id}`, {
-    method: "PATCH", // change to PUT if your backend uses PUT
+    method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });

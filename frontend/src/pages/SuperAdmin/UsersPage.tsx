@@ -44,8 +44,6 @@ export type RoleTab =
   | "Faculty"
   | "Students";
 
-/* ================= HELPERS ================= */
-
 function tabToRoleFilter(tab: RoleTab): UserRole | "All" {
   switch (tab) {
     case "Admins":
@@ -64,8 +62,6 @@ function tabToRoleFilter(tab: RoleTab): UserRole | "All" {
       return "All";
   }
 }
-
-/* ================= PAGE ================= */
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -86,8 +82,6 @@ export default function UsersPage() {
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
-
-  /* ================= LOAD USERS ================= */
 
   const reloadUsers = async () => {
     try {
@@ -120,17 +114,13 @@ export default function UsersPage() {
     reloadUsers();
   }, []);
 
-  /* ================= FILTERING ================= */
-
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const roleFilter = tabToRoleFilter(activeTab);
 
     return users.filter((u) => {
       const matchesRole = roleFilter === "All" || u.role === roleFilter;
-
       const matchesStatus = statusFilter === "all" || u.status === statusFilter;
-
       const matchesQuery =
         !q ||
         u.name.toLowerCase().includes(q) ||
@@ -145,8 +135,8 @@ export default function UsersPage() {
   }, [query, activeTab, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
+
   const showAlert = (message: string, type: "success" | "error") => {
     setAnimateAlert(false);
 
@@ -156,6 +146,7 @@ export default function UsersPage() {
       setAnimateAlert(true);
     }, 50);
   };
+
   useEffect(() => {
     if (!animateAlert) return;
 
@@ -166,15 +157,13 @@ export default function UsersPage() {
     return () => clearTimeout(t);
   }, [animateAlert]);
 
-  /* ================= ADD USER ================= */
-
   const handleAddUser = async (payload: AddUserPayload) => {
     try {
       setIsLoading(true);
 
       await createUser({
         ...payload,
-        createdBy: "SuperAdmin", // ✅ ADD THIS
+        createdBy: "SuperAdmin",
       });
 
       await reloadUsers();
@@ -182,13 +171,11 @@ export default function UsersPage() {
       setAddOpen(false);
       showAlert("User created successfully (inactive).", "success");
     } catch (err: any) {
-      showAlert(err.response?.data?.message || "Failed to save user", "error");
+      showAlert(err.message || "Failed to save user", "error");
     } finally {
       setIsLoading(false);
     }
   };
-
-  /* ================= SEND CREDENTIALS ================= */
 
   const handleSendClick = (user: UserRow) => {
     setSelectedUser(user);
@@ -210,16 +197,11 @@ export default function UsersPage() {
 
       showAlert("Credentials sent and user activated!", "success");
     } catch (err: any) {
-      showAlert(
-        err.response?.data?.message || "Failed to send credentials",
-        "error",
-      );
+      showAlert(err.message || "Failed to send credentials", "error");
     } finally {
       setIsLoading(false);
     }
   };
-
-  /* ================= UI ================= */
 
   return (
     <>
@@ -313,13 +295,14 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {/* ADD USER MODAL */}
         <AddUserModal
           open={addOpen}
           onClose={() => setAddOpen(false)}
           onSubmit={handleAddUser}
           isLoading={isLoading}
+          existingUsers={users}
         />
+
         <SendCredentialsModal
           open={sendOpen}
           user={selectedUser}

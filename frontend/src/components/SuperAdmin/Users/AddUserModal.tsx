@@ -9,9 +9,13 @@ import {
   ShieldCheck,
   Building2,
 } from "lucide-react";
-import type { UserRole, UserStatus } from "../../../pages/SuperAdmin/UsersPage";
+import type {
+  UserRole,
+  UserStatus,
+  UserRow,
+} from "../../../pages/SuperAdmin/UsersPage";
 import AddUserReviewModal from "../../shared/AddUserReviewModal";
-import { getActiveDepartments } from "../../../api/departmentService"; // ✅ FETCH ACTIVE DEPTS
+import { getActiveDepartments } from "../../../api/departmentService";
 
 const GENDERS = ["Male", "Female", "Prefer not to say"] as const;
 type Gender = (typeof GENDERS)[number];
@@ -20,18 +24,14 @@ export type AddUserPayload = {
   firstName: string;
   middleName: string;
   lastName: string;
-
   idNumber: string;
-
   email: string;
   phone: string;
   gender: Gender;
-
   role: UserRole;
   status: UserStatus;
   department: string;
   notes: string;
-
   tempPassword?: string;
 };
 
@@ -59,11 +59,9 @@ const DEPARTMENTS = [
   "Arts & Sciences",
 ];
 
-// ✅ Special departments
 const REGISTRAR_DEPT = "Registrar Office";
 const FINANCE_DEPT = "Finance Office";
 
-// ✅ DB Department type
 type DepartmentDB = {
   _id: string;
   code: string;
@@ -71,7 +69,6 @@ type DepartmentDB = {
   status: "Active" | "Inactive";
 };
 
-// ✅ Helper: Formats "john doe" -> "John Doe"
 function toTitleCase(str: string) {
   if (!str) return "";
   return str
@@ -108,6 +105,7 @@ type AddUserModalProps = {
   onClose: () => void;
   onSubmit: (payload: AddUserPayload) => void;
   isLoading: boolean;
+  existingUsers: UserRow[];
 };
 
 export default function AddUserModal({
@@ -115,36 +113,28 @@ export default function AddUserModal({
   onClose,
   onSubmit,
   isLoading,
+  existingUsers,
 }: AddUserModalProps) {
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
-
   const [idNumber, setIdNumber] = useState("");
-
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-
   const [gender, setGender] = useState<Gender | "">("");
   const [role, setRole] = useState<UserRole | "">("");
-
   const [status] = useState<UserStatus>("inactive");
-
   const [department, setDepartment] = useState<string | "">("");
   const [notes, setNotes] = useState("");
-
   const [submitted, setSubmitted] = useState(false);
-
   const [localErrors, setLocalErrors] = useState<AddUserErrors>({});
   const [touched, setTouched] = useState<Touched>({});
-
   const [showReview, setShowReview] = useState(false);
   const [reviewData, setReviewData] = useState<Omit<
     AddUserPayload,
     "tempPassword"
   > | null>(null);
 
-  // ✅ Active departments from DB
   const [departments, setDepartments] = useState<DepartmentDB[]>([]);
   const [deptLoading, setDeptLoading] = useState(false);
   const [deptError, setDeptError] = useState("");
@@ -178,16 +168,14 @@ export default function AddUserModal({
     ],
   );
 
-  /* =========================================================
-     ✅ ROLE-BASED DEPARTMENT RULES
-     Registrar -> Registrar Office (locked)
-     Finance   -> Finance Office (locked)
-     Dept Head -> fetch ACTIVE departments from DB (no hardcode)
-  ========================================================== */
-
   const departmentLocked = role === "Registrar" || role === "Finance";
 
-  // ✅ FETCH ACTIVE DEPARTMENTS WHEN MODAL OPENS
+  const usedDeptHeadDepartments = useMemo(() => {
+    return existingUsers
+      .filter((u) => u.role === "Dept Head" && u.department)
+      .map((u) => String(u.department).trim());
+  }, [existingUsers]);
+
   useEffect(() => {
     if (!open) return;
 
@@ -220,17 +208,17 @@ export default function AddUserModal({
     };
   }, [open]);
 
-  // ✅ Department options (Dept Head uses DB, others use hardcoded)
   const departmentOptions = useMemo(() => {
     if (role === "Dept Head") {
       return departments
         .map((d) => d.name)
-        .filter((n) => n !== REGISTRAR_DEPT && n !== FINANCE_DEPT);
+        .filter((n) => n !== REGISTRAR_DEPT && n !== FINANCE_DEPT)
+        .filter((n) => !usedDeptHeadDepartments.includes(n));
     }
-    return DEPARTMENTS;
-  }, [role, departments]);
 
-  // auto-assign department when role changes
+    return DEPARTMENTS;
+  }, [role, departments, usedDeptHeadDepartments]);
+
   useEffect(() => {
     if (!open) return;
 
@@ -246,24 +234,22 @@ export default function AddUserModal({
       return;
     }
 
-    // If switched to Dept Head and current dept is invalid, clear it
     if (role === "Dept Head") {
-      if (department === REGISTRAR_DEPT || department === FINANCE_DEPT) {
+      if (
+        department === REGISTRAR_DEPT ||
+        department === FINANCE_DEPT ||
+        (department && !departmentOptions.includes(department))
+      ) {
         setDepartment("");
       }
     }
-  }, [role, open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [role, open, department, departmentOptions]);
 
-  // validate department whenever role locks it
   useEffect(() => {
     if (!open) return;
     if (!departmentLocked) return;
-
-    // mark touched so it doesn't show red while auto-setting
     setTouched((t) => ({ ...t, department: false }));
   }, [departmentLocked, open]);
-
-  /* ================= VALIDATION ================= */
 
   const validateField = (k: keyof AddUserFormState): string => {
     const first = firstName.trim();
@@ -364,7 +350,6 @@ export default function AddUserModal({
   const selectClass = (k: keyof AddUserFormState) =>
     `users-select ${invalid(k) ? "is-invalid" : ""}`;
 
-  // ESC to close + body scroll lock
   useEffect(() => {
     if (!open) return;
 
@@ -386,32 +371,24 @@ export default function AddUserModal({
     };
   }, [open, onClose, showReview, isLoading]);
 
-  // reset when open
   useEffect(() => {
     if (!open) return;
 
     setFirstName("");
     setMiddleName("");
     setLastName("");
-
     setIdNumber("");
     setEmail("");
     setPhone("");
-
     setGender("");
     setRole("");
-
     setDepartment("");
     setNotes("");
-
     setSubmitted(false);
     setTouched({});
     setLocalErrors({});
-
     setShowReview(false);
     setReviewData(null);
-
-    // ✅ reset department fetch UI states
     setDeptError("");
   }, [open]);
 
@@ -461,7 +438,6 @@ export default function AddUserModal({
 
   return (
     <>
-      {/* ✅ REVIEW MODAL */}
       {reviewData && (
         <AddUserReviewModal
           open={showReview}
@@ -484,7 +460,6 @@ export default function AddUserModal({
         />
       )}
 
-      {/* ✅ FORM MODAL */}
       {!showReview && (
         <div className="users-modal-backdrop" onMouseDown={onClose}>
           <div
@@ -514,13 +489,11 @@ export default function AddUserModal({
 
             <form onSubmit={openReview} className="users-modal-body">
               <div className="users-form-grid">
-                {/* Row 1: Name */}
                 <div className="users-name-row users-col-span-2">
                   <div className="users-field users-input-with-icon">
                     <label className={labelClass("firstName")}>
                       First Name <span className="req">*</span>
                     </label>
-
                     <div className="users-input-wrapper">
                       <User className="users-input-icon" size={16} />
                       <input
@@ -535,7 +508,6 @@ export default function AddUserModal({
                         placeholder="Enter first name"
                       />
                     </div>
-
                     <div className="users-invalid-feedback">
                       {invalid("firstName") ? getError("firstName") : "\u00A0"}
                     </div>
@@ -545,7 +517,6 @@ export default function AddUserModal({
                     <label className={labelClass("middleName")}>
                       Middle Name
                     </label>
-
                     <div className="users-input-wrapper">
                       <User className="users-input-icon" size={16} />
                       <input
@@ -560,7 +531,6 @@ export default function AddUserModal({
                         placeholder="Optional"
                       />
                     </div>
-
                     <div className="users-invalid-feedback">
                       {invalid("middleName")
                         ? getError("middleName")
@@ -572,7 +542,6 @@ export default function AddUserModal({
                     <label className={labelClass("lastName")}>
                       Last Name <span className="req">*</span>
                     </label>
-
                     <div className="users-input-wrapper">
                       <User className="users-input-icon" size={16} />
                       <input
@@ -587,20 +556,17 @@ export default function AddUserModal({
                         placeholder="Enter last name"
                       />
                     </div>
-
                     <div className="users-invalid-feedback">
                       {invalid("lastName") ? getError("lastName") : "\u00A0"}
                     </div>
                   </div>
                 </div>
 
-                {/* Row 2: ID + Email + Phone */}
                 <div className="users-row-3 users-col-span-2">
                   <div className="users-field users-input-with-icon">
                     <label className={labelClass("idNumber")}>
                       ID Number <span className="req">*</span>
                     </label>
-
                     <div className="users-input-wrapper">
                       <Hash className="users-input-icon" size={16} />
                       <input
@@ -613,7 +579,6 @@ export default function AddUserModal({
                         placeholder="e.g., STU-2024-001"
                       />
                     </div>
-
                     <div className="users-invalid-feedback">
                       {invalid("idNumber") ? getError("idNumber") : "\u00A0"}
                     </div>
@@ -623,7 +588,6 @@ export default function AddUserModal({
                     <label className={labelClass("email")}>
                       Email <span className="req">*</span>
                     </label>
-
                     <div className="users-input-wrapper">
                       <Mail className="users-input-icon" size={16} />
                       <input
@@ -637,7 +601,6 @@ export default function AddUserModal({
                         type="email"
                       />
                     </div>
-
                     <div className="users-invalid-feedback">
                       {invalid("email") ? getError("email") : "\u00A0"}
                     </div>
@@ -647,7 +610,6 @@ export default function AddUserModal({
                     <label className={labelClass("phone")}>
                       Phone <span className="req">*</span>
                     </label>
-
                     <div className="users-input-wrapper">
                       <Phone className="users-input-icon" size={16} />
                       <input
@@ -660,20 +622,17 @@ export default function AddUserModal({
                         maxLength={11}
                       />
                     </div>
-
                     <div className="users-invalid-feedback">
                       {invalid("phone") ? getError("phone") : "\u00A0"}
                     </div>
                   </div>
                 </div>
 
-                {/* Row 3: Gender + Status */}
                 <div className="users-row-2 users-col-span-2">
                   <div className="users-field users-input-with-icon has-select">
                     <label className={labelClass("gender")}>
                       Gender <span className="req">*</span>
                     </label>
-
                     <div className="users-input-wrapper">
                       <Users className="users-input-icon" size={16} />
                       <select
@@ -700,7 +659,6 @@ export default function AddUserModal({
                         ))}
                       </select>
                     </div>
-
                     <div className="users-invalid-feedback">
                       {invalid("gender") ? getError("gender") : "\u00A0"}
                     </div>
@@ -710,7 +668,6 @@ export default function AddUserModal({
                     <label className="users-label">
                       Status <span className="req">*</span>
                     </label>
-
                     <div className="users-input-wrapper">
                       <ShieldCheck className="users-input-icon" size={16} />
                       <input
@@ -719,18 +676,15 @@ export default function AddUserModal({
                         readOnly
                       />
                     </div>
-
                     <div className="users-invalid-feedback">&nbsp;</div>
                   </div>
                 </div>
 
-                {/* Row 4: Portal Role + Department */}
                 <div className="users-row-2 users-col-span-2">
                   <div className="users-field users-input-with-icon has-select">
                     <label className={labelClass("role")}>
                       Portal Role <span className="req">*</span>
                     </label>
-
                     <div className="users-input-wrapper">
                       <ShieldCheck className="users-input-icon" size={16} />
                       <select
@@ -768,7 +722,6 @@ export default function AddUserModal({
                         ))}
                       </select>
                     </div>
-
                     <div className="users-invalid-feedback">
                       {invalid("role") ? getError("role") : "\u00A0"}
                     </div>
@@ -778,11 +731,9 @@ export default function AddUserModal({
                     <label className={labelClass("department")}>
                       Department <span className="req">*</span>
                     </label>
-
                     <div className="users-input-wrapper">
                       <Building2 className="users-input-icon" size={16} />
 
-                      {/* ✅ LOCKED input for Registrar / Finance */}
                       {departmentLocked ? (
                         <input
                           className={inputClass("department")}
@@ -825,10 +776,19 @@ export default function AddUserModal({
                               {deptError}
                             </div>
                           )}
+
+                          {role === "Dept Head" &&
+                            !deptLoading &&
+                            !deptError &&
+                            departmentOptions.length === 0 && (
+                              <div className="text-muted small mt-1">
+                                All active departments already have a Department
+                                Head.
+                              </div>
+                            )}
                         </>
                       )}
                     </div>
-
                     <div className="users-invalid-feedback">
                       {invalid("department")
                         ? getError("department")
@@ -837,7 +797,6 @@ export default function AddUserModal({
                   </div>
                 </div>
 
-                {/* Notes */}
                 <div className="users-field users-col-span-2">
                   <label className="users-label">Notes</label>
                   <textarea

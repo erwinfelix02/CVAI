@@ -2,10 +2,6 @@ import User from "../models/User.js";
 import sendEmail from "../utils/sendEmail.js";
 import validator from "validator";
 
-/* ================================
-   CREATE USER (INACTIVE)
-================================ */
-
 export const createUser = async (req, res) => {
   try {
     const {
@@ -22,9 +18,6 @@ export const createUser = async (req, res) => {
       createdBy = "SuperAdmin",
     } = req.body;
 
-    /* ================= VALIDATION ================= */
-
-    // 1. Required fields
     if (
       !firstName ||
       !lastName ||
@@ -40,46 +33,37 @@ export const createUser = async (req, res) => {
         .json({ message: "All required fields must be provided." });
     }
 
-    // 2. Sanitize strings
-    const cleanFirstName = validator.escape(firstName.trim());
+    const cleanFirstName = validator.escape(String(firstName).trim());
     const cleanMiddleName = middleName
-      ? validator.escape(middleName.trim())
+      ? validator.escape(String(middleName).trim())
       : "";
-    const cleanLastName = validator.escape(lastName.trim());
-    const cleanIdNumber = validator.escape(idNumber.trim());
-    const cleanEmail = validator.normalizeEmail(email.trim()) || email.trim();  
- 
-    const cleanDepartment = validator.escape(department.trim());
-    const cleanNotes = notes ? validator.escape(notes.trim()) : "";
+    const cleanLastName = validator.escape(String(lastName).trim());
+    const cleanIdNumber = validator.escape(String(idNumber).trim());
+    const cleanEmail =
+      validator.normalizeEmail(String(email).trim()) || String(email).trim();
+    const cleanDepartment = validator.escape(String(department).trim());
+    const cleanNotes = notes ? validator.escape(String(notes).trim()) : "";
 
-    // 3. Validate email format
     if (!validator.isEmail(cleanEmail)) {
       return res.status(400).json({ message: "Invalid email format." });
     }
 
-let cleanPhone = phone.trim().replace(/\s+/g, "");
+    let cleanPhone = String(phone).trim().replace(/\s+/g, "");
 
-// If user sends 0912xxxxxxx → convert
-if (/^09\d{9}$/.test(cleanPhone)) {
-  cleanPhone = "+63" + cleanPhone.slice(1);
-}
+    if (/^09\d{9}$/.test(cleanPhone)) {
+      cleanPhone = "+63" + cleanPhone.slice(1);
+    }
 
-// If user sends 639xxxxxxxxx → convert
-if (/^639\d{9}$/.test(cleanPhone)) {
-  cleanPhone = "+" + cleanPhone;
-}
+    if (/^639\d{9}$/.test(cleanPhone)) {
+      cleanPhone = "+" + cleanPhone;
+    }
 
-// Final strict validation
-if (!/^\+639\d{9}$/.test(cleanPhone)) {
-  return res.status(400).json({
-    message: "Phone must be in format +639XXXXXXXXX.",
-  });
-}
+    if (!/^\+639\d{9}$/.test(cleanPhone)) {
+      return res.status(400).json({
+        message: "Phone must be in format +639XXXXXXXXX.",
+      });
+    }
 
-
-
-
-    // 5. Validate role (prevent role injection)
     const allowedRoles = [
       "Faculty",
       "Student",
@@ -93,20 +77,33 @@ if (!/^\+639\d{9}$/.test(cleanPhone)) {
       return res.status(400).json({ message: "Invalid role selected." });
     }
 
-   const existingEmail = await User.findOne({ email: cleanEmail });
-if (existingEmail) {
-  return res.status(400).json({
-    message: "Email already exists.",
-  });
-}
+    const existingEmail = await User.findOne({ email: cleanEmail });
+    if (existingEmail) {
+      return res.status(400).json({
+        message: "Email already exists.",
+      });
+    }
 
-const existingId = await User.findOne({ idNumber: cleanIdNumber });
-if (existingId) {
-  return res.status(400).json({
-    message: "ID number already exists.",
-  });
-}
+    const existingId = await User.findOne({ idNumber: cleanIdNumber });
+    if (existingId) {
+      return res.status(400).json({
+        message: "ID number already exists.",
+      });
+    }
 
+    // only one department head per department
+    if (role === "Dept Head") {
+      const existingDeptHead = await User.findOne({
+        role: "Dept Head",
+        department: cleanDepartment,
+      });
+
+      if (existingDeptHead) {
+        return res.status(400).json({
+          message: `A Department Head already exists for ${cleanDepartment}.`,
+        });
+      }
+    }
 
     const user = new User({
       firstName: cleanFirstName,
@@ -127,35 +124,32 @@ if (existingId) {
 
     await user.save();
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "User created successfully (inactive).",
     });
- } catch (err) {
-  if (err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
+  } catch (err) {
+    console.error("createUser error:", err);
 
-const formattedField =
-  field === "email"
-    ? "Email"
-    : field === "idNumber"
-    ? "ID number"
-    : field;
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyValue || {})[0];
 
-return res.status(400).json({
-  message: `${formattedField} already exists.`,
-});
+      const formattedField =
+        field === "email"
+          ? "Email"
+          : field === "idNumber"
+          ? "ID number"
+          : field;
 
+      return res.status(400).json({
+        message: `${formattedField} already exists.`,
+      });
+    }
+
+    return res.status(500).json({
+      message: err.message || "Server error",
+    });
   }
-
-  res.status(500).json({
-    message: "Server error",
-  });
-}
 };
-
-/* ================================
-   SEND CREDENTIALS (ACTIVATE)
-================================ */
 
 function generateTempPassword(length = 10) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$";
@@ -182,13 +176,11 @@ export const sendCredentials = async (req, res) => {
 
     const tempPassword = generateTempPassword(10);
 
-    // ❌ REMOVE MANUAL HASHING
-    user.password = tempPassword; // <-- just assign plain
-
+    user.password = tempPassword;
     user.status = "active";
     user.credentialsSent = true;
 
-    await user.save(); // ✅ schema will hash automatically
+    await user.save();
 
     const fullName = `${user.firstName} ${
       user.middleName ? user.middleName + " " : ""
@@ -211,48 +203,34 @@ export const sendCredentials = async (req, res) => {
       emailHtml,
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Credentials sent and user activated.",
     });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
-/* ================================
-   GET USERS
-================================ */
 
 export const getUsers = async (req, res) => {
   try {
     const users = await User.find().sort({ createdAt: -1 });
-
-    res.status(200).json(users);
+    return res.status(200).json(users);
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch users" });
+    return res.status(500).json({ message: "Failed to fetch users" });
   }
 };
 
-
-/* ================================
-   GET USERS STUDENTS (FOR RECORDS PAGE)
-================================ */
 export const getStudentUsers = async (req, res) => {
   try {
-    const { q = "", status = "All", course = "All" } = req.query;
+    const { q = "", status = "All" } = req.query;
 
-    // ✅ base filter: Students only
     const filter = { role: "Student" };
 
-    // ✅ optional status filter (maps your UI values to DB)
-    // UI: "Active" | "Dropped" | "Graduated" | "All"
-    // DB: "active" | "inactive"
     if (status !== "All") {
       if (status === "Active") filter.status = "active";
-      else filter.status = "inactive"; // Dropped/Graduated -> treat as inactive unless you add fields
+      else filter.status = "inactive";
     }
 
-    // ✅ optional search (name or idNumber)
     const search = String(q).trim();
     if (search) {
       filter.$or = [
@@ -263,19 +241,15 @@ export const getStudentUsers = async (req, res) => {
       ];
     }
 
-    // ✅ optional "course" filter
-    // NOTE: your UserSchema does NOT have course/section/year.
-    // If you want this filter to work, you must add these fields to User or join another collection.
-    // For now we ignore course unless you add it.
-    // if (course !== "All") filter.course = course;
-
     const users = await User.find(filter)
       .select("firstName middleName lastName idNumber email status department role")
       .sort({ createdAt: -1 });
 
-    // ✅ map to frontend rows
     const rows = users.map((u) => {
-      const fullName = `${u.firstName} ${u.middleName ? u.middleName + " " : ""}${u.lastName}`.trim();
+      const fullName = `${u.firstName} ${
+        u.middleName ? u.middleName + " " : ""
+      }${u.lastName}`.trim();
+
       const initials = fullName
         .split(" ")
         .filter(Boolean)
@@ -288,9 +262,9 @@ export const getStudentUsers = async (req, res) => {
         initials,
         name: fullName,
         email: u.email,
-        course: u.department || "—", // ✅ placeholder (since User has no course)
-        section: "—",               // ✅ placeholder
-        year: 0,                    // ✅ placeholder
+        course: u.department || "—",
+        section: "—",
+        year: 0,
         status: u.status === "active" ? "Active" : "Dropped",
       };
     });
@@ -318,16 +292,18 @@ export const getUserById = async (req, res) => {
   }
 };
 
-
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
+    const { phone, department, status, role } = req.body;
 
-    const { phone, department, status } = req.body;
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     const update = {};
 
-    // ✅ Phone validation (same rules you used in createUser)
     if (phone !== undefined) {
       let cleanPhone = String(phone).trim().replace(/\s+/g, "");
 
@@ -346,17 +322,48 @@ export const updateUser = async (req, res) => {
       update.phone = cleanPhone;
     }
 
-    // ✅ Department sanitize
+    let cleanDepartment = user.department;
     if (department !== undefined) {
-      const cleanDepartment = validator.escape(String(department).trim());
+      cleanDepartment = validator.escape(String(department).trim());
       if (!cleanDepartment) {
         return res.status(400).json({ message: "Department is required." });
       }
       update.department = cleanDepartment;
     }
 
-    // ✅ Optional: allow status update if you want
-    // If you don't want to edit status from UI, you can delete this block.
+    let nextRole = user.role;
+    if (role !== undefined) {
+      const allowedRoles = [
+        "Faculty",
+        "Student",
+        "Registrar",
+        "Dept Head",
+        "Finance",
+        "Super Admin",
+      ];
+
+      if (!allowedRoles.includes(role)) {
+        return res.status(400).json({ message: "Invalid role selected." });
+      }
+
+      nextRole = role;
+      update.role = role;
+    }
+
+    if (nextRole === "Dept Head") {
+      const existingDeptHead = await User.findOne({
+        _id: { $ne: id },
+        role: "Dept Head",
+        department: cleanDepartment,
+      });
+
+      if (existingDeptHead) {
+        return res.status(400).json({
+          message: `A Department Head already exists for ${cleanDepartment}.`,
+        });
+      }
+    }
+
     if (status !== undefined) {
       if (!["active", "inactive"].includes(status)) {
         return res.status(400).json({ message: "Invalid status." });
@@ -364,21 +371,19 @@ export const updateUser = async (req, res) => {
       update.status = status;
     }
 
-    const user = await User.findByIdAndUpdate(id, update, {
+    const updatedUser = await User.findByIdAndUpdate(id, update, {
       new: true,
       runValidators: true,
     }).select(
       "firstName middleName lastName idNumber email phone gender role status department notes createdBy credentialsSent isTemporaryPassword createdAt updatedAt"
     );
 
-    if (!user) return res.status(404).json({ message: "User not found" });
-
     return res.status(200).json({
       message: "User updated successfully.",
-      user,
+      user: updatedUser,
     });
   } catch (err) {
     console.error("updateUser error:", err);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: err.message || "Server error" });
   }
 };

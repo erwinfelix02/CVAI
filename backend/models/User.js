@@ -3,12 +3,18 @@ import bcrypt from "bcryptjs";
 
 const UserSchema = new mongoose.Schema(
   {
-    firstName: { type: String, required: true },
-    middleName: String,
-    lastName: { type: String, required: true },
-    idNumber: { type: String, required: true, unique: true },
-    email: { type: String, required: true, unique: true },
-    phone: { type: String, required: true },
+    firstName: { type: String, required: true, trim: true },
+    middleName: { type: String, trim: true },
+    lastName: { type: String, required: true, trim: true },
+    idNumber: { type: String, required: true, unique: true, trim: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
+    phone: { type: String, required: true, trim: true },
     gender: { type: String, required: true },
 
     role: {
@@ -29,7 +35,6 @@ const UserSchema = new mongoose.Schema(
       enum: ["active", "inactive"],
       default: "inactive",
     },
-    // Add these inside UserSchema
 
     loginAttempts: {
       type: Number,
@@ -39,13 +44,20 @@ const UserSchema = new mongoose.Schema(
     lockUntil: {
       type: Date,
     },
+
     isTemporaryPassword: {
       type: Boolean,
-      default: true, // new accounts start as temporary
+      default: true,
     },
 
-    department: { type: String, required: true },
-    notes: String,
+    department: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    notes: { type: String, trim: true },
+
     createdBy: {
       type: String,
       enum: ["SuperAdmin", "Registrar"],
@@ -58,28 +70,28 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
     resetCode: {
-  type: String,
-},
+      type: String,
+    },
 
-resetCodeExpires: {
-  type: Date,
-},
+    resetCodeExpires: {
+      type: Date,
+    },
 
-resetAttempts: {
-  type: Number,
-  default: 0,
-},
+    resetAttempts: {
+      type: Number,
+      default: 0,
+    },
 
-resetLockUntil: {
-  type: Date,
-},
-resetVerified: {
-  type: Boolean,
-  default: false,
-},
+    resetLockUntil: {
+      type: Date,
+    },
 
-
+    resetVerified: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );
