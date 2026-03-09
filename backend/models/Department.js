@@ -19,8 +19,8 @@ const departmentSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      lowercase: true,
       trim: true,
+      lowercase: true,
     },
 
     description: {
@@ -38,11 +38,13 @@ const departmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-departmentSchema.pre("validate", function (next) {
+// safer auto-normalization
+departmentSchema.pre("validate", function () {
   this.code = String(this.code || "").trim().toUpperCase();
   this.name = String(this.name || "").trim();
-  this.nameKey = this.name.toLowerCase();
-  next();
+  this.nameKey = String(this.name || "").trim().toLowerCase();
+  this.description = String(this.description || "").trim();
+  this.status = String(this.status || "Active").trim();
 });
 
 departmentSchema.index({ code: 1 }, { unique: true });

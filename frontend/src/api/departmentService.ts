@@ -31,7 +31,7 @@ export const updateDepartment = async (
     name: string;
     description: string;
     status: "Active" | "Inactive";
-  }
+  },
 ) => {
   const res = await api.put(`/departments/${id}`, payload);
   return res.data;

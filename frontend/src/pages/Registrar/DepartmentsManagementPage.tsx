@@ -63,9 +63,12 @@ export default function DepartmentsManagementPage() {
 
       setItems(mapped);
     } catch (err: any) {
+      console.error("LOAD DEPARTMENTS ERROR:", err);
       setItems([]);
       showAlert(
-        err.response?.data?.message || "Failed to load departments.",
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to load departments.",
         "error",
       );
     } finally {
@@ -124,8 +127,11 @@ export default function DepartmentsManagementPage() {
       setOpenAdd(false);
       setEditing(null);
     } catch (err: any) {
+      console.error("CREATE DEPARTMENT ERROR:", err);
       showAlert(
-        err.response?.data?.message || "Failed to create department.",
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to create department.",
         "error",
       );
     } finally {
@@ -149,8 +155,11 @@ export default function DepartmentsManagementPage() {
       setOpenAdd(false);
       setEditing(null);
     } catch (err: any) {
+      console.error("UPDATE DEPARTMENT ERROR:", err);
       showAlert(
-        err.response?.data?.message || "Failed to update department.",
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to update department.",
         "error",
       );
     } finally {
@@ -165,8 +174,11 @@ export default function DepartmentsManagementPage() {
       await loadDepartments();
       showAlert("Department deleted successfully!", "success");
     } catch (err: any) {
+      console.error("DELETE DEPARTMENT ERROR:", err);
       showAlert(
-        err.response?.data?.message || "Failed to delete department.",
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to delete department.",
         "error",
       );
     } finally {

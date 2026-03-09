@@ -7,7 +7,7 @@ export const getDepartments = async (req, res) => {
 
     const filter = {};
     if (status) {
-      filter.status = status;
+      filter.status = String(status).trim();
     }
 
     const departments = await Department.find(filter).sort({ createdAt: -1 });
@@ -17,10 +17,7 @@ export const getDepartments = async (req, res) => {
         const headUser = await User.findOne({
           role: "Dept Head",
           status: "active",
-          $or: [
-            { department: dept.name },
-            { department: dept.code },
-          ],
+          $or: [{ department: dept.name }, { department: dept.code }],
         }).select("firstName middleName lastName");
 
         const head = headUser
@@ -43,7 +40,9 @@ export const getDepartments = async (req, res) => {
     return res.json(result);
   } catch (error) {
     console.error("getDepartments error:", error);
-    return res.status(500).json({ message: "Failed to fetch departments." });
+    return res.status(500).json({
+      message: error.message || "Failed to fetch departments.",
+    });
   }
 };
 
@@ -57,8 +56,17 @@ export const createDepartment = async (req, res) => {
       });
     }
 
-    const normalizedCode = code.trim().toUpperCase();
-    const normalizedName = name.trim();
+    const normalizedCode = String(code || "").trim().toUpperCase();
+    const normalizedName = String(name || "").trim();
+    const normalizedNameKey = normalizedName.toLowerCase();
+    const normalizedDescription = String(description || "").trim();
+    const normalizedStatus = String(status || "Active").trim();
+
+    if (!["Active", "Inactive"].includes(normalizedStatus)) {
+      return res.status(400).json({
+        message: "Invalid status value.",
+      });
+    }
 
     const existingCode = await Department.findOne({ code: normalizedCode });
     if (existingCode) {
@@ -67,7 +75,7 @@ export const createDepartment = async (req, res) => {
       });
     }
 
-    const existingName = await Department.findOne({ name: normalizedName });
+    const existingName = await Department.findOne({ nameKey: normalizedNameKey });
     if (existingName) {
       return res.status(400).json({
         message: "Department name already exists.",
@@ -77,8 +85,9 @@ export const createDepartment = async (req, res) => {
     const department = await Department.create({
       code: normalizedCode,
       name: normalizedName,
-      description: description?.trim() || "",
-      status: status || "Active",
+      nameKey: normalizedNameKey,
+      description: normalizedDescription,
+      status: normalizedStatus,
     });
 
     return res.status(201).json({
@@ -87,7 +96,30 @@ export const createDepartment = async (req, res) => {
     });
   } catch (error) {
     console.error("createDepartment error:", error);
-    return res.status(500).json({ message: "Failed to create department." });
+
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue || {})[0];
+
+      if (field === "code") {
+        return res.status(400).json({
+          message: "Department code already exists.",
+        });
+      }
+
+      if (field === "nameKey") {
+        return res.status(400).json({
+          message: "Department name already exists.",
+        });
+      }
+
+      return res.status(400).json({
+        message: "Duplicate department value already exists.",
+      });
+    }
+
+    return res.status(500).json({
+      message: error.message || "Failed to create department.",
+    });
   }
 };
 
@@ -102,8 +134,17 @@ export const updateDepartment = async (req, res) => {
       });
     }
 
-    const normalizedCode = code.trim().toUpperCase();
-    const normalizedName = name.trim();
+    const normalizedCode = String(code || "").trim().toUpperCase();
+    const normalizedName = String(name || "").trim();
+    const normalizedNameKey = normalizedName.toLowerCase();
+    const normalizedDescription = String(description || "").trim();
+    const normalizedStatus = String(status || "Active").trim();
+
+    if (!["Active", "Inactive"].includes(normalizedStatus)) {
+      return res.status(400).json({
+        message: "Invalid status value.",
+      });
+    }
 
     const department = await Department.findById(id);
     if (!department) {
@@ -114,6 +155,7 @@ export const updateDepartment = async (req, res) => {
       _id: { $ne: id },
       code: normalizedCode,
     });
+
     if (existingCode) {
       return res.status(400).json({
         message: "Department code already exists.",
@@ -122,8 +164,9 @@ export const updateDepartment = async (req, res) => {
 
     const existingName = await Department.findOne({
       _id: { $ne: id },
-      name: normalizedName,
+      nameKey: normalizedNameKey,
     });
+
     if (existingName) {
       return res.status(400).json({
         message: "Department name already exists.",
@@ -132,8 +175,9 @@ export const updateDepartment = async (req, res) => {
 
     department.code = normalizedCode;
     department.name = normalizedName;
-    department.description = description?.trim() || "";
-    department.status = status || "Active";
+    department.nameKey = normalizedNameKey;
+    department.description = normalizedDescription;
+    department.status = normalizedStatus;
 
     await department.save();
 
@@ -143,21 +187,45 @@ export const updateDepartment = async (req, res) => {
     });
   } catch (error) {
     console.error("updateDepartment error:", error);
-    return res.status(500).json({ message: "Failed to update department." });
+
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue || {})[0];
+
+      if (field === "code") {
+        return res.status(400).json({
+          message: "Department code already exists.",
+        });
+      }
+
+      if (field === "nameKey") {
+        return res.status(400).json({
+          message: "Department name already exists.",
+        });
+      }
+    }
+
+    return res.status(500).json({
+      message: error.message || "Failed to update department.",
+    });
   }
 };
 
 export const deleteDepartment = async (req, res) => {
   try {
-    const deleted = await Department.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
 
-    if (!deleted) {
+    const department = await Department.findById(id);
+    if (!department) {
       return res.status(404).json({ message: "Department not found." });
     }
+
+    await Department.findByIdAndDelete(id);
 
     return res.json({ message: "Department deleted successfully." });
   } catch (error) {
     console.error("deleteDepartment error:", error);
-    return res.status(500).json({ message: "Failed to delete department." });
+    return res.status(500).json({
+      message: error.message || "Failed to delete department.",
+    });
   }
 };
