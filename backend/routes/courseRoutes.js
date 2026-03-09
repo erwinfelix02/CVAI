@@ -4,10 +4,17 @@ import courseContract from "../utils/courseBlockchain.js";
 
 const router = express.Router();
 
-/** GET all */
+/** GET all (optional status filter) */
 router.get("/", async (req, res) => {
   try {
-    const courses = await Course.find().sort({ createdAt: -1 });
+    const { status } = req.query;
+
+    const filter = {};
+    if (status && ["Active", "Inactive"].includes(status)) {
+      filter.status = status;
+    }
+
+    const courses = await Course.find(filter).sort({ createdAt: -1 });
     res.json(courses);
   } catch (err) {
     res.status(500).json({ message: "Failed to load courses" });
@@ -29,12 +36,15 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
+    if (!["Active", "Inactive"].includes(normalizedStatus)) {
+      return res.status(400).json({ message: "Invalid status value." });
+    }
+
     const exists = await Course.findOne({ code: normalizedCode });
     if (exists) {
       return res.status(400).json({ message: "Course code already exists." });
     }
 
-    // 1) Create in Mongo first (without chainIndex yet)
     const course = await Course.create({
       code: normalizedCode,
       name: normalizedName,
@@ -45,8 +55,6 @@ router.post("/", async (req, res) => {
       chainTxHash: "",
     });
 
-    // 2) Write to blockchain (optional but you want it)
-    // If blockchain fails, we rollback mongo record (delete it) so it won't mismatch
     try {
       const tx = await courseContract.addCourse(
         normalizedCode,
@@ -58,7 +66,6 @@ router.post("/", async (req, res) => {
 
       const receipt = await tx.wait();
 
-      // getTotalCourses() AFTER push -> last index = total - 1
       const total = await courseContract.getTotalCourses();
       const index = Number(total) - 1;
 
@@ -66,7 +73,6 @@ router.post("/", async (req, res) => {
       course.chainTxHash = receipt.hash;
       await course.save();
     } catch (chainErr) {
-      // rollback mongo record to avoid mismatch
       await Course.findByIdAndDelete(course._id);
       console.error("Blockchain addCourse failed:", chainErr);
       return res.status(500).json({ message: "Blockchain save failed." });
@@ -94,20 +100,25 @@ router.put("/:id", async (req, res) => {
     const course = await Course.findById(id);
     if (!course) return res.status(404).json({ message: "Course not found" });
 
-    // prevent code duplication
+    if (!normalizedCode || !normalizedName || !normalizedDept || !y) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+
+    if (!["Active", "Inactive"].includes(normalizedStatus)) {
+      return res.status(400).json({ message: "Invalid status value." });
+    }
+
     const exists = await Course.findOne({ code: normalizedCode, _id: { $ne: id } });
     if (exists) {
       return res.status(400).json({ message: "Course code already exists." });
     }
 
-    // Update Mongo first
     course.code = normalizedCode;
     course.name = normalizedName;
     course.yearLevels = y;
     course.department = normalizedDept;
     course.status = normalizedStatus;
 
-    // Update blockchain if we have chainIndex
     if (course.chainIndex !== null && course.chainIndex !== undefined) {
       try {
         const tx = await courseContract.updateCourse(
@@ -126,9 +137,6 @@ router.put("/:id", async (req, res) => {
         return res.status(500).json({ message: "Blockchain update failed." });
       }
     } else {
-      // If older record without chainIndex, you can decide:
-      // 1) return error, or
-      // 2) create it on-chain now (not recommended unless you want)
       return res.status(400).json({
         message: "This course has no chainIndex. Recreate it to sync blockchain.",
       });
@@ -148,7 +156,6 @@ router.delete("/:id", async (req, res) => {
     const course = await Course.findById(req.params.id);
     if (!course) return res.status(404).json({ message: "Course not found" });
 
-    // blockchain: set inactive (recommended)
     if (course.chainIndex !== null && course.chainIndex !== undefined) {
       try {
         const tx = await courseContract.setCourseStatus(
@@ -163,13 +170,7 @@ router.delete("/:id", async (req, res) => {
       }
     }
 
-    // mongo: delete OR soft delete (your choice)
-    // Option A: hard delete
     await Course.findByIdAndDelete(course._id);
-
-    // Option B: soft delete mongo instead (recommended):
-    // course.status = "Inactive";
-    // await course.save();
 
     res.json({ message: "Course deleted (blockchain set to Inactive)." });
   } catch (err) {

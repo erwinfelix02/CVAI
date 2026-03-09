@@ -1,13 +1,53 @@
 import express from "express";
 import Department from "../models/Department.js";
+import User from "../models/User.js";
 
 const router = express.Router();
 
-/** GET ALL */
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** GET ALL (supports ?status=Active|Inactive) */
 router.get("/", async (req, res) => {
   try {
-    const departments = await Department.find().sort({ createdAt: -1 });
-    res.json(departments);
+    const { status } = req.query;
+
+    const filter = {};
+    if (status) {
+      const s = String(status).trim().toLowerCase();
+      if (s === "active") filter.status = "Active";
+      if (s === "inactive") filter.status = "Inactive";
+    }
+
+    const departments = await Department.find(filter).sort({ createdAt: -1 });
+
+    const result = await Promise.all(
+      departments.map(async (dept) => {
+        const headUser = await User.findOne({
+          role: "Dept Head",
+          status: "active",
+          $or: [{ department: dept.name }, { department: dept.code }],
+        }).select("firstName middleName lastName");
+
+        const head = headUser
+          ? [headUser.firstName, headUser.middleName, headUser.lastName]
+              .filter(Boolean)
+              .join(" ")
+          : "Not assigned yet";
+
+        return {
+          _id: dept._id,
+          code: dept.code,
+          name: dept.name,
+          description: dept.description,
+          status: dept.status,
+          head,
+        };
+      }),
+    );
+
+    res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to load departments." });
@@ -17,11 +57,10 @@ router.get("/", async (req, res) => {
 /** CREATE */
 router.post("/", async (req, res) => {
   try {
-    const { code, name, head, description, status } = req.body;
+    const { code, name, description, status } = req.body;
 
     const normalizedCode = String(code || "").trim().toUpperCase();
     const normalizedName = String(name || "").trim();
-    const normalizedHead = String(head || "").trim();
     const normalizedDesc = String(description || "").trim();
     const normalizedStatus = String(status || "Active").trim();
 
@@ -37,17 +76,29 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const exists = await Department.findOne({ code: normalizedCode });
-    if (exists) {
+    const existingCode = await Department.findOne({
+      code: normalizedCode,
+    });
+
+    if (existingCode) {
       return res.status(400).json({
         message: "Department code already exists.",
+      });
+    }
+
+    const existingName = await Department.findOne({
+      name: { $regex: new RegExp(`^${escapeRegex(normalizedName)}$`, "i") },
+    });
+
+    if (existingName) {
+      return res.status(400).json({
+        message: "Department name already exists.",
       });
     }
 
     const department = await Department.create({
       code: normalizedCode,
       name: normalizedName,
-      head: normalizedHead,
       description: normalizedDesc,
       status: normalizedStatus,
     });
@@ -63,11 +114,10 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { code, name, head, description, status } = req.body;
+    const { code, name, description, status } = req.body;
 
     const normalizedCode = String(code || "").trim().toUpperCase();
     const normalizedName = String(name || "").trim();
-    const normalizedHead = String(head || "").trim();
     const normalizedDesc = String(description || "").trim();
     const normalizedStatus = String(status || "Active").trim();
 
@@ -88,21 +138,30 @@ router.put("/:id", async (req, res) => {
       return res.status(404).json({ message: "Department not found." });
     }
 
-    // prevent duplicate codes
-    const exists = await Department.findOne({
+    const existingCode = await Department.findOne({
       code: normalizedCode,
       _id: { $ne: id },
     });
 
-    if (exists) {
+    if (existingCode) {
       return res.status(400).json({
         message: "Department code already exists.",
       });
     }
 
+    const existingName = await Department.findOne({
+      _id: { $ne: id },
+      name: { $regex: new RegExp(`^${escapeRegex(normalizedName)}$`, "i") },
+    });
+
+    if (existingName) {
+      return res.status(400).json({
+        message: "Department name already exists.",
+      });
+    }
+
     department.code = normalizedCode;
     department.name = normalizedName;
-    department.head = normalizedHead;
     department.description = normalizedDesc;
     department.status = normalizedStatus;
 
@@ -115,7 +174,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-/** DELETE (Hard Delete) */
+/** DELETE */
 router.delete("/:id", async (req, res) => {
   try {
     const department = await Department.findById(req.params.id);

@@ -15,6 +15,8 @@ import {
   deleteCourse,
 } from "../../api/courseService";
 
+import { getDepartments } from "../../api/departmentService"; // ✅ NEW
+
 import "../../styles/registrar-courses.css";
 
 export default function CoursesManagementPage() {
@@ -25,7 +27,10 @@ export default function CoursesManagementPage() {
   const [openAdd, setOpenAdd] = useState(false);
   const [editing, setEditing] = useState<CourseItem | null>(null);
 
-  // ✅ AuthAlert state (same pattern as UsersPage)
+  // ✅ NEW: active department options (string list)
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
+
+  // ✅ AuthAlert state
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
@@ -45,7 +50,7 @@ export default function CoursesManagementPage() {
     return () => clearTimeout(t);
   }, [animateAlert]);
 
-  // ✅ LOAD COURSES FROM DB
+  // ✅ LOAD COURSES
   const loadCourses = async () => {
     try {
       setIsLoading(true);
@@ -60,23 +65,42 @@ export default function CoursesManagementPage() {
           yearLevels: c.yearLevels,
           department: c.department,
           status: c.status ?? "Active",
-        })
+        }),
       );
 
       setCourses(mapped);
     } catch (err: any) {
-      showAlert(
-        err.response?.data?.message || "Failed to load courses.",
-        "error"
-      );
+      showAlert(err.response?.data?.message || "Failed to load courses.", "error");
       setCourses([]);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // ✅ NEW: LOAD ACTIVE DEPARTMENTS
+  const loadActiveDepartments = async () => {
+    try {
+      const data = await getDepartments();
+
+      const activeNames = (Array.isArray(data) ? data : [])
+        .filter((d: any) => (d.status ?? "Active") === "Active")
+        .map((d: any) => String(d.name ?? "").trim())
+        .filter(Boolean)
+        // remove duplicates
+        .filter((name: string, idx: number, arr: string[]) => arr.indexOf(name) === idx)
+        // optional sort
+        .sort((a: string, b: string) => a.localeCompare(b));
+
+      setDepartmentOptions(activeNames);
+    } catch (err) {
+      // don’t block the page if dept fetch fails
+      setDepartmentOptions([]);
+    }
+  };
+
   useEffect(() => {
     loadCourses();
+    loadActiveDepartments(); // ✅ NEW
   }, []);
 
   // ✅ FILTER
@@ -108,7 +132,7 @@ export default function CoursesManagementPage() {
     setOpenAdd(true);
   };
 
-  // ✅ CREATE -> DB (called AFTER confirm inside modal)
+  // ✅ CREATE
   const onCreate = async (item: CourseItem) => {
     try {
       setIsLoading(true);
@@ -122,21 +146,17 @@ export default function CoursesManagementPage() {
       });
 
       await loadCourses();
-
       setOpenAdd(false);
       setEditing(null);
       showAlert("Course created successfully!", "success");
     } catch (err: any) {
-      showAlert(
-        err.response?.data?.message || "Failed to create course.",
-        "error"
-      );
+      showAlert(err.response?.data?.message || "Failed to create course.", "error");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ✅ UPDATE -> DB (called AFTER confirm inside modal)
+  // ✅ UPDATE
   const onUpdate = async (item: CourseItem) => {
     try {
       setIsLoading(true);
@@ -150,40 +170,32 @@ export default function CoursesManagementPage() {
       });
 
       await loadCourses();
-
       setOpenAdd(false);
       setEditing(null);
       showAlert("Course updated successfully!", "success");
     } catch (err: any) {
-      showAlert(
-        err.response?.data?.message || "Failed to update course.",
-        "error"
-      );
+      showAlert(err.response?.data?.message || "Failed to update course.", "error");
     } finally {
       setIsLoading(false);
     }
   };
 
-// ✅ DELETE -> DB (NO window.confirm here)
-const onDelete = async (id: string) => {
-  try {
-    setIsLoading(true);
+  // ✅ DELETE
+  const onDelete = async (id: string) => {
+    try {
+      setIsLoading(true);
 
-    await deleteCourse(id);
-    await loadCourses();
+      await deleteCourse(id);
+      await loadCourses();
 
-    showAlert("Course deleted successfully.", "success");
-  } catch (err: any) {
-    showAlert(
-      err.response?.data?.message || "Failed to delete course.",
-      "error"
-    );
-  } finally {
-    setIsLoading(false);
-  }
-};
+      showAlert("Course deleted successfully.", "success");
+    } catch (err: any) {
+      showAlert(err.response?.data?.message || "Failed to delete course.", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // ✅ EMPTY STATE uses same style as UsersPage
   const hasRows = filtered.length > 0;
 
   return (
@@ -208,6 +220,7 @@ const onDelete = async (id: string) => {
             className="btn btn-primary btn-lg courses-add-btn"
             onClick={openCreate}
             disabled={isLoading}
+            type="button"
           >
             <Plus size={18} />
             <span className="ms-2">Add Course</span>
@@ -228,11 +241,7 @@ const onDelete = async (id: string) => {
             </div>
 
             {hasRows ? (
-              <CoursesTable
-                items={filtered}
-                onEdit={openEdit}
-                onDelete={onDelete}
-              />
+              <CoursesTable items={filtered} onEdit={openEdit} onDelete={onDelete} />
             ) : (
               <div className="users-empty-state">
                 <div className="users-empty-icon">📭</div>
@@ -245,7 +254,7 @@ const onDelete = async (id: string) => {
           </div>
         </div>
 
-        {/* ✅ ADD / EDIT COURSE MODAL (confirmation is inside) */}
+        {/* ✅ PASS ACTIVE DEPARTMENTS TO MODAL */}
         <AddCourseModal
           open={openAdd}
           onClose={() => {
@@ -255,6 +264,7 @@ const onDelete = async (id: string) => {
           initial={editing}
           onCreate={onCreate}
           onUpdate={onUpdate}
+          departmentOptions={departmentOptions} // ✅ NEW
         />
       </div>
     </>

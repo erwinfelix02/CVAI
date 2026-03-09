@@ -97,7 +97,6 @@ function validateAcademic(v: AcademicInfo): AcademicErrors {
   const e: AcademicErrors = {};
 
   if (!v.applicantType) e.applicantType = "Applicant type is required.";
-
   if (!v.course.trim()) e.course = "Course is required.";
 
   if (v.applicantType === "Transferee" && !v.previousSchool?.trim()) {
@@ -154,6 +153,32 @@ export default function StudentPreRegistrationPage() {
     idPhoto: null,
   });
 
+  // ✅ NEW: active courses from DB
+  const [courseOptions, setCourseOptions] = useState<string[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setCoursesLoading(true);
+        const res = await fetch("http://localhost:5000/api/courses?status=Active");
+        const data = await res.json();
+
+        const list = (Array.isArray(data) ? data : [])
+          .filter((c: any) => (c.status ?? "Active") === "Active")
+          .map((c: any) => String(c.code || "").trim().toUpperCase())
+          .filter(Boolean);
+
+        // unique + sort
+        setCourseOptions(Array.from(new Set(list)).sort());
+      } catch (e) {
+        setCourseOptions([]);
+      } finally {
+        setCoursesLoading(false);
+      }
+    })();
+  }, []);
+
   // ✅ show validation only after user tries to go next
   const [submitted, setSubmitted] = useState({
     personal: false,
@@ -170,7 +195,6 @@ export default function StudentPreRegistrationPage() {
     [activeStep],
   );
 
-  // ✅ update error live AFTER first submit click
   useEffect(() => {
     if (submitted.personal) setPersonalErrors(validatePersonal(personal));
   }, [personal, submitted.personal]);
@@ -182,16 +206,13 @@ export default function StudentPreRegistrationPage() {
   useEffect(() => {
     if (submitted.documents) setDocsErrors(validateDocs(docs));
   }, [docs, submitted.documents]);
-// 🔥 Auto-hide alert after 3 seconds
-useEffect(() => {
-  if (showAlert) {
-    const timer = setTimeout(() => {
-      setShowAlert(false);
-    }, 3000);
 
-    return () => clearTimeout(timer);
-  }
-}, [showAlert]);
+  useEffect(() => {
+    if (showAlert) {
+      const timer = setTimeout(() => setShowAlert(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showAlert]);
 
   function validateCurrentStep(): boolean {
     if (activeStep === "personal") {
@@ -231,85 +252,83 @@ useEffect(() => {
     if (prev) setActiveStep(prev);
   }
 
-async function handleSubmit() {
-  if (isSubmitting) return;
-  setIsSubmitting(true);
+  async function handleSubmit() {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-  setSubmitted({ personal: true, academic: true, documents: true });
-  setShowAlert(false);
+    setSubmitted({ personal: true, academic: true, documents: true });
+    setShowAlert(false);
 
-  const pe = validatePersonal(personal);
-  const ae = validateAcademic(academic);
-  const de = validateDocs(docs);
+    const pe = validatePersonal(personal);
+    const ae = validateAcademic(academic);
+    const de = validateDocs(docs);
 
-  setPersonalErrors(pe);
-  setAcademicErrors(ae);
-  setDocsErrors(de);
+    setPersonalErrors(pe);
+    setAcademicErrors(ae);
+    setDocsErrors(de);
 
-  if (
-    hasErrors(pe as Record<string, unknown>) ||
-    hasErrors(ae as Record<string, unknown>) ||
-    hasErrors(de as Record<string, unknown>)
-  ) {
-    if (hasErrors(pe as Record<string, unknown>)) setActiveStep("personal");
-    else if (hasErrors(ae as Record<string, unknown>)) setActiveStep("academic");
-    else setActiveStep("documents");
+    if (
+      hasErrors(pe as Record<string, unknown>) ||
+      hasErrors(ae as Record<string, unknown>) ||
+      hasErrors(de as Record<string, unknown>)
+    ) {
+      if (hasErrors(pe as Record<string, unknown>)) setActiveStep("personal");
+      else if (hasErrors(ae as Record<string, unknown>)) setActiveStep("academic");
+      else setActiveStep("documents");
 
-    setIsSubmitting(false);
-    return;
-  }
-
-  try {
-    const formData = new FormData();
-    formData.append("data", JSON.stringify({ personal, academic }));
-
-    if (docs.birthCert) formData.append("birthCert", docs.birthCert);
-    if (docs.form137) formData.append("form137", docs.form137);
-    if (docs.goodMoral) formData.append("goodMoral", docs.goodMoral);
-    if (docs.idPhoto) formData.append("idPhoto", docs.idPhoto);
-
-    const response = await fetch("http://localhost:5000/api/preregistrations", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (response.status === 409) {
-      const body = await response.json().catch(() => null);
-      setAlertMessage(body?.message || "Duplicate application found.");
-      setAlertType("error");
-      setShowAlert(true);
+      setIsSubmitting(false);
       return;
     }
 
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      throw new Error(body?.message || "Submission failed");
+    try {
+      const formData = new FormData();
+      formData.append("data", JSON.stringify({ personal, academic }));
+
+      if (docs.birthCert) formData.append("birthCert", docs.birthCert);
+      if (docs.form137) formData.append("form137", docs.form137);
+      if (docs.goodMoral) formData.append("goodMoral", docs.goodMoral);
+      if (docs.idPhoto) formData.append("idPhoto", docs.idPhoto);
+
+      const response = await fetch("http://localhost:5000/api/preregistrations", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.status === 409) {
+        const body = await response.json().catch(() => null);
+        setAlertMessage(body?.message || "Duplicate application found.");
+        setAlertType("error");
+        setShowAlert(true);
+        return;
+      }
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.message || "Submission failed");
+      }
+
+      setAlertMessage("Application submitted successfully!");
+      setAlertType("success");
+      setShowAlert(true);
+
+      setTimeout(() => navigate("/"), 2500);
+    } catch (err: any) {
+      setAlertMessage(err?.message || "Something went wrong. Please try again.");
+      setAlertType("error");
+      setShowAlert(true);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setAlertMessage("Application submitted successfully!");
-    setAlertType("success");
-    setShowAlert(true);
-
-    setTimeout(() => navigate("/"), 2500);
-  } catch (err: any) {
-    setAlertMessage(err?.message || "Something went wrong. Please try again.");
-    setAlertType("error");
-    setShowAlert(true);
-  } finally {
-    setIsSubmitting(false);
   }
-}
 
   function handleStepChange(nextKey: StepKey) {
     const nextIndex = steps.findIndex((s) => s.key === nextKey);
 
-    // ✅ allow going back freely
     if (nextIndex <= stepIndex) {
       setActiveStep(nextKey);
       return;
     }
 
-    // ✅ going forward: validate current step and show red
     const ok = validateCurrentStep();
     if (!ok) return;
 
@@ -324,10 +343,10 @@ async function handleSubmit() {
         visible={showAlert}
         loading={false}
       />
+
       <div className="prereg-shell">
         <PreRegNavbar />
 
-        {/* BACK BUTTON */}
         <div className="container prereg-back-wrap">
           <button
             type="button"
@@ -340,7 +359,6 @@ async function handleSubmit() {
         </div>
 
         <div className="container prereg-page">
-          {/* Hero */}
           <div className="text-center prereg-hero">
             <h1 className="fw-bold prereg-title">Student Pre-Registration</h1>
             <p className="text-muted mb-0">
@@ -348,7 +366,6 @@ async function handleSubmit() {
             </p>
           </div>
 
-          {/* Stepper */}
           <div className="d-flex justify-content-center prereg-stepper-wrap">
             <Stepper
               steps={steps}
@@ -357,7 +374,6 @@ async function handleSubmit() {
             />
           </div>
 
-          {/* Card */}
           <div className="card prereg-card">
             <div className="card-body prereg-card-body">
               {activeStep === "personal" && (
@@ -375,6 +391,8 @@ async function handleSubmit() {
                   onChange={setAcademic}
                   submitted={submitted.academic}
                   errors={academicErrors}
+                  courseOptions={courseOptions}
+                  coursesLoading={coursesLoading}
                 />
               )}
 
@@ -388,14 +406,9 @@ async function handleSubmit() {
               )}
 
               {activeStep === "review" && (
-                <StepReview
-                  personal={personal}
-                  academic={academic}
-                  docs={docs}
-                />
+                <StepReview personal={personal} academic={academic} docs={docs} />
               )}
 
-              {/* FOOTER */}
               <div className="prereg-footer">
                 <div className="prereg-footer-left">
                   {stepIndex > 0 && (
@@ -428,15 +441,15 @@ async function handleSubmit() {
                       onClick={handleSubmit}
                     >
                       <CheckCircle2 size={16} />
-                      <span>
-                        {isSubmitting ? "Submitting..." : "Submit Application"}
-                      </span>
+                      <span>{isSubmitting ? "Submitting..." : "Submit Application"}</span>
                     </button>
                   )}
                 </div>
               </div>
+
             </div>
           </div>
+
         </div>
       </div>
     </>

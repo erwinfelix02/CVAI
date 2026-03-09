@@ -5,7 +5,6 @@ import type { DepartmentItem, DepartmentStatus } from "./types";
 type Payload = {
   code: string;
   name: string;
-  head: string;
   description: string;
   status: DepartmentStatus;
 };
@@ -14,7 +13,7 @@ type Props = {
   open: boolean;
   onClose: () => void;
   initial?: DepartmentItem | null;
-  onCreate: (payload: Omit<DepartmentItem, "id">) => void;
+  onCreate: (payload: Omit<DepartmentItem, "id" | "head">) => void;
   onUpdate: (payload: DepartmentItem) => void;
   isLoading?: boolean;
 };
@@ -25,6 +24,13 @@ function normalizeCode(v: string) {
   return v.trim().toUpperCase();
 }
 
+const EMPTY_FORM: Payload = {
+  code: "",
+  name: "",
+  description: "",
+  status: "Active",
+};
+
 export default function AddDepartmentModal({
   open,
   onClose,
@@ -33,45 +39,31 @@ export default function AddDepartmentModal({
   onUpdate,
   isLoading = false,
 }: Props) {
-  const isEdit = !!initial;
+  const isEdit = Boolean(initial);
   const confirmingRef = useRef(false);
 
-  const [form, setForm] = useState<Payload>({
-    code: "",
-    name: "",
-    head: "",
-    description: "",
-    status: "Active",
-  });
-
-  const [touched, setTouched] = useState<Partial<Record<keyof Payload, boolean>>>(
-    {},
-  );
+  const [form, setForm] = useState<Payload>({ ...EMPTY_FORM });
+  const [touched, setTouched] = useState<
+    Partial<Record<keyof Payload, boolean>>
+  >({});
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState("");
-
-  // ✅ confirmation dialog state
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
 
-    if (isEdit && initial) {
+    console.log("MODAL INITIAL:", initial);
+
+    if (initial?.id) {
       setForm({
         code: initial.code ?? "",
         name: initial.name ?? "",
-        head: initial.head ?? "",
         description: initial.description ?? "",
         status: initial.status ?? "Active",
       });
     } else {
-      setForm({
-        code: "",
-        name: "",
-        head: "",
-        description: "",
-        status: "Active",
-      });
+      setForm({ ...EMPTY_FORM });
     }
 
     setTouched({});
@@ -79,76 +71,90 @@ export default function AddDepartmentModal({
     setFormError("");
     setConfirmOpen(false);
     confirmingRef.current = false;
-  }, [open, isEdit, initial]);
+  }, [open, initial?.id]);
 
-  // lock body scroll (modal)
   useEffect(() => {
     if (!open) return;
+
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
     return () => {
       document.body.style.overflow = prev;
     };
   }, [open]);
 
-  // ESC close (main modal) + close confirm first if open
   useEffect(() => {
     if (!open) return;
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (confirmOpen) setConfirmOpen(false);
-        else onClose();
+        if (confirmOpen) {
+          setConfirmOpen(false);
+        } else {
+          onClose();
+        }
       }
     };
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose, confirmOpen]);
+  }, [open, confirmOpen, onClose]);
 
   const validate = (data: Payload): Errors => {
     const e: Errors = {};
 
     const code = normalizeCode(data.code);
-    if (!code) e.code = "Department Code is required.";
-    else if (code.length < 2) e.code = "Department Code is too short.";
-    else if (!/^[A-Z0-9- ]+$/.test(code))
+    if (!code) {
+      e.code = "Department Code is required.";
+    } else if (code.length < 2) {
+      e.code = "Department Code is too short.";
+    } else if (!/^[A-Z0-9- ]+$/.test(code)) {
       e.code = "Only letters, numbers, spaces, and '-' are allowed.";
+    }
 
-    if (!data.name.trim()) e.name = "Department Name is required.";
-    else if (data.name.trim().length < 3) e.name = "Department Name is too short.";
-
-    if (!data.head.trim()) e.head = "Department Head is required.";
-    else if (data.head.trim().length < 4) e.head = "Department Head is too short.";
+    if (!data.name.trim()) {
+      e.name = "Department Name is required.";
+    } else if (data.name.trim().length < 3) {
+      e.name = "Department Name is too short.";
+    }
 
     if (data.description.trim() && data.description.trim().length < 5) {
       e.description = "Description is too short.";
     }
 
-    if (!data.status) e.status = "Status is required.";
+    if (!data.status) {
+      e.status = "Status is required.";
+    }
 
     return e;
   };
 
-  const setField = <K extends keyof Payload>(key: K, val: Payload[K]) => {
-    setForm((p) => ({ ...p, [key]: val }));
-    if (touched[key]) setErrors(validate({ ...form, [key]: val }));
+  const setField = <K extends keyof Payload>(key: K, value: Payload[K]) => {
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+
+      if (touched[key]) {
+        setErrors(validate(next));
+      }
+
+      return next;
+    });
   };
 
   const markTouched = (key: keyof Payload) => {
-    setTouched((p) => ({ ...p, [key]: true }));
+    setTouched((prev) => ({ ...prev, [key]: true }));
     setErrors(validate(form));
   };
 
   const canSubmit = useMemo(() => {
-    const e = validate(form);
-    return Object.keys(e).length === 0;
+    return Object.keys(validate(form)).length === 0;
   }, [form]);
 
-  // ✅ Step 1: Validate then open confirmation
   const requestSubmit = () => {
     setTouched({
       code: true,
       name: true,
-      head: true,
       description: true,
       status: true,
     });
@@ -165,21 +171,25 @@ export default function AddDepartmentModal({
     setConfirmOpen(true);
   };
 
-  // ✅ Step 2: Confirm then actually submit
   const confirmSubmit = () => {
     if (confirmingRef.current) return;
     confirmingRef.current = true;
 
-    const payload: Omit<DepartmentItem, "id"> = {
+    const payload = {
       code: normalizeCode(form.code),
       name: form.name.trim(),
-      head: form.head.trim(),
       description: form.description.trim(),
       status: form.status,
     };
 
-    if (isEdit && initial) onUpdate({ ...initial, ...payload });
-    else onCreate(payload);
+    if (initial) {
+      onUpdate({
+        ...initial,
+        ...payload,
+      });
+    } else {
+      onCreate(payload);
+    }
 
     setConfirmOpen(false);
     confirmingRef.current = false;
@@ -187,7 +197,7 @@ export default function AddDepartmentModal({
 
   if (!open) return null;
 
-  const fieldError = (k: keyof Payload) => (touched[k] ? errors[k] : "");
+  const fieldError = (key: keyof Payload) => (touched[key] ? errors[key] : "");
 
   return (
     <div
@@ -196,7 +206,9 @@ export default function AddDepartmentModal({
       aria-modal="true"
       aria-label={isEdit ? "Edit Department" : "Add Department"}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget && !confirmOpen) onClose();
+        if (e.target === e.currentTarget && !confirmOpen) {
+          onClose();
+        }
       }}
     >
       <div className="dept-modal" onMouseDown={(e) => e.stopPropagation()}>
@@ -222,7 +234,6 @@ export default function AddDepartmentModal({
 
         <div className="dept-modal-body">
           <div className="dept-grid">
-            {/* Code */}
             <div className="dept-field">
               <label className="dept-label">Department Code *</label>
               <input
@@ -234,25 +245,26 @@ export default function AddDepartmentModal({
                 onChange={(e) => setField("code", e.target.value)}
                 onBlur={() => markTouched("code")}
               />
-              <div className="dept-error-slot">{fieldError("code") || "\u00A0"}</div>
+              <div className="dept-error-slot">
+                {fieldError("code") || "\u00A0"}
+              </div>
             </div>
 
-            {/* Head */}
             <div className="dept-field">
-              <label className="dept-label">Department Head *</label>
+              <label className="dept-label">Department Head</label>
               <input
-                className={`form-control dept-input ${
-                  fieldError("head") ? "is-invalid" : ""
-                }`}
-                placeholder="e.g. Dr. Juan Dela Cruz"
-                value={form.head}
-                onChange={(e) => setField("head", e.target.value)}
-                onBlur={() => markTouched("head")}
+                className="form-control dept-input"
+                value={
+                  initial?.head?.trim() ? initial.head : "Not assigned yet"
+                }
+                readOnly
+                disabled
               />
-              <div className="dept-error-slot">{fieldError("head") || "\u00A0"}</div>
+              <div className="dept-error-slot">
+                Department Head is managed by Super Admin.
+              </div>
             </div>
 
-            {/* Name */}
             <div className="dept-field">
               <label className="dept-label">Department Name *</label>
               <input
@@ -264,10 +276,11 @@ export default function AddDepartmentModal({
                 onChange={(e) => setField("name", e.target.value)}
                 onBlur={() => markTouched("name")}
               />
-              <div className="dept-error-slot">{fieldError("name") || "\u00A0"}</div>
+              <div className="dept-error-slot">
+                {fieldError("name") || "\u00A0"}
+              </div>
             </div>
 
-            {/* Status */}
             <div className="dept-field">
               <label className="dept-label">Status</label>
               <select
@@ -275,16 +288,19 @@ export default function AddDepartmentModal({
                   fieldError("status") ? "is-invalid" : ""
                 }`}
                 value={form.status}
-                onChange={(e) => setField("status", e.target.value as DepartmentStatus)}
+                onChange={(e) =>
+                  setField("status", e.target.value as DepartmentStatus)
+                }
                 onBlur={() => markTouched("status")}
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
               </select>
-              <div className="dept-error-slot">{fieldError("status") || "\u00A0"}</div>
+              <div className="dept-error-slot">
+                {fieldError("status") || "\u00A0"}
+              </div>
             </div>
 
-            {/* Description */}
             <div className="dept-field dept-span-2">
               <label className="dept-label">Description</label>
               <textarea
@@ -303,7 +319,9 @@ export default function AddDepartmentModal({
             </div>
           </div>
 
-          {formError ? <div className="dept-form-error">{formError}</div> : null}
+          {formError ? (
+            <div className="dept-form-error">{formError}</div>
+          ) : null}
         </div>
 
         <div className="dept-modal-footer">
@@ -326,15 +344,20 @@ export default function AddDepartmentModal({
           </button>
         </div>
 
-        {/* ✅ Confirmation overlay (inside modal) */}
         {confirmOpen && (
-          <div className="dept-confirm-backdrop" role="dialog" aria-modal="true">
+          <div
+            className="dept-confirm-backdrop"
+            role="dialog"
+            aria-modal="true"
+          >
             <div className="dept-confirm-card">
               <div className="dept-confirm-title">
                 {isEdit ? "Confirm Save" : "Confirm Create"}
               </div>
+
               <div className="dept-confirm-text">
-                Are you sure you want to {isEdit ? "save changes" : "create this department"}?
+                Are you sure you want to{" "}
+                {isEdit ? "save changes" : "create this department"}?
               </div>
 
               <div className="dept-confirm-actions">

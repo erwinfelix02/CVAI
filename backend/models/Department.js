@@ -15,13 +15,15 @@ const departmentSchema = new mongoose.Schema(
       trim: true,
     },
 
-    description: {
+    nameKey: {
       type: String,
-      default: "",
+      required: true,
+      unique: true,
+      lowercase: true,
       trim: true,
     },
 
-    head: {
+    description: {
       type: String,
       default: "",
       trim: true,
@@ -36,7 +38,15 @@ const departmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// prevent duplicate codes
-departmentSchema.index({ code: 1 }, { unique: true });
+departmentSchema.pre("validate", function (next) {
+  this.code = String(this.code || "").trim().toUpperCase();
+  this.name = String(this.name || "").trim();
+  this.nameKey = this.name.toLowerCase();
+  next();
+});
 
-export default mongoose.model("Department", departmentSchema);
+departmentSchema.index({ code: 1 }, { unique: true });
+departmentSchema.index({ nameKey: 1 }, { unique: true });
+
+export default mongoose.models.Department ||
+  mongoose.model("Department", departmentSchema);

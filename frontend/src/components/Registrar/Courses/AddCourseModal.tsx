@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CourseItem, CourseStatus } from "./types";
 
 type Payload = {
@@ -7,7 +7,7 @@ type Payload = {
   name: string;
   yearLevels: number;
   department: string;
-  status: CourseStatus; // ✅ NEW
+  status: CourseStatus;
 };
 
 type Props = {
@@ -16,7 +16,7 @@ type Props = {
   initial?: CourseItem | null;
   onCreate: (item: CourseItem) => Promise<void> | void;
   onUpdate: (item: CourseItem) => Promise<void> | void;
-  departmentOptions?: string[];
+  departmentOptions?: string[]; // ✅ should be ACTIVE departments only
 };
 
 type Errors = Partial<Record<keyof Payload, string>>;
@@ -31,24 +31,31 @@ export default function AddCourseModal({
   initial,
   onCreate,
   onUpdate,
-  departmentOptions = [
-    "College of Computer Studies",
-    "College of Business",
-    "College of Nursing",
-    "College of Engineering",
-  ],
+  departmentOptions = [], // ✅ default empty
 }: Props) {
   const isEdit = !!initial;
+
+  // ✅ normalize + unique + sorted (safe)
+  const activeDepartments = useMemo(() => {
+    const list = Array.isArray(departmentOptions) ? departmentOptions : [];
+    return list
+      .map((d) => String(d || "").trim())
+      .filter(Boolean)
+      .filter((d, i, arr) => arr.indexOf(d) === i)
+      .sort((a, b) => a.localeCompare(b));
+  }, [departmentOptions]);
 
   const [form, setForm] = useState<Payload>({
     code: "",
     name: "",
     yearLevels: 4,
     department: "",
-    status: "Active", // ✅ NEW default
+    status: "Active",
   });
 
-  const [touched, setTouched] = useState<Partial<Record<keyof Payload, boolean>>>({});
+  const [touched, setTouched] = useState<Partial<Record<keyof Payload, boolean>>>(
+    {},
+  );
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState("");
 
@@ -65,7 +72,7 @@ export default function AddCourseModal({
         name: initial.name ?? "",
         yearLevels: initial.yearLevels ?? 4,
         department: initial.department ?? "",
-        status: (initial.status ?? "Active") as CourseStatus, // ✅ NEW
+        status: (initial.status ?? "Active") as CourseStatus,
       });
     } else {
       setForm({
@@ -85,6 +92,7 @@ export default function AddCourseModal({
     setConfirming(false);
   }, [open, isEdit, initial]);
 
+  // lock body scroll
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -94,6 +102,7 @@ export default function AddCourseModal({
     };
   }, [open]);
 
+  // ESC close (closes confirm first)
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -119,13 +128,20 @@ export default function AddCourseModal({
     if (!data.name.trim()) e.name = "Course Name is required.";
     else if (data.name.trim().length < 6) e.name = "Course Name is too short.";
 
-    if (!data.department.trim()) e.department = "Department is required.";
-
     const y = Number(data.yearLevels);
     if (!Number.isFinite(y)) e.yearLevels = "Year Levels is required.";
     else if (y < 1 || y > 10) e.yearLevels = "Year Levels must be 1–10.";
 
-    // ✅ NEW: status validate
+    // ✅ Department: required + must be one of ACTIVE departments (when list exists)
+    if (!data.department.trim()) {
+      e.department = "Department is required.";
+    } else if (activeDepartments.length > 0 && !activeDepartments.includes(data.department)) {
+      e.department = "Selected department is not active.";
+    } else if (activeDepartments.length === 0) {
+      // optional: show a clearer message if no active departments loaded
+      e.department = "No active departments available.";
+    }
+
     if (!data.status) e.status = "Status is required.";
 
     return e;
@@ -147,7 +163,7 @@ export default function AddCourseModal({
       name: true,
       yearLevels: true,
       department: true,
-      status: true, // ✅ NEW
+      status: true,
     });
 
     const nextErrors = validate(form);
@@ -173,7 +189,7 @@ export default function AddCourseModal({
       name: form.name.trim(),
       yearLevels: Number(form.yearLevels),
       department: form.department.trim(),
-      status: form.status, // ✅ NEW
+      status: form.status,
     };
 
     try {
@@ -210,7 +226,9 @@ export default function AddCourseModal({
           onMouseDown={(e) => e.stopPropagation()}
         >
           <div className="modal-header border-0 pb-0">
-            <h5 className="modal-title fw-bold">{isEdit ? "Edit Course" : "Add New Course"}</h5>
+            <h5 className="modal-title fw-bold">
+              {isEdit ? "Edit Course" : "Add New Course"}
+            </h5>
 
             <button
               className="btn p-0 d-flex align-items-center justify-content-center"
@@ -231,7 +249,9 @@ export default function AddCourseModal({
                   Course Code <span className="text-danger">*</span>
                 </label>
                 <input
-                  className={`form-control courses-input ${fieldError("code") ? "is-invalid" : ""}`}
+                  className={`form-control courses-input ${
+                    fieldError("code") ? "is-invalid" : ""
+                  }`}
                   placeholder="e.g. BSIT"
                   value={form.code}
                   onChange={(e) => setField("code", e.target.value)}
@@ -246,7 +266,9 @@ export default function AddCourseModal({
                   Year Levels <span className="text-danger">*</span>
                 </label>
                 <select
-                  className={`form-select courses-input ${fieldError("yearLevels") ? "is-invalid" : ""}`}
+                  className={`form-select courses-input ${
+                    fieldError("yearLevels") ? "is-invalid" : ""
+                  }`}
                   value={form.yearLevels}
                   onChange={(e) => setField("yearLevels", Number(e.target.value))}
                   onBlur={() => markTouched("yearLevels")}
@@ -278,34 +300,43 @@ export default function AddCourseModal({
                 <div className="invalid-feedback">{fieldError("name")}</div>
               </div>
 
+              {/* ✅ ACTIVE DEPARTMENTS ONLY */}
               <div className="col-12">
                 <label className="form-label fw-semibold">
                   Department <span className="text-danger">*</span>
                 </label>
+
                 <select
-                  className={`form-select courses-input ${fieldError("department") ? "is-invalid" : ""}`}
+                  className={`form-select courses-input ${
+                    fieldError("department") ? "is-invalid" : ""
+                  }`}
                   value={form.department}
                   onChange={(e) => setField("department", e.target.value)}
                   onBlur={() => markTouched("department")}
-                  disabled={confirmOpen || confirming}
+                  disabled={confirmOpen || confirming || activeDepartments.length === 0}
                 >
-                  <option value="">Select department</option>
-                  {departmentOptions.map((d) => (
+                  <option value="">
+                    {activeDepartments.length ? "Select department" : "No active departments"}
+                  </option>
+
+                  {activeDepartments.map((d) => (
                     <option key={d} value={d}>
                       {d}
                     </option>
                   ))}
                 </select>
+
                 <div className="invalid-feedback">{fieldError("department")}</div>
               </div>
 
-              {/* ✅ NEW: STATUS */}
               <div className="col-12">
                 <label className="form-label fw-semibold">
                   Status <span className="text-danger">*</span>
                 </label>
                 <select
-                  className={`form-select courses-input ${fieldError("status") ? "is-invalid" : ""}`}
+                  className={`form-select courses-input ${
+                    fieldError("status") ? "is-invalid" : ""
+                  }`}
                   value={form.status}
                   onChange={(e) => setField("status", e.target.value as CourseStatus)}
                   onBlur={() => markTouched("status")}
@@ -318,7 +349,9 @@ export default function AddCourseModal({
               </div>
             </div>
 
-            {formError ? <div className="alert alert-danger mt-3 mb-0">{formError}</div> : null}
+            {formError ? (
+              <div className="alert alert-danger mt-3 mb-0">{formError}</div>
+            ) : null}
           </div>
 
           <div className="modal-footer border-0 pt-0">
@@ -326,6 +359,7 @@ export default function AddCourseModal({
               className="btn btn-light courses-btn-cancel"
               onClick={onClose}
               disabled={confirmOpen || confirming}
+              type="button"
             >
               Cancel
             </button>
@@ -334,6 +368,7 @@ export default function AddCourseModal({
               className="btn btn-primary courses-btn-primary"
               onClick={onSubmit}
               disabled={confirming}
+              type="button"
             >
               {isEdit ? "Save Changes" : "Add Course"}
             </button>
@@ -349,8 +384,13 @@ export default function AddCourseModal({
                 if (e.target === e.currentTarget && !confirming) setConfirmOpen(false);
               }}
             >
-              <div className="sec-confirm-popup" onMouseDown={(e) => e.stopPropagation()}>
-                <div className="sec-confirm-header">{isEdit ? "Confirm Update" : "Confirm Add"}</div>
+              <div
+                className="sec-confirm-popup"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <div className="sec-confirm-header">
+                  {isEdit ? "Confirm Update" : "Confirm Add"}
+                </div>
 
                 <div className="sec-confirm-body">
                   <div className="fw-bold mb-1">
@@ -388,12 +428,26 @@ export default function AddCourseModal({
                 </div>
 
                 <div className="sec-confirm-footer">
-                  <button className="btn btn-light" onClick={() => setConfirmOpen(false)} disabled={confirming}>
+                  <button
+                    className="btn btn-light"
+                    onClick={() => setConfirmOpen(false)}
+                    disabled={confirming}
+                    type="button"
+                  >
                     Cancel
                   </button>
 
-                  <button className="btn btn-primary" onClick={onConfirm} disabled={confirming}>
-                    {confirming ? (isEdit ? "Saving..." : "Creating...") : `Yes, ${isEdit ? "Save" : "Create"}`}
+                  <button
+                    className="btn btn-primary"
+                    onClick={onConfirm}
+                    disabled={confirming}
+                    type="button"
+                  >
+                    {confirming
+                      ? isEdit
+                        ? "Saving..."
+                        : "Creating..."
+                      : `Yes, ${isEdit ? "Save" : "Create"}`}
                   </button>
                 </div>
               </div>

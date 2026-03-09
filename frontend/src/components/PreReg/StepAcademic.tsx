@@ -15,42 +15,38 @@ export default function StepAcademic({
   onChange,
   submitted,
   errors: externalErrors,
+  courseOptions = [],
+  coursesLoading = false,
 }: {
   value: AcademicInfo;
   onChange: (v: AcademicInfo) => void;
   submitted: boolean;
   errors: Errors;
+  courseOptions?: string[];
+  coursesLoading?: boolean;
 }) {
   const [localErrors, setLocalErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Touched>({});
 
-  /* ---------------- SANITIZE HELPERS ---------------- */
-
   const normalizeText = (v: string) =>
     v.replace(/[\u0000-\u001F\u007F]/g, "").replace(/\s+/g, " ").trim();
 
-  // keep consistent with StepPersonal
   const hasDangerChars = (v: string) => /[<>$`{};]/.test(v);
 
   const sanitizeSelect = (v: string) => normalizeText(v).slice(0, 40);
 
-  // previousSchool: allow letters, numbers, spaces, and common punctuations
   const sanitizeSchool = (v: string) => {
     let s = normalizeText(v);
-    // remove payload-ish characters
     s = s.replace(/[$`{}<>]/g, "");
     s = s.replace(/["\\;]/g, "");
     return s.slice(0, 120);
   };
-
-  /* ---------------- VALIDATION ---------------- */
 
   const allowedSchool = (v: string) => /^[a-zA-Z0-9\s.,'&()-]+$/.test(v);
 
   const validateField = (key: keyof AcademicInfo, rawVal: any) => {
     const val = typeof rawVal === "string" ? rawVal : "";
 
-    // optional strict reject (same idea as StepPersonal)
     if (hasDangerChars(val)) return "Invalid characters detected.";
 
     switch (key) {
@@ -62,8 +58,11 @@ export default function StepAcademic({
 
       case "course":
         if (!val.trim()) return "Course/Program is required.";
-        if (!["BSIT", "BSCS", "BSA", "BSBA"].includes(val))
+
+        // ✅ validate against active courses if we have them
+        if (courseOptions.length > 0 && !courseOptions.includes(val)) {
           return "Invalid course selected.";
+        }
         break;
 
       case "previousSchool":
@@ -94,9 +93,7 @@ export default function StepAcademic({
   useEffect(() => {
     if (submitted) validateAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submitted]);
-
-  /* ---------------- HANDLERS ---------------- */
+  }, [submitted, courseOptions]);
 
   const set = (k: keyof AcademicInfo, v: string) => {
     let newValue = v;
@@ -104,7 +101,6 @@ export default function StepAcademic({
     if (k === "previousSchool") newValue = sanitizeSchool(v);
     else newValue = sanitizeSelect(v);
 
-    // if applicantType changes away from transferee, clear previousSchool + its errors
     if (k === "applicantType" && newValue !== "Transferee") {
       onChange({
         ...value,
@@ -118,7 +114,6 @@ export default function StepAcademic({
 
     onChange({ ...value, [k]: newValue });
 
-    // after submit or after touched, validate while correcting
     if (submitted || touched[k]) {
       const msg = validateField(k, newValue);
       setLocalErrors((prev) => ({ ...prev, [k]: msg }));
@@ -163,8 +158,6 @@ export default function StepAcademic({
       {children}
     </span>
   );
-
-  /* ---------------- UI ---------------- */
 
   return (
     <div className="prereg-step">
@@ -219,11 +212,19 @@ export default function StepAcademic({
             onChange={(e) => set("course", e.target.value)}
             onBlur={() => onBlurField("course")}
           >
-            <option value="">Select course</option>
-            <option value="BSIT">BSIT</option>
-            <option value="BSCS">BSCS</option>
-            <option value="BSA">BSA</option>
-            <option value="BSBA">BSBA</option>
+            <option value="">
+              {coursesLoading
+                ? "Loading active courses..."
+                : courseOptions.length
+                  ? "Select course"
+                  : "No active courses available"}
+            </option>
+
+            {courseOptions.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
           </select>
 
           <div className="invalid-feedback d-block">
@@ -231,7 +232,7 @@ export default function StepAcademic({
           </div>
         </div>
 
-        {/* Previous School (Only if Transferee) */}
+        {/* Previous School */}
         {value.applicantType === "Transferee" && (
           <div className="col-12">
             <label className={labelClass("previousSchool")}>

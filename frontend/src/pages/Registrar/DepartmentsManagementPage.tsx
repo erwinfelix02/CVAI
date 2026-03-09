@@ -13,7 +13,7 @@ import {
   getDepartments,
   createDepartment,
   updateDepartment,
-  // deleteDepartment, // later
+  deleteDepartment,
 } from "../../api/departmentService";
 
 import "../../styles/departments.css";
@@ -23,11 +23,9 @@ export default function DepartmentsManagementPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [query, setQuery] = useState("");
 
-  // modal
   const [openAdd, setOpenAdd] = useState(false);
   const [editing, setEditing] = useState<DepartmentItem | null>(null);
 
-  // ✅ AuthAlert state
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
@@ -58,7 +56,7 @@ export default function DepartmentsManagementPage() {
           code: d.code ?? "",
           name: d.name ?? "",
           description: d.description ?? "",
-          head: d.head ?? "",
+          head: d.head ?? "Not assigned yet",
           status: d.status === "Inactive" ? "Inactive" : "Active",
         }),
       );
@@ -105,18 +103,19 @@ export default function DepartmentsManagementPage() {
   };
 
   const openEdit = (item: DepartmentItem) => {
-    setEditing(item);
+    console.log("EDIT CLICKED:", item);
+    setEditing({ ...item });
     setOpenAdd(true);
   };
 
-  const onCreate = async (payload: Omit<DepartmentItem, "id">) => {
+  const onCreate = async (payload: Omit<DepartmentItem, "id" | "head">) => {
     try {
       setIsLoading(true);
+
       await createDepartment({
         code: payload.code,
         name: payload.name,
         description: payload.description,
-        head: payload.head,
         status: payload.status,
       });
 
@@ -137,11 +136,11 @@ export default function DepartmentsManagementPage() {
   const onUpdate = async (payload: DepartmentItem) => {
     try {
       setIsLoading(true);
+
       await updateDepartment(payload.id, {
         code: payload.code,
         name: payload.name,
         description: payload.description,
-        head: payload.head,
         status: payload.status,
       });
 
@@ -159,9 +158,20 @@ export default function DepartmentsManagementPage() {
     }
   };
 
-  const onDelete = () => {
-    // you said later, so placeholder for now
-    showAlert("Delete modal not implemented yet.", "error");
+  const onDelete = async (item: DepartmentItem) => {
+    try {
+      setIsLoading(true);
+      await deleteDepartment(item.id);
+      await loadDepartments();
+      showAlert("Department deleted successfully!", "success");
+    } catch (err: any) {
+      showAlert(
+        err.response?.data?.message || "Failed to delete department.",
+        "error",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -223,9 +233,8 @@ export default function DepartmentsManagementPage() {
           </div>
         </div>
 
-        {/* ✅ Modal */}
         <AddDepartmentModal
-          key={editing ? `edit-${editing.id}` : "create"}
+          key={editing?.id ?? "create"}
           open={openAdd}
           onClose={() => {
             if (isLoading) return;

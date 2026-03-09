@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { UserRole, UserStatus } from "../../../pages/SuperAdmin/UsersPage";
 import AddUserReviewModal from "../../shared/AddUserReviewModal";
+import { getActiveDepartments } from "../../../api/departmentService"; // ✅ FETCH ACTIVE DEPTS
 
 const GENDERS = ["Male", "Female", "Prefer not to say"] as const;
 type Gender = (typeof GENDERS)[number];
@@ -61,6 +62,14 @@ const DEPARTMENTS = [
 // ✅ Special departments
 const REGISTRAR_DEPT = "Registrar Office";
 const FINANCE_DEPT = "Finance Office";
+
+// ✅ DB Department type
+type DepartmentDB = {
+  _id: string;
+  code: string;
+  name: string;
+  status: "Active" | "Inactive";
+};
 
 // ✅ Helper: Formats "john doe" -> "John Doe"
 function toTitleCase(str: string) {
@@ -135,6 +144,11 @@ export default function AddUserModal({
     "tempPassword"
   > | null>(null);
 
+  // ✅ Active departments from DB
+  const [departments, setDepartments] = useState<DepartmentDB[]>([]);
+  const [deptLoading, setDeptLoading] = useState(false);
+  const [deptError, setDeptError] = useState("");
+
   const form = useMemo<AddUserFormState>(
     () => ({
       firstName,
@@ -168,20 +182,53 @@ export default function AddUserModal({
      ✅ ROLE-BASED DEPARTMENT RULES
      Registrar -> Registrar Office (locked)
      Finance   -> Finance Office (locked)
-     Dept Head -> can choose, but hide Registrar/Finance Office
+     Dept Head -> fetch ACTIVE departments from DB (no hardcode)
   ========================================================== */
 
   const departmentLocked = role === "Registrar" || role === "Finance";
 
+  // ✅ FETCH ACTIVE DEPARTMENTS WHEN MODAL OPENS
+  useEffect(() => {
+    if (!open) return;
+
+    let mounted = true;
+
+    const loadDepartments = async () => {
+      try {
+        setDeptLoading(true);
+        setDeptError("");
+
+        const data: DepartmentDB[] = await getActiveDepartments();
+
+        if (!mounted) return;
+
+        const activeOnly = (data || []).filter((d) => d.status === "Active");
+        setDepartments(activeOnly);
+      } catch (err: any) {
+        if (!mounted) return;
+        setDepartments([]);
+        setDeptError(err?.message || "Failed to load departments.");
+      } finally {
+        if (mounted) setDeptLoading(false);
+      }
+    };
+
+    loadDepartments();
+
+    return () => {
+      mounted = false;
+    };
+  }, [open]);
+
+  // ✅ Department options (Dept Head uses DB, others use hardcoded)
   const departmentOptions = useMemo(() => {
     if (role === "Dept Head") {
-      // hide registrar & finance for dept head
-      return DEPARTMENTS.filter(
-        (d) => d !== REGISTRAR_DEPT && d !== FINANCE_DEPT,
-      );
+      return departments
+        .map((d) => d.name)
+        .filter((n) => n !== REGISTRAR_DEPT && n !== FINANCE_DEPT);
     }
     return DEPARTMENTS;
-  }, [role]);
+  }, [role, departments]);
 
   // auto-assign department when role changes
   useEffect(() => {
@@ -363,6 +410,9 @@ export default function AddUserModal({
 
     setShowReview(false);
     setReviewData(null);
+
+    // ✅ reset department fetch UI states
+    setDeptError("");
   }, [open]);
 
   if (!open) return null;
@@ -697,7 +747,6 @@ export default function AddUserModal({
                             }));
                           }
 
-                          // ✅ optional: also validate dept when role changes
                           if (submitted || touched.department) {
                             setTimeout(() => {
                               setLocalErrors((p) => ({
@@ -742,30 +791,41 @@ export default function AddUserModal({
                           onBlur={() => onBlurField("department")}
                         />
                       ) : (
-                        <select
-                          className={selectClass("department")}
-                          value={department}
-                          onChange={(e) => {
-                            setDepartment(e.target.value);
-                            if (submitted || touched.department) {
-                              setLocalErrors((p) => ({
-                                ...p,
-                                department: validateField("department"),
-                              }));
-                            }
-                          }}
-                          onBlur={() => onBlurField("department")}
-                        >
-                          <option value="" disabled>
-                            Select department
-                          </option>
-
-                          {departmentOptions.map((d) => (
-                            <option key={d} value={d}>
-                              {d}
+                        <>
+                          <select
+                            className={selectClass("department")}
+                            value={department}
+                            onChange={(e) => {
+                              setDepartment(e.target.value);
+                              if (submitted || touched.department) {
+                                setLocalErrors((p) => ({
+                                  ...p,
+                                  department: validateField("department"),
+                                }));
+                              }
+                            }}
+                            onBlur={() => onBlurField("department")}
+                            disabled={role === "Dept Head" && deptLoading}
+                          >
+                            <option value="">
+                              {role === "Dept Head" && deptLoading
+                                ? "Loading departments..."
+                                : "Select department"}
                             </option>
-                          ))}
-                        </select>
+
+                            {departmentOptions.map((d) => (
+                              <option key={d} value={d}>
+                                {d}
+                              </option>
+                            ))}
+                          </select>
+
+                          {role === "Dept Head" && deptError && (
+                            <div className="text-danger small mt-1">
+                              {deptError}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
 

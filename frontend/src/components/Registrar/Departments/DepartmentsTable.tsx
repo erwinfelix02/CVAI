@@ -8,11 +8,7 @@ type Props = {
   onDelete: (item: DepartmentItem) => void;
 };
 
-export default function DepartmentsTable({
-  items,
-  onEdit,
-  onDelete,
-}: Props) {
+export default function DepartmentsTable({ items, onEdit, onDelete }: Props) {
   const [confirmItem, setConfirmItem] = useState<DepartmentItem | null>(null);
 
   const handleConfirmDelete = () => {
@@ -50,12 +46,12 @@ export default function DepartmentsTable({
 
                   <div className="d-md-none sad-mobile-head">
                     <span className="text-muted">Head:</span>{" "}
-                    {d.head || "—"}
+                    {d.head?.trim() ? d.head : "Not assigned yet"}
                   </div>
                 </td>
 
                 <td className="d-none d-md-table-cell">
-                  {d.head || "—"}
+                  {d.head?.trim() ? d.head : "Not assigned yet"}
                 </td>
 
                 <td>
@@ -99,7 +95,6 @@ export default function DepartmentsTable({
         </table>
       </div>
 
-      {/* ✅ DELETE CONFIRMATION MODAL */}
       {confirmItem && (
         <div
           className="sad-confirm-backdrop"
@@ -126,10 +121,7 @@ export default function DepartmentsTable({
                 Cancel
               </button>
 
-              <button
-                className="btn btn-danger"
-                onClick={handleConfirmDelete}
-              >
+              <button className="btn btn-danger" onClick={handleConfirmDelete}>
                 Delete
               </button>
             </div>

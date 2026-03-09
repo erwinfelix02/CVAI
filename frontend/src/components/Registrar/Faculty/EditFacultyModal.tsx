@@ -1,6 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import "../../../styles/faculty.css";
+import { getActiveDepartments } from "../../../api/departmentService";
+
+type DepartmentDB = {
+  _id: string;
+  code: string;
+  name: string;
+  status: "Active" | "Inactive";
+};
 
 type Props = {
   open: boolean;
@@ -35,6 +43,12 @@ export default function EditFacultyModal({
   const [department, setDepartment] = useState("");
   const [status, setStatus] = useState<"active" | "inactive">("inactive");
 
+  // ✅ Active departments list
+  const [departments, setDepartments] = useState<DepartmentDB[]>([]);
+  const [deptLoading, setDeptLoading] = useState(false);
+  const [deptError, setDeptError] = useState("");
+
+  // ✅ keep form in sync with selected faculty
   useEffect(() => {
     if (!faculty) return;
     setPhone(faculty.phone || "");
@@ -42,9 +56,59 @@ export default function EditFacultyModal({
     setStatus(faculty.status || "inactive");
   }, [faculty]);
 
+  // ✅ fetch active departments when modal opens
+  useEffect(() => {
+    if (!open) return;
+
+    let mounted = true;
+
+    const loadDepartments = async () => {
+      try {
+        setDeptLoading(true);
+        setDeptError("");
+
+        // recommended: backend already filters by status=Active
+        const data: DepartmentDB[] = await getActiveDepartments();
+
+        if (!mounted) return;
+        setDepartments(Array.isArray(data) ? data : []);
+      } catch (err: any) {
+        if (!mounted) return;
+        setDepartments([]);
+        setDeptError(err?.message || "Failed to load departments.");
+      } finally {
+        if (mounted) setDeptLoading(false);
+      }
+    };
+
+    loadDepartments();
+    return () => {
+      mounted = false;
+    };
+  }, [open]);
+
+  // ✅ keep current department visible even if not active anymore
+  const departmentOptions = useMemo(() => {
+    const names = new Set(departments.map((d) => d.name));
+    const list = [...departments];
+
+    if (department && !names.has(department)) {
+      list.unshift({
+        _id: "__current__",
+        code: "",
+        name: department,
+        status: "Active",
+      });
+    }
+
+    return list;
+  }, [departments, department]);
+
+  // ✅ IMPORTANT: return null AFTER hooks (prevents hooks order crash)
   if (!open) return null;
 
-  const canSave = !!faculty && phone.trim().length > 0 && department.trim().length > 0;
+  const canSave =
+    !!faculty && phone.trim().length > 0 && department.trim().length > 0;
 
   return (
     <div className="fdm-backdrop" onClick={onClose} role="presentation">
@@ -88,12 +152,27 @@ export default function EditFacultyModal({
 
                 <div className="fdm-item">
                   <div className="fdm-label">Department</div>
-                  <input
-                    className="form-control"
+
+                  <select
+                    className="form-select"
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    placeholder="Enter department"
-                  />
+                    disabled={deptLoading}
+                  >
+                    <option value="">
+                      {deptLoading ? "Loading departments..." : "Select department"}
+                    </option>
+
+                    {departmentOptions.map((d) => (
+                      <option key={d._id} value={d.name}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {deptError && (
+                    <div className="text-danger small mt-1">{deptError}</div>
+                  )}
                 </div>
 
                 <div className="fdm-item" style={{ gridColumn: "1 / -1" }}>
@@ -115,9 +194,14 @@ export default function EditFacultyModal({
         </div>
 
         <div className="fdm-footer">
-          <button className="btn btn-outline-secondary" onClick={onClose} disabled={isSaving}>
+          <button
+            className="btn btn-outline-secondary"
+            onClick={onClose}
+            disabled={isSaving}
+          >
             Cancel
           </button>
+
           <button
             className="btn btn-primary"
             disabled={!canSave || isSaving}
