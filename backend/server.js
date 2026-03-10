@@ -23,6 +23,7 @@ import { seedRolesIfMissing } from "./utils/seedRoles.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
 import securitySettingsRoutes from "./routes/securitySettingsRoutes.js";
 import departmentRoutes from "./routes/departmentRoutes.js";
+import logRoutes from "./routes/logRoutes.js";
 
 const app = express();
 
@@ -81,7 +82,7 @@ const startServer = async () => {
 
     app.use("/api/roles", roleRoutes);
     app.use("/api/departments", departmentRoutes);
-
+    app.use("/api/logs", logRoutes);
     app.listen(5000, () => {
       console.log("🚀 Server running on http://localhost:5000");
     });

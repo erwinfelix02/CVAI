@@ -2,39 +2,82 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import sendEmail from "../utils/sendEmail.js";
+import { addLog, getClientIp } from "../utils/logActivity.js";
 
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const ip = getClientIp(req);
 
     if (!email || !password) {
+      addLog({
+        action: "Failed Login Attempt",
+        user: email || "unknown",
+        role: "unknown",
+        type: "Security",
+        details: "Email and password are required",
+        ip,
+        status: "warning",
+      });
+
       return res
         .status(400)
         .json({ message: "Email and password are required" });
     }
 
     const user = await User.findOne({ email });
+
     if (!user) {
+      addLog({
+        action: "Failed Login Attempt",
+        user: email,
+        role: "unknown",
+        type: "Security",
+        details: "Account not found",
+        ip,
+        status: "warning",
+      });
+
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
     /* ===============================
-       🔒 CHECK IF ACCOUNT IS LOCKED
+       CHECK IF ACCOUNT IS LOCKED
     =============================== */
     if (user.lockUntil && user.lockUntil > Date.now()) {
+      addLog({
+        action: "Login Blocked",
+        user: user.email,
+        role: user.role || "unknown",
+        type: "Security",
+        details: "Account is temporarily locked",
+        ip,
+        status: "warning",
+      });
+
       return res.status(403).json({
         message: "Account is temporarily locked. Try again after 24 hours.",
       });
     }
 
     if (user.status !== "active") {
+      addLog({
+        action: "Login Blocked",
+        user: user.email,
+        role: user.role || "unknown",
+        type: "Auth",
+        details: "Account is inactive",
+        ip,
+        status: "warning",
+      });
+
       return res.status(403).json({ message: "Account is inactive" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     /* ===============================
-       ❌ WRONG PASSWORD
+       WRONG PASSWORD
     =============================== */
     if (!isMatch) {
       user.loginAttempts += 1;
@@ -43,6 +86,16 @@ export const login = async (req, res) => {
         user.lockUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
         user.loginAttempts = 0;
         await user.save();
+
+        addLog({
+          action: "Account Locked",
+          user: user.email,
+          role: user.role || "unknown",
+          type: "Security",
+          details: "Too many failed login attempts. Account locked for 24 hours.",
+          ip,
+          status: "warning",
+        });
 
         return res.status(403).json({
           message: "Too many failed attempts. Account locked for 24 hours.",
@@ -53,6 +106,16 @@ export const login = async (req, res) => {
       const triesLeft = 3 - user.loginAttempts;
       await user.save();
 
+      addLog({
+        action: "Failed Login Attempt",
+        user: user.email,
+        role: user.role || "unknown",
+        type: "Security",
+        details: `Invalid password. ${triesLeft} attempt(s) left before lock.`,
+        ip,
+        status: "warning",
+      });
+
       return res.status(401).json({
         message: "Invalid email or password",
         failedAttempt: true,
@@ -61,23 +124,30 @@ export const login = async (req, res) => {
     }
 
     /* ===============================
-       ✅ SUCCESS LOGIN
+       SUCCESS LOGIN
     =============================== */
 
-    // Reset attempts
     user.loginAttempts = 0;
     user.lockUntil = undefined;
     await user.save();
 
-    /* 🔴 FORCE PASSWORD CHANGE */
     if (user.isTemporaryPassword) {
+      addLog({
+        action: "Login Requires Password Change",
+        user: user.email,
+        role: user.role || "unknown",
+        type: "Auth",
+        details: "Temporary password detected. Password change required.",
+        ip,
+        status: "warning",
+      });
+
       return res.json({
         requirePasswordChange: true,
         email: user.email,
       });
     }
 
-    // 🔑 Issue JWT
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -106,6 +176,16 @@ export const login = async (req, res) => {
         break;
     }
 
+    addLog({
+      action: "User Login",
+      user: user.email,
+      role: user.role || "unknown",
+      type: "Auth",
+      details: "Successful login",
+      ip,
+      status: "success",
+    });
+
     res.json({
       message: "Login successful",
       token,
@@ -113,6 +193,17 @@ export const login = async (req, res) => {
     });
   } catch (err) {
     console.error("AUTH ERROR:", err);
+
+    addLog({
+      action: "Login Error",
+      user: req.body?.email || "unknown",
+      role: "unknown",
+      type: "System",
+      details: "Authentication failed due to server error",
+      ip: getClientIp(req),
+      status: "error",
+    });
+
     res.status(500).json({ message: "Authentication failed" });
   }
 };
@@ -120,14 +211,35 @@ export const login = async (req, res) => {
 export const updatePassword = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const ip = getClientIp(req);
 
     if (!email || !password) {
+      addLog({
+        action: "Password Update Failed",
+        user: email || "unknown",
+        role: "unknown",
+        type: "Auth",
+        details: "Email and password are required",
+        ip,
+        status: "warning",
+      });
+
       return res.status(400).json({
         message: "Email and password are required",
       });
     }
 
     if (password.length < 8) {
+      addLog({
+        action: "Password Update Failed",
+        user: email,
+        role: "unknown",
+        type: "Auth",
+        details: "Password must be at least 8 characters long",
+        ip,
+        status: "warning",
+      });
+
       return res.status(400).json({
         message: "Password must be at least 8 characters long",
       });
@@ -136,43 +248,79 @@ export const updatePassword = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
+      addLog({
+        action: "Password Update Failed",
+        user: email,
+        role: "unknown",
+        type: "Security",
+        details: "User not found",
+        ip,
+        status: "warning",
+      });
+
       return res.status(404).json({
         message: "User not found",
       });
     }
 
-    /* 🔒 REQUIRE VALID RESET CODE */
-    // 🔒 REQUIRE RESET CODE ONLY IF NOT TEMP PASSWORD FLOW
     if (!user.isTemporaryPassword) {
       if (
         !user.resetCode ||
         !user.resetCodeExpires ||
         user.resetCodeExpires < Date.now()
       ) {
+        addLog({
+          action: "Password Update Failed",
+          user: user.email,
+          role: user.role || "unknown",
+          type: "Security",
+          details: "Password reset session expired",
+          ip,
+          status: "warning",
+        });
+
         return res.status(400).json({
           message: "Password reset session expired. Please request a new code.",
         });
       }
     }
 
-    // 🔐 Update password
     user.password = password;
     user.isTemporaryPassword = false;
     user.loginAttempts = 0;
     user.lockUntil = undefined;
-
-    // 🔥 CLEAR RESET FIELDS AFTER SUCCESS
     user.resetCode = undefined;
     user.resetCodeExpires = undefined;
     user.resetAttempts = 0;
 
     await user.save();
 
+    addLog({
+      action: "Password Updated",
+      user: user.email,
+      role: user.role || "unknown",
+      type: "Auth",
+      details: "Password updated successfully",
+      ip,
+      status: "success",
+    });
+
     res.json({
       message: "Password updated successfully",
     });
   } catch (err) {
     console.error("UPDATE PASSWORD ERROR:", err);
+
+    addLog({
+      action: "Password Update Error",
+      user: req.body?.email || "unknown",
+      role: "unknown",
+      type: "System",
+      details: "Failed to update password",
+      ip: getClientIp(req),
+      status: "error",
+    });
+
     res.status(500).json({
       message: "Failed to update password",
     });
@@ -182,10 +330,21 @@ export const updatePassword = async (req, res) => {
 export const verifyResetCode = async (req, res) => {
   try {
     const { email, code } = req.body;
+    const ip = getClientIp(req);
 
     const user = await User.findOne({ email });
 
     if (!user) {
+      addLog({
+        action: "Reset Code Verification Failed",
+        user: email || "unknown",
+        role: "unknown",
+        type: "Security",
+        details: "Invalid or expired code - user not found",
+        ip,
+        status: "warning",
+      });
+
       return res.status(400).json({ message: "Invalid or expired code" });
     }
 
@@ -195,27 +354,78 @@ export const verifyResetCode = async (req, res) => {
       user.resetAttempts = 0;
       await user.save();
 
+      addLog({
+        action: "Reset Code Bypassed",
+        user: user.email,
+        role: user.role || "unknown",
+        type: "Auth",
+        details: "Temporary password flow detected",
+        ip,
+        status: "warning",
+      });
+
       return res.json({
         message: "If the email exists, a reset code was sent.",
       });
     }
 
     if (!user.resetCode) {
+      addLog({
+        action: "Reset Code Verification Failed",
+        user: user.email,
+        role: user.role || "unknown",
+        type: "Security",
+        details: "No reset code found",
+        ip,
+        status: "warning",
+      });
+
       return res.status(400).json({ message: "Invalid or expired code" });
     }
 
     if (user.resetAttempts >= 5) {
+      addLog({
+        action: "Reset Code Verification Blocked",
+        user: user.email,
+        role: user.role || "unknown",
+        type: "Security",
+        details: "Too many incorrect reset code attempts",
+        ip,
+        status: "warning",
+      });
+
       return res.status(403).json({
         message: "Too many incorrect attempts. Request a new code.",
       });
     }
+
     if (user.isTemporaryPassword) {
+      addLog({
+        action: "Reset Code Verification Blocked",
+        user: user.email,
+        role: user.role || "unknown",
+        type: "Security",
+        details: "Temporary accounts must login before changing password",
+        ip,
+        status: "warning",
+      });
+
       return res.status(403).json({
         message: "Temporary accounts must login before changing password.",
       });
     }
 
     if (user.resetCodeExpires < Date.now()) {
+      addLog({
+        action: "Reset Code Verification Failed",
+        user: user.email,
+        role: user.role || "unknown",
+        type: "Security",
+        details: "Reset code expired",
+        ip,
+        status: "warning",
+      });
+
       return res.status(400).json({ message: "Code expired" });
     }
 
@@ -224,11 +434,42 @@ export const verifyResetCode = async (req, res) => {
     if (!isMatch) {
       user.resetAttempts += 1;
       await user.save();
+
+      addLog({
+        action: "Reset Code Verification Failed",
+        user: user.email,
+        role: user.role || "unknown",
+        type: "Security",
+        details: "Invalid reset code",
+        ip,
+        status: "warning",
+      });
+
       return res.status(400).json({ message: "Invalid code" });
     }
 
+    addLog({
+      action: "Reset Code Verified",
+      user: user.email,
+      role: user.role || "unknown",
+      type: "Auth",
+      details: "Password reset code verified successfully",
+      ip,
+      status: "success",
+    });
+
     res.json({ message: "Code verified" });
   } catch (err) {
+    addLog({
+      action: "Reset Code Verification Error",
+      user: req.body?.email || "unknown",
+      role: "unknown",
+      type: "System",
+      details: "Verification failed due to server error",
+      ip: getClientIp(req),
+      status: "error",
+    });
+
     res.status(500).json({ message: "Verification failed" });
   }
 };
@@ -236,33 +477,60 @@ export const verifyResetCode = async (req, res) => {
 export const requestPasswordReset = async (req, res) => {
   try {
     const { email } = req.body;
+    const ip = getClientIp(req);
 
     if (!email) {
+      addLog({
+        action: "Password Reset Request Failed",
+        user: "unknown",
+        role: "unknown",
+        type: "Auth",
+        details: "Email is required",
+        ip,
+        status: "warning",
+      });
+
       return res.status(400).json({ message: "Email is required" });
     }
 
     const user = await User.findOne({ email });
 
-    // Always return generic message (prevent enumeration)
     if (!user) {
+      addLog({
+        action: "Password Reset Requested",
+        user: email,
+        role: "unknown",
+        type: "Security",
+        details: "Password reset requested for non-existing email",
+        ip,
+        status: "warning",
+      });
+
       return res.json({
         message: "If the email exists, a reset code was sent.",
       });
     }
 
-    // 🚫 BLOCK reset if still temporary password
     if (user.isTemporaryPassword) {
+      addLog({
+        action: "Password Reset Blocked",
+        user: user.email,
+        role: user.role || "unknown",
+        type: "Auth",
+        details: "Temporary password account cannot request reset here",
+        ip,
+        status: "warning",
+      });
+
       return res.json({
         message: "If the email exists, a reset code was sent.",
       });
     }
 
-    // Generate 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Hash code before saving
     user.resetCode = await bcrypt.hash(code, 10);
-    user.resetCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    user.resetCodeExpires = Date.now() + 10 * 60 * 1000;
     user.resetAttempts = 0;
 
     await user.save();
@@ -278,11 +546,32 @@ export const requestPasswordReset = async (req, res) => {
       `,
     );
 
+    addLog({
+      action: "Password Reset Requested",
+      user: user.email,
+      role: user.role || "unknown",
+      type: "Auth",
+      details: "Password reset code sent",
+      ip,
+      status: "success",
+    });
+
     res.json({
       message: "If the email exists, a reset code was sent.",
     });
   } catch (err) {
     console.error("RESET REQUEST ERROR:", err);
+
+    addLog({
+      action: "Password Reset Request Error",
+      user: req.body?.email || "unknown",
+      role: "unknown",
+      type: "System",
+      details: "Failed to send reset code",
+      ip: getClientIp(req),
+      status: "error",
+    });
+
     res.status(500).json({ message: "Failed to send reset code" });
   }
 };

@@ -1,19 +1,44 @@
-import { CheckCircle2, AlertTriangle, XCircle, User } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  User,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import type { LogRow } from "./types";
 
 function RolePill({ role }: { role: LogRow["role"] }) {
   const cls =
-    role === "admin" ? "admin" : role === "faculty" ? "faculty" : role === "student" ? "student" : "neutral";
+    role === "admin"
+      ? "admin"
+      : role === "faculty"
+      ? "faculty"
+      : role === "student"
+      ? "student"
+      : "neutral";
+
   return <span className={`superadmin-logs-pill role ${cls}`}>{role}</span>;
 }
 
 function TypePill({ type }: { type: LogRow["type"] }) {
-  const cls = type === "Auth" ? "auth" : type === "Data" ? "data" : type === "Security" ? "security" : "system";
+  const cls =
+    type === "Auth"
+      ? "auth"
+      : type === "Data"
+      ? "data"
+      : type === "Security"
+      ? "security"
+      : "system";
+
   return <span className={`superadmin-logs-pill type ${cls}`}>{type}</span>;
 }
 
 function StatusPill({ status }: { status: LogRow["status"] }) {
-  const Icon = status === "success" ? CheckCircle2 : status === "warning" ? AlertTriangle : XCircle;
+  const Icon =
+    status === "success" ? CheckCircle2 : status === "warning" ? AlertTriangle : XCircle;
+
   return (
     <span className={`superadmin-logs-pill status ${status}`}>
       <Icon size={16} className="me-2" />
@@ -22,7 +47,82 @@ function StatusPill({ status }: { status: LogRow["status"] }) {
   );
 }
 
+function formatLogDate(date: string) {
+  const parsed = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return date;
+
+  return parsed.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatLogTime(time: string) {
+  const parsed = new Date(`1970-01-01T${time}`);
+  if (Number.isNaN(parsed.getTime())) return time;
+
+  return parsed.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 export default function LogsTable({ rows }: { rows: LogRow[] }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 5;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [rows]);
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / rowsPerPage));
+
+  const paginatedRows = useMemo(() => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    return rows.slice(startIndex, endIndex);
+  }, [rows, currentPage]);
+
+  const startItem = rows.length === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
+  const endItem = Math.min(currentPage * rowsPerPage, rows.length);
+
+  const handlePrev = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNext = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
+  const handlePageClick = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const getVisiblePages = () => {
+    const pages: number[] = [];
+
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+      return pages;
+    }
+
+    if (currentPage <= 3) {
+      return [1, 2, 3, 4, 5];
+    }
+
+    if (currentPage >= totalPages - 2) {
+      return [totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+
+    return [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
+  };
+
+  const visiblePages = getVisiblePages();
+
   return (
     <div className="card shadow-sm superadmin-logs-card">
       <div className="card-body p-0">
@@ -41,13 +141,15 @@ export default function LogsTable({ rows }: { rows: LogRow[] }) {
             </thead>
 
             <tbody>
-              {rows.map((r) => (
+              {paginatedRows.map((r) => (
                 <tr key={r.id}>
                   <td className="ps-4">
-                    <div className="text-muted small">{r.date}</div>
-                    <div className="text-muted small">{r.time}</div>
+                    <div className="fw-semibold">{formatLogDate(r.date)}</div>
+                    <div className="text-muted small">{formatLogTime(r.time)}</div>
                   </td>
+
                   <td className="fw-semibold">{r.action}</td>
+
                   <td>
                     <div className="d-flex align-items-center gap-2">
                       <span className="superadmin-logs-useric">
@@ -57,10 +159,18 @@ export default function LogsTable({ rows }: { rows: LogRow[] }) {
                       <RolePill role={r.role} />
                     </div>
                   </td>
-                  <td><TypePill type={r.type} /></td>
+
+                  <td>
+                    <TypePill type={r.type} />
+                  </td>
+
                   <td className="text-muted superadmin-logs-details">{r.details}</td>
+
                   <td className="text-muted superadmin-logs-mono">{r.ip}</td>
-                  <td className="pe-4"><StatusPill status={r.status} /></td>
+
+                  <td className="pe-4">
+                    <StatusPill status={r.status} />
+                  </td>
                 </tr>
               ))}
 
@@ -74,6 +184,77 @@ export default function LogsTable({ rows }: { rows: LogRow[] }) {
             </tbody>
           </table>
         </div>
+
+        {rows.length > 0 && (
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 px-4 py-3 border-top">
+            <div className="text-muted small">
+              Showing {startItem} to {endItem} of {rows.length} logs
+            </div>
+
+            <div className="d-flex align-items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                className="btn btn-light border btn-sm d-flex align-items-center gap-1"
+                onClick={handlePrev}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft size={16} />
+                Prev
+              </button>
+
+              {visiblePages[0] > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-light border btn-sm"
+                    onClick={() => handlePageClick(1)}
+                  >
+                    1
+                  </button>
+                  {visiblePages[0] > 2 && <span className="px-1 text-muted">...</span>}
+                </>
+              )}
+
+              {visiblePages.map((page) => (
+                <button
+                  key={page}
+                  type="button"
+                  className={`btn btn-sm ${
+                    currentPage === page ? "btn-primary" : "btn-light border"
+                  }`}
+                  onClick={() => handlePageClick(page)}
+                >
+                  {page}
+                </button>
+              ))}
+
+              {visiblePages[visiblePages.length - 1] < totalPages && (
+                <>
+                  {visiblePages[visiblePages.length - 1] < totalPages - 1 && (
+                    <span className="px-1 text-muted">...</span>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn-light border btn-sm"
+                    onClick={() => handlePageClick(totalPages)}
+                  >
+                    {totalPages}
+                  </button>
+                </>
+              )}
+
+              <button
+                type="button"
+                className="btn btn-light border btn-sm d-flex align-items-center gap-1"
+                onClick={handleNext}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import {
   Users,
   Shield,
@@ -9,6 +10,7 @@ import {
   Radio,
   ArrowRight,
   Clock,
+  XCircle,
 } from "lucide-react";
 
 import StatCard from "../../components/SuperAdmin/Dashboard/StatCard";
@@ -24,40 +26,105 @@ import QuickActionsGrid, {
 
 import { getUsers } from "../../api/userService";
 import { getFaqs } from "../../api/faqService";
+import { API_BASE_URL } from "../../config";
 
 import "../../styles/superadmin-dashboard.css";
+
+type LogStatus = "success" | "warning" | "error";
+type LogType = "Auth" | "Data" | "Security" | "System";
+
+type LogRow = {
+  id: string;
+  date: string;
+  time: string;
+  action: string;
+  user: string;
+  role: string;
+  type: LogType;
+  details: string;
+  ip: string;
+  status: LogStatus;
+};
+
+function getTimeAgo(date: string, time: string) {
+  const logDate = new Date(`${date}T${time}`);
+  const now = new Date();
+  const diffMs = now.getTime() - logDate.getTime();
+
+  if (Number.isNaN(diffMs) || diffMs < 0) return `${date} ${time}`;
+
+  const minutes = Math.floor(diffMs / (1000 * 60));
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes} min${minutes > 1 ? "s" : ""} ago`;
+  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  if (days < 7) return `${days} day${days > 1 ? "s" : ""} ago`;
+
+  return `${date} ${time}`;
+}
+
+function getActivityMeta(log: LogRow): Pick<ActivityRow, "icon" | "tone"> {
+  if (log.status === "success") {
+    if (log.type === "Auth") return { icon: Radio, tone: "blue" };
+    return { icon: CheckCircle2, tone: "green" };
+  }
+
+  if (log.status === "warning") {
+    return { icon: AlertCircle, tone: "orange" };
+  }
+
+  return { icon: XCircle, tone: "orange" };
+}
 
 export default function SuperAdminDashboard() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [aiItems, setAiItems] = useState(0);
+  const [systemEvents, setSystemEvents] = useState(0);
+  const [recentLogs, setRecentLogs] = useState<LogRow[]>([]);
 
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingFaqs, setLoadingFaqs] = useState(false);
+  const [loadingLogs, setLoadingLogs] = useState(false);
 
   useEffect(() => {
     const load = async () => {
-      // users count
       try {
         setLoadingUsers(true);
         const users = await getUsers();
         setTotalUsers(Array.isArray(users) ? users.length : 0);
       } catch (err) {
-        console.error("❌ Failed to load users count", err);
+        console.error("Failed to load users count", err);
         setTotalUsers(0);
       } finally {
         setLoadingUsers(false);
       }
 
-      // faq count (AI knowledge items)
       try {
         setLoadingFaqs(true);
         const faqs = await getFaqs();
         setAiItems(Array.isArray(faqs) ? faqs.length : 0);
       } catch (err) {
-        console.error("❌ Failed to load FAQ count", err);
+        console.error("Failed to load FAQ count", err);
         setAiItems(0);
       } finally {
         setLoadingFaqs(false);
+      }
+
+      try {
+        setLoadingLogs(true);
+        const res = await axios.get(`${API_BASE_URL}/logs`);
+        const logs: LogRow[] = Array.isArray(res.data) ? res.data : [];
+
+        setSystemEvents(logs.length);
+        setRecentLogs(logs.slice(0, 4));
+      } catch (err) {
+        console.error("Failed to load logs", err);
+        setSystemEvents(0);
+        setRecentLogs([]);
+      } finally {
+        setLoadingLogs(false);
       }
     };
 
@@ -87,12 +154,12 @@ export default function SuperAdminDashboard() {
         },
         {
           label: "System Events",
-          value: "1.2K",
+          value: loadingLogs ? "…" : String(systemEvents),
           icon: Activity,
           tone: "orange",
         },
       ] as const,
-    [totalUsers, aiItems, loadingUsers, loadingFaqs],
+    [totalUsers, aiItems, systemEvents, loadingUsers, loadingFaqs, loadingLogs],
   );
 
   const portals: PortalStatusRow[] = [
@@ -103,36 +170,31 @@ export default function SuperAdminDashboard() {
     { name: "Dept Head Portal", users: 12, status: "online" },
   ];
 
-  const activityRows: ActivityRow[] = [
-    {
-      title: "User role updated",
-      subtitle: "admin@campus.edu",
-      timeLabel: "2 mins ago",
-      icon: Radio,
-      tone: "blue",
-    },
-    {
-      title: "New AI knowledge added",
-      subtitle: "admin@campus.edu",
-      timeLabel: "15 mins ago",
-      icon: CheckCircle2,
-      tone: "green",
-    },
-    {
-      title: "Failed login attempt",
-      subtitle: "unknown",
-      timeLabel: "1 hour ago",
-      icon: AlertCircle,
-      tone: "orange",
-    },
-    {
-      title: "System backup completed",
-      subtitle: "system",
-      timeLabel: "3 hours ago",
-      icon: CheckCircle2,
-      tone: "green",
-    },
-  ];
+  const activityRows: ActivityRow[] = useMemo(() => {
+    if (!recentLogs.length) {
+      return [
+        {
+          title: loadingLogs ? "Loading activity..." : "No recent activity",
+          subtitle: loadingLogs ? "Please wait" : "No logs available",
+          timeLabel: "",
+          icon: Clock,
+          tone: "blue",
+        },
+      ];
+    }
+
+    return recentLogs.map((log) => {
+      const meta = getActivityMeta(log);
+
+      return {
+        title: log.action,
+        subtitle: log.user || "unknown",
+        timeLabel: getTimeAgo(log.date, log.time),
+        icon: meta.icon,
+        tone: meta.tone,
+      };
+    });
+  }, [recentLogs, loadingLogs]);
 
   const quick: QuickAction[] = [
     { label: "Manage Users", icon: Users, to: "/superadmin/users" },
@@ -160,14 +222,23 @@ export default function SuperAdminDashboard() {
       <div className="row g-3 g-md-4 mb-3 mb-md-4">
         {stats.map((s) => (
           <div key={s.label} className="col-12 col-sm-6 col-xl-3">
-            <StatCard label={s.label} value={s.value} icon={s.icon} tone={s.tone} />
+            <StatCard
+              label={s.label}
+              value={s.value}
+              icon={s.icon}
+              tone={s.tone}
+            />
           </div>
         ))}
       </div>
 
       <div className="row g-3 g-md-4 mb-3 mb-md-4">
         <div className="col-12 col-lg-6">
-          <PortalStatusCard title="Portal Status" rightPill="All Systems Online" rows={portals} />
+          <PortalStatusCard
+            title="Portal Status"
+            rightPill="All Systems Online"
+            rows={portals}
+          />
         </div>
 
         <div className="col-12 col-lg-6">

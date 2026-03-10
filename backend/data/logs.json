@@ -1,0 +1,86 @@
+[
+  {
+    "id": "9cf2b9b1-5853-4e0b-81ef-ee8fae3d59ee",
+    "date": "2026-03-10",
+    "time": "22:49:17",
+    "action": "User Login",
+    "user": "eerwinfelix528@gmail.com",
+    "role": "Registrar",
+    "type": "Auth",
+    "details": "Successful login",
+    "ip": "::1",
+    "status": "success"
+  },
+  {
+    "id": "99813493-177e-4c97-9cbd-2b81265ab459",
+    "date": "2026-03-10",
+    "time": "21:33:17",
+    "action": "User Login",
+    "user": "eerwinfelix528@gmail.com",
+    "role": "Registrar",
+    "type": "Auth",
+    "details": "Successful login",
+    "ip": "::1",
+    "status": "success"
+  },
+  {
+    "id": "20913818-d2ab-4881-8ee3-f15e932ec143",
+    "date": "2026-03-10",
+    "time": "21:32:18",
+    "action": "Failed Login Attempt",
+    "user": "eerwinfelix528@gmail.com",
+    "role": "Registrar",
+    "type": "Security",
+    "details": "Invalid password. 2 attempt(s) left before lock.",
+    "ip": "::1",
+    "status": "warning"
+  },
+  {
+    "id": "791ed86b-e332-48a1-b000-c0cfda56e00c",
+    "date": "2026-03-10",
+    "time": "21:31:39",
+    "action": "User Login",
+    "user": "eerwinfelix528@gmail.com",
+    "role": "Registrar",
+    "type": "Auth",
+    "details": "Successful login",
+    "ip": "::1",
+    "status": "success"
+  },
+  {
+    "id": "5fa6dfb6-3d92-4420-98d8-c360a265db20",
+    "date": "2026-03-10",
+    "time": "21:28:47",
+    "action": "User Login",
+    "user": "eerwinfelix528@gmail.com",
+    "role": "Registrar",
+    "type": "Auth",
+    "details": "Successful login",
+    "ip": "::1",
+    "status": "success"
+  },
+  {
+    "id": "274436dd-87b7-48f0-a21e-63aaa2a2068b",
+    "date": "2026-03-10",
+    "time": "21:22:27",
+    "action": "Failed Login Attempt",
+    "user": "erwinfelix528@gmail.com",
+    "role": "Dept Head",
+    "type": "Security",
+    "details": "Invalid password. 2 attempt(s) left before lock.",
+    "ip": "::ffff:127.0.0.1",
+    "status": "warning"
+  },
+  {
+    "id": "659330c1-2160-4a94-9604-bf09597cf8b4",
+    "date": "2026-03-10",
+    "time": "21:22:00",
+    "action": "User Login",
+    "user": "eerwinfelix528@gmail.com",
+    "role": "Registrar",
+    "type": "Auth",
+    "details": "Successful login",
+    "ip": "::1",
+    "status": "success"
+  }
+]

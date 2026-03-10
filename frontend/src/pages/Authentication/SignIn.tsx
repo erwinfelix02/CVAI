@@ -109,49 +109,49 @@ export default function SignIn() {
       });
 
       if (res.data.requirePasswordChange) {
-  window.location.href = `/forgot-password?email=${res.data.email}&force=true`;
-  return;
-}
+        setLoading(false);
+        window.location.href = `/forgot-password?email=${res.data.email}&force=true`;
+        return;
+      }
 
-const { token, redirect } = res.data;
+      const { token, redirect } = res.data;
 
       localStorage.setItem("sessionToken", token);
       localStorage.setItem("lastActivity", Date.now().toString());
       window.location.href = redirect;
     } catch (error: any) {
-  setLoading(false);
-  setAnimateAlert(false);
-
-  const data = error.response?.data;
-
-  if (!data) {
-    setAlertMessage("Login failed");
-    setAlertType("error");
-    setAnimateAlert(true);
-    return;
-  }
-
-  // FIRST SHOW: Invalid email or password
-  setAlertMessage(data.message);
-  setAlertType("error");
-  setAnimateAlert(true);
-
-  // IF FAILED ATTEMPT → SHOW SECOND MESSAGE AFTER DELAY
-  if (data.failedAttempt) {
-    setTimeout(() => {
+      setLoading(false);
       setAnimateAlert(false);
 
-      setTimeout(() => {
-        setAlertMessage(
-          `Failed attempt. ${data.triesLeft} attempt(s) left before lock.`
-        );
+      const data = error.response?.data;
+
+      if (!data) {
+        setAlertMessage("Login failed");
         setAlertType("error");
         setAnimateAlert(true);
-      }, 200);
-    }, 1500);
-  }
-}
+        return;
+      }
 
+      // FIRST SHOW: Invalid email or password
+      setAlertMessage(data.message);
+      setAlertType("error");
+      setAnimateAlert(true);
+
+      // IF FAILED ATTEMPT → SHOW SECOND MESSAGE AFTER DELAY
+      if (data.failedAttempt) {
+        setTimeout(() => {
+          setAnimateAlert(false);
+
+          setTimeout(() => {
+            setAlertMessage(
+              `Failed attempt. ${data.triesLeft} attempt(s) left before lock.`
+            );
+            setAlertType("error");
+            setAnimateAlert(true);
+          }, 200);
+        }, 1500);
+      }
+    }
   };
 
   /* ---------------- Auto-hide alert ---------------- */
