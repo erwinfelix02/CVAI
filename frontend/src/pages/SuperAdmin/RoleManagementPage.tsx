@@ -21,7 +21,11 @@ import type {
 } from "../../components/SuperAdmin/Roles/types";
 
 import AuthAlert from "../../components/Authentication/AuthAlert";
-import { getUsers } from "../../api/userService";
+import {
+  getUsers,
+  updateUser,
+  updateUserContactInfo,
+} from "../../api/userService";
 import { getRoles, updateRolePermissions } from "../../api/roleService";
 import "../../styles/superadmin-roles.css";
 
@@ -46,8 +50,11 @@ function roleToRoleId(role: string): string {
   }
 }
 
-const makeFullName = (firstName: string, middleName: string, lastName: string) =>
-  [firstName, middleName, lastName].filter((x) => x && x.trim()).join(" ").trim();
+const makeFullName = (
+  firstName: string,
+  middleName: string,
+  lastName: string,
+) => [firstName, middleName, lastName].filter((x) => x && x.trim()).join(" ").trim();
 
 const ROLE_UI: Record<
   string,
@@ -61,14 +68,11 @@ const ROLE_UI: Record<
   student: { tone: "indigo", icon: GraduationCap, nameFallback: "Student" },
 };
 
-/* ================= PAGE ================= */
-
 export default function RoleManagementPage() {
   const [roles, setRoles] = useState<RoleCardItem[]>([]);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // ✅ AuthAlert state (same pattern as UsersPage)
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
@@ -92,7 +96,6 @@ export default function RoleManagementPage() {
     try {
       setLoading(true);
 
-      // ✅ load roles
       const rolesData = await getRoles();
       const mappedRoles: RoleCardItem[] = (Array.isArray(rolesData) ? rolesData : []).map(
         (r: any) => ({
@@ -106,7 +109,6 @@ export default function RoleManagementPage() {
       );
       setRoles(mappedRoles);
 
-      // ✅ load users
       const usersData = await getUsers();
       const mappedUsers: UserItem[] = usersData.map((u: any) => ({
         id: u._id,
@@ -124,7 +126,7 @@ export default function RoleManagementPage() {
       }));
       setUsers(mappedUsers);
     } catch (err) {
-      console.error("❌ Failed to load roles/users", err);
+      console.error("Failed to load roles/users", err);
       setRoles([]);
       setUsers([]);
       showAlert("Failed to load roles/users.", "error");
@@ -137,7 +139,6 @@ export default function RoleManagementPage() {
     reloadRolesAndUsers();
   }, []);
 
-  /* ---------- VIEW STATE ---------- */
   const [view, setView] = useState<"list" | "details">("list");
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
 
@@ -148,7 +149,6 @@ export default function RoleManagementPage() {
     ? roles.find((r) => r.id === selectedRoleId) ?? null
     : null;
 
-  /* ---------- ROLE COUNTS ---------- */
   const rolesWithCounts = useMemo(() => {
     const counts = users.reduce<Record<string, number>>((acc, u) => {
       if (!u.roleId) return acc;
@@ -162,7 +162,6 @@ export default function RoleManagementPage() {
     }));
   }, [roles, users]);
 
-  /* ---------- MODAL ROLES ---------- */
   const detailsRole = detailsRoleId
     ? rolesWithCounts.find((r) => r.id === detailsRoleId) ?? null
     : null;
@@ -171,7 +170,6 @@ export default function RoleManagementPage() {
     ? rolesWithCounts.find((r) => r.id === editRoleId) ?? null
     : null;
 
-  // ✅ Save permissions + alert
   const saveRolePermissions = async (roleId: string, perms: string[]) => {
     try {
       setLoading(true);
@@ -189,8 +187,44 @@ export default function RoleManagementPage() {
 
       showAlert("Role permissions updated successfully!", "success");
     } catch (err: any) {
-      console.error("❌ Failed to save permissions", err);
-      showAlert(err?.response?.data?.message || "Failed to update permissions.", "error");
+      console.error("Failed to save permissions", err);
+      showAlert(err?.message || "Failed to update permissions.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateUser = async (
+    userId: string,
+    patch: Partial<UserItem>,
+  ) => {
+    try {
+      setLoading(true);
+
+      const isContactOnlyUpdate =
+        patch.status === undefined &&
+        (patch.email !== undefined || patch.phone !== undefined);
+
+      if (isContactOnlyUpdate) {
+        await updateUserContactInfo(userId, {
+          email: patch.email,
+          phone: patch.phone,
+        });
+      } else {
+        const payload: any = {};
+
+        if (patch.status !== undefined) {
+          payload.status = patch.status === "Active" ? "active" : "inactive";
+        }
+
+        await updateUser(userId, payload);
+      }
+
+      await reloadRolesAndUsers();
+      showAlert("User updated successfully.", "success");
+    } catch (err: any) {
+      console.error("Failed to update user", err);
+      showAlert(err?.message || "Failed to update user.", "error");
     } finally {
       setLoading(false);
     }
@@ -245,7 +279,7 @@ export default function RoleManagementPage() {
             role={selectedRole}
             users={users}
             onBack={() => setView("list")}
-            onUpdateUser={() => {}}
+            onUpdateUser={handleUpdateUser}
             onRemoveUserFromRole={() => {}}
           />
         )}
@@ -254,7 +288,10 @@ export default function RoleManagementPage() {
           <RoleDetailsModal
             role={detailsRole}
             onClose={() => setDetailsRoleId(null)}
-            onEdit={() => setEditRoleId(detailsRole.id)}
+            onEdit={() => {
+              setDetailsRoleId(null);
+              setEditRoleId(detailsRole.id);
+            }}
           />
         )}
 

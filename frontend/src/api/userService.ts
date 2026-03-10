@@ -77,3 +77,19 @@ export const updateUser = async (id: string, payload: any) => {
 
   return data;
 };
+
+export const updateUserContactInfo = async (id: string, payload: any) => {
+  const res = await fetch(`${API_URL}/${id}/contact`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(data?.message || "Failed to update user contact info");
+  }
+
+  return data;
+};

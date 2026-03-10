@@ -6,6 +6,7 @@ import {
   getStudentUsers,
   getUserById,
   updateUser,
+  updateUserContactInfo,
 } from "../controllers/userController.js";
 
 const router = express.Router();
@@ -16,5 +17,6 @@ router.post("/", createUser);
 router.post("/:id/send-credentials", sendCredentials);
 router.get("/:id", getUserById);
 router.patch("/:id", updateUser);
+router.patch("/:id/contact", updateUserContactInfo);
 
 export default router;

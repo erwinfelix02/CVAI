@@ -387,3 +387,72 @@ export const updateUser = async (req, res) => {
     return res.status(500).json({ message: err.message || "Server error" });
   }
 };
+
+export const updateUserContactInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email, phone } = req.body;
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const update = {};
+
+    if (email !== undefined) {
+      const cleanEmail =
+        validator.normalizeEmail(String(email).trim()) || String(email).trim();
+
+      if (!validator.isEmail(cleanEmail)) {
+        return res.status(400).json({ message: "Invalid email format." });
+      }
+
+      const existingEmail = await User.findOne({
+        _id: { $ne: id },
+        email: cleanEmail,
+      });
+
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email already exists." });
+      }
+
+      update.email = cleanEmail;
+    }
+
+    if (phone !== undefined) {
+      let cleanPhone = String(phone).trim().replace(/\s+/g, "");
+
+      if (/^09\d{9}$/.test(cleanPhone)) {
+        cleanPhone = "+63" + cleanPhone.slice(1);
+      }
+
+      if (/^639\d{9}$/.test(cleanPhone)) {
+        cleanPhone = "+" + cleanPhone;
+      }
+
+      if (!/^\+639\d{9}$/.test(cleanPhone)) {
+        return res.status(400).json({
+          message: "Phone must be in format +639XXXXXXXXX.",
+        });
+      }
+
+      update.phone = cleanPhone;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(id, update, {
+      new: true,
+      runValidators: true,
+    }).select(
+      "firstName middleName lastName idNumber email phone gender role status department notes createdBy credentialsSent isTemporaryPassword createdAt updatedAt"
+    );
+
+    return res.status(200).json({
+      message: "User contact info updated successfully.",
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error("updateUserContactInfo error:", err);
+    return res.status(500).json({ message: err.message || "Server error" });
+  }
+};
