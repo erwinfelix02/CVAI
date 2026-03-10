@@ -7,7 +7,15 @@ import NumberField from "../../components/Registrar/settings/fields/NumberField"
 import SwitchField from "../../components/Registrar/settings/fields/SwitchField";
 import AuthAlert from "../../components/Authentication/AuthAlert";
 
-import { Calendar, RefreshCw, FileText, Bell, Settings } from "lucide-react";
+import {
+  Calendar,
+  RefreshCw,
+  FileText,
+  Bell,
+  Settings,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 
 type FormState = {
   academicYear: string;
@@ -61,8 +69,8 @@ export default function RegistrarSettings() {
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // ✅ AuthAlert state (same pattern as UsersPage)
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
@@ -82,11 +90,28 @@ export default function RegistrarSettings() {
     return () => clearTimeout(t);
   }, [animateAlert]);
 
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !saving) {
+        setConfirmOpen(false);
+      }
+    };
+
+    if (confirmOpen) {
+      document.body.style.overflow = "hidden";
+      window.addEventListener("keydown", handleEscape);
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [confirmOpen, saving]);
+
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  // ✅ Load settings from DB on page open
   useEffect(() => {
     let alive = true;
 
@@ -137,7 +162,6 @@ export default function RegistrarSettings() {
     };
   }, []);
 
-  // ✅ Save settings to DB + show AuthAlert
   const onSave = async () => {
     setSaving(true);
     try {
@@ -154,7 +178,6 @@ export default function RegistrarSettings() {
         return;
       }
 
-      // ✅ Update form with DB result (source of truth)
       setForm({
         academicYear: data.academicYear ?? form.academicYear,
         semester: data.semester ?? form.semester,
@@ -168,6 +191,7 @@ export default function RegistrarSettings() {
         smsNotifications: !!data.smsNotifications,
       });
 
+      setConfirmOpen(false);
       showAlert("Settings saved successfully!", "success");
     } catch (err) {
       console.error(err);
@@ -175,6 +199,16 @@ export default function RegistrarSettings() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleAskSave = () => {
+    if (saving || loading) return;
+    setConfirmOpen(true);
+  };
+
+  const handleCloseConfirm = () => {
+    if (saving) return;
+    setConfirmOpen(false);
   };
 
   return (
@@ -188,7 +222,6 @@ export default function RegistrarSettings() {
 
       <div className="rs-page py-4 py-md-5">
         <div className="container">
-          {/* Header */}
           <div className="d-flex align-items-start gap-3 mb-4">
             <div
               className="d-flex align-items-center justify-content-center"
@@ -212,14 +245,11 @@ export default function RegistrarSettings() {
             </div>
           </div>
 
-          {/* Loading message */}
           {loading ? (
             <div className="alert alert-info">Loading settings...</div>
           ) : null}
 
-          {/* Grid */}
           <div className="row g-4">
-            {/* Academic Period */}
             <div className="col-12 col-lg-6">
               <SettingsSectionCard
                 icon={<Calendar size={20} />}
@@ -244,7 +274,6 @@ export default function RegistrarSettings() {
               </SettingsSectionCard>
             </div>
 
-            {/* Enrollment Settings */}
             <div className="col-12 col-lg-6">
               <SettingsSectionCard
                 icon={<RefreshCw size={20} />}
@@ -271,7 +300,6 @@ export default function RegistrarSettings() {
               </SettingsSectionCard>
             </div>
 
-            {/* Document Processing */}
             <div className="col-12 col-lg-6">
               <SettingsSectionCard
                 icon={<FileText size={20} />}
@@ -299,7 +327,6 @@ export default function RegistrarSettings() {
               </SettingsSectionCard>
             </div>
 
-            {/* Notifications */}
             <div className="col-12 col-lg-6">
               <SettingsSectionCard
                 icon={<Bell size={20} />}
@@ -328,7 +355,6 @@ export default function RegistrarSettings() {
           </div>
         </div>
 
-        {/* Sticky Save Bar */}
         <div className="rs-savebar mt-4">
           <div className="container py-3 d-flex justify-content-end gap-2">
             <button
@@ -341,7 +367,7 @@ export default function RegistrarSettings() {
 
             <button
               className="btn btn-lg px-4 rs-save-btn"
-              onClick={onSave}
+              onClick={handleAskSave}
               disabled={saving || loading}
             >
               {saving ? "Saving..." : "Save Settings"}
@@ -349,6 +375,57 @@ export default function RegistrarSettings() {
           </div>
         </div>
       </div>
+
+      {confirmOpen && (
+        <div
+          className="registrar-settings-confirm-backdrop"
+          onClick={handleCloseConfirm}
+        >
+          <div
+            className="registrar-settings-confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="registrar-settings-confirm-close"
+              onClick={handleCloseConfirm}
+              disabled={saving}
+            >
+              <X size={18} />
+            </button>
+
+            <div className="registrar-settings-confirm-icon">
+              <TriangleAlert size={22} />
+            </div>
+
+            <h5 className="fw-bold mb-2 text-center">Confirm Save</h5>
+
+            <p className="text-muted text-center mb-0">
+              Are you sure you want to save the changes to registrar settings?
+            </p>
+
+            <div className="registrar-settings-confirm-actions">
+              <button
+                type="button"
+                className="btn btn-light border"
+                onClick={handleCloseConfirm}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={onSave}
+                disabled={saving}
+              >
+                {saving ? "Saving..." : "Yes, Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
