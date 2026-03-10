@@ -80,6 +80,8 @@ function toTitleCase(str: string) {
 
 const NAME_REGEX = /^[A-Za-z\s'-]+$/;
 const MAX_NAME_LENGTH = 50;
+const currentYear = new Date().getFullYear();
+const phonePrefix = "+639";
 
 function sanitizeInput(value: string) {
   return value
@@ -93,11 +95,24 @@ function isValidEmail(v: string) {
 }
 
 function isValidPHPhone(v: string) {
-  return /^09\d{9}$/.test(v.trim());
+  return /^\+639\d{9}$/.test(v.trim());
 }
 
 function hasErrors(obj: Record<string, unknown>) {
   return Object.keys(obj).length > 0;
+}
+
+function getIdPrefixByRole(role: UserRole | "") {
+  switch (role) {
+    case "Registrar":
+      return `REG-${currentYear}-`;
+    case "Finance":
+      return `FIN-${currentYear}-`;
+    case "Dept Head":
+      return `DEP-${currentYear}-`;
+    default:
+      return "";
+  }
 }
 
 type AddUserModalProps = {
@@ -251,6 +266,29 @@ export default function AddUserModal({
     setTouched((t) => ({ ...t, department: false }));
   }, [departmentLocked, open]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const prefix = getIdPrefixByRole(role);
+
+    if (!prefix) {
+      setIdNumber("");
+      return;
+    }
+
+    const digits = idNumber.replace(/\D/g, "").slice(0, 3);
+    const finalValue = digits ? `${prefix}${digits}` : "";
+
+    setIdNumber(finalValue);
+
+    if (submitted || touched.idNumber) {
+      setLocalErrors((p) => ({
+        ...p,
+        idNumber: validateField("idNumber"),
+      }));
+    }
+  }, [role, open]);
+
   const validateField = (k: keyof AddUserFormState): string => {
     const first = firstName.trim();
     const middle = middleName.trim();
@@ -283,11 +321,19 @@ export default function AddUserModal({
           return "Maximum 50 characters allowed.";
         return "";
 
-      case "idNumber":
+      case "idNumber": {
         if (!id) return "ID number is required.";
+        if (!role) return "Select a role first.";
+
+        const prefix = getIdPrefixByRole(role);
+        const pattern = new RegExp(`^${prefix}\\d{3}$`);
+
+        if (!pattern.test(id)) return `Format: ${prefix}### (3 digits).`;
         if (!/^[A-Za-z0-9-]+$/.test(id))
           return "ID can only contain letters, numbers, and dashes.";
+
         return "";
+      }
 
       case "email":
         if (!em) return "Email is required.";
@@ -394,15 +440,25 @@ export default function AddUserModal({
 
   if (!open) return null;
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, "");
-    if (val.length <= 11) {
-      setPhone(val);
-      if (submitted || touched.phone) {
-        setLocalErrors((p) => ({ ...p, phone: validateField("phone") }));
-      }
-    }
-  };
+ const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  let value = e.target.value;
+
+  if (value.startsWith(phonePrefix)) {
+    value = value.slice(phonePrefix.length);
+  }
+
+  const digits = value.replace(/\D/g, "").slice(0, 9);
+  const finalValue = phonePrefix + digits;
+
+  setPhone(finalValue);
+
+  if (submitted || touched.phone) {
+    setLocalErrors((p) => ({
+      ...p,
+      phone: finalValue.length === 13 ? "" : "Format: +639XXXXXXXXX",
+    }));
+  }
+};
 
   const openReview = (e: React.FormEvent) => {
     e.preventDefault();
@@ -572,11 +628,39 @@ export default function AddUserModal({
                       <input
                         className={inputClass("idNumber")}
                         value={idNumber}
-                        onChange={(e) =>
-                          setIdNumber(sanitizeInput(e.target.value))
-                        }
+                        onChange={(e) => {
+                          const prefix = getIdPrefixByRole(role);
+
+                          if (!prefix) {
+                            setIdNumber("");
+                            return;
+                          }
+
+                          let value = e.target.value;
+
+                          if (value.startsWith(prefix)) {
+                            value = value.replace(prefix, "");
+                          }
+
+                          const digits = value.replace(/\D/g, "").slice(0, 3);
+                          const finalValue =
+                            digits.length > 0 ? prefix + digits : "";
+
+                          setIdNumber(finalValue);
+
+                          if (submitted || touched.idNumber) {
+                            setLocalErrors((p) => ({
+                              ...p,
+                              idNumber: validateField("idNumber"),
+                            }));
+                          }
+                        }}
                         onBlur={() => onBlurField("idNumber")}
-                        placeholder="e.g., STU-2024-001"
+                        placeholder={
+                          role
+                            ? `e.g., ${getIdPrefixByRole(role)}001`
+                            : "Select role first"
+                        }
                       />
                     </div>
                     <div className="users-invalid-feedback">
@@ -607,25 +691,25 @@ export default function AddUserModal({
                   </div>
 
                   <div className="users-field users-input-with-icon">
-                    <label className={labelClass("phone")}>
-                      Phone <span className="req">*</span>
-                    </label>
-                    <div className="users-input-wrapper">
-                      <Phone className="users-input-icon" size={16} />
-                      <input
-                        className={inputClass("phone")}
-                        value={phone}
-                        onChange={handlePhoneChange}
-                        onBlur={() => onBlurField("phone")}
-                        placeholder="09xxxxxxxxx"
-                        inputMode="numeric"
-                        maxLength={11}
-                      />
-                    </div>
-                    <div className="users-invalid-feedback">
-                      {invalid("phone") ? getError("phone") : "\u00A0"}
-                    </div>
-                  </div>
+  <label className={labelClass("phone")}>
+    Phone <span className="req">*</span>
+  </label>
+  <div className="users-input-wrapper">
+    <Phone className="users-input-icon" size={16} />
+    <input
+      className={inputClass("phone")}
+      value={phone}
+      onChange={handlePhoneChange}
+      onBlur={() => onBlurField("phone")}
+      placeholder="+639XXXXXXXXX"
+      inputMode="numeric"
+      maxLength={13}
+    />
+  </div>
+  <div className="users-invalid-feedback">
+    {invalid("phone") ? getError("phone") : "\u00A0"}
+  </div>
+</div>
                 </div>
 
                 <div className="users-row-2 users-col-span-2">
@@ -697,18 +781,25 @@ export default function AddUserModal({
                           if (submitted || touched.role) {
                             setLocalErrors((p) => ({
                               ...p,
-                              role: validateField("role"),
+                              role: nextRole ? "" : "Role is required.",
                             }));
                           }
 
-                          if (submitted || touched.department) {
-                            setTimeout(() => {
+                          setTimeout(() => {
+                            if (submitted || touched.idNumber) {
+                              setLocalErrors((p) => ({
+                                ...p,
+                                idNumber: "",
+                              }));
+                            }
+
+                            if (submitted || touched.department) {
                               setLocalErrors((p) => ({
                                 ...p,
                                 department: validateField("department"),
                               }));
-                            }, 0);
-                          }
+                            }
+                          }, 0);
                         }}
                         onBlur={() => onBlurField("role")}
                       >
