@@ -5,8 +5,14 @@ import UsersTable from "../../components/SuperAdmin/Users/UsersTable";
 import AddUserModal from "../../components/SuperAdmin/Users/AddUserModal";
 import type { AddUserPayload } from "../../components/SuperAdmin/Users/AddUserModal";
 import SendCredentialsModal from "../../components/SuperAdmin/Users/SendCredentialsModal";
+import UserDetailsModal from "../../components/SuperAdmin/Users/UserDetailsModal";
 import AuthAlert from "../../components/Authentication/AuthAlert";
-import { createUser, getUsers, sendCredentials } from "../../api/userService";
+import {
+  createUser,
+  getUsers,
+  sendCredentials,
+  getUserById,
+} from "../../api/userService";
 import "../../styles/superadmin-user.css";
 
 /* ================= TYPES ================= */
@@ -33,6 +39,11 @@ export type UserRow = {
   notes?: string;
   credentialsSent?: boolean;
   createdBy?: string;
+};
+
+export type UserDetailsRow = UserRow & {
+  gender?: string;
+  createdAt?: string;
 };
 
 export type RoleTab =
@@ -78,7 +89,11 @@ export default function UsersPage() {
 
   const [addOpen, setAddOpen] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
+  const [viewUser, setViewUser] = useState<UserDetailsRow | null>(null);
+
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
@@ -182,6 +197,40 @@ export default function UsersPage() {
     setSendOpen(true);
   };
 
+  const handleViewClick = async (user: UserRow) => {
+    try {
+      setIsLoading(true);
+
+      const data = await getUserById(user.id);
+
+      const fullName = `${data.firstName} ${
+        data.middleName ? data.middleName + " " : ""
+      }${data.lastName}`.trim();
+
+      setViewUser({
+        id: data._id,
+        name: fullName,
+        email: data.email,
+        role: data.role,
+        department: data.department,
+        status: data.status,
+        phone: data.phone,
+        userCode: data.idNumber,
+        notes: data.notes,
+        createdBy: data.createdBy,
+        gender: data.gender,
+        createdAt: data.createdAt,
+        credentialsSent: data.credentialsSent,
+      });
+
+      setDetailsOpen(true);
+    } catch (err: any) {
+      showAlert(err.message || "Failed to load user details", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const confirmSendCredentials = async () => {
     if (!selectedUser) return;
 
@@ -244,7 +293,7 @@ export default function UsersPage() {
             {pageRows.length > 0 ? (
               <UsersTable
                 rows={pageRows}
-                onView={(u) => console.log("view", u)}
+                onView={handleViewClick}
                 onSendCredentials={handleSendClick}
               />
             ) : (
@@ -309,6 +358,15 @@ export default function UsersPage() {
           onClose={() => setSendOpen(false)}
           onConfirm={confirmSendCredentials}
           isLoading={isLoading}
+        />
+
+        <UserDetailsModal
+          open={detailsOpen}
+          user={viewUser}
+          onClose={() => {
+            setDetailsOpen(false);
+            setViewUser(null);
+          }}
         />
       </div>
     </>

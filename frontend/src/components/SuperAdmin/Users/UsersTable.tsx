@@ -25,19 +25,11 @@ export default function UsersTable({ rows, onView, onSendCredentials }: Props) {
         <tbody>
           {rows.map((u) => (
             <tr key={u.id} className="users-row">
-              {/* Name */}
               <td className="fw-semibold align-middle">{u.name}</td>
-
-              {/* Email */}
               <td className="text-muted align-middle">{u.email}</td>
-
-              {/* Role */}
               <td className="align-middle">{u.role}</td>
-
-              {/* Department */}
               <td className="text-muted align-middle">{u.department}</td>
 
-              {/* Status */}
               <td className="align-middle">
                 <span
                   className={`users-status ${
@@ -48,10 +40,8 @@ export default function UsersTable({ rows, onView, onSendCredentials }: Props) {
                 </span>
               </td>
 
-              {/* Action */}
               <td className="text-end align-middle">
                 <div className="d-flex justify-content-end align-items-center gap-2">
-                  {/* View Button */}
                   <button
                     type="button"
                     className="users-action-btn"
@@ -61,7 +51,6 @@ export default function UsersTable({ rows, onView, onSendCredentials }: Props) {
                     <Eye size={18} />
                   </button>
 
-                  {/* Send Credentials Button (only if not sent) */}
                   {u.createdBy === "SuperAdmin" &&
                     u.status === "inactive" &&
                     !u.credentialsSent && (

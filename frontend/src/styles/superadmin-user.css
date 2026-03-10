@@ -829,3 +829,145 @@
 .users-textarea {
   padding-left: 38px;
 }
+.users-details-modal {
+  max-width: 760px;
+  width: min(760px, 92vw);
+}
+
+.user-details-card {
+  background: #f7f7f8;
+  border-radius: 18px;
+  padding: 24px 20px;
+  border: 1px solid #f0f0f0;
+}
+
+.user-details-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-details-avatar {
+  width: 60px;
+  height: 60px;
+  min-width: 60px;
+  border-radius: 999px;
+  background: #dbe7ff;
+  color: #1f6fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.4rem;
+}
+
+.user-details-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.user-details-name {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #172b4d;
+  line-height: 1.2;
+}
+
+.user-details-code {
+  font-size: 1.05rem;
+  color: #4b5563;
+}
+
+.user-details-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.user-details-status.active {
+  background: #e7f8ee;
+  color: #1f7a45;
+}
+
+.user-details-status.inactive {
+  background: #ececec;
+  color: #4b5563;
+}
+
+.user-details-divider {
+  margin: 18px 0 14px;
+  border: 0;
+  border-top: 1px solid #d6d6d6;
+}
+
+.user-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 40px;
+}
+
+.user-details-item {
+  min-width: 0;
+}
+
+.user-details-item-full {
+  grid-column: 1 / -1;
+}
+
+.user-details-label {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.user-details-value {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: #172b4d;
+  word-break: break-word;
+}
+
+@media (max-width: 768px) {
+  .users-details-modal {
+    max-width: 94vw;
+    width: 94vw;
+  }
+
+  .user-details-card {
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+
+  .user-details-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .user-details-top {
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .user-details-avatar {
+    width: 54px;
+    height: 54px;
+    min-width: 54px;
+    font-size: 1.2rem;
+  }
+
+  .user-details-name {
+    font-size: 1.35rem;
+  }
+
+  .user-details-code {
+    font-size: 0.98rem;
+  }
+}
