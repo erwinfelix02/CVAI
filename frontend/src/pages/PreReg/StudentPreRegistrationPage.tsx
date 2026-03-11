@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
-
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Info } from "lucide-react";
 import AuthAlert from "../../components/Authentication/AuthAlert";
 
 import Stepper from "../../components/PreReg/Stepper";
@@ -44,6 +43,18 @@ export type DocumentsState = {
 type PersonalErrors = Partial<Record<keyof PersonalInfo, string>>;
 type AcademicErrors = Partial<Record<keyof AcademicInfo, string>>;
 type DocsErrors = Partial<Record<keyof DocumentsState, string>>;
+
+type RegistrarSettings = {
+  academicYear: string;
+  semester: string;
+  enrollmentOpen: boolean;
+  maxStudentsPerSection: number;
+  processingDays: number;
+  autoApproveSimpleDocs: boolean;
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  updatedBy?: string;
+};
 
 const steps: { key: StepKey; label: string }[] = [
   { key: "personal", label: "Personal Info" },
@@ -153,23 +164,58 @@ export default function StudentPreRegistrationPage() {
     idPhoto: null,
   });
 
-  // ✅ NEW: active courses from DB
+  const [registrarSettings, setRegistrarSettings] =
+    useState<RegistrarSettings | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+
   const [courseOptions, setCourseOptions] = useState<string[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
+        setSettingsLoading(true);
+        const res = await fetch("http://localhost:5000/api/registrar/settings");
+        if (!res.ok) throw new Error("Failed to load registrar settings.");
+
+        const data = await res.json();
+        setRegistrarSettings(data);
+      } catch (e) {
+        console.error("Failed to load registrar settings:", e);
+        setRegistrarSettings({
+          academicYear: "",
+          semester: "",
+          enrollmentOpen: true,
+          maxStudentsPerSection: 45,
+          processingDays: 5,
+          autoApproveSimpleDocs: false,
+          emailNotifications: true,
+          smsNotifications: false,
+        });
+      } finally {
+        setSettingsLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
         setCoursesLoading(true);
-        const res = await fetch("http://localhost:5000/api/courses?status=Active");
+        const res = await fetch(
+          "http://localhost:5000/api/courses?status=Active",
+        );
         const data = await res.json();
 
         const list = (Array.isArray(data) ? data : [])
           .filter((c: any) => (c.status ?? "Active") === "Active")
-          .map((c: any) => String(c.code || "").trim().toUpperCase())
+          .map((c: any) =>
+            String(c.code || "")
+              .trim()
+              .toUpperCase(),
+          )
           .filter(Boolean);
 
-        // unique + sort
         setCourseOptions(Array.from(new Set(list)).sort());
       } catch (e) {
         setCourseOptions([]);
@@ -179,7 +225,6 @@ export default function StudentPreRegistrationPage() {
     })();
   }, []);
 
-  // ✅ show validation only after user tries to go next
   const [submitted, setSubmitted] = useState({
     personal: false,
     academic: false,
@@ -213,6 +258,8 @@ export default function StudentPreRegistrationPage() {
       return () => clearTimeout(timer);
     }
   }, [showAlert]);
+
+  const enrollmentOpen = registrarSettings?.enrollmentOpen ?? true;
 
   function validateCurrentStep(): boolean {
     if (activeStep === "personal") {
@@ -273,7 +320,8 @@ export default function StudentPreRegistrationPage() {
       hasErrors(de as Record<string, unknown>)
     ) {
       if (hasErrors(pe as Record<string, unknown>)) setActiveStep("personal");
-      else if (hasErrors(ae as Record<string, unknown>)) setActiveStep("academic");
+      else if (hasErrors(ae as Record<string, unknown>))
+        setActiveStep("academic");
       else setActiveStep("documents");
 
       setIsSubmitting(false);
@@ -289,10 +337,21 @@ export default function StudentPreRegistrationPage() {
       if (docs.goodMoral) formData.append("goodMoral", docs.goodMoral);
       if (docs.idPhoto) formData.append("idPhoto", docs.idPhoto);
 
-      const response = await fetch("http://localhost:5000/api/preregistrations", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        "http://localhost:5000/api/preregistrations",
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
+
+      if (response.status === 403) {
+        const body = await response.json().catch(() => null);
+        setAlertMessage(body?.message || "Registration is not open.");
+        setAlertType("error");
+        setShowAlert(true);
+        return;
+      }
 
       if (response.status === 409) {
         const body = await response.json().catch(() => null);
@@ -313,7 +372,9 @@ export default function StudentPreRegistrationPage() {
 
       setTimeout(() => navigate("/"), 2500);
     } catch (err: any) {
-      setAlertMessage(err?.message || "Something went wrong. Please try again.");
+      setAlertMessage(
+        err?.message || "Something went wrong. Please try again.",
+      );
       setAlertType("error");
       setShowAlert(true);
     } finally {
@@ -361,95 +422,136 @@ export default function StudentPreRegistrationPage() {
         <div className="container prereg-page">
           <div className="text-center prereg-hero">
             <h1 className="fw-bold prereg-title">Student Pre-Registration</h1>
-            <p className="text-muted mb-0">
-              Complete the form below to submit your enrollment application
-            </p>
-          </div>
 
-          <div className="d-flex justify-content-center prereg-stepper-wrap">
-            <Stepper
-              steps={steps}
-              active={activeStep}
-              onChange={handleStepChange}
-            />
+            {settingsLoading ? null : enrollmentOpen ? (
+              <p className="text-muted mb-0">
+                Complete the form below to submit your enrollment application
+              </p>
+            ) : null}
           </div>
 
           <div className="card prereg-card">
             <div className="card-body prereg-card-body">
-              {activeStep === "personal" && (
-                <StepPersonal
-                  value={personal}
-                  onChange={setPersonal}
-                  submitted={submitted.personal}
-                  errors={personalErrors}
-                />
-              )}
-
-              {activeStep === "academic" && (
-                <StepAcademic
-                  value={academic}
-                  onChange={setAcademic}
-                  submitted={submitted.academic}
-                  errors={academicErrors}
-                  courseOptions={courseOptions}
-                  coursesLoading={coursesLoading}
-                />
-              )}
-
-              {activeStep === "documents" && (
-                <StepDocuments
-                  value={docs}
-                  onChange={setDocs}
-                  submitted={submitted.documents}
-                  errors={docsErrors}
-                />
-              )}
-
-              {activeStep === "review" && (
-                <StepReview personal={personal} academic={academic} docs={docs} />
-              )}
-
-              <div className="prereg-footer">
-                <div className="prereg-footer-left">
-                  {stepIndex > 0 && (
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary prereg-btn d-inline-flex align-items-center gap-2"
-                      onClick={goPrev}
-                    >
-                      <ArrowLeft size={16} />
-                      <span>Previous</span>
-                    </button>
+              {settingsLoading ? (
+                <div className="text-center py-5">
+                  <div
+                    className="spinner-border text-primary mb-3"
+                    role="status"
+                  />
+                  <p className="mb-0 text-muted">
+                    Loading registration settings...
+                  </p>
+                </div>
+              ) : !enrollmentOpen ? (
+                <div className="prereg-closed-state">
+                  <Info size={52} className="mb-3 text-info" />
+                  <h3 className="fw-bold mb-2">Registration is not open</h3>
+                  <p className="text-muted mb-1">
+                    Pre-registration is currently closed by the registrar.
+                  </p>
+                  {(registrarSettings?.academicYear ||
+                    registrarSettings?.semester) && (
+                    <p className="text-muted mb-0">
+                      Current term:{" "}
+                      <strong>
+                        {registrarSettings?.academicYear} -{" "}
+                        {registrarSettings?.semester}
+                      </strong>
+                    </p>
                   )}
                 </div>
+              ) : (
+                <>
+                  <div className="d-flex justify-content-center prereg-stepper-wrap">
+                    <Stepper
+                      steps={steps}
+                      active={activeStep}
+                      onChange={handleStepChange}
+                    />
+                  </div>
 
-                <div className="prereg-footer-right">
-                  {activeStep !== "review" ? (
-                    <button
-                      type="button"
-                      className="btn btn-primary prereg-btn d-inline-flex align-items-center gap-2"
-                      onClick={goNext}
-                    >
-                      <span>Next</span>
-                      <ArrowRight size={16} />
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      className="btn btn-primary prereg-btn d-inline-flex align-items-center gap-2"
-                      onClick={handleSubmit}
-                    >
-                      <CheckCircle2 size={16} />
-                      <span>{isSubmitting ? "Submitting..." : "Submit Application"}</span>
-                    </button>
+                  {activeStep === "personal" && (
+                    <StepPersonal
+                      value={personal}
+                      onChange={setPersonal}
+                      submitted={submitted.personal}
+                      errors={personalErrors}
+                    />
                   )}
-                </div>
-              </div>
 
+                  {activeStep === "academic" && (
+                    <StepAcademic
+                      value={academic}
+                      onChange={setAcademic}
+                      submitted={submitted.academic}
+                      errors={academicErrors}
+                      courseOptions={courseOptions}
+                      coursesLoading={coursesLoading}
+                    />
+                  )}
+
+                  {activeStep === "documents" && (
+                    <StepDocuments
+                      value={docs}
+                      onChange={setDocs}
+                      submitted={submitted.documents}
+                      errors={docsErrors}
+                    />
+                  )}
+
+                  {activeStep === "review" && (
+                    <StepReview
+                      personal={personal}
+                      academic={academic}
+                      docs={docs}
+                    />
+                  )}
+
+                  <div className="prereg-footer">
+                    <div className="prereg-footer-left">
+                      {stepIndex > 0 && (
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary prereg-btn d-inline-flex align-items-center gap-2"
+                          onClick={goPrev}
+                        >
+                          <ArrowLeft size={16} />
+                          <span>Previous</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="prereg-footer-right">
+                      {activeStep !== "review" ? (
+                        <button
+                          type="button"
+                          className="btn btn-primary prereg-btn d-inline-flex align-items-center gap-2"
+                          onClick={goNext}
+                        >
+                          <span>Next</span>
+                          <ArrowRight size={16} />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={isSubmitting}
+                          className="btn btn-primary prereg-btn d-inline-flex align-items-center gap-2"
+                          onClick={handleSubmit}
+                        >
+                          <CheckCircle2 size={16} />
+                          <span>
+                            {isSubmitting
+                              ? "Submitting..."
+                              : "Submit Application"}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
-
         </div>
       </div>
     </>

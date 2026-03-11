@@ -1,5 +1,29 @@
 [
   {
+    "id": "6f320a5e-0567-4fab-be19-a73fc754007b",
+    "date": "2026-03-11",
+    "time": "13:49:11",
+    "action": "User Login",
+    "user": "eerwinfelix528@gmail.com",
+    "role": "Registrar",
+    "type": "Auth",
+    "details": "Successful login",
+    "ip": "::1",
+    "status": "success"
+  },
+  {
+    "id": "5a89a484-a67a-41d8-a3a1-913e32f59a69",
+    "date": "2026-03-11",
+    "time": "09:36:51",
+    "action": "User Login",
+    "user": "eerwinfelix528@gmail.com",
+    "role": "Registrar",
+    "type": "Auth",
+    "details": "Successful login",
+    "ip": "::1",
+    "status": "success"
+  },
+  {
     "id": "9cf2b9b1-5853-4e0b-81ef-ee8fae3d59ee",
     "date": "2026-03-10",
     "time": "22:49:17",

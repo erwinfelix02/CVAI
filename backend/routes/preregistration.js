@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import Preregistration from "../models/Preregistration.js";
+import RegistrarSettings from "../models/RegistrarSettings.js";
 import sendEmail from "../utils/sendEmail.js";
 import contract from "../utils/blockchain.js";
 
@@ -18,7 +19,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// routes/preregistrations.js
 router.post(
   "/",
   upload.fields([
@@ -29,16 +29,22 @@ router.post(
   ]),
   async (req, res) => {
     try {
+      const settings = await RegistrarSettings.findOne();
+
+      if (settings && !settings.enrollmentOpen) {
+        return res.status(403).json({
+          message: "Registration is not open.",
+        });
+      }
+
       const data = JSON.parse(req.body.data);
 
-      // normalize for safer matching
       const email = String(data?.personal?.email || "").trim().toLowerCase();
       const phoneDigits = String(data?.personal?.phone || "").replace(/\D/g, "");
       const firstName = String(data?.personal?.firstName || "").trim();
       const lastName = String(data?.personal?.lastName || "").trim();
       const birthDate = String(data?.personal?.birthDate || "").trim();
 
-      // ✅ 0) DUPLICATE CHECK (before blockchain + before save)
       const existing = await Preregistration.findOne({
         $or: [
           { "personal.email": email },
@@ -59,7 +65,6 @@ router.post(
 
       let txHash = null;
 
-      // 🔗 1) Call Blockchain (only if not duplicate)
       try {
         const tx = await contract.registerStudent(
           `${firstName} ${lastName}`,
@@ -70,10 +75,8 @@ router.post(
         txHash = tx.hash;
       } catch (blockchainError) {
         console.error("Blockchain Error:", blockchainError);
-        // Optional: if blockchain is required, you can return 500 here
       }
 
-      // 🗄 2) Save to MongoDB
       const newApp = new Preregistration({
         personal: {
           ...data.personal,
@@ -84,25 +87,22 @@ router.post(
         status: "Pending",
         blockchainTxHash: txHash,
         documents: {
-          birthCert: req.files.birthCert?.[0]
+          birthCert: req.files?.birthCert?.[0]
             ? `/uploads/${req.files.birthCert[0].filename}`
             : null,
-          form137: req.files.form137?.[0]
+          form137: req.files?.form137?.[0]
             ? `/uploads/${req.files.form137[0].filename}`
             : null,
-          goodMoral: req.files.goodMoral?.[0]
+          goodMoral: req.files?.goodMoral?.[0]
             ? `/uploads/${req.files.goodMoral[0].filename}`
             : null,
-          idPhoto: req.files.idPhoto?.[0]
+          idPhoto: req.files?.idPhoto?.[0]
             ? `/uploads/${req.files.idPhoto[0].filename}`
             : null,
         },
       });
 
       await newApp.save();
-
-      // 📧 email (same as your current)
-      // ...
 
       return res.status(201).json({
         message: "Application saved and email sent successfully",
@@ -111,7 +111,6 @@ router.post(
     } catch (err) {
       console.error(err);
 
-      // ✅ handle unique index collisions cleanly too
       if (err?.code === 11000) {
         return res.status(409).json({
           message: "Duplicate application detected (email/phone already exists).",
@@ -123,7 +122,6 @@ router.post(
   }
 );
 
-
 // GET all preregistrations
 router.get("/", async (req, res) => {
   try {
@@ -134,6 +132,7 @@ router.get("/", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 // GET pending count only
 router.get("/pending-count", async (req, res) => {
   try {
@@ -159,10 +158,10 @@ router.get("/recent", async (req, res) => {
   }
 });
 
-// ✅ Approve or Reject application
+// Approve or Reject application
 router.patch("/:id/status", async (req, res) => {
   try {
-    const { status } = req.body; // "Approved" or "Rejected"
+    const { status } = req.body;
 
     if (!["Approved", "Rejected"].includes(status)) {
       return res.status(400).json({ message: "Invalid status value" });
@@ -178,7 +177,6 @@ router.patch("/:id/status", async (req, res) => {
       return res.status(404).json({ message: "Application not found" });
     }
 
-    // 📧 Optional: Send approval/rejection email
     const emailHtml = `
       <h2>Application Status Update</h2>
       <p>Your registration ID: <strong>${updated.registrationId}</strong></p>
