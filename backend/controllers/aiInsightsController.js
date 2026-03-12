@@ -1,6 +1,9 @@
-// controllers/aiInsightsController.js
 import fetch from "node-fetch"; // remove if Node 18+ and using global fetch
+import NodeCache from "node-cache";
 import Preregistration from "../models/Preregistration.js";
+
+const insightsCache = new NodeCache({ stdTTL: 60 });
+const ollamaHintCache = new NodeCache({ stdTTL: 300 });
 
 /* ---------------------------
    Helpers
@@ -32,6 +35,10 @@ function workloadLabel(pendingCount) {
   return "High";
 }
 
+function buildInsightSignature({ scamCount, oldestPendingDays, load }) {
+  return `scam:${scamCount}|oldest:${oldestPendingDays}|load:${load}`;
+}
+
 /* ---------------------------
    Scam detection rules
 ---------------------------- */
@@ -43,8 +50,9 @@ function isSuspiciousEmail(email = "") {
   const e = (email || "").toLowerCase().trim();
   if (!e) return true;
 
-  if (e.includes("test") || e.includes("fake") || e.includes("asdf"))
+  if (e.includes("test") || e.includes("fake") || e.includes("asdf")) {
     return true;
+  }
 
   const parts = e.split("@");
   if (parts.length !== 2) return true;
@@ -56,16 +64,17 @@ function isSuspiciousEmail(email = "") {
   return false;
 }
 
-// longest run of same digit, e.g. "09111111111" has a long run of "1"
 function maxRunLength(str) {
   if (!str) return 0;
   let best = 1;
   let cur = 1;
+
   for (let i = 1; i < str.length; i++) {
     if (str[i] === str[i - 1]) cur++;
     else cur = 1;
     if (cur > best) best = cur;
   }
+
   return best;
 }
 
@@ -73,10 +82,7 @@ function isSuspiciousPhone(phone = "") {
   const p = (phone || "").replace(/\D/g, "");
   if (!p) return true;
   if (p.length < 10) return true;
-
   if (/^(\d)\1+$/.test(p)) return true;
-
-  // catches 09111111111
   if (maxRunLength(p) >= 7) return true;
 
   return false;
@@ -87,7 +93,6 @@ function isSuspiciousName(name = "") {
 
   const n = (name || "").trim();
   if (n.length < 4) return true;
-
   if (/^(.)\1{3,}/.test(n.replace(/\s/g, ""))) return true;
   if (/\d/.test(n)) return true;
 
@@ -104,8 +109,9 @@ function isSuspiciousAddress(address = "") {
     lower.includes("test") ||
     lower.includes("asdf") ||
     lower.includes("fake")
-  )
+  ) {
     return true;
+  }
 
   if (/^(\w)\1{5,}$/.test(a.replace(/\s/g, ""))) return true;
 
@@ -113,7 +119,6 @@ function isSuspiciousAddress(address = "") {
   const hasDigit = /\d/.test(a);
   const hasPunct = /[,\-./#]/.test(a);
 
-  // gibberish: long single token
   if (!hasSpace && !hasDigit && !hasPunct && a.length >= 12) return true;
 
   return false;
@@ -141,7 +146,9 @@ function computeScamSignals(apps) {
 
   for (const a of apps) {
     const name = normalizeName(a?.personal?.firstName, a?.personal?.lastName);
-    if (name) nameCount.set(name, (nameCount.get(name) || 0) + 1);
+    if (name) {
+      nameCount.set(name, (nameCount.get(name) || 0) + 1);
+    }
   }
 
   let scamCount = 0;
@@ -170,9 +177,7 @@ function computeScamSignals(apps) {
     if (suspiciousAddress) score += 1;
     if (suspiciousBirthDate) score += 1;
 
-    const isScam = score >= 2;
-
-    if (isScam) {
+    if (score >= 2) {
       scamCount++;
 
       flagged.push({
@@ -196,19 +201,18 @@ function computeScamSignals(apps) {
   }
 
   flagged.sort((a, b) => b.score - a.score);
-
   return { scamCount, flagged };
 }
 
 /* ---------------------------
-   Ollama call (optional)
+   Ollama call
 ---------------------------- */
 async function callOllamaJSON(prompt) {
   const url = process.env.OLLAMA_URL || "http://127.0.0.1:11434";
   const model = process.env.OLLAMA_MODEL || "tinyllama";
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), 12000);
 
   try {
     const r = await fetch(`${url}/api/generate`, {
@@ -219,7 +223,10 @@ async function callOllamaJSON(prompt) {
         model,
         prompt,
         stream: false,
-        options: { temperature: 0.2 },
+        options: {
+          temperature: 0.2,
+          num_predict: 120,
+        },
       }),
     });
 
@@ -230,7 +237,6 @@ async function callOllamaJSON(prompt) {
 
     const data = await r.json();
     const raw = data?.response || "";
-
     const extracted = extractJsonObject(raw);
     const parsed = safeJsonParse(extracted || raw);
     return parsed;
@@ -239,19 +245,17 @@ async function callOllamaJSON(prompt) {
   }
 }
 
-/**
- * ✅ Reject bad AI outputs:
- * - must contain exactly scam/oldest/load
- * - hint can't include placeholders like <...>
- * - value MUST match expected (prevents "Loow")
- */
+/* ---------------------------
+   AI output validation
+---------------------------- */
 function isBadAi(aiJson, expected) {
   if (
     !aiJson ||
     !Array.isArray(aiJson.insights) ||
     aiJson.insights.length !== 3
-  )
+  ) {
     return true;
+  }
 
   const byKey = new Map(aiJson.insights.map((x) => [x.key, x]));
   const scam = byKey.get("scam");
@@ -260,24 +264,15 @@ function isBadAi(aiJson, expected) {
 
   if (!scam || !oldest || !load) return true;
 
-  // enforce exact values
   if (String(scam.value) !== String(expected.scamValue)) return true;
   if (String(oldest.value) !== String(expected.oldestValue)) return true;
   if (String(load.value) !== String(expected.loadValue)) return true;
 
-  // reject placeholder / empty hints
   for (const it of [scam, oldest, load]) {
     const hint = String(it?.hint ?? "");
     const label = String(it?.label ?? "");
     if (!hint.trim()) return true;
-
-    // blocks "<one short sentence>" and any "<...>"
     if (hint.includes("<") || hint.includes(">")) return true;
-
-    // avoid instruction echoes
-    if (hint.toLowerCase().includes("write 1 short")) return true;
-
-    // keep labels correct
     if (label !== expected.labels[it.key]) return true;
   }
 
@@ -285,16 +280,113 @@ function isBadAi(aiJson, expected) {
 }
 
 /* ---------------------------
-   Controller
+   Deterministic fallback
+---------------------------- */
+function buildFallbackInsights({ scamCount, oldestPendingDays, load }) {
+  return {
+    insights: [
+      {
+        key: "scam",
+        label: "Suspicious registrations",
+        value: String(scamCount),
+        hint: "Check entries with unusual phone, address, or unrealistic birthdate details.",
+      },
+      {
+        key: "oldest",
+        label: "Oldest pending",
+        value: `${oldestPendingDays} days`,
+        hint: "Process older applications first to reduce backlog.",
+      },
+      {
+        key: "load",
+        label: "Pending workload",
+        value: load,
+        hint: "Assign more reviewers if pending applications increase.",
+      },
+    ],
+  };
+}
+
+/* ---------------------------
+   Cached AI hints
+---------------------------- */
+async function getAiInsightsWithCache(metrics) {
+  const signature = buildInsightSignature(metrics);
+  const cached = ollamaHintCache.get(signature);
+  if (cached) {
+    return { data: cached, cacheHit: true };
+  }
+
+  const expected = {
+    scamValue: String(metrics.scamCount),
+    oldestValue: `${metrics.oldestPendingDays} days`,
+    loadValue: metrics.load,
+    labels: {
+      scam: "Suspicious registrations",
+      oldest: "Oldest pending",
+      load: "Pending workload",
+    },
+  };
+
+  const prompt = `
+Return JSON only:
+{
+  "insights": [
+    {"key":"scam","label":"Suspicious registrations","value":"${expected.scamValue}","hint":"short sentence"},
+    {"key":"oldest","label":"Oldest pending","value":"${expected.oldestValue}","hint":"short sentence"},
+    {"key":"load","label":"Pending workload","value":"${expected.loadValue}","hint":"short sentence"}
+  ]
+}
+Rules:
+- Keep every key, label, and value exactly the same.
+- Only write the hints.
+- No markdown.
+- No extra text.
+`;
+
+  const aiJson = await callOllamaJSON(prompt);
+
+  if (isBadAi(aiJson, expected)) {
+    return { data: buildFallbackInsights(metrics), cacheHit: false };
+  }
+
+  ollamaHintCache.set(signature, aiJson);
+  return { data: aiJson, cacheHit: false };
+}
+
+/* ---------------------------
+   Controller: insights
 ---------------------------- */
 export async function getRegistrarInsights(_req, res) {
+  const requestStart = Date.now();
+
   try {
-    const recentApps = await Preregistration.find({})
+    console.log("===== AI INSIGHTS REQUEST START =====");
+
+    const cached = insightsCache.get("registrar-insights-final");
+    if (cached) {
+      console.log(
+        `AI Insights final cache hit: ${((Date.now() - requestStart) / 1000).toFixed(3)} sec`,
+      );
+      console.log("===== AI INSIGHTS REQUEST END =====");
+      return res.json(cached);
+    }
+
+    const dbStart = Date.now();
+
+    const pendingApps = await Preregistration.find({ status: "Pending" })
+      .select(
+        "status createdAt registrationId personal.firstName personal.lastName personal.email personal.phone personal.address personal.birthDate academic.course",
+      )
       .sort({ createdAt: -1 })
       .limit(60)
       .lean();
 
-    const pendingApps = recentApps.filter((x) => x.status === "Pending");
+    const dbEnd = Date.now();
+    console.log(
+      `AI Insights DB fetch time: ${((dbEnd - dbStart) / 1000).toFixed(3)} sec`,
+    );
+
     const pendingCount = pendingApps.length;
 
     let oldestPendingDays = 0;
@@ -310,89 +402,94 @@ export async function getRegistrarInsights(_req, res) {
     const scam = computeScamSignals(pendingApps);
     const load = workloadLabel(pendingCount);
 
-    const fallback = {
-      insights: [
-        {
-          key: "scam",
-          label: "Suspicious registrations",
-          value: String(scam.scamCount),
-          hint: "Check entries with unusual phone, address, or unrealistic birthdate details.",
-        },
-        {
-          key: "oldest",
-          label: "Oldest pending",
-          value: `${oldestPendingDays} days`,
-          hint: "Process older applications first to reduce backlog.",
-        },
-        {
-          key: "load",
-          label: "Pending workload",
-          value: load,
-          hint: "Assign more reviewers if pending applications increase.",
-        },
-      ],
+    const metrics = {
+      scamCount: scam.scamCount,
+      oldestPendingDays,
+      load,
     };
 
-    const expected = {
-      scamValue: String(scam.scamCount),
-      oldestValue: `${oldestPendingDays} days`,
-      loadValue: load,
-      labels: {
-        scam: "Suspicious registrations",
-        oldest: "Oldest pending",
-        load: "Pending workload",
-      },
-    };
+    const ollamaStart = Date.now();
+    const { data, cacheHit } = await getAiInsightsWithCache(metrics);
+    const ollamaEnd = Date.now();
 
-    // ✅ Prompt: generate hints only, keep labels/values fixed
-    const prompt = `
-Return ONLY valid JSON exactly like this:
+    console.log(
+      `AI Insights Ollama time: ${((ollamaEnd - ollamaStart) / 1000).toFixed(3)} sec (${cacheHit ? "hint-cache" : "fresh"})`,
+    );
 
-{
-  "insights": [
-    {"key":"scam","label":"Suspicious registrations","value":"${expected.scamValue}","hint":"ONE short sentence."},
-    {"key":"oldest","label":"Oldest pending","value":"${expected.oldestValue}","hint":"ONE short sentence."},
-    {"key":"load","label":"Pending workload","value":"${expected.loadValue}","hint":"ONE short sentence."}
-  ]
-}
+    insightsCache.set("registrar-insights-final", data, 60);
 
-Rules:
-- Do NOT change key/label/value.
-- The hint must be a real sentence (no placeholders, no angle brackets).
-- JSON only. No markdown. No extra text.
-`;
+    console.log(
+      `AI Insights total response time: ${((Date.now() - requestStart) / 1000).toFixed(3)} sec`,
+    );
+    console.log("===== AI INSIGHTS REQUEST END =====");
 
-    try {
-      const aiJson = await callOllamaJSON(prompt);
-      if (!isBadAi(aiJson, expected)) return res.json(aiJson);
-      return res.json(fallback);
-    } catch (e) {
-      console.error("Ollama insights failed:", e?.message || e);
-      return res.json(fallback);
-    }
+    return res.json(data);
   } catch (err) {
     console.error("AI insights controller error:", err);
+    console.log(
+      `AI Insights failed after: ${((Date.now() - requestStart) / 1000).toFixed(3)} sec`,
+    );
+    console.log("===== AI INSIGHTS REQUEST END =====");
+
     return res.status(500).json({ insights: [] });
   }
 }
 
+/* ---------------------------
+   Controller: flagged
+---------------------------- */
 export async function getRegistrarFlagged(_req, res) {
+  const requestStart = Date.now();
+
   try {
-    const recentApps = await Preregistration.find({})
+    console.log("===== FLAGGED REGISTRATIONS REQUEST START =====");
+
+    const cached = insightsCache.get("registrar-flagged-final");
+    if (cached) {
+      console.log(
+        `Flagged final cache hit: ${((Date.now() - requestStart) / 1000).toFixed(3)} sec`,
+      );
+      console.log("===== FLAGGED REGISTRATIONS REQUEST END =====");
+      return res.json(cached);
+    }
+
+    const dbStart = Date.now();
+
+    const pendingApps = await Preregistration.find({ status: "Pending" })
+      .select(
+        "status createdAt registrationId personal.firstName personal.lastName personal.email personal.phone personal.address personal.birthDate academic.course",
+      )
       .sort({ createdAt: -1 })
       .limit(200)
       .lean();
 
-    const pendingApps = recentApps.filter((x) => x.status === "Pending");
+    const dbEnd = Date.now();
+    console.log(
+      `Flagged DB fetch time: ${((dbEnd - dbStart) / 1000).toFixed(3)} sec`,
+    );
 
     const scam = computeScamSignals(pendingApps);
 
-    return res.json({
+    const response = {
       count: scam.scamCount,
       flagged: scam.flagged,
-    });
+    };
+
+    insightsCache.set("registrar-flagged-final", response, 60);
+
+    console.log(
+      `Flagged total response time: ${((Date.now() - requestStart) / 1000).toFixed(3)} sec`,
+    );
+    console.log("===== FLAGGED REGISTRATIONS REQUEST END =====");
+
+    return res.json(response);
   } catch (err) {
     console.error("Flagged list error:", err);
+    console.log(
+      `Flagged request failed after: ${((Date.now() - requestStart) / 1000).toFixed(3)} sec`,
+    );
+    console.log("===== FLAGGED REGISTRATIONS REQUEST END =====");
+
     return res.status(500).json({ count: 0, flagged: [] });
   }
 }

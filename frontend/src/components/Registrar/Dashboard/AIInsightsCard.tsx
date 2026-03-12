@@ -36,7 +36,6 @@ export default function AIInsightsCard() {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string>("");
 
-  // ✅ Modal state for flagged list
   const [showFlagged, setShowFlagged] = useState(false);
   const [flaggedLoading, setFlaggedLoading] = useState(false);
   const [flagged, setFlagged] = useState<FlaggedItem[]>([]);
@@ -45,12 +44,20 @@ export default function AIInsightsCard() {
     try {
       setLoading(true);
 
+      const start = performance.now();
+
       const res = await fetch(
         "http://localhost:5000/api/aiinsight/registrar-insights",
         { cache: "no-store" }
       );
 
       const data = await res.json();
+
+      const end = performance.now();
+      console.log(
+        `Frontend AI insights fetch: ${((end - start) / 1000).toFixed(3)} sec`
+      );
+
       setInsights(Array.isArray(data?.insights) ? data.insights : []);
       setUpdatedAt(new Date().toLocaleTimeString());
     } catch (err) {
@@ -61,11 +68,12 @@ export default function AIInsightsCard() {
     }
   }, []);
 
-  // ✅ Fetch flagged list when tile clicked
   const fetchFlagged = useCallback(async () => {
     try {
       setFlaggedLoading(true);
       setShowFlagged(true);
+
+      const start = performance.now();
 
       const res = await fetch(
         "http://localhost:5000/api/aiinsight/registrar-flagged",
@@ -73,6 +81,12 @@ export default function AIInsightsCard() {
       );
 
       const data = await res.json();
+
+      const end = performance.now();
+      console.log(
+        `Frontend flagged fetch: ${((end - start) / 1000).toFixed(3)} sec`
+      );
+
       setFlagged(Array.isArray(data?.flagged) ? data.flagged : []);
     } catch (err) {
       console.error("Failed to fetch flagged registrations", err);
@@ -108,7 +122,7 @@ export default function AIInsightsCard() {
 
             <div className="d-flex align-items-center gap-2 flex-shrink-0">
               <span className="text-muted small">
-                {loading ? "Loading…" : updatedAt ? `Updated ${updatedAt}` : "Updated"}
+                {loading ? "Loading..." : updatedAt ? `Updated ${updatedAt}` : "Updated"}
               </span>
 
               <button
@@ -131,7 +145,7 @@ export default function AIInsightsCard() {
             <div className="row g-2 g-md-3">
               {insights.map((it) => {
                 const Icon = iconMap[it.key] ?? UsersIcon;
-                const clickable = it.key === "scam"; // ✅ make scam tile clickable
+                const clickable = it.key === "scam";
 
                 return (
                   <div key={it.key} className="col-12 col-sm-6">
@@ -176,7 +190,6 @@ export default function AIInsightsCard() {
         </div>
       </div>
 
-      {/* ✅ MODAL */}
       {showFlagged && (
         <div
           className="ai-modal-backdrop"
@@ -198,7 +211,7 @@ export default function AIInsightsCard() {
             </div>
 
             {flaggedLoading ? (
-              <div className="text-muted small">Loading flagged list…</div>
+              <div className="text-muted small">Loading flagged list...</div>
             ) : flagged.length === 0 ? (
               <div className="text-muted small">
                 No suspicious registrations found.
