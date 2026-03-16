@@ -24,11 +24,14 @@ function ensureLogsFile() {
  * @param {import("express").Request} req
  */
 export function getClientIp(req) {
-  return (
-    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+  const forwarded = req.headers["x-forwarded-for"];
+  const rawIp =
+    (typeof forwarded === "string" ? forwarded.split(",")[0]?.trim() : "") ||
     req.socket?.remoteAddress ||
-    "unknown"
-  );
+    req.ip ||
+    "unknown";
+
+  return rawIp === "::1" ? "127.0.0.1" : rawIp;
 }
 
 export function getAllLogs() {

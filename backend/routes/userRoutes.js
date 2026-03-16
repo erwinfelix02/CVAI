@@ -7,14 +7,18 @@ import {
   getUserById,
   updateUser,
   updateUserContactInfo,
+  getRegistrarByRole,
+  getPortalStatuses,
 } from "../controllers/userController.js";
 
 const router = express.Router();
 
 router.get("/students", getStudentUsers);
+router.get("/portal-statuses", getPortalStatuses);
 router.get("/", getUsers);
 router.post("/", createUser);
 router.post("/:id/send-credentials", sendCredentials);
+router.get("/role/registrar", getRegistrarByRole);
 router.get("/:id", getUserById);
 router.patch("/:id", updateUser);
 router.patch("/:id/contact", updateUserContactInfo);

@@ -1,11 +1,14 @@
 import Enrollment from "../models/Enrollment.js";
 import Student from "../models/Student.js";
+import { addLog, getClientIp } from "../utils/logActivity.js";
 
 function isISODateString(v) {
   return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 }
 
 export const evaluateEnrollment = async (req, res) => {
+  const updatedBy = req.body?.updatedBy || "registrar";
+
   try {
     const { id } = req.params;
     const { updatedInfo, notes, verifiedDocs } = req.body || {};
@@ -43,20 +46,17 @@ export const evaluateEnrollment = async (req, res) => {
       return res.status(404).json({ message: "Enrollment not found." });
     }
 
-    // ✅ prevent double evaluation
     if (enrollment.studentRef) {
       return res.status(409).json({ message: "This enrollment was already evaluated." });
     }
 
     const studentIdNumber = String(updatedInfo.studentId).trim();
 
-    // ✅ prevent duplicate studentIdNumber
     const existingStudent = await Student.findOne({ studentIdNumber });
     if (existingStudent) {
       return res.status(409).json({ message: "A student with this Student ID already exists." });
     }
 
-    // ✅ CREATE STUDENT
     const studentDoc = await Student.create({
       enrollmentId: enrollment._id,
       studentIdNumber,
@@ -78,12 +78,10 @@ export const evaluateEnrollment = async (req, res) => {
       verifiedDocs: Array.isArray(verifiedDocs) ? verifiedDocs : [],
     });
 
-    // ✅ UPDATE ENROLLMENT
     enrollment.status = "Enrolled";
     enrollment.studentIdNumber = studentIdNumber;
     enrollment.studentRef = studentDoc._id;
 
-    // keep top-level in sync for list display
     enrollment.email = String(updatedInfo.email).trim();
     enrollment.studentName = String(updatedInfo.fullName).trim();
 
@@ -91,7 +89,6 @@ export const evaluateEnrollment = async (req, res) => {
     enrollment.evaluationNotes = String(notes || "").trim();
     enrollment.evaluatedAt = new Date();
 
-    // sync into nested objects
     enrollment.personal = {
       ...(enrollment.personal || {}),
       email: String(updatedInfo.email).trim(),
@@ -111,6 +108,16 @@ export const evaluateEnrollment = async (req, res) => {
 
     await enrollment.save();
 
+    addLog({
+      action: "Evaluate Enrollment",
+      user: updatedBy,
+      role: "Registrar",
+      type: "Data",
+      details: `Enrollment evaluated and student enrolled: ${updatedInfo.email} (${studentIdNumber})`,
+      ip: getClientIp(req),
+      status: "success",
+    });
+
     return res.json({
       message: "Student enrolled successfully.",
       student: studentDoc,
@@ -118,6 +125,16 @@ export const evaluateEnrollment = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
+
+    addLog({
+      action: "Evaluate Enrollment",
+      user: updatedBy,
+      role: "Registrar",
+      type: "Data",
+      details: `Failed to evaluate enrollment: ${err.message}`,
+      ip: getClientIp(req),
+      status: "error",
+    });
 
     if (err?.code === 11000) {
       return res.status(409).json({ message: "Duplicate student id/email." });

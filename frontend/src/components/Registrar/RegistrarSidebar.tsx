@@ -16,7 +16,7 @@ import {
   X,
   Bot,
   BookOpen,
-  Building2, // ✅ NEW (Departments icon)
+  Building2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -28,10 +28,6 @@ interface SidebarProps {
   isMobile?: boolean;
 }
 
-/**
- * ✅ This is Registrar portal sidebar.
- * So we DO NOT read role from localStorage.
- */
 const REGISTRAR_ROLE_ID = "registrar";
 
 type NavItem = {
@@ -39,20 +35,34 @@ type NavItem = {
   icon: any;
   path: string;
   badge?: string;
-  controlled?: boolean; // ✅ only for the 4 permission-controlled items
+  controlled?: boolean;
+};
+
+type RegistrarAccount = {
+  _id?: string;
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  fullName?: string;
+  email?: string;
+  role?: string;
 };
 
 const nav: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/registrar" },
 
-  // ✅ permission-controlled (only these 4)
   {
     label: "Applications",
     icon: FileText,
     path: "/registrar/applications",
     controlled: true,
   },
-  { label: "Students", icon: Users, path: "/registrar/students", controlled: true },
+  {
+    label: "Students",
+    icon: Users,
+    path: "/registrar/students",
+    controlled: true,
+  },
   {
     label: "Enrollment",
     icon: UserPlus,
@@ -66,13 +76,9 @@ const nav: NavItem[] = [
     controlled: true,
   },
 
-  // ✅ always visible
   { label: "Sections", icon: Layers, path: "/registrar/sections" },
   { label: "Courses", icon: BookOpen, path: "/registrar/courses" },
-
-  // ✅ NEW: Departments
   { label: "Departments", icon: Building2, path: "/registrar/departments" },
-
   { label: "Faculty Accounts", icon: Users, path: "/registrar/faculty" },
   { label: "AI Assistant", icon: Bot, path: "/registrar/ai-assistant", badge: "AI" },
 ];
@@ -100,7 +106,9 @@ export default function RegistrarSidebar({
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loadingPerms, setLoadingPerms] = useState(true);
 
-  // ✅ Load registrar permissions from DB
+  const [registrarAccount, setRegistrarAccount] =
+    useState<RegistrarAccount | null>(null);
+
   useEffect(() => {
     async function loadPerms() {
       setLoadingPerms(true);
@@ -127,7 +135,6 @@ export default function RegistrarSidebar({
     loadPerms();
   }, []);
 
-  // ✅ Pending applications count (only matters if Applications is visible)
   useEffect(() => {
     async function fetchPendingCount() {
       try {
@@ -146,14 +153,36 @@ export default function RegistrarSidebar({
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ Filter nav:
-  // - Always show non-controlled items
-  // - Show controlled items only if permission exists
+  useEffect(() => {
+    async function loadRegistrarAccount() {
+      try {
+        const res = await fetch("http://localhost:5000/api/users/role/registrar", {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+        });
+
+        if (!res.ok) {
+          console.error("Failed to fetch registrar account:", res.status);
+          setRegistrarAccount(null);
+          return;
+        }
+
+        const data = await res.json();
+        setRegistrarAccount(data || null);
+      } catch (err) {
+        console.error("Failed to load registrar account", err);
+        setRegistrarAccount(null);
+      }
+    }
+
+    loadRegistrarAccount();
+  }, []);
+
   const visibleNav = useMemo(() => {
     return nav.filter((item) => {
-      if (!item.controlled) return true; // always visible
-
-      // while loading perms, hide only controlled items
+      if (!item.controlled) return true;
       if (loadingPerms) return false;
 
       const permKey = CONTROLLED_PERM[item.label];
@@ -161,13 +190,50 @@ export default function RegistrarSidebar({
     });
   }, [permissions, loadingPerms]);
 
+  const logLogoutActivity = async () => {
+    try {
+      const userEmail = registrarAccount?.email || "registrar@example.com";
+      const userRole = registrarAccount?.role || "Registrar";
+
+      await fetch("http://localhost:5000/api/logs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+        body: JSON.stringify({
+          action: "Logout",
+          user: userEmail,
+          role: userRole,
+          type: "Security",
+          details: `${userEmail} logged out of the system.`,
+          status: "success",
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to log logout activity", err);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logLogoutActivity();
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    setShowLogoutConfirm(false);
+
+    if (isMobile && setMobileOpen) setMobileOpen(false);
+
+    navigate("/signin");
+  };
+
   return (
     <aside
       className={`registrar-sidebar ${
         isMobile ? "expanded" : collapsed ? "collapsed" : "expanded"
       } ${isMobile && mobileOpen ? "mobile-open" : ""}`}
     >
-      {/* Header */}
       <div className="registrar-sidebar-header">
         {(!collapsed || isMobile) && (
           <div className="brand-container">
@@ -206,7 +272,6 @@ export default function RegistrarSidebar({
         )}
       </div>
 
-      {/* Nav */}
       <nav className="registrar-sidebar-nav">
         {visibleNav.map(({ label, icon: Icon, badge, path }) => {
           const isActive =
@@ -248,7 +313,6 @@ export default function RegistrarSidebar({
         })}
       </nav>
 
-      {/* Bottom */}
       <div className="registrar-sidebar-bottom">
         <div className="sidebar-separator" />
 
@@ -320,16 +384,7 @@ export default function RegistrarSidebar({
               <button
                 className="btn btn-danger btn-sm"
                 type="button"
-                onClick={() => {
-                  localStorage.removeItem("token");
-                  localStorage.removeItem("user");
-
-                  setShowLogoutConfirm(false);
-
-                  if (isMobile && setMobileOpen) setMobileOpen(false);
-
-                  navigate("/signin");
-                }}
+                onClick={handleLogout}
               >
                 Logout
               </button>

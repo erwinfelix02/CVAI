@@ -54,7 +54,6 @@ function ensureEncryptedDocFields(doc) {
     if (raw === undefined || raw === null || raw === "") continue;
 
     if (!isEncrypted(raw)) {
-      // Setting the same field again triggers the schema setter -> encrypt
       doc.set(field, raw);
     }
   }
@@ -95,24 +94,18 @@ function rewriteLookupFilter(filter) {
       continue;
     }
 
-    // Exact value -> rewrite to hash
     if (!isOperatorObject(value)) {
       filter[hashField] = hashLookup(plainField, value);
       delete filter[plainField];
       continue;
     }
 
-    // Support exact $in lookups too
     if (Array.isArray(value.$in)) {
       filter[hashField] = {
         $in: value.$in.map((item) => hashLookup(plainField, item)),
       };
       delete filter[plainField];
     }
-
-    // NOTE:
-    // We do NOT rewrite regex searches here.
-    // Regex on encrypted fields is not possible.
   }
 }
 
@@ -201,6 +194,16 @@ const UserSchema = new mongoose.Schema(
       default: "inactive",
     },
 
+    isOnline: {
+      type: Boolean,
+      default: false,
+    },
+
+    lastSeenAt: {
+      type: Date,
+      default: null,
+    },
+
     loginAttempts: {
       type: Number,
       default: 0,
@@ -273,7 +276,6 @@ const UserSchema = new mongoose.Schema(
   },
 );
 
-// One Dept Head per department
 UserSchema.index(
   { role: 1, departmentHash: 1 },
   {
@@ -282,7 +284,6 @@ UserSchema.index(
   },
 );
 
-// Encrypt + build lookup hashes before save
 UserSchema.pre("save", async function () {
   ensureEncryptedDocFields(this);
   syncLookupHashes(this);
@@ -293,7 +294,6 @@ UserSchema.pre("save", async function () {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Rewrite exact-match queries to hash lookups
 for (const hook of [
   "find",
   "findOne",
@@ -307,7 +307,6 @@ for (const hook of [
   });
 }
 
-// Encrypt update payloads too
 for (const hook of ["findOneAndUpdate", "updateOne", "updateMany"]) {
   UserSchema.pre(hook, function () {
     applyEncryptedUpdate(this.getUpdate());

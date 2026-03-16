@@ -3,11 +3,14 @@ import mongoose from "mongoose";
 import Preregistration from "../models/Preregistration.js";
 import Enrollment from "../models/Enrollment.js";
 import sendEmail from "../utils/sendEmail.js";
+import { addLog, getClientIp } from "../utils/logActivity.js";
 
 const router = express.Router();
 
 // POST schedule + send email + save enrollment
 router.post("/schedule", async (req, res) => {
+  const updatedBy = req.body?.updatedBy || "registrar";
+
   try {
     const { studentIds, date, time, location, notes } = req.body;
 
@@ -113,6 +116,16 @@ router.post("/schedule", async (req, res) => {
         scheduleSentAt: new Date(),
       });
 
+      addLog({
+        action: "Schedule Enrollment",
+        user: updatedBy,
+        role: "Registrar",
+        type: "Data",
+        details: `Enrollment schedule sent to ${to} (${p.registrationId}) on ${date} ${time} at ${location}`,
+        ip: getClientIp(req),
+        status: "success",
+      });
+
       sentIds.push(p.registrationId);
       results.push({
         registrationId: p.registrationId,
@@ -129,6 +142,17 @@ router.post("/schedule", async (req, res) => {
     });
   } catch (err) {
     console.error(err);
+
+    addLog({
+      action: "Schedule Enrollment",
+      user: updatedBy,
+      role: "Registrar",
+      type: "Data",
+      details: `Failed to schedule enrollment: ${err.message}`,
+      ip: getClientIp(req),
+      status: "error",
+    });
+
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -168,6 +192,8 @@ router.get("/", async (req, res) => {
 
 // Archive enrolled record
 router.post("/:id/archive", async (req, res) => {
+  const updatedBy = req.body?.updatedBy || "registrar";
+
   try {
     const enrollment = await Enrollment.findById(req.params.id);
 
@@ -179,11 +205,23 @@ router.post("/:id/archive", async (req, res) => {
       return res.status(400).json({ message: "Enrollment is already archived." });
     }
 
+    const previousStatus = enrollment.status;
+
     enrollment.archivedFromStatus = enrollment.status;
     enrollment.archivedAt = new Date();
     enrollment.status = "Archived";
 
     await enrollment.save();
+
+    addLog({
+      action: "Archive Enrollment",
+      user: updatedBy,
+      role: "Registrar",
+      type: "Data",
+      details: `Enrollment archived: ${enrollment.email} (${enrollment.registrationId}) from status ${previousStatus}`,
+      ip: getClientIp(req),
+      status: "success",
+    });
 
     return res.json({
       message: "Enrollment archived successfully.",
@@ -191,12 +229,25 @@ router.post("/:id/archive", async (req, res) => {
     });
   } catch (err) {
     console.error(err);
+
+    addLog({
+      action: "Archive Enrollment",
+      user: updatedBy,
+      role: "Registrar",
+      type: "Data",
+      details: `Failed to archive enrollment: ${err.message}`,
+      ip: getClientIp(req),
+      status: "error",
+    });
+
     return res.status(500).json({ message: "Server error." });
   }
 });
 
 // Unarchive enrolled record
 router.post("/:id/unarchive", async (req, res) => {
+  const updatedBy = req.body?.updatedBy || "registrar";
+
   try {
     const enrollment = await Enrollment.findById(req.params.id);
 
@@ -208,11 +259,23 @@ router.post("/:id/unarchive", async (req, res) => {
       return res.status(400).json({ message: "Enrollment is not archived." });
     }
 
-    enrollment.status = enrollment.archivedFromStatus || "Enrolled";
+    const restoredTo = enrollment.archivedFromStatus || "Enrolled";
+
+    enrollment.status = restoredTo;
     enrollment.archivedFromStatus = "";
     enrollment.archivedAt = null;
 
     await enrollment.save();
+
+    addLog({
+      action: "Unarchive Enrollment",
+      user: updatedBy,
+      role: "Registrar",
+      type: "Data",
+      details: `Enrollment unarchived: ${enrollment.email} (${enrollment.registrationId}) restored to ${restoredTo}`,
+      ip: getClientIp(req),
+      status: "success",
+    });
 
     return res.json({
       message: "Enrollment unarchived successfully.",
@@ -220,12 +283,25 @@ router.post("/:id/unarchive", async (req, res) => {
     });
   } catch (err) {
     console.error(err);
+
+    addLog({
+      action: "Unarchive Enrollment",
+      user: updatedBy,
+      role: "Registrar",
+      type: "Data",
+      details: `Failed to unarchive enrollment: ${err.message}`,
+      ip: getClientIp(req),
+      status: "error",
+    });
+
     return res.status(500).json({ message: "Server error." });
   }
 });
 
 // DELETE one archived enrollment permanently
 router.delete("/:id", async (req, res) => {
+  const updatedBy = req.body?.updatedBy || "registrar";
+
   try {
     const enrollment = await Enrollment.findById(req.params.id);
 
@@ -239,19 +315,44 @@ router.delete("/:id", async (req, res) => {
       });
     }
 
+    const details = `Archived enrollment deleted: ${enrollment.email} (${enrollment.registrationId})`;
+
     await Enrollment.findByIdAndDelete(req.params.id);
+
+    addLog({
+      action: "Delete Archived Enrollment",
+      user: updatedBy,
+      role: "Registrar",
+      type: "Data",
+      details,
+      ip: getClientIp(req),
+      status: "success",
+    });
 
     return res.json({
       message: "Archived enrollment deleted successfully.",
     });
   } catch (err) {
     console.error(err);
+
+    addLog({
+      action: "Delete Archived Enrollment",
+      user: updatedBy,
+      role: "Registrar",
+      type: "Data",
+      details: `Failed to delete archived enrollment: ${err.message}`,
+      ip: getClientIp(req),
+      status: "error",
+    });
+
     return res.status(500).json({ message: "Server error." });
   }
 });
 
 // DELETE multiple archived enrollments permanently
 router.delete("/bulk-delete", async (req, res) => {
+  const updatedBy = req.body?.updatedBy || "registrar";
+
   try {
     const { ids } = req.body;
 
@@ -268,7 +369,7 @@ router.delete("/bulk-delete", async (req, res) => {
     const archivedRecords = await Enrollment.find({
       _id: { $in: validIds },
       status: "Archived",
-    }).select("_id");
+    }).select("_id email registrationId");
 
     const archivedIds = archivedRecords.map((item) => item._id);
 
@@ -283,12 +384,33 @@ router.delete("/bulk-delete", async (req, res) => {
       status: "Archived",
     });
 
+    addLog({
+      action: "Bulk Delete Archived Enrollments",
+      user: updatedBy,
+      role: "Registrar",
+      type: "Data",
+      details: `Bulk deleted ${result.deletedCount || 0} archived enrollment(s).`,
+      ip: getClientIp(req),
+      status: "success",
+    });
+
     return res.json({
       message: "Archived enrollments deleted successfully.",
       deletedCount: result.deletedCount || 0,
     });
   } catch (err) {
     console.error(err);
+
+    addLog({
+      action: "Bulk Delete Archived Enrollments",
+      user: updatedBy,
+      role: "Registrar",
+      type: "Data",
+      details: `Failed bulk delete of archived enrollments: ${err.message}`,
+      ip: getClientIp(req),
+      status: "error",
+    });
+
     return res.status(500).json({ message: "Server error." });
   }
 });

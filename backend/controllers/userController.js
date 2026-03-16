@@ -77,6 +77,39 @@ export const createUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid role selected." });
     }
 
+    if (role === "Registrar") {
+      const existingRegistrar = await User.findOne({ role: "Registrar" });
+
+      if (existingRegistrar) {
+        return res.status(400).json({
+          message: "A Registrar account already exists.",
+        });
+      }
+
+      if (cleanDepartment !== "Registrar Office") {
+        return res.status(400).json({
+          message: "Registrar role must be assigned to Registrar Office.",
+        });
+      }
+    }
+
+    if (role === "Finance" && cleanDepartment !== "Finance Office") {
+      return res.status(400).json({
+        message: "Finance role must be assigned to Finance Office.",
+      });
+    }
+
+    if (role === "Dept Head") {
+      if (
+        cleanDepartment === "Registrar Office" ||
+        cleanDepartment === "Finance Office"
+      ) {
+        return res.status(400).json({
+          message: "Department Head cannot be assigned to Registrar or Finance Office.",
+        });
+      }
+    }
+
     const existingEmail = await User.findOne({ email: cleanEmail });
     if (existingEmail) {
       return res.status(400).json({
@@ -91,7 +124,6 @@ export const createUser = async (req, res) => {
       });
     }
 
-    // only one department head per department
     if (role === "Dept Head") {
       const existingDeptHead = await User.findOne({
         role: "Dept Head",
@@ -237,7 +269,6 @@ export const getStudentUsers = async (req, res) => {
       )
       .sort({ createdAt: -1 });
 
-    // Force getters so encrypted fields become plaintext here
     const users = docs.map((doc) => doc.toObject({ getters: true }));
 
     const search = String(q).trim().toLowerCase();
@@ -359,6 +390,41 @@ export const updateUser = async (req, res) => {
         return res.status(400).json({ message: "Invalid role selected." });
       }
 
+      if (role === "Registrar") {
+        const existingRegistrar = await User.findOne({
+          _id: { $ne: id },
+          role: "Registrar",
+        });
+
+        if (existingRegistrar) {
+          return res.status(400).json({
+            message: "A Registrar account already exists.",
+          });
+        }
+
+        if (cleanDepartment !== "Registrar Office") {
+          return res.status(400).json({
+            message: "Registrar role must be assigned to Registrar Office.",
+          });
+        }
+      }
+
+      if (role === "Finance" && cleanDepartment !== "Finance Office") {
+        return res.status(400).json({
+          message: "Finance role must be assigned to Finance Office.",
+        });
+      }
+
+      if (
+        role === "Dept Head" &&
+        (cleanDepartment === "Registrar Office" ||
+          cleanDepartment === "Finance Office")
+      ) {
+        return res.status(400).json({
+          message: "Department Head cannot be assigned to Registrar or Finance Office.",
+        });
+      }
+
       nextRole = role;
       update.role = role;
     }
@@ -467,5 +533,74 @@ export const updateUserContactInfo = async (req, res) => {
   } catch (err) {
     console.error("updateUserContactInfo error:", err);
     return res.status(500).json({ message: err.message || "Server error" });
+  }
+};
+
+export const getRegistrarByRole = async (_req, res) => {
+  try {
+    const registrar = await User.findOne({ role: "Registrar" }).select(
+      "firstName middleName lastName email role"
+    );
+
+    if (!registrar) {
+      return res.status(404).json({ message: "Registrar account not found." });
+    }
+
+    return res.status(200).json({
+      _id: registrar._id,
+      firstName: registrar.firstName,
+      middleName: registrar.middleName,
+      lastName: registrar.lastName,
+      email: registrar.email,
+      user: registrar.email,
+      role: registrar.role,
+    });
+  } catch (err) {
+    console.error("getRegistrarByRole error:", err);
+    return res.status(500).json({
+      message: "Failed to fetch registrar account.",
+    });
+  }
+};
+
+export const getPortalStatuses = async (_req, res) => {
+  try {
+    const users = await User.find().select("role status isOnline lastSeenAt");
+
+    const ONLINE_WINDOW_MS = 2 * 60 * 1000;
+    const now = Date.now();
+
+    const portalMap = [
+      { role: "Student", name: "Student Portal" },
+      { role: "Faculty", name: "Faculty Portal" },
+      { role: "Registrar", name: "Registrar Portal" },
+      { role: "Finance", name: "Finance Portal" },
+      { role: "Dept Head", name: "Dept Head Portal" },
+    ];
+
+    const portals = portalMap.map(({ role, name }) => {
+      const roleUsers = users.filter(
+        (u) => u.role === role && u.status === "active"
+      );
+
+      const onlineUsers = roleUsers.filter((u) => {
+        if (!u.lastSeenAt) return false;
+        return now - new Date(u.lastSeenAt).getTime() <= ONLINE_WINDOW_MS;
+      });
+
+      return {
+        name,
+        users: roleUsers.length,
+        onlineUsers: onlineUsers.length,
+        status: onlineUsers.length > 0 ? "online" : "offline",
+      };
+    });
+
+    return res.status(200).json(portals);
+  } catch (err) {
+    console.error("getPortalStatuses error:", err);
+    return res.status(500).json({
+      message: "Failed to fetch portal statuses",
+    });
   }
 };

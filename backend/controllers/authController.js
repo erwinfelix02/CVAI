@@ -129,6 +129,8 @@ export const login = async (req, res) => {
 
     user.loginAttempts = 0;
     user.lockUntil = undefined;
+    user.isOnline = true;
+    user.lastSeenAt = new Date();
     await user.save();
 
     if (user.isTemporaryPassword) {
@@ -186,7 +188,7 @@ export const login = async (req, res) => {
       status: "success",
     });
 
-    res.json({
+    return res.json({
       message: "Login successful",
       token,
       redirect,
@@ -204,7 +206,86 @@ export const login = async (req, res) => {
       status: "error",
     });
 
-    res.status(500).json({ message: "Authentication failed" });
+    return res.status(500).json({ message: "Authentication failed" });
+  }
+};
+
+export const logout = async (req, res) => {
+  try {
+    const ip = getClientIp(req);
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        isOnline: false,
+        lastSeenAt: new Date(),
+      },
+      { new: true },
+    );
+
+    addLog({
+      action: "User Logout",
+      user: user?.email || "unknown",
+      role: user?.role || "unknown",
+      type: "Auth",
+      details: "Successful logout",
+      ip,
+      status: "success",
+    });
+
+    return res.json({
+      message: "Logout successful",
+    });
+  } catch (err) {
+    console.error("LOGOUT ERROR:", err);
+
+    addLog({
+      action: "Logout Error",
+      user: req.user?.id || "unknown",
+      role: "unknown",
+      type: "System",
+      details: "Failed to logout user",
+      ip: getClientIp(req),
+      status: "error",
+    });
+
+    return res.status(500).json({ message: "Logout failed" });
+  }
+};
+
+export const heartbeat = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    await User.findByIdAndUpdate(userId, {
+      isOnline: true,
+      lastSeenAt: new Date(),
+    });
+
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("HEARTBEAT ERROR:", err);
+
+    addLog({
+      action: "Heartbeat Error",
+      user: req.user?.id || "unknown",
+      role: "unknown",
+      type: "System",
+      details: "Failed to update user heartbeat",
+      ip: getClientIp(req),
+      status: "error",
+    });
+
+    return res.status(500).json({ message: "Heartbeat failed" });
   }
 };
 
@@ -305,7 +386,7 @@ export const updatePassword = async (req, res) => {
       status: "success",
     });
 
-    res.json({
+    return res.json({
       message: "Password updated successfully",
     });
   } catch (err) {
@@ -321,7 +402,7 @@ export const updatePassword = async (req, res) => {
       status: "error",
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to update password",
     });
   }
@@ -458,7 +539,7 @@ export const verifyResetCode = async (req, res) => {
       status: "success",
     });
 
-    res.json({ message: "Code verified" });
+    return res.json({ message: "Code verified" });
   } catch (err) {
     addLog({
       action: "Reset Code Verification Error",
@@ -470,7 +551,7 @@ export const verifyResetCode = async (req, res) => {
       status: "error",
     });
 
-    res.status(500).json({ message: "Verification failed" });
+    return res.status(500).json({ message: "Verification failed" });
   }
 };
 
@@ -556,7 +637,7 @@ export const requestPasswordReset = async (req, res) => {
       status: "success",
     });
 
-    res.json({
+    return res.json({
       message: "If the email exists, a reset code was sent.",
     });
   } catch (err) {
@@ -572,6 +653,6 @@ export const requestPasswordReset = async (req, res) => {
       status: "error",
     });
 
-    res.status(500).json({ message: "Failed to send reset code" });
+    return res.status(500).json({ message: "Failed to send reset code" });
   }
 };

@@ -83,13 +83,17 @@ export default function SuperAdminDashboard() {
   const [aiItems, setAiItems] = useState(0);
   const [systemEvents, setSystemEvents] = useState(0);
   const [recentLogs, setRecentLogs] = useState<LogRow[]>([]);
+  const [portals, setPortals] = useState<PortalStatusRow[]>([]);
 
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingFaqs, setLoadingFaqs] = useState(false);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [loadingPortals, setLoadingPortals] = useState(false);
 
   useEffect(() => {
     const load = async () => {
+      const token = localStorage.getItem("token");
+
       try {
         setLoadingUsers(true);
         const users = await getUsers();
@@ -114,9 +118,15 @@ export default function SuperAdminDashboard() {
 
       try {
         setLoadingLogs(true);
-        const res = await axios.get(`${API_BASE_URL}/logs`);
-        const logs: LogRow[] = Array.isArray(res.data) ? res.data : [];
+        const res = await axios.get(`${API_BASE_URL}/logs`, {
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+              }
+            : undefined,
+        });
 
+        const logs: LogRow[] = Array.isArray(res.data) ? res.data : [];
         setSystemEvents(logs.length);
         setRecentLogs(logs.slice(0, 4));
       } catch (err) {
@@ -126,9 +136,77 @@ export default function SuperAdminDashboard() {
       } finally {
         setLoadingLogs(false);
       }
+
+      try {
+        setLoadingPortals(true);
+        const res = await axios.get(`${API_BASE_URL}/users/portal-statuses`, {
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+              }
+            : undefined,
+        });
+
+        setPortals(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error("Failed to load portal statuses", err);
+        setPortals([]);
+      } finally {
+        setLoadingPortals(false);
+      }
     };
 
     load();
+  }, []);
+
+  useEffect(() => {
+    const refreshPortals = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const res = await axios.get(`${API_BASE_URL}/users/portal-statuses`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setPortals(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error("Failed to refresh portal statuses", err);
+      }
+    };
+
+    refreshPortals();
+    const interval = setInterval(refreshPortals, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const sendHeartbeat = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        await axios.post(
+          `${API_BASE_URL}/auth/heartbeat`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+      } catch (err) {
+        console.error("Heartbeat failed", err);
+      }
+    };
+
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const stats = useMemo(
@@ -162,14 +240,6 @@ export default function SuperAdminDashboard() {
     [totalUsers, aiItems, systemEvents, loadingUsers, loadingFaqs, loadingLogs],
   );
 
-  const portals: PortalStatusRow[] = [
-    { name: "Student Portal", users: 2547, status: "online" },
-    { name: "Faculty Portal", users: 124, status: "online" },
-    { name: "Registrar Portal", users: 8, status: "online" },
-    { name: "Finance Portal", users: 6, status: "online" },
-    { name: "Dept Head Portal", users: 12, status: "online" },
-  ];
-
   const activityRows: ActivityRow[] = useMemo(() => {
     if (!recentLogs.length) {
       return [
@@ -195,6 +265,38 @@ export default function SuperAdminDashboard() {
       };
     });
   }, [recentLogs, loadingLogs]);
+
+  const portalRows = useMemo<PortalStatusRow[]>(() => {
+    if (loadingPortals) {
+      return [
+        {
+          name: "Loading portals...",
+          users: 0,
+          onlineUsers: 0,
+          status: "offline",
+        },
+      ];
+    }
+
+    if (!portals.length) {
+      return [
+        {
+          name: "No portals available",
+          users: 0,
+          onlineUsers: 0,
+          status: "offline",
+        },
+      ];
+    }
+
+    return portals;
+  }, [portals, loadingPortals]);
+
+  const portalPill = useMemo(() => {
+    if (!portals.length) return "No Portal Data";
+    const allOnline = portals.every((p) => p.status === "online");
+    return allOnline ? "All Systems Online" : "Some Portals Offline";
+  }, [portals]);
 
   const quick: QuickAction[] = [
     { label: "Manage Users", icon: Users, to: "/superadmin/users" },
@@ -236,8 +338,8 @@ export default function SuperAdminDashboard() {
         <div className="col-12 col-lg-6">
           <PortalStatusCard
             title="Portal Status"
-            rightPill="All Systems Online"
-            rows={portals}
+            rightPill={portalPill}
+            rows={portalRows}
           />
         </div>
 

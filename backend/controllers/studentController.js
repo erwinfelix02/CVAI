@@ -1,4 +1,6 @@
 import Student from "../models/Student.js";
+import validator from "validator";
+import { addLog, getClientIp } from "../utils/logActivity.js";
 
 export const getStudentsByEnrollmentIds = async (req, res) => {
   try {
@@ -227,6 +229,8 @@ export const getStudentById = async (req, res) => {
 };
 
 export const updateStudentInfo = async (req, res) => {
+  const updatedBy = req.body?.updatedBy || "registrar";
+
   try {
     const { id } = req.params;
     const {
@@ -246,42 +250,129 @@ export const updateStudentInfo = async (req, res) => {
       return res.status(404).json({ message: "Student not found" });
     }
 
+    const changes = [];
+
     if (email !== undefined) {
-      student.email = String(email).trim();
+      const cleanEmail =
+        validator.normalizeEmail(String(email).trim()) || String(email).trim();
+
+      if (!validator.isEmail(cleanEmail)) {
+        return res.status(400).json({ message: "Invalid email format." });
+      }
+
+      const existingEmail = await Student.findOne({
+        _id: { $ne: student._id },
+        email: cleanEmail,
+      });
+
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email already exists." });
+      }
+
+      if (String(student.email || "") !== cleanEmail) {
+        changes.push(`email: "${student.email || ""}" -> "${cleanEmail}"`);
+        student.email = cleanEmail;
+      }
     }
 
     if (phone !== undefined) {
-      student.phone = phone;
+      let cleanPhone = String(phone).trim().replace(/\s+/g, "");
+
+      if (/^09\d{9}$/.test(cleanPhone)) {
+        cleanPhone = "+63" + cleanPhone.slice(1);
+      }
+
+      if (/^639\d{9}$/.test(cleanPhone)) {
+        cleanPhone = "+" + cleanPhone;
+      }
+
+      if (!/^\+639\d{9}$/.test(cleanPhone)) {
+        return res.status(400).json({
+          message: "Phone must be in format +639XXXXXXXXX.",
+        });
+      }
+
+      if (String(student.phone || "") !== cleanPhone) {
+        changes.push(`phone updated`);
+        student.phone = cleanPhone;
+      }
     }
 
     if (guardian !== undefined) {
-      student.guardian = guardian;
+      const cleanGuardian = String(guardian).trim();
+      if (String(student.guardian || "") !== cleanGuardian) {
+        changes.push(`guardian updated`);
+        student.guardian = cleanGuardian;
+      }
     }
 
     if (guardianPhone !== undefined) {
-      student.guardianPhone = guardianPhone;
+      const cleanGuardianPhone = String(guardianPhone).trim();
+      if (String(student.guardianPhone || "") !== cleanGuardianPhone) {
+        changes.push(`guardianPhone updated`);
+        student.guardianPhone = cleanGuardianPhone;
+      }
     }
 
     if (birthdate !== undefined) {
-      student.birthdate = birthdate || null;
+      const nextBirthdate = birthdate || null;
+      const prevBirthdate = student.birthdate
+        ? new Date(student.birthdate).toISOString().slice(0, 10)
+        : "";
+
+      if (String(prevBirthdate) !== String(nextBirthdate || "")) {
+        changes.push(`birthdate updated`);
+        student.birthdate = nextBirthdate;
+      }
     }
 
     if (program !== undefined) {
-      student.program = program;
+      const cleanProgram = String(program).trim();
+      if (String(student.program || "") !== cleanProgram) {
+        changes.push(`program: "${student.program || ""}" -> "${cleanProgram}"`);
+        student.program = cleanProgram;
+      }
     }
 
     if (yearLevel !== undefined) {
       const parsedYearLevel = Number(yearLevel);
-      student.yearLevel = Number.isNaN(parsedYearLevel)
-        ? student.yearLevel
-        : parsedYearLevel;
+
+      if (Number.isNaN(parsedYearLevel)) {
+        return res.status(400).json({ message: "Invalid year level." });
+      }
+
+      if (Number(student.yearLevel || 0) !== parsedYearLevel) {
+        changes.push(
+          `yearLevel: "${student.yearLevel ?? ""}" -> "${parsedYearLevel}"`,
+        );
+        student.yearLevel = parsedYearLevel;
+      }
     }
 
     if (department !== undefined) {
-      student.department = department;
+      const cleanDepartment = String(department).trim();
+      if (String(student.department || "") !== cleanDepartment) {
+        changes.push(
+          `department: "${student.department || ""}" -> "${cleanDepartment}"`,
+        );
+        student.department = cleanDepartment;
+      }
     }
 
     await student.save();
+
+    addLog({
+      action: "Edit Student Record",
+      user: updatedBy,
+      role: "Registrar",
+      type: "Data",
+      details:
+        changes.length > 0
+          ? `Student record updated (${student.email || student.studentIdNumber}). Changes: ${changes.join(", ")}`
+          : `Student record saved with no detected changes (${student.email || student.studentIdNumber}).`,
+      ip: getClientIp(req),
+      status: "success",
+    });
 
     const formatDate = (d) => {
       if (!d) return null;
@@ -317,6 +408,17 @@ export const updateStudentInfo = async (req, res) => {
     });
   } catch (err) {
     console.error("updateStudentInfo error:", err);
+
+    addLog({
+      action: "Edit Student Record",
+      user: updatedBy,
+      role: "Registrar",
+      type: "Data",
+      details: `Failed to update student record: ${err.message}`,
+      ip: getClientIp(req),
+      status: "error",
+    });
+
     return res.status(500).json({
       message: "Server error",
     });

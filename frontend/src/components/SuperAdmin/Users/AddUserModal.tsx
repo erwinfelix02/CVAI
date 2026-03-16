@@ -48,7 +48,7 @@ type AddUserFormState = Omit<
 type AddUserErrors = Partial<Record<keyof AddUserFormState, string>>;
 type Touched = Partial<Record<keyof AddUserFormState, boolean>>;
 
-const ROLES: UserRole[] = ["Registrar", "Dept Head", "Finance"];
+const ALL_ROLES: UserRole[] = ["Registrar", "Dept Head", "Finance"];
 
 const DEPARTMENTS = [
   "Computer Science",
@@ -82,6 +82,7 @@ const NAME_REGEX = /^[A-Za-z\s'-]+$/;
 const MAX_NAME_LENGTH = 50;
 const currentYear = new Date().getFullYear();
 const phonePrefix = "+639";
+const ID_PREFIX = `GIP-${currentYear}-`;
 
 function sanitizeInput(value: string) {
   return value
@@ -102,17 +103,8 @@ function hasErrors(obj: Record<string, unknown>) {
   return Object.keys(obj).length > 0;
 }
 
-function getIdPrefixByRole(role: UserRole | "") {
-  switch (role) {
-    case "Registrar":
-      return `REG-${currentYear}-`;
-    case "Finance":
-      return `FIN-${currentYear}-`;
-    case "Dept Head":
-      return `DEP-${currentYear}-`;
-    default:
-      return "";
-  }
+function getIdPrefixByRole(_role: UserRole | "") {
+  return ID_PREFIX;
 }
 
 type AddUserModalProps = {
@@ -183,6 +175,16 @@ export default function AddUserModal({
     ],
   );
 
+  const hasRegistrarAlready = useMemo(() => {
+    return existingUsers.some((u) => String(u.role).trim() === "Registrar");
+  }, [existingUsers]);
+
+  const roles = useMemo(() => {
+    return hasRegistrarAlready
+      ? ALL_ROLES.filter((r) => r !== "Registrar")
+      : ALL_ROLES;
+  }, [hasRegistrarAlready]);
+
   const departmentLocked = role === "Registrar" || role === "Finance";
 
   const usedDeptHeadDepartments = useMemo(() => {
@@ -231,11 +233,32 @@ export default function AddUserModal({
         .filter((n) => !usedDeptHeadDepartments.includes(n));
     }
 
-    return DEPARTMENTS;
-  }, [role, departments, usedDeptHeadDepartments]);
+    if (role === "Finance") {
+      return [FINANCE_DEPT];
+    }
+
+    if (role === "Registrar") {
+      return hasRegistrarAlready ? [] : [REGISTRAR_DEPT];
+    }
+
+    return hasRegistrarAlready
+      ? DEPARTMENTS.filter((d) => d !== REGISTRAR_DEPT)
+      : DEPARTMENTS;
+  }, [role, departments, usedDeptHeadDepartments, hasRegistrarAlready]);
 
   useEffect(() => {
     if (!open) return;
+
+    if (hasRegistrarAlready && role === "Registrar") {
+      setRole("");
+      setDepartment("");
+      setIdNumber("");
+      setLocalErrors((p) => ({
+        ...p,
+        role: "Registrar account already exists.",
+      }));
+      return;
+    }
 
     if (role === "Registrar") {
       setDepartment(REGISTRAR_DEPT);
@@ -257,8 +280,13 @@ export default function AddUserModal({
       ) {
         setDepartment("");
       }
+      return;
     }
-  }, [role, open, department, departmentOptions]);
+
+    if (department === REGISTRAR_DEPT && hasRegistrarAlready) {
+      setDepartment("");
+    }
+  }, [role, open, department, departmentOptions, hasRegistrarAlready]);
 
   useEffect(() => {
     if (!open) return;
@@ -342,7 +370,7 @@ export default function AddUserModal({
 
       case "phone":
         if (!ph) return "Phone number is required.";
-        if (!isValidPHPhone(ph)) return "Format: 09xxxxxxxxx (11 digits).";
+        if (!isValidPHPhone(ph)) return "Format: +639XXXXXXXXX.";
         return "";
 
       case "gender":
@@ -351,10 +379,16 @@ export default function AddUserModal({
 
       case "role":
         if (!role) return "Role is required.";
+        if (role === "Registrar" && hasRegistrarAlready) {
+          return "Registrar account already exists.";
+        }
         return "";
 
       case "department":
         if (!department) return "Department is required.";
+        if (hasRegistrarAlready && department === REGISTRAR_DEPT) {
+          return "Registrar Office is already assigned.";
+        }
         return "";
 
       case "status":
@@ -440,25 +474,25 @@ export default function AddUserModal({
 
   if (!open) return null;
 
- const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  let value = e.target.value;
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
 
-  if (value.startsWith(phonePrefix)) {
-    value = value.slice(phonePrefix.length);
-  }
+    if (value.startsWith(phonePrefix)) {
+      value = value.slice(phonePrefix.length);
+    }
 
-  const digits = value.replace(/\D/g, "").slice(0, 9);
-  const finalValue = phonePrefix + digits;
+    const digits = value.replace(/\D/g, "").slice(0, 9);
+    const finalValue = phonePrefix + digits;
 
-  setPhone(finalValue);
+    setPhone(finalValue);
 
-  if (submitted || touched.phone) {
-    setLocalErrors((p) => ({
-      ...p,
-      phone: finalValue.length === 13 ? "" : "Format: +639XXXXXXXXX",
-    }));
-  }
-};
+    if (submitted || touched.phone) {
+      setLocalErrors((p) => ({
+        ...p,
+        phone: finalValue.length === 13 ? "" : "Format: +639XXXXXXXXX",
+      }));
+    }
+  };
 
   const openReview = (e: React.FormEvent) => {
     e.preventDefault();
@@ -691,25 +725,25 @@ export default function AddUserModal({
                   </div>
 
                   <div className="users-field users-input-with-icon">
-  <label className={labelClass("phone")}>
-    Phone <span className="req">*</span>
-  </label>
-  <div className="users-input-wrapper">
-    <Phone className="users-input-icon" size={16} />
-    <input
-      className={inputClass("phone")}
-      value={phone}
-      onChange={handlePhoneChange}
-      onBlur={() => onBlurField("phone")}
-      placeholder="+639XXXXXXXXX"
-      inputMode="numeric"
-      maxLength={13}
-    />
-  </div>
-  <div className="users-invalid-feedback">
-    {invalid("phone") ? getError("phone") : "\u00A0"}
-  </div>
-</div>
+                    <label className={labelClass("phone")}>
+                      Phone <span className="req">*</span>
+                    </label>
+                    <div className="users-input-wrapper">
+                      <Phone className="users-input-icon" size={16} />
+                      <input
+                        className={inputClass("phone")}
+                        value={phone}
+                        onChange={handlePhoneChange}
+                        onBlur={() => onBlurField("phone")}
+                        placeholder="+639XXXXXXXXX"
+                        inputMode="numeric"
+                        maxLength={13}
+                      />
+                    </div>
+                    <div className="users-invalid-feedback">
+                      {invalid("phone") ? getError("phone") : "\u00A0"}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="users-row-2 users-col-span-2">
@@ -781,7 +815,9 @@ export default function AddUserModal({
                           if (submitted || touched.role) {
                             setLocalErrors((p) => ({
                               ...p,
-                              role: nextRole ? "" : "Role is required.",
+                              role: nextRole
+                                ? validateField("role")
+                                : "Role is required.",
                             }));
                           }
 
@@ -806,7 +842,7 @@ export default function AddUserModal({
                         <option value="" disabled>
                           Select role
                         </option>
-                        {ROLES.map((r) => (
+                        {roles.map((r) => (
                           <option key={r} value={r}>
                             {r}
                           </option>

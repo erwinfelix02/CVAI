@@ -25,7 +25,15 @@ type FormState = {
   autoApproveSimpleDocs: boolean;
 };
 
+type RegistrarAccount = {
+  _id?: string;
+  email?: string;
+  user?: string;
+  role?: string;
+};
+
 const API_URL = "http://localhost:5000/api/registrar/settings";
+const REGISTRAR_USER_URL = "http://localhost:5000/api/users/role/registrar";
 
 const DEFAULT_FORM: FormState = {
   academicYear: "2023-2024",
@@ -62,6 +70,9 @@ export default function RegistrarSettings() {
   const [loading, setLoading] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  const [registrarAccount, setRegistrarAccount] =
+    useState<RegistrarAccount | null>(null);
 
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
@@ -131,16 +142,64 @@ export default function RegistrarSettings() {
     };
   }, []);
 
+  useEffect(() => {
+    let alive = true;
+
+    async function loadRegistrarAccount() {
+      try {
+        const res = await fetch(REGISTRAR_USER_URL, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          console.error("Failed to fetch registrar account:", data?.message || res.status);
+          if (alive) setRegistrarAccount(null);
+          return;
+        }
+
+        if (alive) {
+          setRegistrarAccount(data || null);
+        }
+      } catch (err) {
+        console.error("Failed to load registrar account", err);
+        if (alive) setRegistrarAccount(null);
+      }
+    }
+
+    loadRegistrarAccount();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const onSave = async () => {
     setSaving(true);
     try {
+      const updatedBy =
+        registrarAccount?.user ||
+        registrarAccount?.email ||
+        "";
+
       const res = await fetch(API_URL, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          updatedBy,
+        }),
       });
 
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to save settings");
+      }
 
       const updated: FormState = {
         academicYear: data.academicYear ?? form.academicYear,

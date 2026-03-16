@@ -21,6 +21,13 @@ import { getSections } from "../../api/sectionService";
 
 import "../../styles/registrar-enrollment.css";
 
+type RegistrarAccount = {
+  _id?: string;
+  email?: string;
+  user?: string;
+  role?: string;
+};
+
 export default function StudentEnrollmentPage() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -57,6 +64,9 @@ export default function StudentEnrollmentPage() {
 
   const [archivedModalOpen, setArchivedModalOpen] = useState(false);
 
+  const [registrarAccount, setRegistrarAccount] =
+    useState<RegistrarAccount | null>(null);
+
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
@@ -82,6 +92,9 @@ export default function StudentEnrollmentPage() {
 
     return () => clearTimeout(t);
   }, [animateAlert]);
+
+  const registrarEmail =
+    registrarAccount?.user || registrarAccount?.email || "";
 
   const fetchStats = async () => {
     try {
@@ -109,6 +122,29 @@ export default function StudentEnrollmentPage() {
       console.error(e);
       setSettingsSemesterLabel("—");
       showAlert("Failed to load registrar settings.", "error");
+    }
+  };
+
+  const fetchRegistrarAccount = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/users/role/registrar", {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setRegistrarAccount(null);
+        return;
+      }
+
+      setRegistrarAccount(data || null);
+    } catch (e) {
+      console.error("Failed to load registrar account", e);
+      setRegistrarAccount(null);
     }
   };
 
@@ -209,6 +245,7 @@ export default function StudentEnrollmentPage() {
   useEffect(() => {
     fetchStats();
     fetchRegistrarSettingsSemester();
+    fetchRegistrarAccount();
     loadSections();
     loadPending(query);
     loadEnrolled(enrolledQuery);
@@ -268,7 +305,12 @@ export default function StudentEnrollmentPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ updatedInfo, notes, verifiedDocs }),
+          body: JSON.stringify({
+            updatedInfo,
+            notes,
+            verifiedDocs,
+            updatedBy: registrarEmail,
+          }),
         },
       );
 
@@ -379,7 +421,12 @@ export default function StudentEnrollmentPage() {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentIds, subject, message }),
+        body: JSON.stringify({
+          studentIds,
+          subject,
+          message,
+          updatedBy: registrarEmail,
+        }),
       },
     );
 
@@ -424,6 +471,8 @@ export default function StudentEnrollmentPage() {
         `http://localhost:5000/api/enrollments/${enrollmentId}/archive`,
         {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ updatedBy: registrarEmail }),
         },
       );
 
@@ -451,6 +500,8 @@ export default function StudentEnrollmentPage() {
         `http://localhost:5000/api/enrollments/${enrollmentId}/unarchive`,
         {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ updatedBy: registrarEmail }),
         },
       );
 
@@ -480,6 +531,8 @@ export default function StudentEnrollmentPage() {
         `http://localhost:5000/api/enrollments/${enrollmentId}`,
         {
           method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ updatedBy: registrarEmail }),
         },
       );
 
@@ -509,7 +562,7 @@ export default function StudentEnrollmentPage() {
         {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ids }),
+          body: JSON.stringify({ ids, updatedBy: registrarEmail }),
         },
       );
 

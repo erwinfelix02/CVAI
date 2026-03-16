@@ -1,5 +1,30 @@
 import XLSX from "xlsx";
-import { getAllLogs } from "../utils/logActivity.js";
+import { getAllLogs, addLog } from "../utils/logActivity.js";
+
+export const createLog = async (req, res) => {
+  try {
+    const { action, user, role, type, details, status } = req.body;
+
+    addLog({
+      action,
+      user,
+      role,
+      type,
+      details,
+      status,
+      ip:
+        req.headers["x-forwarded-for"] ||
+        req.socket?.remoteAddress ||
+        req.ip ||
+        "Unknown IP",
+    });
+
+    return res.status(201).json({ message: "Log created successfully." });
+  } catch (err) {
+    console.error("createLog error:", err);
+    return res.status(500).json({ message: "Failed to create log." });
+  }
+};
 
 export const getLogs = async (req, res) => {
   try {

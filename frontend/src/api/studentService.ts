@@ -39,6 +39,7 @@ export type UpdateStudentInfoPayload = {
   program: string;
   yearLevel: number;
   department: string;
+  updatedBy?: string;
 };
 
 export async function getStudentsByEnrollmentIds(enrollmentIds: string[]) {

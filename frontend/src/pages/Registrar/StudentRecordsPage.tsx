@@ -66,6 +66,13 @@ type DepartmentOption = {
   status: "Active" | "Inactive";
 };
 
+type RegistrarAccount = {
+  _id?: string;
+  email?: string;
+  user?: string;
+  role?: string;
+};
+
 const API_BASE_URL = "http://localhost:5000/api";
 
 export default function StudentRecordsPage() {
@@ -91,6 +98,9 @@ export default function StudentRecordsPage() {
   const [departmentOptions, setDepartmentOptions] = useState<
     DepartmentOption[]
   >([]);
+
+  const [registrarAccount, setRegistrarAccount] =
+    useState<RegistrarAccount | null>(null);
 
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -121,6 +131,9 @@ export default function StudentRecordsPage() {
 
     return () => clearTimeout(t);
   }, [animateAlert]);
+
+  const registrarEmail =
+    registrarAccount?.user || registrarAccount?.email || "";
 
   const load = async () => {
     try {
@@ -188,9 +201,33 @@ export default function StudentRecordsPage() {
     }
   };
 
+  const loadRegistrarAccount = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/users/role/registrar", {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setRegistrarAccount(null);
+        return;
+      }
+
+      setRegistrarAccount(data || null);
+    } catch (e) {
+      console.error("Failed to load registrar account", e);
+      setRegistrarAccount(null);
+    }
+  };
+
   useEffect(() => {
     load();
     loadEditOptions();
+    loadRegistrarAccount();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -309,6 +346,7 @@ export default function StudentRecordsPage() {
         program: payload.course,
         yearLevel: payload.year,
         department: payload.department,
+        updatedBy: registrarEmail,
       });
 
       await load();
@@ -332,6 +370,7 @@ export default function StudentRecordsPage() {
       setEditLoading(false);
     }
   };
+
   const handleMarkDropped = (id: string) => {
     alert(`Mark as dropped for ${id}`);
   };
