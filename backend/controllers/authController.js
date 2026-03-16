@@ -189,10 +189,20 @@ export const login = async (req, res) => {
     });
 
     return res.json({
-      message: "Login successful",
-      token,
-      redirect,
-    });
+  message: "Login successful",
+  token,
+  redirect,
+  user: {
+    _id: user._id,
+    firstName: user.firstName,
+    middleName: user.middleName,
+    lastName: user.lastName,
+    email: user.email,
+    role: user.role,
+    department: user.department,
+    status: user.status,
+  },
+});
   } catch (err) {
     console.error("AUTH ERROR:", err);
 

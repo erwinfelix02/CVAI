@@ -114,11 +114,12 @@ export default function SignIn() {
         return;
       }
 
-      const { token, redirect } = res.data;
+      const { token, redirect, user } = res.data;
 
-      localStorage.setItem("sessionToken", token);
-      localStorage.setItem("lastActivity", Date.now().toString());
-      window.location.href = redirect;
+localStorage.setItem("sessionToken", token);
+localStorage.setItem("user", JSON.stringify(user));
+localStorage.setItem("lastActivity", Date.now().toString());
+window.location.href = redirect;
     } catch (error: any) {
       setLoading(false);
       setAnimateAlert(false);

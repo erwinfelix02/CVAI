@@ -5,7 +5,7 @@ import EnrollmentStats from "../../components/Registrar/Enrollment/EnrollmentSta
 import PendingEnrollmentList from "../../components/Registrar/Enrollment/PendingEnrollmentList";
 import SectionCapacityGrid from "../../components/Registrar/Enrollment/SectionCapacityGrid";
 import EnrollmentEvaluationModal from "../../components/Registrar/Enrollment/EnrollmentEvaluationModal";
-
+import { getRegistrarByRole } from "../../api/userService";
 import EnrolledStudentsCard from "../../components/Registrar/Enrollment/EnrolledStudentsCard";
 import SendCredentialsModal from "../../components/Registrar/Enrollment/SendCredentialsModal";
 import ArchivedEnrolledStudentsModal from "../../components/Registrar/Enrollment/ArchivedEnrolledStudentsModal";
@@ -126,27 +126,14 @@ export default function StudentEnrollmentPage() {
   };
 
   const fetchRegistrarAccount = async () => {
-    try {
-      const res = await fetch("http://localhost:5000/api/users/role/registrar", {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-        },
-      });
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        setRegistrarAccount(null);
-        return;
-      }
-
-      setRegistrarAccount(data || null);
-    } catch (e) {
-      console.error("Failed to load registrar account", e);
-      setRegistrarAccount(null);
-    }
-  };
+  try {
+    const data = await getRegistrarByRole();
+    setRegistrarAccount(data || null);
+  } catch (error: any) {
+    console.error("Failed to fetch registrar account:", error?.message || error);
+    setRegistrarAccount(null);
+  }
+};
 
   const loadSections = async () => {
     try {

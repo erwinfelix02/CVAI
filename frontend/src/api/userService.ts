@@ -1,9 +1,18 @@
 const API_URL = "http://localhost:5000/api/users";
 
+const getAuthHeaders = (includeContentType = false): HeadersInit => {
+  const token = localStorage.getItem("sessionToken");
+
+  return {
+    ...(includeContentType ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
+
 export const createUser = async (payload: any) => {
   const res = await fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(true),
     body: JSON.stringify(payload),
   });
 
@@ -13,7 +22,11 @@ export const createUser = async (payload: any) => {
 };
 
 export const getUsers = async () => {
-  const res = await fetch(API_URL);
+  const res = await fetch(API_URL, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
   const data = await res.json().catch(() => null);
   if (!res.ok) throw new Error(data?.message || "Failed to load users");
   return data;
@@ -22,10 +35,26 @@ export const getUsers = async () => {
 export const sendCredentials = async (id: string) => {
   const res = await fetch(`${API_URL}/${id}/send-credentials`, {
     method: "POST",
+    headers: getAuthHeaders(),
   });
 
   const data = await res.json().catch(() => null);
   if (!res.ok) throw new Error(data?.message || "Failed to send credentials");
+
+  return data;
+};
+
+export const getRegistrarByRole = async () => {
+  const res = await fetch(`${API_URL}/role/registrar`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(data?.message || "Failed to load registrar account");
+  }
 
   return data;
 };
@@ -41,7 +70,11 @@ export async function getStudentUsers(params?: {
   if (params?.status) url.searchParams.set("status", params.status);
   if (params?.course) url.searchParams.set("course", params.course);
 
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
   const data = await res.json().catch(() => null);
 
   if (!res.ok) {
@@ -52,7 +85,11 @@ export async function getStudentUsers(params?: {
 }
 
 export const getUserById = async (id: string) => {
-  const res = await fetch(`${API_URL}/${id}`);
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
   const data = await res.json().catch(() => null);
 
   if (!res.ok) {
@@ -65,7 +102,7 @@ export const getUserById = async (id: string) => {
 export const updateUser = async (id: string, payload: any) => {
   const res = await fetch(`${API_URL}/${id}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(true),
     body: JSON.stringify(payload),
   });
 
@@ -81,7 +118,7 @@ export const updateUser = async (id: string, payload: any) => {
 export const updateUserContactInfo = async (id: string, payload: any) => {
   const res = await fetch(`${API_URL}/${id}/contact`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(true),
     body: JSON.stringify(payload),
   });
 
@@ -93,3 +130,4 @@ export const updateUserContactInfo = async (id: string, payload: any) => {
 
   return data;
 };
+

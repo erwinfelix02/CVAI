@@ -87,12 +87,11 @@ function validatePersonal(v: PersonalInfo): PersonalErrors {
     e.email = "Enter a valid email (example@gmail.com).";
   }
 
-  if (v.phone.trim()) {
-    const digits = v.phone.replace(/\D/g, "");
-    if (!/^09\d{9}$/.test(digits)) {
-      e.phone = "Use PH format: 09xxxxxxxxx (11 digits).";
-    }
+ if (v.phone.trim()) {
+  if (!/^\+639\d{9}$/.test(v.phone.trim())) {
+    e.phone = "Use PH format: +639XXXXXXXXX.";
   }
+}
 
   if (v.birthDate) {
     const chosen = new Date(v.birthDate);

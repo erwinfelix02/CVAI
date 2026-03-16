@@ -6,7 +6,7 @@ import SelectField from "../../components/Registrar/settings/fields/SelectField"
 import NumberField from "../../components/Registrar/settings/fields/NumberField";
 import SwitchField from "../../components/Registrar/settings/fields/SwitchField";
 import AuthAlert from "../../components/Authentication/AuthAlert";
-
+import { getRegistrarByRole } from "../../api/userService";
 import {
   Calendar,
   RefreshCw,
@@ -33,7 +33,6 @@ type RegistrarAccount = {
 };
 
 const API_URL = "http://localhost:5000/api/registrar/settings";
-const REGISTRAR_USER_URL = "http://localhost:5000/api/users/role/registrar";
 
 const DEFAULT_FORM: FormState = {
   academicYear: "2023-2024",
@@ -42,6 +41,15 @@ const DEFAULT_FORM: FormState = {
   maxStudentsPerSection: 45,
   processingDays: 5,
   autoApproveSimpleDocs: false,
+};
+
+const getAuthHeaders = (includeContentType = false): HeadersInit => {
+  const token = localStorage.getItem("sessionToken");
+
+  return {
+    ...(includeContentType ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 };
 
 export default function RegistrarSettings() {
@@ -103,21 +111,30 @@ export default function RegistrarSettings() {
 
     async function loadSettings() {
       setLoading(true);
+
       try {
-        const res = await fetch(API_URL);
-        const data = await res.json();
+        const res = await fetch(API_URL, {
+          method: "GET",
+          headers: getAuthHeaders(),
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          throw new Error(data?.message || "Failed to load settings");
+        }
 
         const loaded: FormState = {
-          academicYear: data.academicYear ?? DEFAULT_FORM.academicYear,
-          semester: data.semester ?? DEFAULT_FORM.semester,
-          enrollmentOpen: !!data.enrollmentOpen,
+          academicYear: data?.academicYear ?? DEFAULT_FORM.academicYear,
+          semester: data?.semester ?? DEFAULT_FORM.semester,
+          enrollmentOpen: !!data?.enrollmentOpen,
           maxStudentsPerSection: Number(
-            data.maxStudentsPerSection ?? DEFAULT_FORM.maxStudentsPerSection,
+            data?.maxStudentsPerSection ?? DEFAULT_FORM.maxStudentsPerSection,
           ),
           processingDays: Number(
-            data.processingDays ?? DEFAULT_FORM.processingDays,
+            data?.processingDays ?? DEFAULT_FORM.processingDays,
           ),
-          autoApproveSimpleDocs: !!data.autoApproveSimpleDocs,
+          autoApproveSimpleDocs: !!data?.autoApproveSimpleDocs,
         };
 
         if (alive) {
@@ -126,10 +143,12 @@ export default function RegistrarSettings() {
         }
       } catch (err) {
         console.error(err);
+
         if (alive) {
           setForm(DEFAULT_FORM);
           setSavedForm(DEFAULT_FORM);
         }
+
         showAlert("Server error loading settings", "error");
       } finally {
         if (alive) setLoading(false);
@@ -137,6 +156,7 @@ export default function RegistrarSettings() {
     }
 
     loadSettings();
+
     return () => {
       alive = false;
     };
@@ -147,27 +167,17 @@ export default function RegistrarSettings() {
 
     async function loadRegistrarAccount() {
       try {
-        const res = await fetch(REGISTRAR_USER_URL, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-          },
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          console.error("Failed to fetch registrar account:", data?.message || res.status);
-          if (alive) setRegistrarAccount(null);
-          return;
-        }
+        const data = await getRegistrarByRole();
 
         if (alive) {
           setRegistrarAccount(data || null);
         }
-      } catch (err) {
-        console.error("Failed to load registrar account", err);
-        if (alive) setRegistrarAccount(null);
+      } catch (err: any) {
+        console.error("Failed to fetch registrar account:", err?.message || err);
+
+        if (alive) {
+          setRegistrarAccount(null);
+        }
       }
     }
 
@@ -180,36 +190,34 @@ export default function RegistrarSettings() {
 
   const onSave = async () => {
     setSaving(true);
+
     try {
-      const updatedBy =
-        registrarAccount?.user ||
-        registrarAccount?.email ||
-        "";
+      const updatedBy = registrarAccount?.user || registrarAccount?.email || "";
 
       const res = await fetch(API_URL, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(true),
         body: JSON.stringify({
           ...form,
           updatedBy,
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
         throw new Error(data?.message || "Failed to save settings");
       }
 
       const updated: FormState = {
-        academicYear: data.academicYear ?? form.academicYear,
-        semester: data.semester ?? form.semester,
-        enrollmentOpen: !!data.enrollmentOpen,
+        academicYear: data?.academicYear ?? form.academicYear,
+        semester: data?.semester ?? form.semester,
+        enrollmentOpen: !!data?.enrollmentOpen,
         maxStudentsPerSection: Number(
-          data.maxStudentsPerSection ?? form.maxStudentsPerSection,
+          data?.maxStudentsPerSection ?? form.maxStudentsPerSection,
         ),
-        processingDays: Number(data.processingDays ?? form.processingDays),
-        autoApproveSimpleDocs: !!data.autoApproveSimpleDocs,
+        processingDays: Number(data?.processingDays ?? form.processingDays),
+        autoApproveSimpleDocs: !!data?.autoApproveSimpleDocs,
       };
 
       setForm(updated);
@@ -366,6 +374,7 @@ export default function RegistrarSettings() {
               <button
                 className="btn btn-outline-secondary btn-lg"
                 onClick={handleCancelEdit}
+                type="button"
               >
                 Cancel
               </button>
@@ -374,6 +383,7 @@ export default function RegistrarSettings() {
             <button
               className="btn btn-lg px-4 rs-save-btn"
               onClick={handleAskSave}
+              type="button"
             >
               {!isEditing ? "Edit" : saving ? "Saving..." : "Save Changes"}
             </button>
@@ -393,6 +403,7 @@ export default function RegistrarSettings() {
             <button
               className="registrar-settings-confirm-close"
               onClick={() => setConfirmOpen(false)}
+              type="button"
             >
               <X size={18} />
             </button>
@@ -411,11 +422,12 @@ export default function RegistrarSettings() {
               <button
                 className="btn btn-light border"
                 onClick={() => setConfirmOpen(false)}
+                type="button"
               >
                 Cancel
               </button>
 
-              <button className="btn btn-primary" onClick={onSave}>
+              <button className="btn btn-primary" onClick={onSave} type="button">
                 Yes, Save
               </button>
             </div>

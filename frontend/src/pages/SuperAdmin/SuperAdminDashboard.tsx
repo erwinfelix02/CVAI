@@ -92,7 +92,7 @@ export default function SuperAdminDashboard() {
 
   useEffect(() => {
     const load = async () => {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("sessionToken");
 
       try {
         setLoadingUsers(true);
@@ -162,7 +162,7 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     const refreshPortals = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("sessionToken");
         if (!token) return;
 
         const res = await axios.get(`${API_BASE_URL}/users/portal-statuses`, {
@@ -186,7 +186,7 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     const sendHeartbeat = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("sessionToken");
         if (!token) return;
 
         await axios.post(

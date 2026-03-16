@@ -1,5 +1,6 @@
 import "../../styles/registrar-sidebar.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { getRegistrarByRole } from "../../api/userService";
 import {
   LayoutDashboard,
   FileText,
@@ -153,32 +154,19 @@ export default function RegistrarSidebar({
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    async function loadRegistrarAccount() {
-      try {
-        const res = await fetch("http://localhost:5000/api/users/role/registrar", {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-          },
-        });
-
-        if (!res.ok) {
-          console.error("Failed to fetch registrar account:", res.status);
-          setRegistrarAccount(null);
-          return;
-        }
-
-        const data = await res.json();
-        setRegistrarAccount(data || null);
-      } catch (err) {
-        console.error("Failed to load registrar account", err);
-        setRegistrarAccount(null);
-      }
+useEffect(() => {
+  async function loadRegistrarAccount() {
+    try {
+      const data = await getRegistrarByRole();
+      setRegistrarAccount(data || null);
+    } catch (err) {
+      console.error("Failed to load registrar account", err);
+      setRegistrarAccount(null);
     }
+  }
 
-    loadRegistrarAccount();
-  }, []);
+  loadRegistrarAccount();
+}, []);
 
   const visibleNav = useMemo(() => {
     return nav.filter((item) => {
@@ -199,7 +187,7 @@ export default function RegistrarSidebar({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          Authorization: `Bearer ${localStorage.getItem("sessionToken") || ""}`,
         },
         body: JSON.stringify({
           action: "Logout",
@@ -218,8 +206,9 @@ export default function RegistrarSidebar({
   const handleLogout = async () => {
     await logLogoutActivity();
 
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    localStorage.removeItem("sessionToken");
+localStorage.removeItem("user");
+localStorage.removeItem("lastActivity");
 
     setShowLogoutConfirm(false);
 

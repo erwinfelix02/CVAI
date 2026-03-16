@@ -45,6 +45,8 @@ import FacultyAccountsPage from "./pages/Registrar/FacultyAccountsPage";
 import CoursesPage from "./pages/Registrar/CoursesManagementPage";
 import DepartmentsManagementPage from "./pages/Registrar/DepartmentsManagementPage";
 import RegistrarHelpPage from "./pages/Registrar/RegistrarHelpPage";
+import RegistrarAIAssistantPage from "./pages/Registrar/RegistrarAIAssistantPage";
+import RegistrarSettings from "./pages/Registrar/RegistrarSettings";
 
 import SuperAdminLayoutPage from "./pages/SuperAdmin/SuperAdminLayoutPage";
 import SuperAdminDashboard from "./pages/SuperAdmin/SuperAdminDashboard";
@@ -58,26 +60,22 @@ import UsersPage from "./pages/SuperAdmin/UsersPage";
 import DepartmentHeadLayoutPage from "./pages/DepartmentHead/DepartmentHeadLayoutPage";
 import DepartmentHeadDashboard from "./pages/DepartmentHead/DepartmentHeadDashboard";
 import ScheduleManagementPage from "./pages/DepartmentHead/ScheduleManagementPage";
-import RegistrarAIAssistantPage from "./pages/Registrar/RegistrarAIAssistantPage";
-import RegistrarSettings from "./pages/Registrar/RegistrarSettings";
 
 export default function App() {
   return (
     <Routes>
-      {/* Authentication */}
+      {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/signin" element={<SignIn />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/verify-code" element={<VerifyCode />} />
-
-      {/* ✅ Pre-Registration */}
       <Route path="/prereg" element={<StudentPreRegistrationPage />} />
 
       {/* Student */}
       <Route
         path="/student"
         element={
-          <RequireAuth>
+          <RequireAuth allowedRoles={["Student"]}>
             <ProtectedLayout>
               <StudentLayoutPage />
             </ProtectedLayout>
@@ -96,11 +94,11 @@ export default function App() {
         <Route path="help" element={<HelpCenterPage />} />
       </Route>
 
-      {/* ✅ Faculty */}
+      {/* Faculty */}
       <Route
         path="/faculty"
         element={
-          <RequireAuth>
+          <RequireAuth allowedRoles={["Faculty"]}>
             <ProtectedLayout>
               <FacultyLayoutPage />
             </ProtectedLayout>
@@ -119,11 +117,11 @@ export default function App() {
         <Route path="settings" element={<FacultySettingsPage />} />
       </Route>
 
-      {/* ✅ Registrar */}
+      {/* Registrar */}
       <Route
         path="/registrar"
         element={
-          <RequireAuth>
+          <RequireAuth allowedRoles={["Registrar"]}>
             <ProtectedLayout>
               <RegistrarLayout />
             </ProtectedLayout>
@@ -139,16 +137,16 @@ export default function App() {
         <Route path="documents" element={<DocumentRequestsPage />} />
         <Route path="ai-assistant" element={<RegistrarAIAssistantPage />} />
         <Route path="departments" element={<DepartmentsManagementPage />} />
-        <Route path="/registrar/courses" element={<CoursesPage />} />
+        <Route path="courses" element={<CoursesPage />} />
         <Route path="settings" element={<RegistrarSettings />} />
         <Route path="help" element={<RegistrarHelpPage />} />
       </Route>
 
-      {/* ✅ Super Admin */}
+      {/* Super Admin */}
       <Route
         path="/superadmin"
         element={
-          <RequireAuth>
+          <RequireAuth allowedRoles={["Super Admin"]}>
             <ProtectedLayout>
               <SuperAdminLayoutPage />
             </ProtectedLayout>
@@ -167,11 +165,11 @@ export default function App() {
         <Route path="users" element={<UsersPage />} />
       </Route>
 
-      {/* ✅ Department Head */}
+      {/* Department Head */}
       <Route
         path="/dept-head"
         element={
-          <RequireAuth>
+          <RequireAuth allowedRoles={["Dept Head"]}>
             <ProtectedLayout>
               <DepartmentHeadLayoutPage />
             </ProtectedLayout>

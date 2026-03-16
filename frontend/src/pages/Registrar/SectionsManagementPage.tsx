@@ -246,10 +246,10 @@ const loadCourses = async () => {
     showAlert(`View students for ${item.code}`, "success");
   };
 
-  const courseOptions = useMemo(() => {
-    const unique = courses.map((c) => c.name);
-    return ["All Courses", ...unique];
-  }, [courses]);
+const courseOptions = useMemo(() => {
+  const unique = courses.map((c) => c.code);
+  return ["All Courses", ...Array.from(new Set(unique))];
+}, [courses]);
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -323,38 +323,44 @@ const loadCourses = async () => {
           courseOptions={courseOptions}
         />
 
-        {!hasCourses ? (
-          <div className="card shadow-sm border-0">
-            <div className="card-body p-4">
-              <div className="users-empty-state">
-                <div className="users-empty-icon">📚</div>
-                <h5 className="fw-semibold mb-1">No courses available</h5>
-                <p className="text-muted mb-0">
-                  Please add courses first. Sections require a course and its year levels.
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : filtered.length > 0 ? (
-          <SectionsGrid
-            items={filtered}
-            onDelete={onDeleteSection}
-            onEdit={openEdit}
-            onViewStudents={onViewStudents}
-          />
-        ) : (
-          <div className="card shadow-sm border-0">
-            <div className="card-body p-4">
-              <div className="users-empty-state">
-                <div className="users-empty-icon">📭</div>
-                <h5 className="fw-semibold mb-1">No sections found</h5>
-                <p className="text-muted mb-0">
-                  Try adjusting your search/filters or click <b>Add Section</b>.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        {isLoading ? (
+  <div className="card shadow-sm border-0">
+    <div className="card-body p-4 text-center text-muted">
+      Loading sections...
+    </div>
+  </div>
+) : filtered.length > 0 ? (
+  <SectionsGrid
+    items={filtered}
+    onDelete={onDeleteSection}
+    onEdit={openEdit}
+    onViewStudents={onViewStudents}
+  />
+) : !hasCourses ? (
+  <div className="card shadow-sm border-0">
+    <div className="card-body p-4">
+      <div className="users-empty-state">
+        <div className="users-empty-icon">📚</div>
+        <h5 className="fw-semibold mb-1">No courses available</h5>
+        <p className="text-muted mb-0">
+          Please add courses first. Sections require a course and its year levels.
+        </p>
+      </div>
+    </div>
+  </div>
+) : (
+  <div className="card shadow-sm border-0">
+    <div className="card-body p-4">
+      <div className="users-empty-state">
+        <div className="users-empty-icon">📭</div>
+        <h5 className="fw-semibold mb-1">No sections found</h5>
+        <p className="text-muted mb-0">
+          Try adjusting your search/filters or click <b>Add Section</b>.
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
         {/* ✅ PASS maxCapacity AND force remount by key */}
         <AddSectionModal

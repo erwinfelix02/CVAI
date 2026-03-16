@@ -7,7 +7,7 @@ import {
 } from "../../api/studentService";
 import { getCourses } from "../../api/courseService";
 import { getDepartments } from "../../api/departmentService";
-
+import { getRegistrarByRole } from "../../api/userService";
 import RecordsHeader from "../../components/Registrar/Records/RecordsHeader";
 import RecordsStats from "../../components/Registrar/Records/RecordsStats";
 import RecordsFilters from "../../components/Registrar/Records/RecordsFilters";
@@ -201,28 +201,15 @@ export default function StudentRecordsPage() {
     }
   };
 
-  const loadRegistrarAccount = async () => {
-    try {
-      const res = await fetch("http://localhost:5000/api/users/role/registrar", {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-        },
-      });
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        setRegistrarAccount(null);
-        return;
-      }
-
-      setRegistrarAccount(data || null);
-    } catch (e) {
-      console.error("Failed to load registrar account", e);
-      setRegistrarAccount(null);
-    }
-  };
+const loadRegistrarAccount = async () => {
+  try {
+    const data = await getRegistrarByRole();
+    setRegistrarAccount(data || null);
+  } catch (e) {
+    console.error("Failed to load registrar account", e);
+    setRegistrarAccount(null);
+  }
+};
 
   useEffect(() => {
     load();
@@ -410,9 +397,15 @@ export default function StudentRecordsPage() {
         qs.set("exportStatus", selectedExportStatus);
       }
 
-      const res = await fetch(
-        `${API_BASE_URL}/students/export?${qs.toString()}`,
-      );
+     const res = await fetch(
+  `${API_BASE_URL}/students/export?${qs.toString()}`,
+  {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("sessionToken") || ""}`,
+    },
+  }
+);
 
       if (!res.ok) {
         let message = "Failed to export student records.";
