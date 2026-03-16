@@ -39,6 +39,17 @@ function buildInsightSignature({ scamCount, oldestPendingDays, load }) {
   return `scam:${scamCount}|oldest:${oldestPendingDays}|load:${load}`;
 }
 
+async function getDecryptedPendingApps(limit) {
+  const docs = await Preregistration.find({ status: "Pending" })
+    .select(
+      "status createdAt registrationId personal.firstName personal.lastName personal.email personal.phone personal.address personal.birthDate academic.course",
+    )
+    .sort({ createdAt: -1 })
+    .limit(limit);
+
+  return docs.map((doc) => doc.toObject({ getters: true }));
+}
+
 /* ---------------------------
    Scam detection rules
 ---------------------------- */
@@ -46,22 +57,35 @@ function normalizeName(first = "", last = "") {
   return `${first} ${last}`.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
-function isSuspiciousEmail(email = "") {
-  const e = (email || "").toLowerCase().trim();
-  if (!e) return true;
+function uniqueCharRatio(str = "") {
+  if (!str) return 0;
+  const clean = String(str).toLowerCase().replace(/\s+/g, "");
+  if (!clean) return 0;
+  return new Set(clean).size / clean.length;
+}
 
-  if (e.includes("test") || e.includes("fake") || e.includes("asdf")) {
-    return true;
+function vowelRatio(str = "") {
+  const clean = String(str).toLowerCase().replace(/[^a-z]/g, "");
+  if (!clean) return 0;
+  const vowels = (clean.match(/[aeiou]/g) || []).length;
+  return vowels / clean.length;
+}
+
+function consonantRunLength(str = "") {
+  const clean = String(str).toLowerCase().replace(/[^a-z]/g, "");
+  let best = 0;
+  let cur = 0;
+
+  for (const ch of clean) {
+    if ("aeiou".includes(ch)) {
+      cur = 0;
+    } else {
+      cur++;
+      if (cur > best) best = cur;
+    }
   }
 
-  const parts = e.split("@");
-  if (parts.length !== 2) return true;
-  if (!parts[1] || !parts[1].includes(".")) return true;
-
-  const local = parts[0];
-  if (!local || local.length < 3) return true;
-
-  return false;
+  return best;
 }
 
 function maxRunLength(str) {
@@ -78,48 +102,156 @@ function maxRunLength(str) {
   return best;
 }
 
+function repeatedPairScore(str = "") {
+  const clean = String(str).replace(/\s+/g, "");
+  let count = 0;
+
+  for (let i = 0; i < clean.length - 1; i++) {
+    const pair = clean.slice(i, i + 2);
+    const occurrences = clean.split(pair).length - 1;
+    if (occurrences >= 3) count++;
+  }
+
+  return count;
+}
+
+function looksLikeKeyboardMash(str = "") {
+  const s = String(str).toLowerCase().replace(/[^a-z]/g, "");
+  if (s.length < 8) return false;
+
+  const keyboardish = [
+    "asdf",
+    "qwer",
+    "zxcv",
+    "qwerty",
+    "asdfg",
+    "hjkl",
+    "poiuy",
+  ];
+
+  return keyboardish.some((k) => s.includes(k));
+}
+
+function isSuspiciousEmail(email = "") {
+  const e = String(email || "").toLowerCase().trim();
+  if (!e) return true;
+
+  if (
+    e.includes("test") ||
+    e.includes("fake") ||
+    e.includes("asdf") ||
+    e.includes("qwerty")
+  ) {
+    return true;
+  }
+
+  const parts = e.split("@");
+  if (parts.length !== 2) return true;
+  if (!parts[1] || !parts[1].includes(".")) return true;
+
+  const local = parts[0];
+  if (!local || local.length < 3) return true;
+
+  if (/^\d+$/.test(local)) return true;
+  if (maxRunLength(local) >= 5) return true;
+  if (looksLikeKeyboardMash(local)) return true;
+
+  return false;
+}
+
 function isSuspiciousPhone(phone = "") {
-  const p = (phone || "").replace(/\D/g, "");
+  const p = String(phone || "").replace(/\D/g, "");
   if (!p) return true;
-  if (p.length < 10) return true;
+
+  // PH mobile: usually 11 digits starting with 09
+  if (!/^09\d{9}$/.test(p)) return true;
+
   if (/^(\d)\1+$/.test(p)) return true;
-  if (maxRunLength(p) >= 7) return true;
+  if (maxRunLength(p) >= 6) return true;
+
+  // catches patterns like 09211111111
+  const last9 = p.slice(2);
+  if (maxRunLength(last9) >= 5) return true;
+
+  // too few unique digits
+  if (new Set(p).size <= 3) return true;
+
+  // repeated tiny patterns
+  if (/(\d{2,3})\1{2,}/.test(p)) return true;
 
   return false;
 }
 
 function isSuspiciousName(name = "") {
-  if (!name) return true;
-
-  const n = (name || "").trim();
+  const n = String(name || "").trim();
+  if (!n) return true;
   if (n.length < 4) return true;
-  if (/^(.)\1{3,}/.test(n.replace(/\s/g, ""))) return true;
   if (/\d/.test(n)) return true;
+  if (/^(.)\1{3,}/.test(n.replace(/\s/g, ""))) return true;
+
+  const lettersOnly = n.replace(/[^A-Za-z\s'-]/g, "");
+  if (lettersOnly.trim().length < 4) return true;
+
+  if (looksLikeKeyboardMash(lettersOnly)) return true;
+  if (consonantRunLength(lettersOnly) >= 6) return true;
 
   return false;
 }
 
 function isSuspiciousAddress(address = "") {
-  const a = (address || "").trim();
+  const a = String(address || "").trim();
   if (!a) return true;
   if (a.length < 10) return true;
 
   const lower = a.toLowerCase();
+
   if (
     lower.includes("test") ||
     lower.includes("asdf") ||
-    lower.includes("fake")
+    lower.includes("fake") ||
+    lower.includes("qwerty")
   ) {
     return true;
   }
 
   if (/^(\w)\1{5,}$/.test(a.replace(/\s/g, ""))) return true;
 
-  const hasSpace = /\s/.test(a);
-  const hasDigit = /\d/.test(a);
-  const hasPunct = /[,\-./#]/.test(a);
+  const lettersOnly = lower.replace(/[^a-z]/g, "");
+  const words = lower.split(/[\s,.-/#]+/).filter(Boolean);
 
-  if (!hasSpace && !hasDigit && !hasPunct && a.length >= 12) return true;
+  if (looksLikeKeyboardMash(lower)) return true;
+
+  // many long consonant runs are usually gibberish
+  if (consonantRunLength(lower) >= 6) return true;
+
+  // very low vowel ratio often means mash text
+  if (lettersOnly.length >= 10 && vowelRatio(lettersOnly) < 0.20) return true;
+
+  // too repetitive
+  if (lettersOnly.length >= 10 && uniqueCharRatio(lettersOnly) < 0.35) return true;
+
+  // repeating short fragments
+  if (repeatedPairScore(lettersOnly) >= 2) return true;
+
+  // address should usually have at least 2 meaningful chunks
+  if (words.length < 2 && a.length >= 12) return true;
+
+  // catches strings like askjadamdnm,adadd
+  const longWeirdWords = words.filter(
+    (w) =>
+      w.length >= 6 &&
+      !/\d/.test(w) &&
+      vowelRatio(w) < 0.25 &&
+      consonantRunLength(w) >= 4,
+  );
+
+  if (longWeirdWords.length >= 1) return true;
+
+  const hasDigit = /\d/.test(a);
+  const hasCommaOrSpace = /[\s,]/.test(a);
+
+  // not required, but many realistic addresses have separators or numbers
+  if (!hasDigit && !hasCommaOrSpace && a.length >= 14) return true;
 
   return false;
 }
@@ -181,22 +313,23 @@ function computeScamSignals(apps) {
       scamCount++;
 
       flagged.push({
-        registrationId: a.registrationId,
-        createdAt: a.createdAt,
-        name: `${a?.personal?.firstName ?? ""} ${a?.personal?.lastName ?? ""}`.trim(),
-        email: a?.personal?.email,
-        phone: a?.personal?.phone,
-        course: a?.academic?.course,
-        score,
-        reasons: [
-          dupName ? "Duplicate name" : null,
-          suspiciousEmail ? "Suspicious email" : null,
-          suspiciousPhone ? "Suspicious phone" : null,
-          suspiciousName ? "Suspicious name" : null,
-          suspiciousAddress ? "Suspicious address" : null,
-          suspiciousBirthDate ? "Unrealistic birthdate" : null,
-        ].filter(Boolean),
-      });
+  registrationId: a.registrationId,
+  createdAt: a.createdAt,
+  name: `${a?.personal?.firstName ?? ""} ${a?.personal?.lastName ?? ""}`.trim(),
+  email: a?.personal?.email,
+  phone: a?.personal?.phone,
+  address: a?.personal?.address,
+  course: a?.academic?.course,
+  score,
+  reasons: [
+    dupName ? "Duplicate name" : null,
+    suspiciousEmail ? "Suspicious email" : null,
+    suspiciousPhone ? "Suspicious phone" : null,
+    suspiciousName ? "Suspicious name" : null,
+    suspiciousAddress ? "Suspicious address" : null,
+    suspiciousBirthDate ? "Unrealistic birthdate" : null,
+  ].filter(Boolean),
+});
     }
   }
 
@@ -374,13 +507,7 @@ export async function getRegistrarInsights(_req, res) {
 
     const dbStart = Date.now();
 
-    const pendingApps = await Preregistration.find({ status: "Pending" })
-      .select(
-        "status createdAt registrationId personal.firstName personal.lastName personal.email personal.phone personal.address personal.birthDate academic.course",
-      )
-      .sort({ createdAt: -1 })
-      .limit(60)
-      .lean();
+    const pendingApps = await getDecryptedPendingApps(60);
 
     const dbEnd = Date.now();
     console.log(
@@ -455,13 +582,7 @@ export async function getRegistrarFlagged(_req, res) {
 
     const dbStart = Date.now();
 
-    const pendingApps = await Preregistration.find({ status: "Pending" })
-      .select(
-        "status createdAt registrationId personal.firstName personal.lastName personal.email personal.phone personal.address personal.birthDate academic.course",
-      )
-      .sort({ createdAt: -1 })
-      .limit(200)
-      .lean();
+    const pendingApps = await getDecryptedPendingApps(200);
 
     const dbEnd = Date.now();
     console.log(

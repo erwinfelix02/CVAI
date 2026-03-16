@@ -5,6 +5,7 @@ import {
   Clock,
   Users as UsersIcon,
   RefreshCw,
+  MapPin,
 } from "lucide-react";
 
 type Insight = {
@@ -20,6 +21,7 @@ type FlaggedItem = {
   name?: string;
   email?: string;
   phone?: string;
+  address?: string;
   course?: string;
   score?: number;
   reasons?: string[];
@@ -232,6 +234,11 @@ export default function AIInsightsCard() {
                         <div className="text-muted small">
                           {x.email || "No email"} • {x.phone || "No phone"} •{" "}
                           {x.course || "No course"}
+                        </div>
+
+                        <div className="text-muted small mt-1 d-flex align-items-start gap-1">
+                          <MapPin size={14} className="flex-shrink-0 mt-1" />
+                          <span>{x.address || "No address"}</span>
                         </div>
 
                         {!!x.reasons?.length && (

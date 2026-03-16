@@ -8,7 +8,6 @@ const studentSchema = new mongoose.Schema(
       required: true,
     },
 
-    // ✅ registrar-entered Student ID number
     studentIdNumber: {
       type: String,
       required: true,
@@ -37,6 +36,7 @@ const studentSchema = new mongoose.Schema(
 
     program: { type: String, required: true, trim: true },
     yearLevel: { type: Number, required: true },
+    section: { type: String, default: "", trim: true },
     department: { type: String, required: true, trim: true },
 
     notes: { type: String, default: "" },
@@ -44,7 +44,7 @@ const studentSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Active", "Inactive"],
+      enum: ["Active", "Inactive", "Dropped", "Graduated"],
       default: "Active",
     },
   },

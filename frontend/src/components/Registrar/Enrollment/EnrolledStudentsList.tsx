@@ -1,14 +1,13 @@
-import { Mail, CheckCircle2 } from "lucide-react";
+import { Mail, CheckCircle2, Archive } from "lucide-react";
 import type { EnrollmentItem } from "./types";
 
 type Props = {
   items: EnrollmentItem[];
   loading: boolean;
-
   selectedIds: string[];
   onToggleSelect: (id: string) => void;
-
   onSendCredentialsOne: (enrollmentId: string) => void;
+  onArchiveOne: (enrollmentId: string) => void;
 };
 
 export default function EnrolledStudentsList({
@@ -17,6 +16,7 @@ export default function EnrolledStudentsList({
   selectedIds,
   onToggleSelect,
   onSendCredentialsOne,
+  onArchiveOne,
 }: Props) {
   return (
     <div className="d-flex flex-column gap-3">
@@ -52,7 +52,6 @@ export default function EnrolledStudentsList({
 
             return (
               <div key={s._id} className="enroll-student-row enrolled-row">
-                {/* ✅ selector hidden when sent */}
                 {!credentialsSent ? (
                   <button
                     type="button"
@@ -61,7 +60,10 @@ export default function EnrolledStudentsList({
                     aria-label={`Select ${fullName}`}
                   />
                 ) : (
-                  <div className="enrolled-circle-check is-disabled" aria-hidden="true" />
+                  <div
+                    className="enrolled-circle-check is-disabled"
+                    aria-hidden="true"
+                  />
                 )}
 
                 <div className="d-flex align-items-center gap-3 flex-grow-1 min-w-0">
@@ -70,7 +72,9 @@ export default function EnrolledStudentsList({
                   <div className="min-w-0">
                     <div className="fw-semibold text-truncate">{fullName}</div>
                     <div className="text-muted small">
-                      {s.studentIdNumber?.trim() ? s.studentIdNumber : s.registrationId}
+                      {s.studentIdNumber?.trim()
+                        ? s.studentIdNumber
+                        : s.registrationId}
                     </div>
                     {programLine ? (
                       <div className="text-muted small">{programLine}</div>
@@ -93,10 +97,21 @@ export default function EnrolledStudentsList({
                       Send Credentials
                     </button>
                   ) : (
-                    <button type="button" className="btn btn-success" disabled>
-                      <CheckCircle2 size={18} />
-                      Credentials Sent
-                    </button>
+                    <>
+                      <button type="button" className="btn btn-success" disabled>
+                        <CheckCircle2 size={18} />
+                        Credentials Sent
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => onArchiveOne(s._id)}
+                      >
+                        <Archive size={18} />
+                        Archive
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -104,7 +119,9 @@ export default function EnrolledStudentsList({
           })}
 
           {items.length === 0 ? (
-            <div className="text-muted text-center py-4">No enrolled students found.</div>
+            <div className="text-muted text-center py-4">
+              No enrolled students found.
+            </div>
           ) : null}
         </>
       )}

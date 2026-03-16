@@ -1,40 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { X, User, FileText, MapPin, CheckCircle2 } from "lucide-react";
 import type { SectionItem } from "../../Registrar/Sections/types";
-
-/* ================= TYPES ================= */
-
-type EnrollmentItem = {
-  _id: string;
-
-  // ✅ Application tracking ID (NOT the registrar Student ID number)
-  registrationId: string;
-
-  // ✅ Registrar input Student ID number (saved on Enrollment after evaluation)
-  studentIdNumber?: string;
-
-  studentName?: string;
-  email?: string;
-
-  status: "Scheduled" | "Enrolled" | "Cancelled";
-
-  personal?: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    phone?: string;
-    address?: string;
-    birthdate?: string;
-    guardian?: string;
-    guardianPhone?: string;
-  };
-
-  academic?: {
-    program?: string;
-    yearLevel?: string | number;
-    department?: string;
-  };
-};
+import type { EnrollmentItem } from "./types";
 
 type Props = {
   open: boolean;
@@ -47,10 +14,7 @@ type Props = {
     enrollmentId: string;
     updatedInfo: {
       fullName: string;
-
-      // ✅ Registrar-entered Student ID number
       studentId: string;
-
       email: string;
       phone: string;
       address: string;
@@ -76,13 +40,40 @@ const requiredDocs = [
 ];
 
 const yearOptions = ["1", "2", "3", "4", "5"];
+const currentYear = new Date().getFullYear();
+const studentIdPrefix = `STU-${currentYear}-`;
 
 function toISODate(value?: string) {
   if (!value) return "";
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
-  const d = new Date(value);
+
+  const raw = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) return raw.slice(0, 10);
+
+  const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return "";
   return d.toISOString().slice(0, 10);
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isValidPhone(value: string) {
+  const cleaned = value.replace(/\s+/g, "");
+  return /^(09\d{9}|\+639\d{9})$/.test(cleaned);
+}
+
+function isValidName(value: string) {
+  return /^[A-Za-z .,'-]+$/.test(value);
+}
+
+function isValidAddress(value: string) {
+  return value.trim().length >= 5;
+}
+
+function isValidBirthdate(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
 export default function EnrollmentEvaluationModal({
@@ -95,12 +86,8 @@ export default function EnrollmentEvaluationModal({
 }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
-  // STEP 1 fields
   const [fullName, setFullName] = useState("");
-
-  // ✅ registrar Student ID number
   const [studentId, setStudentId] = useState("");
-
   const [program, setProgram] = useState("");
   const [yearLevel, setYearLevel] = useState("");
   const [email, setEmail] = useState("");
@@ -110,18 +97,17 @@ export default function EnrollmentEvaluationModal({
   const [guardian, setGuardian] = useState("");
   const [guardianPhone, setGuardianPhone] = useState("");
 
-  // STEP 2 docs
   const [docsChecked, setDocsChecked] = useState<Record<string, boolean>>({});
-
-  // STEP 3 final
   const [notes, setNotes] = useState("");
   const [finalConfirm, setFinalConfirm] = useState(false);
 
-  // ✅ CONFIRM POPUP
   const [confirmOpen, setConfirmOpen] = useState(false);
   const submittingRef = useRef(false);
 
-  // lock scroll (main modal)
+  const [showStep1Errors, setShowStep1Errors] = useState(false);
+  const [showStep2Errors, setShowStep2Errors] = useState(false);
+  const [showStep3Errors, setShowStep3Errors] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -131,15 +117,16 @@ export default function EnrollmentEvaluationModal({
     };
   }, [open]);
 
-  // esc close (close confirm first)
   useEffect(() => {
     if (!open) return;
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (confirmOpen) setConfirmOpen(false);
         else onClose();
       }
     };
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose, confirmOpen]);
@@ -150,17 +137,21 @@ export default function EnrollmentEvaluationModal({
       if ((s as any).program) set.add(String((s as any).program));
     });
     const arr = Array.from(set);
-    if (arr.length === 0) return ["BS Computer Science", "BS Information Technology"];
-    return arr;
+    return arr.length === 0
+      ? ["BS Computer Science", "BS Information Technology"]
+      : arr;
   }, [sections]);
 
-  // reset on open
   useEffect(() => {
     if (!open || !student) return;
 
     setStep(1);
     setConfirmOpen(false);
     submittingRef.current = false;
+
+    setShowStep1Errors(false);
+    setShowStep2Errors(false);
+    setShowStep3Errors(false);
 
     const computedName =
       student.studentName ||
@@ -176,16 +167,24 @@ export default function EnrollmentEvaluationModal({
     setProgram(student.academic?.program || "");
     setYearLevel(student.academic?.yearLevel?.toString() || "");
 
-    // ✅ IMPORTANT CHANGE:
-    // Do NOT set studentId from registrationId (application id)
-    // Prefill only if studentIdNumber exists (re-open evaluation)
-    setStudentId(student.studentIdNumber || "");
+    if (student.studentIdNumber?.startsWith(studentIdPrefix)) {
+      const digits = student.studentIdNumber
+        .replace(studentIdPrefix, "")
+        .replace(/\D/g, "")
+        .slice(0, 3);
+
+      setStudentId(digits ? `${studentIdPrefix}${digits}` : studentIdPrefix);
+    } else {
+      setStudentId(studentIdPrefix);
+    }
 
     setNotes("");
     setFinalConfirm(false);
 
     const initialDocs: Record<string, boolean> = {};
-    requiredDocs.forEach((d) => (initialDocs[d] = false));
+    requiredDocs.forEach((d) => {
+      initialDocs[d] = false;
+    });
     setDocsChecked(initialDocs);
   }, [open, student]);
 
@@ -194,34 +193,110 @@ export default function EnrollmentEvaluationModal({
     [docsChecked],
   );
 
-  const step1Valid =
-    fullName.trim() &&
-    studentId.trim() &&
-    program.trim() &&
-    yearLevel.trim() &&
-    email.trim() &&
-    phone.trim() &&
-    address.trim() &&
-    birthdate.trim() &&
-    guardian.trim() &&
-    guardianPhone.trim();
+  const studentIdValid = new RegExp(`^STU-${currentYear}-\\d{3}$`).test(
+    studentId.trim(),
+  );
 
+  const step1Errors = {
+    fullName: !fullName.trim()
+      ? "Full Name is required."
+      : !isValidName(fullName.trim())
+        ? "Full Name contains invalid characters. Use letters, spaces, apostrophes, commas, periods, or hyphens only."
+        : "",
+    studentId: !studentId.trim()
+      ? "Student ID Number is required."
+      : !studentIdValid
+        ? `Student ID Number must follow the format ${studentIdPrefix}###.`
+        : "",
+    program: !program.trim() ? "Course / Program is required." : "",
+    yearLevel: !yearLevel.trim() ? "Year Level is required." : "",
+    email: !email.trim()
+      ? "Email is required."
+      : !isValidEmail(email.trim())
+        ? "Email is invalid. Enter a valid email address like name@example.com."
+        : "",
+    phone: !phone.trim()
+      ? "Phone is required."
+      : !isValidPhone(phone.trim())
+        ? "Phone is invalid. Use 09XXXXXXXXX or +639XXXXXXXXX."
+        : "",
+    address: !address.trim()
+      ? "Address is required."
+      : !isValidAddress(address.trim())
+        ? "Address is too short. Please enter a more complete address."
+        : "",
+    birthdate: !birthdate.trim()
+      ? "Birthdate is required."
+      : !isValidBirthdate(birthdate.trim())
+        ? "Birthdate is invalid. Select a valid date."
+        : "",
+    guardian: !guardian.trim()
+      ? "Guardian is required."
+      : !isValidName(guardian.trim())
+        ? "Guardian name contains invalid characters. Use letters, spaces, apostrophes, commas, periods, or hyphens only."
+        : "",
+    guardianPhone: !guardianPhone.trim()
+      ? "Guardian Phone is required."
+      : !isValidPhone(guardianPhone.trim())
+        ? "Guardian Phone is invalid. Use 09XXXXXXXXX or +639XXXXXXXXX."
+        : "",
+  };
+
+  const step1Valid = Object.values(step1Errors).every((v) => !v);
   const step2Valid = verifiedCount > 0;
   const step3Valid = finalConfirm;
 
+  const fullNameError =
+    showStep1Errors || fullName.trim() ? step1Errors.fullName : "";
+  const studentIdError =
+    showStep1Errors || studentId !== studentIdPrefix ? step1Errors.studentId : "";
+  const programError = showStep1Errors || program.trim() ? step1Errors.program : "";
+  const yearLevelError =
+    showStep1Errors || yearLevel.trim() ? step1Errors.yearLevel : "";
+  const emailError = showStep1Errors || email.trim() ? step1Errors.email : "";
+  const phoneError = showStep1Errors || phone.trim() ? step1Errors.phone : "";
+  const addressError =
+    showStep1Errors || address.trim() ? step1Errors.address : "";
+  const birthdateError =
+    showStep1Errors || birthdate.trim() ? step1Errors.birthdate : "";
+  const guardianError =
+    showStep1Errors || guardian.trim() ? step1Errors.guardian : "";
+  const guardianPhoneError =
+    showStep1Errors || guardianPhone.trim() ? step1Errors.guardianPhone : "";
+
   if (!open || !student) return null;
 
-  const goNext = () => setStep((s) => (s === 1 ? 2 : s === 2 ? 3 : 3));
+  const goNext = () => {
+    if (step === 1) {
+      setShowStep1Errors(true);
+      if (!step1Valid) return;
+      setStep(2);
+      return;
+    }
+
+    if (step === 2) {
+      setShowStep2Errors(true);
+      if (!step2Valid) return;
+      setStep(3);
+    }
+  };
+
   const goBack = () => setStep((s) => (s === 3 ? 2 : 1));
 
   const onEnrollClick = () => {
     if (loading) return;
+
+    setShowStep1Errors(true);
+    setShowStep2Errors(true);
+    setShowStep3Errors(true);
+
     if (!step1Valid || !step2Valid || !step3Valid) return;
+
     setConfirmOpen(true);
   };
 
   const confirmEnroll = async () => {
-    if (submittingRef.current) return;
+    if (submittingRef.current || loading) return;
     submittingRef.current = true;
 
     const verifiedDocs = Object.entries(docsChecked)
@@ -233,10 +308,7 @@ export default function EnrollmentEvaluationModal({
         enrollmentId: student._id,
         updatedInfo: {
           fullName: fullName.trim(),
-
-          // ✅ registrar-entered Student ID number
           studentId: studentId.trim(),
-
           email: email.trim(),
           phone: phone.trim(),
           address: address.trim(),
@@ -245,8 +317,6 @@ export default function EnrollmentEvaluationModal({
           guardianPhone: guardianPhone.trim(),
           program: program.trim(),
           yearLevel: yearLevel.trim(),
-
-          // ✅ use your current behavior, but department should come from a field if you have one
           department: (student.academic?.department || program).trim(),
         },
         notes: notes.trim(),
@@ -271,7 +341,6 @@ export default function EnrollmentEvaluationModal({
       }}
     >
       <div className="enroll-eval-modal" onMouseDown={(e) => e.stopPropagation()}>
-        {/* Header */}
         <div className="enroll-eval-header">
           <div className="fw-bold fs-4">Enrollment Evaluation</div>
           <button
@@ -284,16 +353,29 @@ export default function EnrollmentEvaluationModal({
           </button>
         </div>
 
-        {/* Stepper */}
         <div className="enroll-stepper">
-          <StepItem icon={<User size={18} />} label="Student Info" active={step === 1} done={step > 1} />
+          <StepItem
+            icon={<User size={18} />}
+            label="Student Info"
+            active={step === 1}
+            done={step > 1}
+          />
           <StepLine active={step >= 2} />
-          <StepItem icon={<FileText size={18} />} label="Documents" active={step === 2} done={step > 2} />
+          <StepItem
+            icon={<FileText size={18} />}
+            label="Documents"
+            active={step === 2}
+            done={step > 2}
+          />
           <StepLine active={step >= 3} />
-          <StepItem icon={<MapPin size={18} />} label="Finalize" active={step === 3} done={false} />
+          <StepItem
+            icon={<MapPin size={18} />}
+            label="Finalize"
+            active={step === 3}
+            done={false}
+          />
         </div>
 
-        {/* Body */}
         <div className="enroll-eval-body">
           {step === 1 && (
             <>
@@ -301,30 +383,62 @@ export default function EnrollmentEvaluationModal({
                 Fill in missing info (required) and verify everything is correct.
               </div>
 
-              {/* ✅ helpful info line */}
               <div className="text-muted small mb-3">
-                Application ID: <span className="fw-semibold">{student.registrationId}</span>
+                Application ID:{" "}
+                <span className="fw-semibold">{student.registrationId}</span>
               </div>
 
               <div className="card border-0 shadow-sm">
                 <div className="card-body">
                   <div className="row g-3">
-                    <FieldInput label="Full Name" value={fullName} onChange={setFullName} required />
-
-                    {/* ✅ registrar input Student ID number */}
                     <FieldInput
-                      label="Student ID Number"
-                      value={studentId}
-                      onChange={setStudentId}
+                      label="Full Name"
+                      value={fullName}
+                      onChange={setFullName}
                       required
-                      placeholder="Enter assigned Student ID (ex: 2026-000123)"
+                      error={fullNameError}
                     />
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fw-semibold">
+                        Student ID Number <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        className={`form-control ${studentIdError ? "is-invalid" : ""}`}
+                        value={studentId}
+                        onChange={(e) => {
+                          let value = e.target.value;
+
+                          if (value.startsWith(studentIdPrefix)) {
+                            value = value.replace(studentIdPrefix, "");
+                          }
+
+                          const digits = value.replace(/\D/g, "").slice(0, 3);
+                          const finalValue = digits.length
+                            ? `${studentIdPrefix}${digits}`
+                            : studentIdPrefix;
+
+                          setStudentId(finalValue);
+                        }}
+                        placeholder={`${studentIdPrefix}001`}
+                        inputMode="numeric"
+                      />
+                      {studentIdError ? (
+                        <div className="text-danger small mt-1">
+                          {studentIdError}
+                        </div>
+                      ) : null}
+                    </div>
 
                     <div className="col-12 col-md-6">
                       <label className="form-label fw-semibold">
                         Course / Program <span className="text-danger">*</span>
                       </label>
-                      <select className="form-select" value={program} onChange={(e) => setProgram(e.target.value)}>
+                      <select
+                        className={`form-select ${programError ? "is-invalid" : ""}`}
+                        value={program}
+                        onChange={(e) => setProgram(e.target.value)}
+                      >
                         <option value="">Select course/program...</option>
                         {programOptions.map((p) => (
                           <option key={p} value={p}>
@@ -332,13 +446,22 @@ export default function EnrollmentEvaluationModal({
                           </option>
                         ))}
                       </select>
+                      {programError ? (
+                        <div className="text-danger small mt-1">
+                          {programError}
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="col-12 col-md-6">
                       <label className="form-label fw-semibold">
                         Year Level <span className="text-danger">*</span>
                       </label>
-                      <select className="form-select" value={yearLevel} onChange={(e) => setYearLevel(e.target.value)}>
+                      <select
+                        className={`form-select ${yearLevelError ? "is-invalid" : ""}`}
+                        value={yearLevel}
+                        onChange={(e) => setYearLevel(e.target.value)}
+                      >
                         <option value="">Select year level...</option>
                         {yearOptions.map((y) => (
                           <option key={y} value={y}>
@@ -346,11 +469,36 @@ export default function EnrollmentEvaluationModal({
                           </option>
                         ))}
                       </select>
+                      {yearLevelError ? (
+                        <div className="text-danger small mt-1">
+                          {yearLevelError}
+                        </div>
+                      ) : null}
                     </div>
 
-                    <FieldInput label="Email" value={email} onChange={setEmail} required />
-                    <FieldInput label="Phone" value={phone} onChange={setPhone} required />
-                    <FieldInput label="Address" value={address} onChange={setAddress} required />
+                    <FieldInput
+                      label="Email"
+                      value={email}
+                      onChange={setEmail}
+                      required
+                      error={emailError}
+                    />
+
+                    <FieldInput
+                      label="Phone"
+                      value={phone}
+                      onChange={setPhone}
+                      required
+                      error={phoneError}
+                    />
+
+                    <FieldInput
+                      label="Address"
+                      value={address}
+                      onChange={setAddress}
+                      required
+                      error={addressError}
+                    />
 
                     <div className="col-12 col-md-6">
                       <label className="form-label fw-semibold">
@@ -358,18 +506,38 @@ export default function EnrollmentEvaluationModal({
                       </label>
                       <input
                         type="date"
-                        className="form-control"
+                        className={`form-control ${birthdateError ? "is-invalid" : ""}`}
                         value={birthdate}
                         onChange={(e) => setBirthdate(e.target.value)}
                       />
+                      {birthdateError ? (
+                        <div className="text-danger small mt-1">
+                          {birthdateError}
+                        </div>
+                      ) : null}
                     </div>
 
-                    <FieldInput label="Guardian" value={guardian} onChange={setGuardian} required />
-                    <FieldInput label="Guardian Phone" value={guardianPhone} onChange={setGuardianPhone} required />
+                    <FieldInput
+                      label="Guardian"
+                      value={guardian}
+                      onChange={setGuardian}
+                      required
+                      error={guardianError}
+                    />
+
+                    <FieldInput
+                      label="Guardian Phone"
+                      value={guardianPhone}
+                      onChange={setGuardianPhone}
+                      required
+                      error={guardianPhoneError}
+                    />
                   </div>
 
-                  {!step1Valid ? (
-                    <div className="text-danger small mt-3">Please complete all required fields (*).</div>
+                  {showStep1Errors && !step1Valid ? (
+                    <div className="text-danger small mt-3">
+                      Please fix the highlighted fields before continuing.
+                    </div>
                   ) : null}
                 </div>
               </div>
@@ -392,12 +560,18 @@ export default function EnrollmentEvaluationModal({
                           type="checkbox"
                           className="form-check-input mt-0"
                           checked={checked}
-                          onChange={(e) => setDocsChecked((p) => ({ ...p, [d]: e.target.checked }))}
+                          onChange={(e) =>
+                            setDocsChecked((p) => ({ ...p, [d]: e.target.checked }))
+                          }
                         />
                         <div className="fw-semibold">{d}</div>
                       </div>
 
-                      {checked ? <CheckCircle2 className="text-success" size={18} /> : <span />}
+                      {checked ? (
+                        <CheckCircle2 className="text-success" size={18} />
+                      ) : (
+                        <span />
+                      )}
                     </div>
                   );
                 })}
@@ -411,20 +585,28 @@ export default function EnrollmentEvaluationModal({
                   <div
                     className="progress-bar"
                     role="progressbar"
-                    style={{ width: `${Math.round((verifiedCount / requiredDocs.length) * 100)}%` }}
+                    style={{
+                      width: `${Math.round(
+                        (verifiedCount / requiredDocs.length) * 100,
+                      )}%`,
+                    }}
                   />
                 </div>
               </div>
 
-              {!step2Valid ? (
-                <div className="text-danger small mt-3">Verify at least 1 document to continue.</div>
+              {showStep2Errors && !step2Valid ? (
+                <div className="text-danger small mt-3">
+                  Please verify at least one document before continuing.
+                </div>
               ) : null}
             </>
           )}
 
           {step === 3 && (
             <>
-              <div className="text-muted mb-3">Finalize this evaluation and submit.</div>
+              <div className="text-muted mb-3">
+                Finalize this evaluation and submit.
+              </div>
 
               <div className="mb-3">
                 <label className="form-label fw-semibold">
@@ -448,11 +630,15 @@ export default function EnrollmentEvaluationModal({
                       checked={finalConfirm}
                       onChange={(e) => setFinalConfirm(e.target.checked)}
                     />
-                    <span>I confirm the information and documents are correct.</span>
+                    <span>
+                      I confirm the information and documents are correct.
+                    </span>
                   </label>
 
-                  {!step3Valid ? (
-                    <div className="text-danger small mt-2">Please confirm to enable submission.</div>
+                  {showStep3Errors && !step3Valid ? (
+                    <div className="text-danger small mt-2">
+                      Please check the confirmation box before enrolling.
+                    </div>
                   ) : null}
                 </div>
               </div>
@@ -460,18 +646,25 @@ export default function EnrollmentEvaluationModal({
           )}
         </div>
 
-        {/* Footer */}
         <div className="enroll-eval-footer">
           <div>
             {step > 1 ? (
-              <button className="btn btn-light" onClick={goBack} disabled={loading || confirmOpen}>
+              <button
+                className="btn btn-light"
+                onClick={goBack}
+                disabled={loading || confirmOpen}
+              >
                 Back
               </button>
             ) : null}
           </div>
 
           <div className="d-flex gap-2">
-            <button className="btn btn-light" onClick={onClose} disabled={loading || confirmOpen}>
+            <button
+              className="btn btn-light"
+              onClick={onClose}
+              disabled={loading || confirmOpen}
+            >
               Cancel
             </button>
 
@@ -479,7 +672,7 @@ export default function EnrollmentEvaluationModal({
               <button
                 className="btn btn-primary"
                 onClick={goNext}
-                disabled={loading || confirmOpen || (step === 1 ? !step1Valid : step === 2 ? !step2Valid : false)}
+                disabled={loading || confirmOpen}
               >
                 Next
               </button>
@@ -487,7 +680,7 @@ export default function EnrollmentEvaluationModal({
               <button
                 className="btn btn-primary"
                 onClick={onEnrollClick}
-                disabled={loading || confirmOpen || !step1Valid || !step2Valid || !step3Valid}
+                disabled={loading || confirmOpen}
               >
                 Enroll
               </button>
@@ -495,7 +688,6 @@ export default function EnrollmentEvaluationModal({
           </div>
         </div>
 
-        {/* ✅ CONFIRM POPUP */}
         {confirmOpen ? (
           <div
             className="enroll-confirm-backdrop"
@@ -506,21 +698,35 @@ export default function EnrollmentEvaluationModal({
               if (e.target === e.currentTarget) setConfirmOpen(false);
             }}
           >
-            <div className="enroll-confirm-popup" onMouseDown={(e) => e.stopPropagation()}>
+            <div
+              className="enroll-confirm-popup"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
               <div className="enroll-confirm-title">Confirm Enrollment</div>
 
               <div className="enroll-confirm-body">
-                <div className="fw-semibold mb-1">Enroll this student now?</div>
+                <div className="fw-semibold mb-1">
+                  Are you sure you want to enroll this student?
+                </div>
                 <div className="text-muted small">
-                  This will submit the evaluation and mark the student as processed.
+                  This will submit the evaluation, save the verified details, and
+                  mark the student as enrolled.
                 </div>
               </div>
 
               <div className="enroll-confirm-actions">
-                <button className="btn btn-light" onClick={() => setConfirmOpen(false)}>
+                <button
+                  className="btn btn-light"
+                  onClick={() => setConfirmOpen(false)}
+                  disabled={loading}
+                >
                   Cancel
                 </button>
-                <button className="btn btn-primary" onClick={confirmEnroll} disabled={loading}>
+                <button
+                  className="btn btn-primary"
+                  onClick={confirmEnroll}
+                  disabled={loading}
+                >
                   Yes, Enroll
                 </button>
               </div>
@@ -531,8 +737,6 @@ export default function EnrollmentEvaluationModal({
     </div>
   );
 }
-
-/* ===== helpers ===== */
 
 function StepItem({
   icon,
@@ -563,12 +767,14 @@ function FieldInput({
   onChange,
   required,
   placeholder,
+  error,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   required?: boolean;
   placeholder?: string;
+  error?: string;
 }) {
   return (
     <div className="col-12 col-md-6">
@@ -576,11 +782,12 @@ function FieldInput({
         {label} {required ? <span className="text-danger">*</span> : null}
       </label>
       <input
-        className="form-control"
+        className={`form-control ${error ? "is-invalid" : ""}`}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder || label}
       />
+      {error ? <div className="text-danger small mt-1">{error}</div> : null}
     </div>
   );
 }

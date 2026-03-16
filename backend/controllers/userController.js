@@ -231,21 +231,34 @@ export const getStudentUsers = async (req, res) => {
       else filter.status = "inactive";
     }
 
-    const search = String(q).trim();
-    if (search) {
-      filter.$or = [
-        { idNumber: { $regex: search, $options: "i" } },
-        { firstName: { $regex: search, $options: "i" } },
-        { lastName: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-      ];
-    }
-
-    const users = await User.find(filter)
-      .select("firstName middleName lastName idNumber email status department role")
+    const docs = await User.find(filter)
+      .select(
+        "firstName middleName lastName idNumber email status department role",
+      )
       .sort({ createdAt: -1 });
 
-    const rows = users.map((u) => {
+    // Force getters so encrypted fields become plaintext here
+    const users = docs.map((doc) => doc.toObject({ getters: true }));
+
+    const search = String(q).trim().toLowerCase();
+
+    const filteredUsers = !search
+      ? users
+      : users.filter((u) => {
+          const fullName = `${u.firstName} ${
+            u.middleName ? u.middleName + " " : ""
+          }${u.lastName}`.trim();
+
+          return (
+            String(u.idNumber || "").toLowerCase().includes(search) ||
+            String(u.firstName || "").toLowerCase().includes(search) ||
+            String(u.lastName || "").toLowerCase().includes(search) ||
+            String(u.email || "").toLowerCase().includes(search) ||
+            fullName.toLowerCase().includes(search)
+          );
+        });
+
+    const rows = filteredUsers.map((u) => {
       const fullName = `${u.firstName} ${
         u.middleName ? u.middleName + " " : ""
       }${u.lastName}`.trim();

@@ -1,12 +1,11 @@
 import { ClipboardCheck } from "lucide-react";
+import type { EnrollmentItem } from "./types";
 
-type EnrollmentItem = {
-  _id: string;
-  registrationId: string;
-  studentName?: string;
-  status: "Scheduled" | "Enrolled" | "Cancelled";
-  personal?: { firstName?: string; lastName?: string };
-  academic?: { program?: string; yearLevel?: string | number };
+type Props = {
+  items: EnrollmentItem[];
+  loading: boolean;
+  titleCount: number;
+  onEvaluate: (item: EnrollmentItem) => void;
 };
 
 export default function PendingEnrollmentList({
@@ -14,12 +13,7 @@ export default function PendingEnrollmentList({
   loading,
   titleCount,
   onEvaluate,
-}: {
-  items: EnrollmentItem[];
-  loading: boolean;
-  titleCount: number;
-  onEvaluate: (item: EnrollmentItem) => void;
-}) {
+}: Props) {
   const hasItems = items.length > 0;
 
   return (
@@ -54,8 +48,8 @@ export default function PendingEnrollmentList({
                 program && yearLevel
                   ? `${program} • Year ${yearLevel}`
                   : program
-                  ? program
-                  : "";
+                    ? program
+                    : "";
 
               return (
                 <div key={s._id} className="enroll-student-row">
@@ -72,6 +66,7 @@ export default function PendingEnrollmentList({
                   </div>
 
                   <button
+                    type="button"
                     className="btn enroll-eval-btn"
                     onClick={() => onEvaluate(s)}
                   >
@@ -83,12 +78,11 @@ export default function PendingEnrollmentList({
             })}
           </div>
         ) : (
-          // ✅ Empty state (like UsersPage)
           <div className="users-empty-state">
             <div className="users-empty-icon">📭</div>
             <h5 className="fw-semibold mb-1">No pending students</h5>
             <p className="text-muted mb-0">
-              You're all caught up. Pending evaluations will appear here.
+              You&apos;re all caught up. Pending evaluations will appear here.
             </p>
           </div>
         )}

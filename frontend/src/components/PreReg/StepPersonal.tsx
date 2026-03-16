@@ -45,13 +45,47 @@ export default function StepPersonal({
 
   const sanitizeEmail = (v: string) => normalizeText(v).slice(0, 120);
 
-  const sanitizePhone = (v: string) => v.replace(/[^\d]/g, "").slice(0, 11);
+  const sanitizePhone = (v: string) => {
+    const digits = String(v || "").replace(/\D/g, "");
 
+    if (!digits) return "";
+
+    if (digits.startsWith("639")) {
+      return `+${digits.slice(0, 12)}`;
+    }
+
+    if (digits.startsWith("09")) {
+      return `+63${digits.slice(1, 11)}`;
+    }
+
+    if (digits.startsWith("9")) {
+      return `+63${digits.slice(0, 10)}`;
+    }
+
+    if (digits.startsWith("63")) {
+      return `+${digits.slice(0, 12)}`;
+    }
+
+    return `+639${digits.slice(0, 9)}`.slice(0, 13);
+  };
+
+  // preserve spaces while typing
   const sanitizeAddress = (v: string) => {
-    let s = normalizeText(v);
-    s = s.replace(/[$`{}<>]/g, "");
+    let s = String(v || "")
+      .replace(/[\u0000-\u001F\u007F]/g, "")
+      .replace(/[$`{}<>]/g, "");
+
     return s.slice(0, 200);
   };
+
+  // normalize only when user leaves the field
+  const normalizeAddressOnBlur = (v: string) =>
+    String(v || "")
+      .replace(/[\u0000-\u001F\u007F]/g, "")
+      .replace(/[$`{}<>]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 200);
 
   const capitalizeWords = (val: string) =>
     val.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
@@ -61,41 +95,35 @@ export default function StepPersonal({
   const isValidEmail = (raw: string) => {
     const v = raw.trim();
 
-    // quick rejects
     if (!v || v.length > 120) return false;
-    if (/\s/.test(v)) return false; // no spaces
-    if (v.includes("..")) return false; // no double dots
+    if (/\s/.test(v)) return false;
+    if (v.includes("..")) return false;
 
-    // must contain exactly 1 "@"
     const parts = v.split("@");
     if (parts.length !== 2) return false;
 
     const [local, domain] = parts;
 
-    // local part rules (simple + safe)
     if (!local || local.length > 64) return false;
     if (!/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(local)) return false;
     if (local.startsWith(".") || local.endsWith(".")) return false;
 
-    // domain rules
     if (!domain || domain.length > 255) return false;
     if (!/^[a-zA-Z0-9.-]+$/.test(domain)) return false;
-    if (!domain.includes(".")) return false; // must have TLD
+    if (!domain.includes(".")) return false;
     if (domain.startsWith("-") || domain.endsWith("-")) return false;
 
-    // each label check (e.g. "gmail", "com")
     const labels = domain.split(".");
     if (labels.some((x) => !x || x.length > 63)) return false;
     if (labels.some((x) => x.startsWith("-") || x.endsWith("-"))) return false;
 
-    // TLD at least 2 letters
     const tld = labels[labels.length - 1];
     if (!/^[a-zA-Z]{2,}$/.test(tld)) return false;
 
     return true;
   };
 
-  const isValidPHPhone = (v: string) => /^09\d{9}$/.test(v.trim());
+  const isValidPHPhone = (v: string) => /^\+639\d{9}$/.test(v.trim());
 
   const isValidName = (v: string) => /^[a-zA-Z\s'.-]+$/.test(v.trim());
 
@@ -128,13 +156,14 @@ export default function StepPersonal({
 
       case "email":
         if (!val.trim()) return "Email is required.";
-        if (!isValidEmail(val))
+        if (!isValidEmail(val)) {
           return "Enter a valid email (e.g. name@gmail.com).";
+        }
         break;
 
       case "phone":
         if (!val.trim()) return "Phone number is required.";
-        if (!isValidPHPhone(val)) return "Format: 09XXXXXXXXX.";
+        if (!isValidPHPhone(val)) return "Format: +639XXXXXXXXX.";
         break;
 
       case "birthDate":
@@ -195,15 +224,46 @@ export default function StepPersonal({
 
   const onBlurField = (k: keyof PersonalInfo) => {
     setTouched((prev) => ({ ...prev, [k]: true }));
-    const msg = validateField(k, (value as any)[k] ?? "");
+
+    let fieldValue = (value as any)[k] ?? "";
+
+    if (k === "phone") {
+      fieldValue = sanitizePhone(fieldValue);
+      if (fieldValue !== value.phone) {
+        onChange({ ...value, phone: fieldValue });
+      }
+    }
+
+    if (k === "address") {
+      fieldValue = normalizeAddressOnBlur(fieldValue);
+      if (fieldValue !== value.address) {
+        onChange({ ...value, address: fieldValue });
+      }
+    }
+
+    const msg = validateField(k, fieldValue);
     setLocalErrors((prev) => ({ ...prev, [k]: msg }));
   };
 
-  const invalid = (k: keyof PersonalInfo) =>
-    (submitted || touched[k]) && !!(localErrors[k] || externalErrors[k]);
+  const invalid = (k: keyof PersonalInfo) => {
+    if (!(submitted || touched[k])) return false;
 
-  const getError = (k: keyof PersonalInfo) =>
-    localErrors[k] || externalErrors[k] || "";
+    if (localErrors[k]) return true;
+
+    if (k === "phone" && isValidPHPhone(value.phone || "")) return false;
+
+    return !!externalErrors[k];
+  };
+
+  const getError = (k: keyof PersonalInfo) => {
+    if (localErrors[k]) return localErrors[k] || "";
+
+    if (k === "phone" && isValidPHPhone(value.phone || "")) {
+      return "";
+    }
+
+    return externalErrors[k] || "";
+  };
 
   const inputClass = (k: keyof PersonalInfo) =>
     `form-control ${invalid(k) ? "is-invalid" : ""}`;
@@ -225,7 +285,7 @@ export default function StepPersonal({
         width: 22,
         height: 22,
         borderRadius: 6,
-        background: "rgba(148, 163, 184, 0.15)", // subtle slate
+        background: "rgba(148, 163, 184, 0.15)",
       }}
     >
       {children}
@@ -247,7 +307,6 @@ export default function StepPersonal({
       </div>
 
       <div className="row g-3">
-        {/* First Name */}
         <div className="col-12 col-md-4">
           <label className={labelClass("firstName")}>
             <LabelIcon>
@@ -267,7 +326,6 @@ export default function StepPersonal({
           </div>
         </div>
 
-        {/* Middle Name */}
         <div className="col-12 col-md-4">
           <label className="form-label d-flex align-items-center gap-2">
             <LabelIcon>
@@ -284,7 +342,6 @@ export default function StepPersonal({
           <div className="invalid-feedback d-block">&nbsp;</div>
         </div>
 
-        {/* Last Name */}
         <div className="col-12 col-md-4">
           <label className={labelClass("lastName")}>
             <LabelIcon>
@@ -304,7 +361,6 @@ export default function StepPersonal({
           </div>
         </div>
 
-        {/* Email */}
         <div className="col-12 col-md-6">
           <label className={labelClass("email")}>
             <LabelIcon>
@@ -325,7 +381,6 @@ export default function StepPersonal({
           </div>
         </div>
 
-        {/* Phone */}
         <div className="col-12 col-md-6">
           <label className={labelClass("phone")}>
             <LabelIcon>
@@ -335,8 +390,8 @@ export default function StepPersonal({
           </label>
           <input
             className={inputClass("phone")}
-            value={value.phone}
-            placeholder="09XXXXXXXXX"
+            value={value.phone || ""}
+            placeholder="Enter phone number"
             inputMode="numeric"
             onChange={(e) => set("phone", e.target.value)}
             onBlur={() => onBlurField("phone")}
@@ -346,7 +401,6 @@ export default function StepPersonal({
           </div>
         </div>
 
-        {/* Birth Date */}
         <div className="col-12 col-md-6">
           <label className={labelClass("birthDate")}>
             <LabelIcon>
@@ -366,7 +420,6 @@ export default function StepPersonal({
           </div>
         </div>
 
-        {/* Gender */}
         <div className="col-12 col-md-6">
           <label className={labelClass("gender")}>
             <LabelIcon>
@@ -390,7 +443,6 @@ export default function StepPersonal({
           </div>
         </div>
 
-        {/* Address */}
         <div className="col-12">
           <label className={labelClass("address")}>
             <LabelIcon>

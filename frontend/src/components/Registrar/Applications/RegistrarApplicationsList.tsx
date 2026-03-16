@@ -6,6 +6,8 @@ type Props = {
   title: string;
   items: ApplicationRow[];
   onReview: (id: string) => void;
+  onArchive: (id: string) => void;
+  onUnarchive: (id: string) => void;
   selectedApprovedIds: Set<string>;
   onToggleApproved: (id: string) => void;
   onDeselectAllApproved: () => void;
@@ -16,12 +18,13 @@ export default function RegistrarApplicationsList({
   title,
   items,
   onReview,
+  onArchive,
+  onUnarchive,
   selectedApprovedIds,
   onToggleApproved,
   onDeselectAllApproved,
   onSendSchedule,
 }: Props) {
-  // ✅ count only selectable approved students (not schedule sent)
   const selectedCount = items.filter(
     (a) =>
       a.status === "Approved" &&
@@ -56,6 +59,8 @@ export default function RegistrarApplicationsList({
                 key={a.id}
                 item={a}
                 onReview={onReview}
+                onArchive={onArchive}
+                onUnarchive={onUnarchive}
                 isApprovedSelected={
                   a.status === "Approved" &&
                   !a.scheduleSent &&
@@ -66,7 +71,6 @@ export default function RegistrarApplicationsList({
               />
             ))
           ) : (
-            // ✅ Empty state like UsersPage
             <div className="users-empty-state py-5">
               <div className="users-empty-icon">📭</div>
               <h5 className="fw-semibold mb-1">No applications found</h5>

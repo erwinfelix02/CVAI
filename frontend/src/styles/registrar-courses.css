@@ -274,3 +274,46 @@
   gap: 10px;
   border-top: 1px solid #eef2f7;
 }
+.table-action-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1.5px solid #d9dee7;
+  color: #1f2937;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.table-action-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.table-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.edit-action-btn {
+  border-color: #d9dee7;
+  color: #111827;
+}
+
+.edit-action-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.delete-action-btn {
+  border-color: #f3b3b3;
+  color: #ef4444;
+}
+
+.delete-action-btn:hover:not(:disabled) {
+  background: #fff5f5;
+  border-color: #ef4444;
+}

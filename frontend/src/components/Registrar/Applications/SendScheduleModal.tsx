@@ -13,7 +13,7 @@ type Props = {
     time: string;
     location: string;
     notes: string;
-  }) => Promise<void> | void; // ✅ allow async submit
+  }) => Promise<void> | void;
 };
 
 export default function SendScheduleModal({
@@ -27,13 +27,12 @@ export default function SendScheduleModal({
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
 
-  const [sending, setSending] = useState(false); // ✅
-  const [error, setError] = useState<string | null>(null); // ✅
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const count = students.length;
   const title = useMemo(() => "Send Enrollment Schedule", []);
 
-  // ✅ reset form every time modal opens
   useEffect(() => {
     if (open) {
       setDate("");
@@ -60,8 +59,7 @@ export default function SendScheduleModal({
         notes,
       });
 
-      // ✅ close after successful send
-      onClose();
+      // parent handles close + success alert
     } catch (e) {
       console.error(e);
       setError((e as Error).message || "Failed to send schedule");
@@ -73,7 +71,6 @@ export default function SendScheduleModal({
   return (
     <div className="rs-modal-backdrop" role="dialog" aria-modal="true">
       <div className="rs-modal" role="document">
-        {/* Header */}
         <div className="rs-modal-header">
           <div className="rs-modal-title">
             <Calendar size={18} />
@@ -90,7 +87,6 @@ export default function SendScheduleModal({
           </button>
         </div>
 
-        {/* Body */}
         <div className="rs-modal-body">
           <p className="rs-muted">
             Send an enrollment schedule notification to <b>{count}</b> selected
@@ -106,7 +102,6 @@ export default function SendScheduleModal({
             ))}
           </div>
 
-          {/* ✅ show error */}
           {error && (
             <div style={{ marginTop: 10, color: "crimson", fontSize: 14 }}>
               {error}
@@ -169,7 +164,6 @@ export default function SendScheduleModal({
           </div>
         </div>
 
-        {/* Footer */}
         <div className="rs-modal-footer">
           <button
             className="rs-btn rs-btn-ghost"

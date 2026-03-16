@@ -17,7 +17,6 @@ import type { QuickActionItem } from "../../components/Registrar/Dashboard/Quick
 import RecentApplicationsCard from "../../components/Registrar/Dashboard/RecentApplicationsCard";
 import type { RecentApplication } from "../../components/Registrar/Dashboard/RecentApplicationsCard";
 
-import EnrollmentStatusCard from "../../components/Registrar/Dashboard/EnrollmentStatusCard";
 import AIInsightsCard from "../../components/Registrar/Dashboard/AIInsightsCard";
 
 import ProtectedLayout from "../../layouts/ProtectedLayout";
@@ -26,6 +25,7 @@ import "../../styles/registrar-dashboard.css";
 export default function RegistrarDashboard() {
   const quickRef = useRef<HTMLDivElement | null>(null);
   const recentRef = useRef<HTMLDivElement | null>(null);
+
   const [totalStudents, setTotalStudents] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [recent, setRecent] = useState<RecentApplication[]>([]);
@@ -54,6 +54,7 @@ export default function RegistrarDashboard() {
 
     fetchEnrollmentCounts();
   }, []);
+
   useEffect(() => {
     const fetchTotalStudents = async () => {
       try {
@@ -68,17 +69,21 @@ export default function RegistrarDashboard() {
 
     fetchTotalStudents();
   }, []);
-  // 🔥 Sync Recent Applications height to Quick Actions (ONLY on LG+)
+
+  // Sync heights of Quick Actions and Recent Applications
   useEffect(() => {
     if (!quickRef.current || !recentRef.current) return;
 
     const syncHeight = () => {
       const isLgUp = window.matchMedia("(min-width: 992px)").matches;
+
       if (!isLgUp) {
         recentRef.current!.style.height = "auto";
         return;
       }
-      recentRef.current!.style.height = quickRef.current!.offsetHeight + "px";
+
+      recentRef.current!.style.height =
+        quickRef.current!.offsetHeight + "px";
     };
 
     syncHeight();
@@ -94,12 +99,11 @@ export default function RegistrarDashboard() {
     };
   }, []);
 
-  // ✅ Pending count
   useEffect(() => {
     const fetchPending = async () => {
       try {
         const res = await fetch(
-          "http://localhost:5000/api/preregistrations/pending-count",
+          "http://localhost:5000/api/preregistrations/pending-count"
         );
         const data = await res.json();
         setPendingCount(data.count);
@@ -142,7 +146,7 @@ export default function RegistrarDashboard() {
         tone: "red",
       },
     ],
-    [pendingCount, totalStudents, enrollmentCounts],
+    [pendingCount, totalStudents, enrollmentCounts]
   );
 
   const quickActions: QuickActionItem[] = [
@@ -162,12 +166,11 @@ export default function RegistrarDashboard() {
     },
   ];
 
-  // ✅ Recent preregistrations
   useEffect(() => {
     const fetchRecent = async () => {
       try {
         const res = await fetch(
-          "http://localhost:5000/api/preregistrations/recent",
+          "http://localhost:5000/api/preregistrations/recent"
         );
         const data = await res.json();
 
@@ -192,6 +195,7 @@ export default function RegistrarDashboard() {
   return (
     <ProtectedLayout>
       <div className="registrar-dashboard">
+
         {/* Header */}
         <div className="mb-3 mb-md-4">
           <h2 className="fw-bold mb-1">Registrar Dashboard</h2>
@@ -209,15 +213,9 @@ export default function RegistrarDashboard() {
           ))}
         </div>
 
-        {/* ✅ AI Insights FULL WIDTH under stats */}
+        {/* Quick Actions + Recent Applications */}
         <div className="row g-3 g-md-4 mb-3 mb-md-4">
-          <div className="col-12">
-            <AIInsightsCard />
-          </div>
-        </div>
 
-        {/* Middle row */}
-        <div className="row g-3 g-md-4 mb-3 mb-md-4">
           <div className="col-12 col-lg-4">
             <div ref={quickRef}>
               <QuickActionsCard title="Quick Actions" items={quickActions} />
@@ -233,20 +231,16 @@ export default function RegistrarDashboard() {
               items={recent}
             />
           </div>
+
         </div>
 
-        {/* Enrollment status */}
+        {/* AI Insights (moved here) */}
         <div className="row g-3 g-md-4">
           <div className="col-12">
-            <EnrollmentStatusCard
-              title="Enrollment Period Status"
-              started="Jan 5, 2024"
-              deadline="Feb 15, 2024"
-              percent={65}
-              rightLabel="65% Complete"
-            />
+            <AIInsightsCard />
           </div>
         </div>
+
       </div>
     </ProtectedLayout>
   );

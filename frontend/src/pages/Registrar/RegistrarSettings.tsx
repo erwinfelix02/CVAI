@@ -11,7 +11,6 @@ import {
   Calendar,
   RefreshCw,
   FileText,
-  Bell,
   Settings,
   TriangleAlert,
   X,
@@ -20,15 +19,10 @@ import {
 type FormState = {
   academicYear: string;
   semester: string;
-
   enrollmentOpen: boolean;
   maxStudentsPerSection: number;
-
   processingDays: number;
   autoApproveSimpleDocs: boolean;
-
-  emailNotifications: boolean;
-  smsNotifications: boolean;
 };
 
 const API_URL = "http://localhost:5000/api/registrar/settings";
@@ -36,15 +30,10 @@ const API_URL = "http://localhost:5000/api/registrar/settings";
 const DEFAULT_FORM: FormState = {
   academicYear: "2023-2024",
   semester: "2nd Semester",
-
   enrollmentOpen: true,
   maxStudentsPerSection: 45,
-
   processingDays: 5,
   autoApproveSimpleDocs: false,
-
-  emailNotifications: true,
-  smsNotifications: false,
 };
 
 export default function RegistrarSettings() {
@@ -67,9 +56,12 @@ export default function RegistrarSettings() {
   );
 
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
+  const [savedForm, setSavedForm] = useState<FormState>(DEFAULT_FORM);
+
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
@@ -90,25 +82,8 @@ export default function RegistrarSettings() {
     return () => clearTimeout(t);
   }, [animateAlert]);
 
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !saving) {
-        setConfirmOpen(false);
-      }
-    };
-
-    if (confirmOpen) {
-      document.body.style.overflow = "hidden";
-      window.addEventListener("keydown", handleEscape);
-    }
-
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, [confirmOpen, saving]);
-
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    if (!isEditing) return;
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -121,35 +96,29 @@ export default function RegistrarSettings() {
         const res = await fetch(API_URL);
         const data = await res.json();
 
-        if (!res.ok) {
-          console.error("Failed to load settings:", data);
-          if (alive) setForm(DEFAULT_FORM);
-          showAlert(data?.message || "Failed to load settings", "error");
-          return;
-        }
-
         const loaded: FormState = {
           academicYear: data.academicYear ?? DEFAULT_FORM.academicYear,
           semester: data.semester ?? DEFAULT_FORM.semester,
-
           enrollmentOpen: !!data.enrollmentOpen,
           maxStudentsPerSection: Number(
             data.maxStudentsPerSection ?? DEFAULT_FORM.maxStudentsPerSection,
           ),
-
           processingDays: Number(
             data.processingDays ?? DEFAULT_FORM.processingDays,
           ),
           autoApproveSimpleDocs: !!data.autoApproveSimpleDocs,
-
-          emailNotifications: !!data.emailNotifications,
-          smsNotifications: !!data.smsNotifications,
         };
 
-        if (alive) setForm(loaded);
+        if (alive) {
+          setForm(loaded);
+          setSavedForm(loaded);
+        }
       } catch (err) {
-        console.error("Failed to load registrar settings", err);
-        if (alive) setForm(DEFAULT_FORM);
+        console.error(err);
+        if (alive) {
+          setForm(DEFAULT_FORM);
+          setSavedForm(DEFAULT_FORM);
+        }
         showAlert("Server error loading settings", "error");
       } finally {
         if (alive) setLoading(false);
@@ -173,12 +142,7 @@ export default function RegistrarSettings() {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        showAlert(data?.message || "Failed to save settings", "error");
-        return;
-      }
-
-      setForm({
+      const updated: FormState = {
         academicYear: data.academicYear ?? form.academicYear,
         semester: data.semester ?? form.semester,
         enrollmentOpen: !!data.enrollmentOpen,
@@ -187,11 +151,13 @@ export default function RegistrarSettings() {
         ),
         processingDays: Number(data.processingDays ?? form.processingDays),
         autoApproveSimpleDocs: !!data.autoApproveSimpleDocs,
-        emailNotifications: !!data.emailNotifications,
-        smsNotifications: !!data.smsNotifications,
-      });
+      };
 
+      setForm(updated);
+      setSavedForm(updated);
+      setIsEditing(false);
       setConfirmOpen(false);
+
       showAlert("Settings saved successfully!", "success");
     } catch (err) {
       console.error(err);
@@ -201,14 +167,18 @@ export default function RegistrarSettings() {
     }
   };
 
-  const handleAskSave = () => {
-    if (saving || loading) return;
-    setConfirmOpen(true);
+  const handleCancelEdit = () => {
+    setForm(savedForm);
+    setIsEditing(false);
   };
 
-  const handleCloseConfirm = () => {
-    if (saving) return;
-    setConfirmOpen(false);
+  const handleAskSave = () => {
+    if (!isEditing) {
+      setIsEditing(true);
+      return;
+    }
+
+    setConfirmOpen(true);
   };
 
   return (
@@ -220,35 +190,33 @@ export default function RegistrarSettings() {
         loading={saving}
       />
 
-      <div className="rs-page py-4 py-md-5">
-        <div className="container">
-          <div className="d-flex align-items-start gap-3 mb-4">
-            <div
-              className="d-flex align-items-center justify-content-center"
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 14,
-                background: "#ffffff",
-                border: "1px solid #e9ecef",
-              }}
-              aria-hidden="true"
-            >
-              <Settings size={20} />
-            </div>
-
-            <div className="min-w-0">
-              <h1 className="rs-page-title h3 mb-1">Registrar Settings</h1>
-              <div className="rs-subtitle">
-                Configure enrollment and document processing settings
-              </div>
-            </div>
+      <div className="registrar-settings-page">
+        <div className="d-flex align-items-start gap-3 mb-3 mb-md-4">
+          <div
+            className="d-flex align-items-center justify-content-center"
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              background: "#ffffff",
+              border: "1px solid #e9ecef",
+              flexShrink: 0,
+            }}
+          >
+            <Settings size={20} />
           </div>
 
-          {loading ? (
-            <div className="alert alert-info">Loading settings...</div>
-          ) : null}
+          <div>
+            <h2 className="fw-bold mb-1">Registrar Settings</h2>
+            <p className="text-muted mb-0">
+              Configure enrollment and document processing settings
+            </p>
+          </div>
+        </div>
 
+        {loading && <div className="alert alert-info">Loading settings...</div>}
+
+        <div style={{ pointerEvents: isEditing ? "auto" : "none" }}>
           <div className="row g-4">
             <div className="col-12 col-lg-6">
               <SettingsSectionCard
@@ -300,77 +268,55 @@ export default function RegistrarSettings() {
               </SettingsSectionCard>
             </div>
 
-            <div className="col-12 col-lg-6">
+            <div className="col-12">
               <SettingsSectionCard
                 icon={<FileText size={20} />}
                 title="Document Processing"
                 subtitle="Configure document request settings"
               >
-                <NumberField
-                  id="processingDays"
-                  label="Processing Days"
-                  value={form.processingDays}
-                  min={0}
-                  onChange={(v) => update("processingDays", v)}
-                  helpText="Number of working days to process documents"
-                />
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <NumberField
+                      id="processingDays"
+                      label="Processing Days"
+                      value={form.processingDays}
+                      min={0}
+                      onChange={(v) => update("processingDays", v)}
+                      helpText="Number of working days to process documents"
+                    />
+                  </div>
 
-                <div className="rs-divider" />
-
-                <SwitchField
-                  id="autoApproveSimpleDocs"
-                  label="Auto-approve Simple Documents"
-                  description="Certificates of enrollment, etc."
-                  checked={form.autoApproveSimpleDocs}
-                  onChange={(v) => update("autoApproveSimpleDocs", v)}
-                />
-              </SettingsSectionCard>
-            </div>
-
-            <div className="col-12 col-lg-6">
-              <SettingsSectionCard
-                icon={<Bell size={20} />}
-                title="Notifications"
-                subtitle="Manage notification preferences"
-              >
-                <SwitchField
-                  id="emailNotifications"
-                  label="Email Notifications"
-                  description="Send email updates to students"
-                  checked={form.emailNotifications}
-                  onChange={(v) => update("emailNotifications", v)}
-                />
-
-                <div className="rs-divider" />
-
-                <SwitchField
-                  id="smsNotifications"
-                  label="SMS Notifications"
-                  description="Send SMS for urgent updates"
-                  checked={form.smsNotifications}
-                  onChange={(v) => update("smsNotifications", v)}
-                />
+                  <div className="col-md-6">
+                    <SwitchField
+                      id="autoApproveSimpleDocs"
+                      label="Auto-approve Simple Documents"
+                      description="Certificates of enrollment, etc."
+                      checked={form.autoApproveSimpleDocs}
+                      onChange={(v) => update("autoApproveSimpleDocs", v)}
+                    />
+                  </div>
+                </div>
               </SettingsSectionCard>
             </div>
           </div>
         </div>
 
         <div className="rs-savebar mt-4">
-          <div className="container py-3 d-flex justify-content-end gap-2">
-            <button
-              className="btn btn-outline-secondary btn-lg"
-              onClick={() => setForm(DEFAULT_FORM)}
-              disabled={saving || loading}
-            >
-              Reset
-            </button>
+          <div className="py-3 d-flex justify-content-end gap-2">
+            {isEditing && (
+              <button
+                className="btn btn-outline-secondary btn-lg"
+                onClick={handleCancelEdit}
+              >
+                Cancel
+              </button>
+            )}
 
             <button
               className="btn btn-lg px-4 rs-save-btn"
               onClick={handleAskSave}
-              disabled={saving || loading}
             >
-              {saving ? "Saving..." : "Save Settings"}
+              {!isEditing ? "Edit" : saving ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </div>
@@ -379,17 +325,15 @@ export default function RegistrarSettings() {
       {confirmOpen && (
         <div
           className="registrar-settings-confirm-backdrop"
-          onClick={handleCloseConfirm}
+          onClick={() => setConfirmOpen(false)}
         >
           <div
             className="registrar-settings-confirm-modal"
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              type="button"
               className="registrar-settings-confirm-close"
-              onClick={handleCloseConfirm}
-              disabled={saving}
+              onClick={() => setConfirmOpen(false)}
             >
               <X size={18} />
             </button>
@@ -398,29 +342,22 @@ export default function RegistrarSettings() {
               <TriangleAlert size={22} />
             </div>
 
-            <h5 className="fw-bold mb-2 text-center">Confirm Save</h5>
+            <h5 className="fw-bold text-center">Confirm Save</h5>
 
-            <p className="text-muted text-center mb-0">
-              Are you sure you want to save the changes to registrar settings?
+            <p className="text-muted text-center">
+              Are you sure you want to save the changes?
             </p>
 
             <div className="registrar-settings-confirm-actions">
               <button
-                type="button"
                 className="btn btn-light border"
-                onClick={handleCloseConfirm}
-                disabled={saving}
+                onClick={() => setConfirmOpen(false)}
               >
                 Cancel
               </button>
 
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={onSave}
-                disabled={saving}
-              >
-                {saving ? "Saving..." : "Yes, Save"}
+              <button className="btn btn-primary" onClick={onSave}>
+                Yes, Save
               </button>
             </div>
           </div>

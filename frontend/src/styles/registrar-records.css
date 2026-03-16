@@ -11,6 +11,7 @@
   border-radius: 14px;
   padding: 10px 16px;
 }
+
 .registrar-records {
   display: flex;
   flex-direction: column;
@@ -26,11 +27,12 @@
 }
 
 /* =========================
-   Filters (compact)
+   Filters
 ========================= */
 .registrar-filters-body {
   padding: 10px 12px !important;
 }
+
 @media (min-width: 768px) {
   .registrar-filters-body {
     padding: 12px 14px !important;
@@ -42,26 +44,31 @@
   border-radius: 14px 0 0 14px;
   padding: 8px 10px;
 }
+
 .registrar-search .form-control {
   border-left: 0;
   border-radius: 0 14px 14px 0;
   height: 42px;
   padding: 8px 10px;
 }
+
 .registrar-search .form-control:focus {
   box-shadow: none;
 }
 
-/* dropdown pills (All Status / All Courses) */
+/* fixed filter width on desktop so they do not stretch */
 .registrar-pill-select {
   position: relative;
-  min-width: 220px;
+  width: 180px;
+  flex: 0 0 180px;
 }
+
 .registrar-pill-select .form-select {
   border-radius: 14px;
   height: 42px;
   padding-right: 36px;
 }
+
 .registrar-pill-select .caret {
   position: absolute;
   right: 12px;
@@ -71,9 +78,11 @@
   pointer-events: none;
 }
 
-@media (max-width: 991.98px) {
+/* make filters full width on smaller screens */
+@media (max-width: 1199.98px) {
   .registrar-pill-select {
     width: 100%;
+    flex: 1 1 auto;
     min-width: 0;
   }
 }
@@ -124,11 +133,13 @@
   background: rgba(34, 197, 94, 0.12);
   border-color: rgba(34, 197, 94, 0.35);
 }
+
 .registrar-status.dropped {
   color: #b91c1c;
-  background: rgba(239, 68, 68, 0.10);
+  background: rgba(239, 68, 68, 0.1);
   border-color: rgba(239, 68, 68, 0.28);
 }
+
 .registrar-status.graduated {
   color: #1d4ed8;
   background: rgba(59, 130, 246, 0.12);
@@ -141,6 +152,347 @@
   line-height: 1;
   color: #0f172a;
 }
+
 .registrar-dots:hover {
   color: #111827;
+}
+
+.registrar-dots {
+  font-size: 22px;
+  line-height: 1;
+  text-decoration: none !important;
+  color: #212529;
+  border: none;
+  background: transparent;
+}
+
+/* Dropdown container */
+.student-actions-menu {
+  width: 190px;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 6px;
+  z-index: 99999;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Menu item */
+.student-actions-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #212529;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.15s ease;
+}
+
+.student-actions-item:hover {
+  background: #f3f4f6;
+}
+
+.student-actions-icon {
+  flex-shrink: 0;
+}
+
+.student-actions-item-danger {
+  color: #dc3545;
+}
+
+.student-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: #f3f4f6;
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.student-profile-avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 999px;
+  background: #dbe3ea;
+  color: #0f4c75;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 2rem;
+}
+
+.student-profile-main {
+  min-width: 0;
+}
+
+.student-profile-name {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.student-profile-id {
+  color: #6b7280;
+  font-size: 1.15rem;
+}
+/* =========================
+   Export modal
+========================= */
+.registrar-export-modal-backdrop,
+.registrar-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 2000;
+}
+
+.registrar-export-modal {
+  width: 100%;
+  max-width: 640px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+  overflow: hidden;
+}
+
+.registrar-export-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 14px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.registrar-export-modal-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #eff6ff;
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.registrar-export-modal-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #f8fafc;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #475569;
+}
+
+.registrar-export-modal-close:hover {
+  background: #eef2f7;
+}
+
+.registrar-export-modal-body {
+  padding: 18px 22px;
+}
+
+.registrar-export-options {
+  display: grid;
+  gap: 12px;
+}
+
+.registrar-export-option {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  text-align: left;
+  border-radius: 14px;
+  padding: 14px 16px;
+  transition: all 0.18s ease;
+}
+
+.registrar-export-option:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.registrar-export-option.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: inset 0 0 0 1px #2563eb;
+}
+
+.registrar-export-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 22px 22px;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* =========================
+   Confirm modal
+========================= */
+.registrar-confirm-modal {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+  padding: 24px;
+}
+
+.registrar-confirm-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.registrar-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+@media (max-width: 576px) {
+  .registrar-export-modal-footer,
+  .registrar-confirm-actions {
+    flex-direction: column;
+  }
+
+  .registrar-export-modal-footer .btn,
+  .registrar-confirm-actions .btn {
+    width: 100%;
+  }
+}
+.registrar-confirm-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+.registrar-confirm-modal {
+  background: #fff;
+  width: 400px;
+  max-width: calc(100% - 32px);
+  border-radius: 14px;
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.registrar-confirm-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: #fff3cd;
+  color: #856404;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.registrar-confirm-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.students-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 2000;
+  backdrop-filter: blur(2px);
+}
+
+.students-modal-card {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 28px 24px 22px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+  text-align: center;
+  animation: studentsModalPop 0.18s ease-out;
+}
+
+.students-modal-icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.students-modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.students-modal-title {
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+  color: #0f172a;
+}
+
+.students-modal-text {
+  margin: 0;
+  color: #475569;
+  font-size: 0.96rem;
+  line-height: 1.55;
+}
+
+.students-modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.students-modal-btn-secondary,
+.students-modal-btn-primary {
+  min-width: 110px;
+  border-radius: 12px;
+  font-weight: 600;
+  padding: 10px 16px;
+}
+
+@keyframes studentsModalPop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

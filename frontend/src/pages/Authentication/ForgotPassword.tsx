@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { FaKey, FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
-import { Link } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import axios from "axios";
 import { API_BASE_URL } from "../../config";
 import PreRegNavbar from "../../components/PreReg/PreRegNavbar";
 import AuthCard from "../../components/Authentication/AuthCard";
 import Button from "../../components/Authentication/Button";
-import { useNavigate } from "react-router-dom";
 import AuthLayout from "../../components/Authentication/AuthLayout";
 import AuthAlert from "../../components/Authentication/AuthAlert";
 import ArrowIcon from "../../assets/arrow-right.png";
@@ -22,12 +21,14 @@ export default function ForgotPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const forcedEmail = params.get("email");
   const force = params.get("force");
   const isForced = force === "true";
+
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
@@ -35,31 +36,27 @@ export default function ForgotPassword() {
 
   const [resendTimer, setResendTimer] = useState(0);
 
- const isValidEmail = (v: string) =>
-  /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(v);
-
+  const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(v);
 
   const isCodeComplete = code.every((d) => d !== "");
-const hasMinLength = password.length >= 8;
-const hasUppercase = /[A-Z]/.test(password);
-const hasLowercase = /[a-z]/.test(password);
-const hasNumber = /[0-9]/.test(password);
-const hasSpecial = /[^A-Za-z0-9]/.test(password);
+  const hasMinLength = password.length >= 8;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
 
-const isPasswordValid =
-  hasMinLength &&
-  hasUppercase &&
-  hasLowercase &&
-  hasNumber &&
-  hasSpecial &&
-  password === confirmPassword;
+  const isPasswordValid =
+    hasMinLength &&
+    hasUppercase &&
+    hasLowercase &&
+    hasNumber &&
+    hasSpecial &&
+    password === confirmPassword;
 
-
-  /* ================= RESEND TIMER ================= */
   useEffect(() => {
     if (force === "true" && forcedEmail) {
       setEmail(forcedEmail);
-      setStep(3); // go directly to change password step
+      setStep(3);
     }
   }, [force, forcedEmail]);
 
@@ -79,10 +76,10 @@ const isPasswordValid =
     return () => clearInterval(interval);
   }, [resendTimer]);
 
-  /* ================= SUBMIT ================= */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
+
     if (step === 1) {
       const newErrors: typeof errors = {};
       if (!email) newErrors.email = "Email is required";
@@ -144,7 +141,7 @@ const isPasswordValid =
 
         setStep(3);
       } catch (err: any) {
-        setCode(Array(6).fill("")); // ✅ clear wrong code
+        setCode(Array(6).fill(""));
         setAlertMessage(
           err.response?.data?.message || "Invalid verification code",
         );
@@ -159,7 +156,6 @@ const isPasswordValid =
 
     if (step === 3) {
       try {
-        // Show loading immediately
         setLoading(true);
         setAnimateAlert(false);
 
@@ -167,13 +163,11 @@ const isPasswordValid =
         setAlertType("success");
         setAnimateAlert(true);
 
-        // 🔥 Call backend ONCE
         await axios.post(`${API_BASE_URL}/auth/update-password`, {
           email,
           password,
         });
 
-        // Show success message
         setTimeout(() => {
           setLoading(false);
           setAnimateAlert(false);
@@ -205,15 +199,12 @@ const isPasswordValid =
     }
   };
 
-  /* ================= PREVIOUS ================= */
   const handlePrevious = () => {
-    if (isForced) return; // 🔒 Block going back
-
+    if (isForced) return;
     if (step === 2) setStep(1);
     if (step === 3) setStep(2);
   };
 
-  /* ================= RESEND ================= */
   const handleResend = async () => {
     if (resendTimer > 0) return;
 
@@ -239,7 +230,6 @@ const isPasswordValid =
     }
   };
 
-  /* ================= CODE INPUT ================= */
   const handleCodeChange = (value: string, index: number) => {
     if (!/^\d?$/.test(value)) return;
 
@@ -264,6 +254,7 @@ const isPasswordValid =
 
     setCode(newCode);
   };
+
   useEffect(() => {
     if (!alertMessage) return;
     const t = setTimeout(() => setAnimateAlert(false), 3000);
@@ -273,213 +264,230 @@ const isPasswordValid =
   return (
     <>
       <PreRegNavbar />
+
       <AuthAlert
         message={alertMessage}
         type={alertType}
         visible={animateAlert}
         loading={loading}
       />
+
       <AuthLayout>
-        <AuthCard
-          header={
-            <div className="d-flex justify-content-center mb-3">
-              <div className="reset-icon">
-                {step === 3 ? (
-                  <FaLock />
-                ) : step === 2 ? (
-                  <FaEnvelope />
-                ) : (
-                  <FaKey />
-                )}
-              </div>
-            </div>
-          }
-          title={
-            step === 1
-              ? "Reset your password"
-              : step === 2
-                ? "Check your email"
-                : "Set a new password"
-          }
-          subtitle={
-            step === 1 ? (
-              "Enter your email and we'll send you a code"
-            ) : step === 2 ? (
-              <>
-                We sent a 6-digit code to <strong>{email}</strong>
-              </>
-            ) : isForced ? (
-              <>You must change your temporary password</>
-            ) : (
-              <>
-                Create a new password for <strong>{email}</strong>
-              </>
-            )
-          }
-          footer={
-            step === 1 && (
-              <p className="text-center mt-3 mb-0">
-                <Link to="/signin" className="small">
-                  ← Back to Sign in
-                </Link>
-              </p>
-            )
-          }
-        >
-          {/* ================= STEPPER ================= */}
-          <div className="auth-stepper compact">
-            <div
-              className={`auth-step ${step === 1 ? "active" : step > 1 ? "completed" : ""}`}
+        <div className="auth-page-wrap">
+          <div className="auth-back-row">
+            <button
+              type="button"
+              className="auth-back-btn d-inline-flex align-items-center gap-2"
+              onClick={() => navigate(-1)}
             >
-              <FaEnvelope />
-              <span>Email</span>
-            </div>
-            <div className="auth-step-line" />
-            <div
-              className={`auth-step ${step === 2 ? "active" : step > 2 ? "completed" : ""}`}
-            >
-              <FaKey />
-              <span>Verify</span>
-            </div>
-            <div className="auth-step-line" />
-            <div className={`auth-step ${step === 3 ? "active" : ""}`}>
-              <FaLock />
-              <span>Password</span>
-            </div>
+              <ArrowLeft size={18} />
+              <span>Back</span>
+            </button>
           </div>
 
-          <form onSubmit={handleSubmit} noValidate>
-            {/* STEP 1 */}
-            {step === 1 && (
-              <div className="outlined-field">
-                <input
-                  type="email"
-                  className={`outlined-input ${errors.email ? "input-error" : ""}`}
-                  placeholder=" "
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setErrors({ email: undefined });
-                  }}
-                />
-                <label>Email</label>
-                <FaEnvelope className="outlined-icon" />
-              </div>
-            )}
-
-            {/* STEP 2 */}
-            {step === 2 && (
-              <>
-                <div className="d-flex justify-content-center gap-2 mb-3">
-                  {code.map((digit, index) => (
-                    <input
-                      key={index}
-                      id={`code-${index}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      className="code-input text-center"
-                      value={digit}
-                      onChange={(e) => handleCodeChange(e.target.value, index)}
-                      onKeyDown={(e) => handleBackspace(e, index)}
-                    />
-                  ))}
-                </div>
-
-                <p className="text-center small">
-                  Didn’t receive the code?{" "}
-                  <button
-                    type="button"
-                    className="resend-btn"
-                    onClick={handleResend}
-                    disabled={resendTimer > 0 || loading}
-                  >
-                    {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend"}
-                  </button>
-                </p>
-              </>
-            )}
-
-            {/* STEP 3 */}
-            {step === 3 && (
-              <>
-                <div className="outlined-field">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    className="outlined-input"
-                    placeholder=" "
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  <label>New Password</label>
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() => setShowPassword((v) => !v)}
-                  >
-                    {showPassword ? <FaEyeSlash /> : <FaEye />}
-                  </button>
-                </div>
-
-                <div className="outlined-field">
-                  <input
-                    type={showConfirm ? "text" : "password"}
-                    className="outlined-input"
-                    placeholder=" "
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                  <label>Confirm Password</label>
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() => setShowConfirm((v) => !v)}
-                  >
-                    {showConfirm ? <FaEyeSlash /> : <FaEye />}
-                  </button>
-                </div>
-               <p className="password-hint">
-  Password must be 8+ characters with uppercase, lowercase, number, and special character.
-</p>
-
-
-              </>
-              
-            )}
-
-            {/* ================= ACTION BUTTONS ================= */}
-            <div className="d-flex gap-2">
-              {step > 1 && !isForced && (
-                <Button
-                  type="button"
-                  className="btn-outline w-50"
-                  onClick={handlePrevious}
-                >
-                  Previous
-                </Button>
-              )}
-
-              <Button
-                type="submit"
-                className={`btn-brand ${
-                  step > 1 && !isForced ? "w-50" : "w-100"
-                }`}
-                disabled={
-                  loading || // 🔥 Prevent spam
-                  (step === 2 && !isCodeComplete) ||
-                  (step === 3 && !isPasswordValid)
+          <div className="auth-card-row">
+            <div className="auth-form-max">
+              <AuthCard
+                header={
+                  <div className="d-flex justify-content-center mb-3">
+                    <div className="reset-icon">
+                      {step === 3 ? (
+                        <FaLock />
+                      ) : step === 2 ? (
+                        <FaEnvelope />
+                      ) : (
+                        <FaKey />
+                      )}
+                    </div>
+                  </div>
+                }
+                title={
+                  step === 1
+                    ? "Reset your password"
+                    : step === 2
+                      ? "Check your email"
+                      : "Set a new password"
+                }
+                subtitle={
+                  step === 1 ? (
+                    "Enter your email and we'll send you a code"
+                  ) : step === 2 ? (
+                    <>
+                      We sent a 6-digit code to <strong>{email}</strong>
+                    </>
+                  ) : isForced ? (
+                    <>You must change your temporary password</>
+                  ) : (
+                    <>
+                      Create a new password for <strong>{email}</strong>
+                    </>
+                  )
+                }
+                footer={
+                  step === 1 && (
+                    <p className="text-center mt-3 mb-0">
+                      <Link to="/signin" className="small">
+                        ← Back to Sign in
+                      </Link>
+                    </p>
+                  )
                 }
               >
-                {step === 1
-                  ? "Send Reset Code"
-                  : step === 2
-                    ? "Verify Code"
-                    : "Update Password"}
-                <img src={ArrowIcon} alt="" className="btn-arrow" />
-              </Button>
+                <div className="auth-stepper compact">
+                  <div
+                    className={`auth-step ${step === 1 ? "active" : step > 1 ? "completed" : ""}`}
+                  >
+                    <FaEnvelope />
+                    <span>Email</span>
+                  </div>
+                  <div className="auth-step-line" />
+                  <div
+                    className={`auth-step ${step === 2 ? "active" : step > 2 ? "completed" : ""}`}
+                  >
+                    <FaKey />
+                    <span>Verify</span>
+                  </div>
+                  <div className="auth-step-line" />
+                  <div className={`auth-step ${step === 3 ? "active" : ""}`}>
+                    <FaLock />
+                    <span>Password</span>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSubmit} noValidate>
+                  {step === 1 && (
+                    <div className="outlined-field">
+                      <input
+                        type="email"
+                        className={`outlined-input ${errors.email ? "input-error" : ""}`}
+                        placeholder=" "
+                        value={email}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setErrors({ email: undefined });
+                        }}
+                      />
+                      <label>Email</label>
+                      <FaEnvelope className="outlined-icon" />
+                    </div>
+                  )}
+
+                  {step === 2 && (
+                    <>
+                      <div className="d-flex justify-content-center gap-2 mb-3">
+                        {code.map((digit, index) => (
+                          <input
+                            key={index}
+                            id={`code-${index}`}
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={1}
+                            className="code-input text-center"
+                            value={digit}
+                            onChange={(e) =>
+                              handleCodeChange(e.target.value, index)
+                            }
+                            onKeyDown={(e) => handleBackspace(e, index)}
+                          />
+                        ))}
+                      </div>
+
+                      <p className="text-center small">
+                        Didn’t receive the code?{" "}
+                        <button
+                          type="button"
+                          className="resend-btn"
+                          onClick={handleResend}
+                          disabled={resendTimer > 0 || loading}
+                        >
+                          {resendTimer > 0
+                            ? `Resend in ${resendTimer}s`
+                            : "Resend"}
+                        </button>
+                      </p>
+                    </>
+                  )}
+
+                  {step === 3 && (
+                    <>
+                      <div className="outlined-field">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          className="outlined-input"
+                          placeholder=" "
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                        />
+                        <label>New Password</label>
+                        <button
+                          type="button"
+                          className="password-toggle"
+                          onClick={() => setShowPassword((v) => !v)}
+                        >
+                          {showPassword ? <FaEyeSlash /> : <FaEye />}
+                        </button>
+                      </div>
+
+                      <div className="outlined-field">
+                        <input
+                          type={showConfirm ? "text" : "password"}
+                          className="outlined-input"
+                          placeholder=" "
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                        />
+                        <label>Confirm Password</label>
+                        <button
+                          type="button"
+                          className="password-toggle"
+                          onClick={() => setShowConfirm((v) => !v)}
+                        >
+                          {showConfirm ? <FaEyeSlash /> : <FaEye />}
+                        </button>
+                      </div>
+
+                      <p className="password-hint">
+                        Password must be 8+ characters with uppercase,
+                        lowercase, number, and special character.
+                      </p>
+                    </>
+                  )}
+
+                  <div className="d-flex gap-2">
+                    {step > 1 && !isForced && (
+                      <Button
+                        type="button"
+                        className="btn-outline w-50"
+                        onClick={handlePrevious}
+                      >
+                        Previous
+                      </Button>
+                    )}
+
+                    <Button
+                      type="submit"
+                      className={`btn-brand ${
+                        step > 1 && !isForced ? "w-50" : "w-100"
+                      }`}
+                      disabled={
+                        loading ||
+                        (step === 2 && !isCodeComplete) ||
+                        (step === 3 && !isPasswordValid)
+                      }
+                    >
+                      {step === 1
+                        ? "Send Reset Code"
+                        : step === 2
+                          ? "Verify Code"
+                          : "Update Password"}
+                      <img src={ArrowIcon} alt="" className="btn-arrow" />
+                    </Button>
+                  </div>
+                </form>
+              </AuthCard>
             </div>
-          </form>
-        </AuthCard>
+          </div>
+        </div>
       </AuthLayout>
     </>
   );

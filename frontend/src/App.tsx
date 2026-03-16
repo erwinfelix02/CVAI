@@ -44,7 +44,7 @@ import DocumentRequestsPage from "./pages/Registrar/DocumentRequestsPage";
 import FacultyAccountsPage from "./pages/Registrar/FacultyAccountsPage";
 import CoursesPage from "./pages/Registrar/CoursesManagementPage";
 import DepartmentsManagementPage from "./pages/Registrar/DepartmentsManagementPage";
-
+import RegistrarHelpPage from "./pages/Registrar/RegistrarHelpPage";
 
 import SuperAdminLayoutPage from "./pages/SuperAdmin/SuperAdminLayoutPage";
 import SuperAdminDashboard from "./pages/SuperAdmin/SuperAdminDashboard";
@@ -141,6 +141,7 @@ export default function App() {
         <Route path="departments" element={<DepartmentsManagementPage />} />
         <Route path="/registrar/courses" element={<CoursesPage />} />
         <Route path="settings" element={<RegistrarSettings />} />
+        <Route path="help" element={<RegistrarHelpPage />} />
       </Route>
 
       {/* ✅ Super Admin */}

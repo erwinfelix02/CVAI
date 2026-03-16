@@ -37,7 +37,11 @@ function TypePill({ type }: { type: LogRow["type"] }) {
 
 function StatusPill({ status }: { status: LogRow["status"] }) {
   const Icon =
-    status === "success" ? CheckCircle2 : status === "warning" ? AlertTriangle : XCircle;
+    status === "success"
+      ? CheckCircle2
+      : status === "warning"
+      ? AlertTriangle
+      : XCircle;
 
   return (
     <span className={`superadmin-logs-pill status ${status}`}>
@@ -71,22 +75,23 @@ function formatLogTime(time: string) {
 
 export default function LogsTable({ rows }: { rows: LogRow[] }) {
   const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 5;
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [rows]);
+  }, [rows, rowsPerPage]);
 
   const totalPages = Math.max(1, Math.ceil(rows.length / rowsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
 
   const paginatedRows = useMemo(() => {
-    const startIndex = (currentPage - 1) * rowsPerPage;
+    const startIndex = (safePage - 1) * rowsPerPage;
     const endIndex = startIndex + rowsPerPage;
     return rows.slice(startIndex, endIndex);
-  }, [rows, currentPage]);
+  }, [rows, safePage, rowsPerPage]);
 
-  const startItem = rows.length === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
-  const endItem = Math.min(currentPage * rowsPerPage, rows.length);
+  const startItem = rows.length === 0 ? 0 : (safePage - 1) * rowsPerPage + 1;
+  const endItem = Math.min(safePage * rowsPerPage, rows.length);
 
   const handlePrev = () => {
     setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -110,15 +115,21 @@ export default function LogsTable({ rows }: { rows: LogRow[] }) {
       return pages;
     }
 
-    if (currentPage <= 3) {
+    if (safePage <= 3) {
       return [1, 2, 3, 4, 5];
     }
 
-    if (currentPage >= totalPages - 2) {
-      return [totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    if (safePage >= totalPages - 2) {
+      return [
+        totalPages - 4,
+        totalPages - 3,
+        totalPages - 2,
+        totalPages - 1,
+        totalPages,
+      ];
     }
 
-    return [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
+    return [safePage - 2, safePage - 1, safePage, safePage + 1, safePage + 2];
   };
 
   const visiblePages = getVisiblePages();
@@ -145,7 +156,9 @@ export default function LogsTable({ rows }: { rows: LogRow[] }) {
                 <tr key={r.id}>
                   <td className="ps-4">
                     <div className="fw-semibold">{formatLogDate(r.date)}</div>
-                    <div className="text-muted small">{formatLogTime(r.time)}</div>
+                    <div className="text-muted small">
+                      {formatLogTime(r.time)}
+                    </div>
                   </td>
 
                   <td className="fw-semibold">{r.action}</td>
@@ -164,7 +177,9 @@ export default function LogsTable({ rows }: { rows: LogRow[] }) {
                     <TypePill type={r.type} />
                   </td>
 
-                  <td className="text-muted superadmin-logs-details">{r.details}</td>
+                  <td className="text-muted superadmin-logs-details">
+                    {r.details}
+                  </td>
 
                   <td className="text-muted superadmin-logs-mono">{r.ip}</td>
 
@@ -187,6 +202,23 @@ export default function LogsTable({ rows }: { rows: LogRow[] }) {
 
         {rows.length > 0 && (
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 px-4 py-3 border-top">
+            <div className="d-flex align-items-center gap-2 flex-wrap">
+              <span className="text-muted small">Show</span>
+              <select
+                className="form-select form-select-sm"
+                value={rowsPerPage}
+                onChange={(e) => setRowsPerPage(Number(e.target.value))}
+                style={{ width: "90px" }}
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={25}>25</option>
+              </select>
+              <span className="text-muted small">entries</span>
+            </div>
+
             <div className="text-muted small">
               Showing {startItem} to {endItem} of {rows.length} logs
             </div>
@@ -196,7 +228,7 @@ export default function LogsTable({ rows }: { rows: LogRow[] }) {
                 type="button"
                 className="btn btn-light border btn-sm d-flex align-items-center gap-1"
                 onClick={handlePrev}
-                disabled={currentPage === 1}
+                disabled={safePage === 1}
               >
                 <ChevronLeft size={16} />
                 Prev
@@ -211,7 +243,9 @@ export default function LogsTable({ rows }: { rows: LogRow[] }) {
                   >
                     1
                   </button>
-                  {visiblePages[0] > 2 && <span className="px-1 text-muted">...</span>}
+                  {visiblePages[0] > 2 && (
+                    <span className="px-1 text-muted">...</span>
+                  )}
                 </>
               )}
 
@@ -220,7 +254,7 @@ export default function LogsTable({ rows }: { rows: LogRow[] }) {
                   key={page}
                   type="button"
                   className={`btn btn-sm ${
-                    currentPage === page ? "btn-primary" : "btn-light border"
+                    safePage === page ? "btn-primary" : "btn-light border"
                   }`}
                   onClick={() => handlePageClick(page)}
                 >
@@ -247,7 +281,7 @@ export default function LogsTable({ rows }: { rows: LogRow[] }) {
                 type="button"
                 className="btn btn-light border btn-sm d-flex align-items-center gap-1"
                 onClick={handleNext}
-                disabled={currentPage === totalPages}
+                disabled={safePage === totalPages}
               >
                 Next
                 <ChevronRight size={16} />

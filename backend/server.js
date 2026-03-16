@@ -24,6 +24,7 @@ import settingsRoutes from "./routes/settingsRoutes.js";
 import securitySettingsRoutes from "./routes/securitySettingsRoutes.js";
 import departmentRoutes from "./routes/departmentRoutes.js";
 import logRoutes from "./routes/logRoutes.js";
+import { startArchiveScheduler } from "./jobs/archiveScheduler.js";
 
 const app = express();
 
@@ -62,6 +63,7 @@ const startServer = async () => {
   try {
     await connectDB(); // ✅ wait for mongo connect
     await seedRolesIfMissing(); // ✅ seed after connect
+     await startArchiveScheduler();
 
     app.use("/uploads", express.static("uploads"));
     app.use("/api/users", userRoutes);

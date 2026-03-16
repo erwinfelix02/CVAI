@@ -1,4 +1,8 @@
-export type ApplicationStatus = "Pending" | "Approved" | "Rejected";
+export type ApplicationStatus =
+  | "Pending"
+  | "Approved"
+  | "Rejected"
+  | "Archived";
 
 export type ApplicationRow = {
   id: string;
@@ -8,8 +12,6 @@ export type ApplicationRow = {
   yearLevel: string;
   submitted: string;
   status: ApplicationStatus;
-
   accountSent?: boolean;
-
-  scheduleSent?: boolean; // ✅ ADD THIS
+  scheduleSent?: boolean;
 };

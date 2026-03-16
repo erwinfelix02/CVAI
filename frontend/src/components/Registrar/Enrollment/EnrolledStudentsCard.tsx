@@ -1,11 +1,13 @@
 import React, { useMemo } from "react";
-import { Search, Mail, Users } from "lucide-react";
+import { Search, Mail, Users, Archive } from "lucide-react";
 
 import EnrolledStudentsList from "./EnrolledStudentsList";
 import type { EnrollmentItem } from "./types";
 
 export type EnrolledStudentsCardProps = {
   enrolledCount: number;
+  archivedCount: number;
+  onOpenArchived: () => void;
 
   enrolledQuery: string;
   setEnrolledQuery: React.Dispatch<React.SetStateAction<string>>;
@@ -16,16 +18,18 @@ export type EnrolledStudentsCardProps = {
   selectedIds: string[];
   onToggleSelect: (id: string) => void;
 
-  // ✅ now accepts ids
   onSelectAll: (ids: string[]) => void;
   onClearAll: () => void;
 
   onSendCredentials: () => void;
   onSendCredentialsOne: (enrollmentId: string) => void;
+  onArchiveOne: (enrollmentId: string) => void;
 };
 
 export default function EnrolledStudentsCard({
   enrolledCount,
+  archivedCount,
+  onOpenArchived,
   enrolledQuery,
   setEnrolledQuery,
   loading,
@@ -36,8 +40,8 @@ export default function EnrolledStudentsCard({
   onClearAll,
   onSendCredentials,
   onSendCredentialsOne,
+  onArchiveOne,
 }: EnrolledStudentsCardProps) {
-  // ✅ only selectable if NOT yet sent
   const selectableIds = useMemo(
     () => items.filter((x) => !x.credentialsSent).map((x) => x._id),
     [items],
@@ -53,7 +57,18 @@ export default function EnrolledStudentsCard({
     <div className="card shadow-sm enroll-card mt-3 mt-md-4">
       <div className="card-body">
         <div className="enrolled-head">
-          <h5 className="fw-bold mb-0">Enrolled Students ({enrolledCount})</h5>
+          <div className="d-flex align-items-center gap-2 flex-wrap">
+            <h5 className="fw-bold mb-0">Enrolled Students ({enrolledCount})</h5>
+
+            <button
+              type="button"
+              className="registrar-pill archived"
+              onClick={onOpenArchived}
+            >
+              <Archive size={16} />
+              <span className="ms-2">{archivedCount} Archived</span>
+            </button>
+          </div>
 
           <div className="enrolled-head-actions">
             <button
@@ -87,7 +102,7 @@ export default function EnrolledStudentsCard({
               placeholder="Filter enrolled students by name or ID..."
               value={enrolledQuery}
               onChange={(e) => setEnrolledQuery(e.target.value)}
-              disabled={!loading && !hasItems} // optional: disable when empty
+              disabled={!loading && !hasItems}
             />
           </div>
         </div>
@@ -102,9 +117,9 @@ export default function EnrolledStudentsCard({
               selectedIds={selectedIds}
               onToggleSelect={onToggleSelect}
               onSendCredentialsOne={onSendCredentialsOne}
+              onArchiveOne={onArchiveOne}
             />
           ) : (
-            // ✅ Empty state (same feel as UsersPage)
             <div className="users-empty-state">
               <div className="users-empty-icon">📭</div>
               <h5 className="fw-semibold mb-1">No enrolled students found</h5>

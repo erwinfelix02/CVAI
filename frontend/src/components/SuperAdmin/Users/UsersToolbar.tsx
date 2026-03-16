@@ -1,36 +1,33 @@
-import { useState } from "react";
-import { Search, Filter } from "lucide-react";
-import type { RoleTab } from "../../../pages/SuperAdmin/UsersPage";
+import { Search,  } from "lucide-react";
+import type { RoleFilter } from "../../../pages/SuperAdmin/UsersPage";
 
 export default function UsersToolbar({
   query,
   onQueryChange,
-  activeTab,
-  onTabChange,
+  roleFilter,
+  onRoleFilterChange,
   statusFilter,
   onStatusFilterChange,
 }: {
   query: string;
   onQueryChange: (v: string) => void;
-  activeTab: RoleTab;
-  onTabChange: (v: RoleTab) => void;
+  roleFilter: RoleFilter;
+  onRoleFilterChange: (v: RoleFilter) => void;
   statusFilter: "all" | "active" | "inactive";
   onStatusFilterChange: (v: "all" | "active" | "inactive") => void;
 }) {
-  const [open, setOpen] = useState(false);
-
-  const tabs: RoleTab[] = [
+  const roleOptions: RoleFilter[] = [
     "All",
-    "Admins",
+    "Super Admin",
     "Registrar",
-    "Dept Heads",
+    "Dept Head",
     "Finance",
     "Faculty",
-    "Students",
+    "Student",
   ];
 
   return (
-    <div className="users-toolbar">
+    <div className="users-toolbar d-flex flex-wrap align-items-center gap-3 mb-4">
       <div className="users-search">
         <Search size={18} />
         <input
@@ -40,57 +37,35 @@ export default function UsersToolbar({
         />
       </div>
 
-      <div className="users-filter-wrap">
-        <button
-          className="users-filter-btn"
-          onClick={() => setOpen((v) => !v)}
+      <div className="d-flex align-items-center gap-2">
+
+        <select
+          className="form-select"
+          value={roleFilter}
+          onChange={(e) => onRoleFilterChange(e.target.value as RoleFilter)}
+          style={{ minWidth: "180px" }}
         >
-          <Filter size={18} />
-        </button>
+          {roleOptions.map((role) => (
+            <option key={role} value={role}>
+              {role === "All" ? "All Roles" : role}
+            </option>
+          ))}
+        </select>
 
-        {open && (
-          <div className="users-filter-menu">
-            <button
-              className={statusFilter === "all" ? "active" : ""}
-              onClick={() => {
-                onStatusFilterChange("all");
-                setOpen(false);
-              }}
-            >
-              All
-            </button>
-            <button
-              className={statusFilter === "active" ? "active" : ""}
-              onClick={() => {
-                onStatusFilterChange("active");
-                setOpen(false);
-              }}
-            >
-              Active
-            </button>
-            <button
-              className={statusFilter === "inactive" ? "active" : ""}
-              onClick={() => {
-                onStatusFilterChange("inactive");
-                setOpen(false);
-              }}
-            >
-              Inactive
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="users-tabs">
-        {tabs.map((t) => (
-          <button
-            key={t}
-            className={`users-tab ${activeTab === t ? "active" : ""}`}
-            onClick={() => onTabChange(t)}
-          >
-            {t}
-          </button>
-        ))}
+        <select
+          className="form-select"
+          value={statusFilter}
+          onChange={(e) =>
+            onStatusFilterChange(
+              e.target.value as "all" | "active" | "inactive"
+            )
+          }
+          style={{ minWidth: "160px" }}
+        >
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
       </div>
     </div>
   );

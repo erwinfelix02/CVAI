@@ -1,4 +1,4 @@
-import { Eye, Calendar } from "lucide-react";
+import { Eye, Calendar, Archive, RotateCcw } from "lucide-react";
 import type { ApplicationRow, ApplicationStatus } from "./types";
 
 function StatusPill({ status }: { status: ApplicationStatus }) {
@@ -6,14 +6,19 @@ function StatusPill({ status }: { status: ApplicationStatus }) {
     status === "Approved"
       ? "approved"
       : status === "Rejected"
-        ? "rejected"
-        : "pending";
+      ? "rejected"
+      : status === "Archived"
+      ? "archived"
+      : "pending";
+
   return <span className={`registrar-status ${cls}`}>{status}</span>;
 }
 
 type Props = {
   item: ApplicationRow;
   onReview: (id: string) => void;
+  onArchive: (id: string) => void;
+  onUnarchive: (id: string) => void;
   isApprovedSelected: boolean;
   onToggleApproved: (id: string) => void;
   onSendSchedule: () => void;
@@ -22,20 +27,23 @@ type Props = {
 export default function RegistrarApplicationRow({
   item,
   onReview,
+  onArchive,
+  onUnarchive,
   isApprovedSelected,
   onToggleApproved,
   onSendSchedule,
 }: Props) {
   const isApproved = item.status === "Approved";
+  const isRejected = item.status === "Rejected";
+  const isArchived = item.status === "Archived";
   const isScheduleSent = Boolean(item.scheduleSent);
 
   const canSelect = isApproved && !isScheduleSent;
-  const canSendSchedule = isApproved && !isScheduleSent;
+  const showArchiveButton = isRejected || (isApproved && isScheduleSent);
 
   return (
     <div className="registrar-app-card">
       <div className="d-flex align-items-center gap-3 min-w-0">
-        {/* ✅ checkbox only for approved AND not sent */}
         {canSelect && (
           <button
             type="button"
@@ -61,22 +69,43 @@ export default function RegistrarApplicationRow({
       <div className="d-flex align-items-center gap-2 registrar-app-actions">
         <StatusPill status={item.status} />
 
-        {/* ✅ Button changes when schedule is sent */}
-        {isApproved && (
+        {isApproved && !isScheduleSent && (
           <button
             type="button"
-            className={`btn ${
-              isScheduleSent
-                ? "btn-success text-white"
-                : "registrar-outline-btn"
-            }`}
-            onClick={canSendSchedule ? onSendSchedule : undefined}
-            disabled={!canSendSchedule}
+            className="btn registrar-outline-btn"
+            onClick={onSendSchedule}
           >
             <Calendar size={16} />
-            <span className="ms-2">
-              {isScheduleSent ? "Schedule Sent" : "Send Schedule"}
-            </span>
+            <span className="ms-2">Send Schedule</span>
+          </button>
+        )}
+
+        {isApproved && isScheduleSent && (
+          <button type="button" className="btn btn-success text-white" disabled>
+            <Calendar size={16} />
+            <span className="ms-2">Schedule Sent</span>
+          </button>
+        )}
+
+        {showArchiveButton && !isArchived && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => onArchive(item.id)}
+          >
+            <Archive size={16} />
+            <span className="ms-2">Archive</span>
+          </button>
+        )}
+
+        {isArchived && (
+          <button
+            type="button"
+            className="btn btn-warning text-dark"
+            onClick={() => onUnarchive(item.id)}
+          >
+            <RotateCcw size={16} />
+            <span className="ms-2">Unarchive</span>
           </button>
         )}
 

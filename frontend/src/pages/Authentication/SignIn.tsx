@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { ArrowLeft } from "lucide-react";
 import PreRegNavbar from "../../components/PreReg/PreRegNavbar";
 import AuthLayout from "../../components/Authentication/AuthLayout";
 import AuthCard from "../../components/Authentication/AuthCard";
@@ -13,6 +14,8 @@ import { FaUser, FaEye, FaEyeSlash, FaSyncAlt } from "react-icons/fa";
 import { API_BASE_URL } from "../../config";
 
 export default function SignIn() {
+  const navigate = useNavigate();
+
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,7 +34,6 @@ export default function SignIn() {
   const [animateAlert, setAnimateAlert] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  /* ---------------- Math verification ---------------- */
   const generateQuestion = () => {
     setQuestion({
       a: Math.floor(Math.random() * 100) + 1,
@@ -59,7 +61,6 @@ export default function SignIn() {
   const isValidEmail = (value: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-  /* ---------------- Submit ---------------- */
   const handleSubmit = async () => {
     setSubmitted(true);
 
@@ -92,7 +93,6 @@ export default function SignIn() {
     setErrors(newErrors);
     if (hasError) return;
 
-    // show signing in
     setLoading(true);
     setAnimateAlert(false);
 
@@ -132,19 +132,17 @@ export default function SignIn() {
         return;
       }
 
-      // FIRST SHOW: Invalid email or password
       setAlertMessage(data.message);
       setAlertType("error");
       setAnimateAlert(true);
 
-      // IF FAILED ATTEMPT → SHOW SECOND MESSAGE AFTER DELAY
       if (data.failedAttempt) {
         setTimeout(() => {
           setAnimateAlert(false);
 
           setTimeout(() => {
             setAlertMessage(
-              `Failed attempt. ${data.triesLeft} attempt(s) left before lock.`
+              `Failed attempt. ${data.triesLeft} attempt(s) left before lock.`,
             );
             setAlertType("error");
             setAnimateAlert(true);
@@ -154,17 +152,16 @@ export default function SignIn() {
     }
   };
 
-  /* ---------------- Auto-hide alert ---------------- */
   useEffect(() => {
     if (!alertMessage) return;
     const t = setTimeout(() => setAnimateAlert(false), 3000);
     return () => clearTimeout(t);
   }, [alertMessage]);
 
-  /* ================= RENDER ================= */
   return (
     <>
       <PreRegNavbar />
+
       <AuthAlert
         message={alertMessage}
         type={alertType}
@@ -173,110 +170,131 @@ export default function SignIn() {
       />
 
       <AuthLayout>
-        <AuthCard title="Sign In" subtitle="Enter your credentials to continue">
-          {/* Email */}
-          <div className="outlined-field">
-            <input
-              type="email"
-              className={`outlined-input ${errors.email ? "input-error" : ""}`}
-              placeholder=" "
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setErrors((p) => ({ ...p, email: undefined }));
-              }}
-            />
-            <label>Email</label>
-            <FaUser className="outlined-icon" />
-            <div className="error-space">
-              <span className={errors.email ? "error-text show" : "error-text"}>
-                {errors.email || "placeholder"}
-              </span>
-            </div>
-          </div>
-
-          {/* Password */}
-          <div className="outlined-field">
-            <input
-              type={showPassword ? "text" : "password"}
-              className={`outlined-input ${errors.password ? "input-error" : ""}`}
-              placeholder=" "
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value.replace(/\s/g, ""));
-                setErrors((p) => ({ ...p, password: undefined }));
-              }}
-            />
-            <label>Password</label>
+        <div className="auth-page-wrap">
+          <div className="auth-back-row">
             <button
               type="button"
-              className="outlined-icon"
-              onClick={() => setShowPassword((p) => !p)}
+              className="auth-back-btn d-inline-flex align-items-center gap-2"
+              onClick={() => navigate(-1)}
             >
-              {showPassword ? <FaEyeSlash /> : <FaEye />}
+              <ArrowLeft size={18} />
+              <span>Back</span>
             </button>
-            <div className="error-space">
-              <span
-                className={errors.password ? "error-text show" : "error-text"}
+          </div>
+
+          <div className="auth-card-row">
+            <div className="auth-form-max">
+              <AuthCard
+                title="Sign In"
+                subtitle="Enter your credentials to continue"
               >
-                {errors.password || "placeholder"}
-              </span>
+                <div className="outlined-field">
+                  <input
+                    type="email"
+                    className={`outlined-input ${errors.email ? "input-error" : ""}`}
+                    placeholder=" "
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setErrors((p) => ({ ...p, email: undefined }));
+                    }}
+                  />
+                  <label>Email</label>
+                  <FaUser className="outlined-icon" />
+                  <div className="error-space">
+                    <span
+                      className={errors.email ? "error-text show" : "error-text"}
+                    >
+                      {errors.email || "placeholder"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="outlined-field">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className={`outlined-input ${errors.password ? "input-error" : ""}`}
+                    placeholder=" "
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value.replace(/\s/g, ""));
+                      setErrors((p) => ({ ...p, password: undefined }));
+                    }}
+                  />
+                  <label>Password</label>
+                  <button
+                    type="button"
+                    className="outlined-icon"
+                    onClick={() => setShowPassword((p) => !p)}
+                  >
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                  <div className="error-space">
+                    <span
+                      className={errors.password ? "error-text show" : "error-text"}
+                    >
+                      {errors.password || "placeholder"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="outlined-field math-field">
+                  <div className="math-verification">
+                    <div className="number-box">{question.a}</div>+
+                    <div className="number-box">{question.b}</div>=
+                    <input
+                      value={userAnswer}
+                      onChange={(e) => {
+                        setUserAnswer(e.target.value.replace(/\D/g, ""));
+                        setMathError(null);
+                        setSubmitted(false);
+                      }}
+                      placeholder="?"
+                      className={
+                        !submitted
+                          ? ""
+                          : isMathEmpty
+                            ? "input-error"
+                            : isVerified
+                              ? "correct"
+                              : "wrong"
+                      }
+                    />
+                    <button
+                      type="button"
+                      className={`refresh-btn ${isRotating ? "rotate active" : ""}`}
+                      onClick={handleRefresh}
+                    >
+                      <FaSyncAlt />
+                    </button>
+                  </div>
+                  <div className="error-space">
+                    <span className={mathError ? "error-text show" : "error-text"}>
+                      {mathError || "placeholder"}
+                    </span>
+                  </div>
+                </div>
+
+                <Button
+                  className="btn-brand w-100"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                >
+                  {loading ? "Signing In..." : "Sign In"}
+                  {!loading && (
+                    <img src={ArrowIcon} className="btn-arrow" alt="" />
+                  )}
+                </Button>
+
+                <div className="text-center mt-2">
+                  <Link to="/forgot-password" className="small">
+                    Forgot password?
+                  </Link>
+                </div>
+              </AuthCard>
             </div>
           </div>
-
-          {/* Math */}
-          <div className="outlined-field math-field">
-            <div className="math-verification">
-              <div className="number-box">{question.a}</div>+
-              <div className="number-box">{question.b}</div>=
-              <input
-                value={userAnswer}
-                onChange={(e) => {
-                  setUserAnswer(e.target.value.replace(/\D/g, ""));
-                  setMathError(null);
-                  setSubmitted(false);
-                }}
-                placeholder="?"
-                className={
-                  !submitted
-                    ? ""
-                    : isMathEmpty
-                      ? "input-error"
-                      : isVerified
-                        ? "correct"
-                        : "wrong"
-                }
-              />
-              <button
-                type="button"
-                className={`refresh-btn ${isRotating ? "rotate active" : ""}`}
-                onClick={handleRefresh}
-              >
-                <FaSyncAlt />
-              </button>
-            </div>
-            <div className="error-space">
-              <span className={mathError ? "error-text show" : "error-text"}>
-                {mathError || "placeholder"}
-              </span>
-            </div>
-          </div>
-
-          <Button
-            className="btn-brand w-100"
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? "Signing In..." : "Sign In"}
-            {!loading && <img src={ArrowIcon} className="btn-arrow" />}
-          </Button>
-
-          <div className="text-center mt-2">
-            <Link to="/forgot-password" className="small">
-              Forgot password?
-            </Link>
-          </div>
-        </AuthCard>
+        </div>
       </AuthLayout>
     </>
   );

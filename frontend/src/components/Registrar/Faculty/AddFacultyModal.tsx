@@ -19,7 +19,7 @@ type FacultyForm = {
   firstName: string;
   middleName: string;
   lastName: string;
-  idNumber: string; // FAC-YYYY-### (auto)
+  idNumber: string; // GIP-YYYY-### (auto)
   email: string;
   phone: string; // +639#########
   gender: Gender | "";
@@ -86,7 +86,7 @@ export default function AddFacultyModal({
   isLoading,
 }: Props) {
   const currentYear = new Date().getFullYear();
-  const idPrefix = `FAC-${currentYear}-`;
+  const idPrefix = `GIP-${currentYear}-`;
   const phonePrefix = "+63";
 
   const [form, setForm] = useState<FacultyForm>({
@@ -183,7 +183,7 @@ export default function AddFacultyModal({
 
       case "idNumber": {
         if (!id) return "ID number is required.";
-        const pattern = new RegExp(`^FAC-${currentYear}-\\d{3}$`);
+       const pattern = new RegExp(`^GIP-${currentYear}-\\d{3}$`);
         if (!pattern.test(id)) return `Format: ${idPrefix}### (3 digits).`;
         if (!/^[A-Za-z0-9-]+$/.test(id))
           return "ID can only contain letters, numbers, and dashes.";

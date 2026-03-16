@@ -1,4 +1,4 @@
-import { Save, TriangleAlert, X } from "lucide-react";
+import { Save, TriangleAlert, X, Pencil, Ban } from "lucide-react";
 import { useEffect, useState } from "react";
 import AuthAlert from "../../Authentication/AuthAlert";
 
@@ -41,6 +41,7 @@ export default function SecuritySettings() {
   const [saving, setSaving] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
@@ -51,8 +52,12 @@ export default function SecuritySettings() {
   const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState(30);
   const [maxLoginAttempts, setMaxLoginAttempts] = useState(5);
 
+  const [originalSettings, setOriginalSettings] =
+    useState<SecuritySettingsDTO | null>(null);
+
   const show = (msg: string, type: "success" | "error") => {
     setShowAlert(false);
+
     setTimeout(() => {
       setAlertMessage(msg);
       setAlertType(type);
@@ -89,9 +94,17 @@ export default function SecuritySettings() {
         }
 
         const s: SecuritySettingsDTO = await res.json();
-        setRequireEmailVerification(!!s.requireEmailVerification);
-        setSessionTimeoutMinutes(Number(s.sessionTimeoutMinutes ?? 30));
-        setMaxLoginAttempts(Number(s.maxLoginAttempts ?? 5));
+
+        const loadedSettings = {
+          requireEmailVerification: !!s.requireEmailVerification,
+          sessionTimeoutMinutes: Number(s.sessionTimeoutMinutes ?? 30),
+          maxLoginAttempts: Number(s.maxLoginAttempts ?? 5),
+        };
+
+        setRequireEmailVerification(loadedSettings.requireEmailVerification);
+        setSessionTimeoutMinutes(loadedSettings.sessionTimeoutMinutes);
+        setMaxLoginAttempts(loadedSettings.maxLoginAttempts);
+        setOriginalSettings(loadedSettings);
       } catch (e) {
         console.error(e);
         setError("Failed to load security settings.");
@@ -157,9 +170,17 @@ export default function SecuritySettings() {
         throw new Error(`Failed to save security settings (${res.status})`);
       }
 
+      const updatedSettings = {
+        requireEmailVerification,
+        sessionTimeoutMinutes,
+        maxLoginAttempts,
+      };
+
+      setOriginalSettings(updatedSettings);
       localStorage.setItem("lastActivity", Date.now().toString());
 
       setConfirmOpen(false);
+      setIsEditing(false);
       show("Security settings saved!", "success");
     } catch (e) {
       console.error(e);
@@ -176,6 +197,20 @@ export default function SecuritySettings() {
 
   const handleCloseConfirm = () => {
     if (saving) return;
+    setConfirmOpen(false);
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    if (!originalSettings) return;
+
+    setRequireEmailVerification(originalSettings.requireEmailVerification);
+    setSessionTimeoutMinutes(originalSettings.sessionTimeoutMinutes);
+    setMaxLoginAttempts(originalSettings.maxLoginAttempts);
+    setIsEditing(false);
     setConfirmOpen(false);
   };
 
@@ -216,6 +251,7 @@ export default function SecuritySettings() {
                       className="form-check-input superadmin-switch"
                       type="checkbox"
                       checked={requireEmailVerification}
+                      disabled={!isEditing}
                       onChange={(e) =>
                         setRequireEmailVerification(e.target.checked)
                       }
@@ -233,6 +269,7 @@ export default function SecuritySettings() {
                     min={1}
                     max={1440}
                     value={sessionTimeoutMinutes}
+                    disabled={!isEditing}
                     onChange={(e) =>
                       setSessionTimeoutMinutes(Number(e.target.value))
                     }
@@ -247,20 +284,42 @@ export default function SecuritySettings() {
                     min={1}
                     max={20}
                     value={maxLoginAttempts}
+                    disabled={!isEditing}
                     onChange={(e) => setMaxLoginAttempts(Number(e.target.value))}
                   />
                 </div>
               </div>
 
-              <div className="mt-4">
-                <button
-                  className="btn btn-primary superadmin-settings-savebtn"
-                  onClick={handleAskSave}
-                  disabled={saving}
-                >
-                  <Save size={18} className="me-2" />
-                  {saving ? "Saving..." : "Save Changes"}
-                </button>
+              <div className="mt-4 d-flex flex-wrap gap-2">
+                {!isEditing ? (
+                  <button
+                    className="btn btn-primary superadmin-settings-savebtn"
+                    onClick={handleEdit}
+                  >
+                    <Pencil size={18} className="me-2" />
+                    Edit
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      className="btn btn-primary superadmin-settings-savebtn"
+                      onClick={handleAskSave}
+                      disabled={saving}
+                    >
+                      <Save size={18} className="me-2" />
+                      {saving ? "Saving..." : "Save Changes"}
+                    </button>
+
+                    <button
+                      className="btn btn-light border"
+                      onClick={handleCancelEdit}
+                      disabled={saving}
+                    >
+                      <Ban size={18} className="me-2" />
+                      Cancel
+                    </button>
+                  </>
+                )}
               </div>
             </>
           )}

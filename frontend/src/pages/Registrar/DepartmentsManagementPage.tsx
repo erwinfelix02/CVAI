@@ -195,7 +195,7 @@ export default function DepartmentsManagementPage() {
         loading={isLoading}
       />
 
-      <div className="sad-dept-page container-fluid px-3 px-md-4">
+      <div className="registrar-departments-page">
         <div className="d-flex flex-column flex-lg-row align-items-lg-start justify-content-lg-between gap-3 mb-3 mb-md-4">
           <div>
             <h2 className="fw-bold mb-1">Departments</h2>

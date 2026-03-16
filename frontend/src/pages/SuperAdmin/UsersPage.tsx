@@ -46,46 +46,27 @@ export type UserDetailsRow = UserRow & {
   createdAt?: string;
 };
 
-export type RoleTab =
+export type RoleFilter =
   | "All"
-  | "Admins"
+  | "Super Admin"
   | "Registrar"
-  | "Dept Heads"
+  | "Dept Head"
   | "Finance"
   | "Faculty"
-  | "Students";
-
-function tabToRoleFilter(tab: RoleTab): UserRole | "All" {
-  switch (tab) {
-    case "Admins":
-      return "Super Admin";
-    case "Registrar":
-      return "Registrar";
-    case "Dept Heads":
-      return "Dept Head";
-    case "Finance":
-      return "Finance";
-    case "Faculty":
-      return "Faculty";
-    case "Students":
-      return "Student";
-    default:
-      return "All";
-  }
-}
+  | "Student";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const [query, setQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<RoleTab>("All");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("All");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "active" | "inactive"
   >("all");
 
   const [page, setPage] = useState(1);
-  const pageSize = 7;
+  const [pageSize, setPageSize] = useState(7);
 
   const [addOpen, setAddOpen] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
@@ -131,7 +112,6 @@ export default function UsersPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const roleFilter = tabToRoleFilter(activeTab);
 
     return users.filter((u) => {
       const matchesRole = roleFilter === "All" || u.role === roleFilter;
@@ -143,14 +123,18 @@ export default function UsersPage() {
 
       return matchesRole && matchesStatus && matchesQuery;
     });
-  }, [users, query, activeTab, statusFilter]);
+  }, [users, query, roleFilter, statusFilter]);
 
   useEffect(() => {
     setPage(1);
-  }, [query, activeTab, statusFilter]);
+  }, [query, roleFilter, statusFilter, pageSize]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const safePage = Math.min(page, totalPages);
+  const pageRows = filtered.slice(
+    (safePage - 1) * pageSize,
+    safePage * pageSize
+  );
 
   const showAlert = (message: string, type: "success" | "error") => {
     setAnimateAlert(false);
@@ -284,18 +268,83 @@ export default function UsersPage() {
             <UsersToolbar
               query={query}
               onQueryChange={setQuery}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
+              roleFilter={roleFilter}
+              onRoleFilterChange={setRoleFilter}
               statusFilter={statusFilter}
               onStatusFilterChange={setStatusFilter}
             />
 
             {pageRows.length > 0 ? (
-              <UsersTable
-                rows={pageRows}
-                onView={handleViewClick}
-                onSendCredentials={handleSendClick}
-              />
+              <>
+                <UsersTable
+                  rows={pageRows}
+                  onView={handleViewClick}
+                  onSendCredentials={handleSendClick}
+                />
+
+                <div className="d-flex flex-wrap justify-content-between align-items-center mt-3 gap-3">
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="text-muted">Show</span>
+                    <select
+                      className="form-select form-select-sm"
+                      value={pageSize}
+                      onChange={(e) => setPageSize(Number(e.target.value))}
+                      style={{ width: "90px" }}
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={15}>15</option>
+                      <option value={20}>20</option>
+                    </select>
+                    <span className="text-muted">entries</span>
+                  </div>
+
+                  <div className="text-muted small">
+                    Showing {filtered.length === 0 ? 0 : (safePage - 1) * pageSize + 1} to{" "}
+                    {Math.min(safePage * pageSize, filtered.length)} of {filtered.length} users
+                  </div>
+
+                  {totalPages > 1 && (
+                    <nav>
+                      <ul className="pagination pagination-sm users-pagination mb-0">
+                        <li
+                          className={`page-item ${
+                            safePage === 1 ? "disabled" : ""
+                          }`}
+                        >
+                          <button
+                            className="page-link"
+                            onClick={() =>
+                              setPage((p) => Math.max(1, p - 1))
+                            }
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+                        </li>
+
+                        <li className="page-item active">
+                          <span className="page-link">{safePage}</span>
+                        </li>
+
+                        <li
+                          className={`page-item ${
+                            safePage === totalPages ? "disabled" : ""
+                          }`}
+                        >
+                          <button
+                            className="page-link"
+                            onClick={() =>
+                              setPage((p) => Math.min(totalPages, p + 1))
+                            }
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                        </li>
+                      </ul>
+                    </nav>
+                  )}
+                </div>
+              </>
             ) : (
               <div className="users-empty-state">
                 <div className="users-empty-icon">📭</div>
@@ -303,42 +352,6 @@ export default function UsersPage() {
                 <p className="text-muted mb-0">
                   Try adjusting your search or filters.
                 </p>
-              </div>
-            )}
-
-            {totalPages > 1 && (
-              <div className="d-flex justify-content-end mt-3">
-                <nav>
-                  <ul className="pagination pagination-sm users-pagination">
-                    <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
-                      <button
-                        className="page-link"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      >
-                        <ChevronLeft size={16} />
-                      </button>
-                    </li>
-
-                    <li className="page-item active">
-                      <span className="page-link">{page}</span>
-                    </li>
-
-                    <li
-                      className={`page-item ${
-                        page === totalPages ? "disabled" : ""
-                      }`}
-                    >
-                      <button
-                        className="page-link"
-                        onClick={() =>
-                          setPage((p) => Math.min(totalPages, p + 1))
-                        }
-                      >
-                        <ChevronRight size={16} />
-                      </button>
-                    </li>
-                  </ul>
-                </nav>
               </div>
             )}
           </div>

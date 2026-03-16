@@ -8,6 +8,8 @@ import EnrollmentEvaluationModal from "../../components/Registrar/Enrollment/Enr
 
 import EnrolledStudentsCard from "../../components/Registrar/Enrollment/EnrolledStudentsCard";
 import SendCredentialsModal from "../../components/Registrar/Enrollment/SendCredentialsModal";
+import ArchivedEnrolledStudentsModal from "../../components/Registrar/Enrollment/ArchivedEnrolledStudentsModal";
+import AuthAlert from "../../components/Authentication/AuthAlert";
 
 import type { StudentItem } from "../../components/Registrar/Enrollment/studentTypes";
 import { getStudentsByEnrollmentIds } from "../../api/studentService";
@@ -20,51 +22,66 @@ import { getSections } from "../../api/sectionService";
 import "../../styles/registrar-enrollment.css";
 
 export default function StudentEnrollmentPage() {
-  // ✅ pending search
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // ✅ enrolled search
   const [enrolledQuery, setEnrolledQuery] = useState("");
   const [enrolledLoading, setEnrolledLoading] = useState(true);
 
-  // ✅ data
   const [enrollments, setEnrollments] = useState<EnrollmentItem[]>([]);
-  const [enrolledStudents, setEnrolledStudents] = useState<EnrollmentItem[]>(
-    [],
-  );
+  const [enrolledStudents, setEnrolledStudents] = useState<EnrollmentItem[]>([]);
+  const [archivedStudents, setArchivedStudents] = useState<EnrollmentItem[]>([]);
 
-  // ✅ stats (keep for counts)
   const [stats, setStats] = useState<{
     pending: number;
     enrolled: number;
     semesterLabel: string;
   } | null>(null);
 
-  // ✅ registrar settings semester label (NEW)
   const [settingsSemesterLabel, setSettingsSemesterLabel] =
     useState<string>("—");
 
-  // ✅ sections
   const [sections, setSections] = useState<SectionItem[]>([]);
   const [sectionsLoading, setSectionsLoading] = useState(false);
 
-  // ✅ evaluation modal
   const [evalOpen, setEvalOpen] = useState(false);
   const [selected, setSelected] = useState<EnrollmentItem | null>(null);
 
-  // ✅ enrolled selection (bulk)
   const [selectedEnrolledIds, setSelectedEnrolledIds] = useState<string[]>([]);
 
-  // ✅ credentials modal (Student table)
   const [credOpen, setCredOpen] = useState(false);
   const [credTargets, setCredTargets] = useState<StudentItem[]>([]);
   const [credLoading, setCredLoading] = useState(false);
 
-  // ✅ store enrollment ids used in modal so we can update UI
   const [credEnrollmentIds, setCredEnrollmentIds] = useState<string[]>([]);
 
-  /* ================= API LOADERS ================= */
+  const [archivedModalOpen, setArchivedModalOpen] = useState(false);
+
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<"success" | "error">("success");
+  const [animateAlert, setAnimateAlert] = useState(false);
+
+  const isBusy = loading || enrolledLoading || sectionsLoading || credLoading;
+
+  const showAlert = (message: string, type: "success" | "error") => {
+    setAnimateAlert(false);
+
+    setTimeout(() => {
+      setAlertMessage(message);
+      setAlertType(type);
+      setAnimateAlert(true);
+    }, 50);
+  };
+
+  useEffect(() => {
+    if (!animateAlert) return;
+
+    const t = setTimeout(() => {
+      setAnimateAlert(false);
+    }, 3000);
+
+    return () => clearTimeout(t);
+  }, [animateAlert]);
 
   const fetchStats = async () => {
     try {
@@ -73,27 +90,27 @@ export default function StudentEnrollmentPage() {
       setStats(data);
     } catch (e) {
       console.error("Failed to load enrollment stats", e);
+      showAlert("Failed to load enrollment statistics.", "error");
     }
   };
 
-  // ✅ NEW: fetch semester label from registrar settings
-const fetchRegistrarSettingsSemester = async () => {
-  try {
-    const res = await fetch("http://localhost:5000/api/registrar/settings");
-    const data = await res.json();
+  const fetchRegistrarSettingsSemester = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/registrar/settings");
+      const data = await res.json();
 
-    if (!res.ok) {
+      if (!res.ok) {
+        setSettingsSemesterLabel("—");
+        return;
+      }
+
+      setSettingsSemesterLabel(data?.semester || "—");
+    } catch (e) {
+      console.error(e);
       setSettingsSemesterLabel("—");
-      return;
+      showAlert("Failed to load registrar settings.", "error");
     }
-
-    // ✅ ONLY semester
-    setSettingsSemesterLabel(data?.semester || "—");
-  } catch (e) {
-    console.error(e);
-    setSettingsSemesterLabel("—");
-  }
-};
+  };
 
   const loadSections = async () => {
     try {
@@ -118,6 +135,7 @@ const fetchRegistrarSettingsSemester = async () => {
     } catch (e) {
       console.error("Failed to load sections", e);
       setSections([]);
+      showAlert("Failed to load sections.", "error");
     } finally {
       setSectionsLoading(false);
     }
@@ -138,6 +156,7 @@ const fetchRegistrarSettingsSemester = async () => {
     } catch (e) {
       console.error("Failed to load pending enrollments", e);
       setEnrollments([]);
+      showAlert("Failed to load pending enrollments.", "error");
     } finally {
       setLoading(false);
     }
@@ -157,34 +176,51 @@ const fetchRegistrarSettingsSemester = async () => {
       const list: EnrollmentItem[] = Array.isArray(data) ? data : [];
       setEnrolledStudents(list);
 
-      // ✅ keep selections valid
-      const ids = new Set(list.map((x) => x._id));
+      const ids = new Set(
+        list.filter((x) => !x.credentialsSent).map((x) => x._id),
+      );
       setSelectedEnrolledIds((prev) => prev.filter((id) => ids.has(id)));
     } catch (e) {
       console.error("Failed to load enrolled students", e);
       setEnrolledStudents([]);
       setSelectedEnrolledIds([]);
+      showAlert("Failed to load enrolled students.", "error");
     } finally {
       setEnrolledLoading(false);
     }
   };
 
-  /* ================= EFFECTS ================= */
+  const loadArchived = async () => {
+    try {
+      const url = new URL("http://localhost:5000/api/enrollments");
+      url.searchParams.set("status", "Archived");
+
+      const res = await fetch(url.toString());
+      const data = await res.json();
+
+      setArchivedStudents(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error("Failed to load archived enrolled students", e);
+      setArchivedStudents([]);
+      showAlert("Failed to load archived enrolled students.", "error");
+    }
+  };
 
   useEffect(() => {
     fetchStats();
-    fetchRegistrarSettingsSemester(); // ✅ NEW
+    fetchRegistrarSettingsSemester();
     loadSections();
     loadPending(query);
     loadEnrolled(enrolledQuery);
+    loadArchived();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ Optional: auto-update semester label when settings page saves
   useEffect(() => {
     const handler = () => fetchRegistrarSettingsSemester();
     window.addEventListener("registrar-settings-updated", handler);
-    return () => window.removeEventListener("registrar-settings-updated", handler);
+    return () =>
+      window.removeEventListener("registrar-settings-updated", handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -197,8 +233,6 @@ const fetchRegistrarSettingsSemester = async () => {
     loadEnrolled(enrolledQuery);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enrolledQuery]);
-
-  /* ================= ACTIONS ================= */
 
   const onEvaluate = (item: EnrollmentItem) => {
     setSelected(item);
@@ -249,16 +283,17 @@ const fetchRegistrarSettingsSemester = async () => {
       await Promise.all([
         loadPending(query),
         loadEnrolled(enrolledQuery),
+        loadArchived(),
         loadSections(),
         fetchStats(),
       ]);
+
+      showAlert("Student enrolled successfully.", "success");
     } catch (e: any) {
       console.error(e);
-      alert(e?.message || "Failed to submit evaluation.");
+      showAlert(e?.message || "Failed to submit evaluation.", "error");
     }
   };
-
-  /* ================= COUNTS ================= */
 
   const pendingCount = query.trim()
     ? enrollments.length
@@ -267,8 +302,6 @@ const fetchRegistrarSettingsSemester = async () => {
   const enrolledCount = enrolledQuery.trim()
     ? enrolledStudents.length
     : (stats?.enrolled ?? enrolledStudents.length);
-
-  /* ================= SELECTION HELPERS ================= */
 
   const toggleSelectEnrolled = (id: string) => {
     setSelectedEnrolledIds((prev) =>
@@ -280,10 +313,11 @@ const fetchRegistrarSettingsSemester = async () => {
 
   const clearAllEnrolled = () => setSelectedEnrolledIds([]);
 
-  /* ================= CREDENTIALS MODAL FLOW ================= */
-
   const openCredentialsForSelected = async () => {
-    if (selectedEnrolledIds.length === 0) return;
+    if (selectedEnrolledIds.length === 0) {
+      showAlert("Please select at least one enrolled student.", "error");
+      return;
+    }
 
     try {
       setCredLoading(true);
@@ -291,7 +325,10 @@ const fetchRegistrarSettingsSemester = async () => {
       const students = await getStudentsByEnrollmentIds(selectedEnrolledIds);
 
       if (!students || students.length === 0) {
-        alert("No Student records found for the selected enrollment(s).");
+        showAlert(
+          "No student records found for the selected enrollment(s).",
+          "error",
+        );
         return;
       }
 
@@ -300,7 +337,7 @@ const fetchRegistrarSettingsSemester = async () => {
       setCredOpen(true);
     } catch (e: any) {
       console.error(e);
-      alert(e?.message || "Failed to load student records.");
+      showAlert(e?.message || "Failed to load student records.", "error");
     } finally {
       setCredLoading(false);
     }
@@ -313,7 +350,7 @@ const fetchRegistrarSettingsSemester = async () => {
       const students = await getStudentsByEnrollmentIds([enrollmentId]);
 
       if (!students || students.length === 0) {
-        alert("No Student record found for this enrollment.");
+        showAlert("No student record found for this enrollment.", "error");
         return;
       }
 
@@ -322,13 +359,11 @@ const fetchRegistrarSettingsSemester = async () => {
       setCredOpen(true);
     } catch (e: any) {
       console.error(e);
-      alert(e?.message || "Failed to load student record.");
+      showAlert(e?.message || "Failed to load student record.", "error");
     } finally {
       setCredLoading(false);
     }
   };
-
-  /* ================= SEND CREDENTIALS ================= */
 
   const sendCredentialsApi = async ({
     studentIds,
@@ -377,87 +412,228 @@ const fetchRegistrarSettingsSemester = async () => {
     const sent = (data?.results || []).filter(
       (r: any) => r.status === "sent",
     ).length;
-    alert(`Done! Sent credentials to ${sent} student(s).`);
+
+    showAlert(`Credentials sent to ${sent} student(s).`, "success");
 
     return data;
   };
 
-  /* ================= RENDER ================= */
+  const handleArchiveEnrolled = async (enrollmentId: string) => {
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/enrollments/${enrollmentId}/archive`,
+        {
+          method: "POST",
+        },
+      );
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to archive enrolled student.");
+      }
+
+      await Promise.all([
+        loadEnrolled(enrolledQuery),
+        loadArchived(),
+        fetchStats(),
+      ]);
+      showAlert("Enrolled student archived successfully.", "success");
+    } catch (e: any) {
+      console.error(e);
+      showAlert(e?.message || "Failed to archive enrolled student.", "error");
+    }
+  };
+
+  const handleUnarchiveEnrolled = async (enrollmentId: string) => {
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/enrollments/${enrollmentId}/unarchive`,
+        {
+          method: "POST",
+        },
+      );
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(
+          data?.message || "Failed to unarchive enrolled student.",
+        );
+      }
+
+      await Promise.all([
+        loadEnrolled(enrolledQuery),
+        loadArchived(),
+        fetchStats(),
+      ]);
+      showAlert("Enrolled student unarchived successfully.", "success");
+    } catch (e: any) {
+      console.error(e);
+      showAlert(e?.message || "Failed to unarchive enrolled student.", "error");
+    }
+  };
+
+  const handleDeleteArchivedOne = async (enrollmentId: string) => {
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/enrollments/${enrollmentId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(
+          data?.message || "Failed to delete archived enrolled student.",
+        );
+      }
+
+      await Promise.all([loadArchived(), fetchStats()]);
+      showAlert("Archived enrolled student deleted successfully.", "success");
+    } catch (e: any) {
+      console.error(e);
+      showAlert(
+        e?.message || "Failed to delete archived enrolled student.",
+        "error",
+      );
+    }
+  };
+
+  const handleDeleteArchivedSelected = async (ids: string[]) => {
+    try {
+      const res = await fetch(
+        "http://localhost:5000/api/enrollments/bulk-delete",
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids }),
+        },
+      );
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to delete archived students.");
+      }
+
+      await Promise.all([loadArchived(), fetchStats()]);
+      showAlert(
+        `${data?.deletedCount ?? ids.length} archived student(s) deleted successfully.`,
+        "success",
+      );
+    } catch (e: any) {
+      console.error(e);
+      showAlert(e?.message || "Failed to delete archived students.", "error");
+    }
+  };
 
   return (
-    <div className="registrar-enrollment container-fluid px-3 px-md-4">
-      <div className="mb-4">
-        <h2 className="fw-bold mb-1">Student Enrollment</h2>
-        <p className="text-muted mb-0">Evaluate scheduled enrollments</p>
-      </div>
-
-      <EnrollmentStats
-        pending={pendingCount}
-        enrolled={stats?.enrolled ?? 0}
-        availableSections={sections.length}
-        semesterLabel={settingsSemesterLabel} // ✅ FROM REGISTRAR SETTINGS
+    <>
+      <AuthAlert
+        message={alertMessage}
+        type={alertType}
+        visible={animateAlert}
+        loading={isBusy}
       />
 
-      <div className="card shadow-sm enroll-card mt-3 mt-md-4">
-        <div className="card-body">
-          <div className="enroll-searchbar">
-            <Search size={18} className="enroll-search-icon" />
-            <input
-              type="text"
-              className="enroll-search-input"
-              placeholder="Search pending students by name or ID..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+      <div className="registrar-enrollment-page">
+        <div className="mb-3 mb-md-4">
+          <h2 className="fw-bold mb-1">Student Enrollment</h2>
+          <p className="text-muted mb-0">Evaluate scheduled enrollments</p>
+        </div>
+
+        <EnrollmentStats
+          pending={pendingCount}
+          enrolled={stats?.enrolled ?? 0}
+          availableSections={sections.length}
+          semesterLabel={settingsSemesterLabel}
+        />
+
+        <div className="card shadow-sm enroll-card mt-3 mt-md-4">
+          <div className="card-body">
+            <div className="enroll-searchbar">
+              <Search size={18} className="enroll-search-icon" />
+              <input
+                type="text"
+                className="enroll-search-input"
+                placeholder="Search pending students by name or ID..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="mt-3">
-        <PendingEnrollmentList
-          loading={loading}
-          items={enrollments}
-          titleCount={pendingCount}
-          onEvaluate={onEvaluate}
+        <div className="mt-3">
+          <PendingEnrollmentList
+            loading={loading}
+            items={enrollments}
+            titleCount={pendingCount}
+            onEvaluate={onEvaluate}
+          />
+        </div>
+
+        <EnrolledStudentsCard
+          enrolledCount={enrolledCount}
+          archivedCount={archivedStudents.length}
+          onOpenArchived={() => setArchivedModalOpen(true)}
+          enrolledQuery={enrolledQuery}
+          setEnrolledQuery={setEnrolledQuery}
+          loading={enrolledLoading || credLoading}
+          items={enrolledStudents}
+          selectedIds={selectedEnrolledIds}
+          onToggleSelect={toggleSelectEnrolled}
+          onSelectAll={selectAllEnrolled}
+          onClearAll={clearAllEnrolled}
+          onSendCredentials={openCredentialsForSelected}
+          onSendCredentialsOne={openCredentialsForOne}
+          onArchiveOne={handleArchiveEnrolled}
+        />
+
+        <ArchivedEnrolledStudentsModal
+          open={archivedModalOpen}
+          onClose={() => setArchivedModalOpen(false)}
+          items={archivedStudents}
+          onUnarchive={handleUnarchiveEnrolled}
+          onDeleteOne={handleDeleteArchivedOne}
+          onDeleteSelected={handleDeleteArchivedSelected}
+        />
+
+        <SendCredentialsModal
+          open={credOpen}
+          onClose={() => setCredOpen(false)}
+          students={credTargets}
+          onSend={async (args) => {
+            try {
+              await sendCredentialsApi(args);
+              setCredOpen(false);
+            } catch (e: any) {
+              console.error(e);
+              showAlert(e?.message || "Failed to send credentials.", "error");
+              throw e;
+            }
+          }}
+        />
+
+        <div className="mt-3 mt-md-4">
+          <SectionCapacityGrid loading={sectionsLoading} sections={sections} />
+        </div>
+
+        <EnrollmentEvaluationModal
+          open={evalOpen}
+          onClose={() => {
+            setEvalOpen(false);
+            setSelected(null);
+          }}
+          student={selected}
+          sections={sections}
+          loading={loading || sectionsLoading}
+          onEnroll={handleEnroll}
         />
       </div>
-
-      <EnrolledStudentsCard
-        enrolledCount={enrolledCount}
-        enrolledQuery={enrolledQuery}
-        setEnrolledQuery={setEnrolledQuery}
-        loading={enrolledLoading || credLoading}
-        items={enrolledStudents}
-        selectedIds={selectedEnrolledIds}
-        onToggleSelect={toggleSelectEnrolled}
-        onSelectAll={selectAllEnrolled}
-        onClearAll={clearAllEnrolled}
-        onSendCredentials={openCredentialsForSelected}
-        onSendCredentialsOne={openCredentialsForOne}
-      />
-
-      <SendCredentialsModal
-        open={credOpen}
-        onClose={() => setCredOpen(false)}
-        students={credTargets}
-        onSend={sendCredentialsApi}
-      />
-
-      <div className="mt-3 mt-md-4">
-        <SectionCapacityGrid loading={sectionsLoading} sections={sections} />
-      </div>
-
-      <EnrollmentEvaluationModal
-        open={evalOpen}
-        onClose={() => {
-          setEvalOpen(false);
-          setSelected(null);
-        }}
-        student={selected}
-        sections={sections}
-        loading={loading || sectionsLoading}
-        onEnroll={handleEnroll}
-      />
-    </div>
+    </>
   );
 }

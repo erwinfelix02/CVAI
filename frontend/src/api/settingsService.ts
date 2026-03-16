@@ -4,14 +4,16 @@ export type GeneralSettingsDTO = {
   siteName: string;
   supportEmail: string;
   siteDescription: string;
-  aiWelcomeMessage: string;
+  schoolPhoneNumber: string;
+  schoolLocation: string;
 };
 
 const DEFAULT_GENERAL_SETTINGS: GeneralSettingsDTO = {
   siteName: "Graystone Institute of the Philippines",
   supportEmail: "support@university.edu",
   siteDescription: "Campus Virtual Assistance for Information",
-  aiWelcomeMessage: "Hello! I'm your campus assistant. How can I help you today?",
+  schoolPhoneNumber: "+63 912 345 6789",
+  schoolLocation: "Cebu City, Philippines",
 };
 
 export async function getGeneralSettings(): Promise<GeneralSettingsDTO> {
@@ -20,7 +22,6 @@ export async function getGeneralSettings(): Promise<GeneralSettingsDTO> {
 
   if (!res.ok) throw new Error(data?.message || "Failed to load settings.");
 
-  // ✅ ensure always returns valid object
   return {
     ...DEFAULT_GENERAL_SETTINGS,
     ...(data || {}),

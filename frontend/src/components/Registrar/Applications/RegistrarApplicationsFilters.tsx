@@ -1,13 +1,13 @@
 import { Search, ChevronDown, Calendar, Filter } from "lucide-react";
 import type { ApplicationStatus } from "./types";
 
+type FilterStatus = Exclude<ApplicationStatus, "Archived"> | "All";
+
 type Props = {
   query: string;
   setQuery: (v: string) => void;
-  status: ApplicationStatus | "All";
-  setStatus: (v: ApplicationStatus | "All") => void;
-
-  // ✅ new
+  status: FilterStatus;
+  setStatus: (v: FilterStatus) => void;
   selectedApprovedCount: number;
   onSendSchedule: () => void;
 };
@@ -47,7 +47,7 @@ export default function RegistrarApplicationsFilters({
               <select
                 className="form-select registrar-select-control"
                 value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
+                onChange={(e) => setStatus(e.target.value as FilterStatus)}
               >
                 <option value="All">All Status</option>
                 <option value="Pending">Pending</option>
@@ -59,7 +59,6 @@ export default function RegistrarApplicationsFilters({
             </div>
           </div>
 
-          {/* ✅ Send Schedule */}
           <div className="col-12 col-lg-auto">
             <button
               type="button"

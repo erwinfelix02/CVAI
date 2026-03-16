@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import Preregistration from "../models/Preregistration.js";
+import ArchivedPreregistration from "../models/ArchivedPreregistration.js";
 import RegistrarSettings from "../models/RegistrarSettings.js";
 import sendEmail from "../utils/sendEmail.js";
 import contract from "../utils/blockchain.js";
@@ -18,6 +19,24 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+
+function normalizePHPhone(phone) {
+  const digits = String(phone || "").replace(/\D/g, "");
+
+  if (digits.startsWith("639") && digits.length >= 12) {
+    return `+${digits.slice(0, 12)}`;
+  }
+
+  if (digits.startsWith("09") && digits.length >= 11) {
+    return `+63${digits.slice(1, 11)}`;
+  }
+
+  if (digits.startsWith("9") && digits.length >= 10) {
+    return `+63${digits.slice(0, 10)}`;
+  }
+
+  return String(phone || "").trim();
+}
 
 router.post(
   "/",
@@ -40,15 +59,22 @@ router.post(
       const data = JSON.parse(req.body.data);
 
       const email = String(data?.personal?.email || "").trim().toLowerCase();
-      const phoneDigits = String(data?.personal?.phone || "").replace(/\D/g, "");
+      const phone = normalizePHPhone(data?.personal?.phone || "");
       const firstName = String(data?.personal?.firstName || "").trim();
+      const middleName = String(data?.personal?.middleName || "").trim();
       const lastName = String(data?.personal?.lastName || "").trim();
       const birthDate = String(data?.personal?.birthDate || "").trim();
+      const gender = String(data?.personal?.gender || "").trim();
+      const address = String(data?.personal?.address || "").trim();
 
-      const existing = await Preregistration.findOne({
+      const applicantType = String(data?.academic?.applicantType || "").trim();
+      const course = String(data?.academic?.course || "").trim();
+      const previousSchool = String(data?.academic?.previousSchool || "").trim();
+
+      const existingActive = await Preregistration.findOne({
         $or: [
           { "personal.email": email },
-          { "personal.phone": phoneDigits },
+          { "personal.phone": phone },
           {
             "personal.firstName": firstName,
             "personal.lastName": lastName,
@@ -57,9 +83,22 @@ router.post(
         ],
       });
 
-      if (existing) {
+      const existingArchived = await ArchivedPreregistration.findOne({
+        $or: [
+          { "personal.email": email },
+          { "personal.phone": phone },
+          {
+            "personal.firstName": firstName,
+            "personal.lastName": lastName,
+            "personal.birthDate": birthDate,
+          },
+        ],
+      });
+
+      if (existingActive || existingArchived) {
         return res.status(409).json({
-          message: "Duplicate application detected. This applicant already exists.",
+          message:
+            "Duplicate application detected. This applicant already exists.",
         });
       }
 
@@ -68,8 +107,8 @@ router.post(
       try {
         const tx = await contract.registerStudent(
           `${firstName} ${lastName}`,
-          data.academic.course,
-          email
+          course,
+          email,
         );
         await tx.wait();
         txHash = tx.hash;
@@ -79,11 +118,20 @@ router.post(
 
       const newApp = new Preregistration({
         personal: {
-          ...data.personal,
+          firstName,
+          middleName,
+          lastName,
           email,
-          phone: phoneDigits,
+          phone,
+          birthDate,
+          gender,
+          address,
         },
-        academic: data.academic,
+        academic: {
+          applicantType,
+          course,
+          previousSchool,
+        },
         status: "Pending",
         blockchainTxHash: txHash,
         documents: {
@@ -104,8 +152,36 @@ router.post(
 
       await newApp.save();
 
+      try {
+        const fullName = [firstName, middleName, lastName]
+          .filter(Boolean)
+          .join(" ");
+
+        const appName = process.env.APP_NAME || "CVAI Portal";
+
+        const emailHtml = `
+          <h2>Pre-Registration Submitted</h2>
+          <p>Hello <strong>${fullName}</strong>,</p>
+          <p>Your pre-registration application has been successfully submitted.</p>
+          <p><strong>Registration ID:</strong> ${newApp.registrationId}</p>
+          <p><strong>Course:</strong> ${course || "N/A"}</p>
+          <p><strong>Status:</strong> Pending</p>
+          <p>Please keep your Registration ID for future reference.</p>
+          <hr />
+          <p>Thank you for applying to ${appName}.</p>
+        `;
+
+        await sendEmail(
+          email,
+          `Pre-Registration Confirmation - ${appName}`,
+          emailHtml,
+        );
+      } catch (emailErr) {
+        console.error("Failed to send preregistration email:", emailErr);
+      }
+
       return res.status(201).json({
-        message: "Application saved and email sent successfully",
+        message: "Application saved successfully",
         registrationId: newApp.registrationId,
       });
     } catch (err) {
@@ -113,27 +189,37 @@ router.post(
 
       if (err?.code === 11000) {
         return res.status(409).json({
-          message: "Duplicate application detected (email/phone already exists).",
+          message:
+            "Duplicate application detected (email/phone/applicant already exists).",
         });
       }
 
       return res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
-// GET all preregistrations
+// GET all active + archived preregistrations
 router.get("/", async (req, res) => {
   try {
-    const applications = await Preregistration.find().sort({ createdAt: -1 });
-    res.json(applications);
+    const active = await Preregistration.find().sort({ createdAt: -1 });
+    const archived = await ArchivedPreregistration.find().sort({ createdAt: -1 });
+
+    const combined = [
+      ...active.map((doc) => doc.toObject()),
+      ...archived.map((doc) => ({
+        ...doc.toObject(),
+        status: "Archived",
+      })),
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json(combined);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// GET pending count only
 router.get("/pending-count", async (req, res) => {
   try {
     const count = await Preregistration.countDocuments({ status: "Pending" });
@@ -144,7 +230,6 @@ router.get("/pending-count", async (req, res) => {
   }
 });
 
-// GET recent applications (limit 5)
 router.get("/recent", async (req, res) => {
   try {
     const applications = await Preregistration.find()
@@ -158,7 +243,7 @@ router.get("/recent", async (req, res) => {
   }
 });
 
-// Approve or Reject application
+// Approve or Reject active application
 router.patch("/:id/status", async (req, res) => {
   try {
     const { status } = req.body;
@@ -167,10 +252,23 @@ router.patch("/:id/status", async (req, res) => {
       return res.status(400).json({ message: "Invalid status value" });
     }
 
+    const updateData =
+      status === "Approved"
+        ? {
+            status,
+            approvedAt: new Date(),
+            rejectedAt: null,
+          }
+        : {
+            status,
+            rejectedAt: new Date(),
+            approvedAt: null,
+          };
+
     const updated = await Preregistration.findOneAndUpdate(
       { registrationId: req.params.id },
-      { status },
-      { new: true }
+      updateData,
+      { new: true },
     );
 
     if (!updated) {
@@ -186,10 +284,94 @@ router.patch("/:id/status", async (req, res) => {
     await sendEmail(
       updated.personal.email,
       "Application Status Update",
-      emailHtml
+      emailHtml,
     );
 
     res.json({ message: "Status updated successfully", updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Archive: move from active collection to archived collection
+router.post("/:id/archive", async (req, res) => {
+  try {
+    const app = await Preregistration.findOne({ registrationId: req.params.id });
+
+    if (!app) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    const plain = app.toObject();
+
+    const archivedDoc = new ArchivedPreregistration({
+      ...plain,
+      _id: undefined,
+      status: "Archived",
+      originalStatus: plain.status,
+      archivedAt: new Date(),
+    });
+
+    await archivedDoc.save();
+    await Preregistration.deleteOne({ registrationId: req.params.id });
+
+    res.json({
+      message: "Application archived successfully",
+      archived: archivedDoc,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Unarchive: move back from archived collection to active collection
+router.post("/:id/unarchive", async (req, res) => {
+  try {
+    const archived = await ArchivedPreregistration.findOne({
+      registrationId: req.params.id,
+    });
+
+    if (!archived) {
+      return res.status(404).json({ message: "Archived application not found" });
+    }
+
+    const plain = archived.toObject();
+
+    const restored = new Preregistration({
+      ...plain,
+      _id: undefined,
+      status: plain.originalStatus || "Rejected",
+    });
+
+    await restored.save();
+    await ArchivedPreregistration.deleteOne({ registrationId: req.params.id });
+
+    res.json({
+      message: "Application unarchived successfully",
+      restored,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Delete archived application permanently
+router.delete("/:id", async (req, res) => {
+  try {
+    const archived = await ArchivedPreregistration.findOneAndDelete({
+      registrationId: req.params.id,
+    });
+
+    if (!archived) {
+      return res.status(404).json({ message: "Archived application not found" });
+    }
+
+    res.json({
+      message: "Archived application deleted successfully",
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

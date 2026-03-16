@@ -15,7 +15,7 @@ import {
   deleteCourse,
 } from "../../api/courseService";
 
-import { getDepartments } from "../../api/departmentService"; // ✅ NEW
+import { getDepartments } from "../../api/departmentService";
 
 import "../../styles/registrar-courses.css";
 
@@ -27,10 +27,8 @@ export default function CoursesManagementPage() {
   const [openAdd, setOpenAdd] = useState(false);
   const [editing, setEditing] = useState<CourseItem | null>(null);
 
-  // ✅ NEW: active department options (string list)
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
 
-  // ✅ AuthAlert state
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
@@ -50,7 +48,6 @@ export default function CoursesManagementPage() {
     return () => clearTimeout(t);
   }, [animateAlert]);
 
-  // ✅ LOAD COURSES
   const loadCourses = async () => {
     try {
       setIsLoading(true);
@@ -70,14 +67,16 @@ export default function CoursesManagementPage() {
 
       setCourses(mapped);
     } catch (err: any) {
-      showAlert(err.response?.data?.message || "Failed to load courses.", "error");
+      showAlert(
+        err.response?.data?.message || "Failed to load courses.",
+        "error",
+      );
       setCourses([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ✅ NEW: LOAD ACTIVE DEPARTMENTS
   const loadActiveDepartments = async () => {
     try {
       const data = await getDepartments();
@@ -86,24 +85,23 @@ export default function CoursesManagementPage() {
         .filter((d: any) => (d.status ?? "Active") === "Active")
         .map((d: any) => String(d.name ?? "").trim())
         .filter(Boolean)
-        // remove duplicates
-        .filter((name: string, idx: number, arr: string[]) => arr.indexOf(name) === idx)
-        // optional sort
+        .filter(
+          (name: string, idx: number, arr: string[]) =>
+            arr.indexOf(name) === idx,
+        )
         .sort((a: string, b: string) => a.localeCompare(b));
 
       setDepartmentOptions(activeNames);
     } catch (err) {
-      // don’t block the page if dept fetch fails
       setDepartmentOptions([]);
     }
   };
 
   useEffect(() => {
     loadCourses();
-    loadActiveDepartments(); // ✅ NEW
+    loadActiveDepartments();
   }, []);
 
-  // ✅ FILTER
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return courses;
@@ -114,11 +112,11 @@ export default function CoursesManagementPage() {
     });
   }, [courses, query]);
 
-  // ✅ STATS
   const totals = useMemo(() => {
     const totalCourses = courses.length;
     const activeCourses = courses.filter((c) => c.status === "Active").length;
     const departments = new Set(courses.map((c) => c.department)).size;
+
     return { totalCourses, activeCourses, departments };
   }, [courses]);
 
@@ -132,7 +130,6 @@ export default function CoursesManagementPage() {
     setOpenAdd(true);
   };
 
-  // ✅ CREATE
   const onCreate = async (item: CourseItem) => {
     try {
       setIsLoading(true);
@@ -150,13 +147,15 @@ export default function CoursesManagementPage() {
       setEditing(null);
       showAlert("Course created successfully!", "success");
     } catch (err: any) {
-      showAlert(err.response?.data?.message || "Failed to create course.", "error");
+      showAlert(
+        err.response?.data?.message || "Failed to create course.",
+        "error",
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ✅ UPDATE
   const onUpdate = async (item: CourseItem) => {
     try {
       setIsLoading(true);
@@ -174,13 +173,15 @@ export default function CoursesManagementPage() {
       setEditing(null);
       showAlert("Course updated successfully!", "success");
     } catch (err: any) {
-      showAlert(err.response?.data?.message || "Failed to update course.", "error");
+      showAlert(
+        err.response?.data?.message || "Failed to update course.",
+        "error",
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ✅ DELETE
   const onDelete = async (id: string) => {
     try {
       setIsLoading(true);
@@ -190,7 +191,10 @@ export default function CoursesManagementPage() {
 
       showAlert("Course deleted successfully.", "success");
     } catch (err: any) {
-      showAlert(err.response?.data?.message || "Failed to delete course.", "error");
+      showAlert(
+        err.response?.data?.message || "Failed to delete course.",
+        "error",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -207,7 +211,7 @@ export default function CoursesManagementPage() {
         loading={isLoading}
       />
 
-      <div className="registrar-courses-page container-fluid px-3 px-md-4">
+      <div className="registrar-courses-page">
         <div className="d-flex flex-column flex-md-row align-items-md-start justify-content-md-between gap-3 mb-3 mb-md-4">
           <div>
             <h2 className="fw-bold mb-1">Courses Management</h2>
@@ -241,7 +245,11 @@ export default function CoursesManagementPage() {
             </div>
 
             {hasRows ? (
-              <CoursesTable items={filtered} onEdit={openEdit} onDelete={onDelete} />
+              <CoursesTable
+                items={filtered}
+                onEdit={openEdit}
+                onDelete={onDelete}
+              />
             ) : (
               <div className="users-empty-state">
                 <div className="users-empty-icon">📭</div>
@@ -254,7 +262,6 @@ export default function CoursesManagementPage() {
           </div>
         </div>
 
-        {/* ✅ PASS ACTIVE DEPARTMENTS TO MODAL */}
         <AddCourseModal
           open={openAdd}
           onClose={() => {
@@ -264,7 +271,7 @@ export default function CoursesManagementPage() {
           initial={editing}
           onCreate={onCreate}
           onUpdate={onUpdate}
-          departmentOptions={departmentOptions} // ✅ NEW
+          departmentOptions={departmentOptions}
         />
       </div>
     </>

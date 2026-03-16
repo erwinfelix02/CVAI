@@ -5,17 +5,15 @@ import type { CourseItem } from "./types";
 type Props = {
   items: CourseItem[];
   onEdit: (item: CourseItem) => void;
-  onDelete: (id: string) => Promise<void> | void; // ✅ allow async
+  onDelete: (id: string) => Promise<void> | void;
 };
 
 export default function CoursesTable({ items, onEdit, onDelete }: Props) {
-  // ✅ confirm popup state
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [target, setTarget] = useState<CourseItem | null>(null);
   const [deleting, setDeleting] = useState(false);
   const deletingRef = useRef(false);
 
-  // ✅ ESC closes confirm
   useEffect(() => {
     if (!confirmOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -84,23 +82,27 @@ export default function CoursesTable({ items, onEdit, onDelete }: Props) {
                 </span>
               </td>
               <td className="text-end">
-                <button
-                  className="btn btn-link p-0 me-3 action-btn"
-                  onClick={() => onEdit(c)}
-                  aria-label="Edit"
-                  disabled={confirmOpen || deleting}
-                >
-                  <Pencil size={18} />
-                </button>
+                <div className="d-inline-flex gap-2">
+                  <button
+                    type="button"
+                    className="table-action-btn edit-action-btn"
+                    onClick={() => onEdit(c)}
+                    aria-label="Edit"
+                    disabled={confirmOpen || deleting}
+                  >
+                    <Pencil size={18} strokeWidth={2} />
+                  </button>
 
-                <button
-                  className="btn btn-link p-0 text-danger action-btn"
-                  onClick={() => openDeleteConfirm(c)}
-                  aria-label="Delete"
-                  disabled={confirmOpen || deleting}
-                >
-                  <Trash2 size={18} />
-                </button>
+                  <button
+                    type="button"
+                    className="table-action-btn delete-action-btn"
+                    onClick={() => openDeleteConfirm(c)}
+                    aria-label="Delete"
+                    disabled={confirmOpen || deleting}
+                  >
+                    <Trash2 size={18} strokeWidth={2} />
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
@@ -115,7 +117,6 @@ export default function CoursesTable({ items, onEdit, onDelete }: Props) {
         </tbody>
       </table>
 
-      {/* ✅ DELETE CONFIRM POPUP */}
       {confirmOpen && target ? (
         <div
           className="sec-confirm-backdrop"
@@ -134,11 +135,8 @@ export default function CoursesTable({ items, onEdit, onDelete }: Props) {
 
             <div className="sec-confirm-body">
               <div className="fw-bold mb-1">Delete this course?</div>
-              <div className="text-muted small">
-                This action cannot be undone.
-              </div>
+              <div className="text-muted small">This action cannot be undone.</div>
 
-              {/* summary */}
               <div className="mt-3 small">
                 <div>
                   <span className="text-muted">Code:</span>{" "}

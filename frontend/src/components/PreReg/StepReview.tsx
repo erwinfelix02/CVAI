@@ -65,6 +65,14 @@ export default function StepReview({
     .replace(/\s+/g, " ")
     .trim();
 
+  const formattedBirthDate = personal.birthDate
+    ? new Date(personal.birthDate).toLocaleDateString("en-PH", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "";
+
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -149,7 +157,7 @@ export default function StepReview({
               </div>
 
               <div className="d-flex align-items-center gap-2">
-                <Calendar size={14} /> {personal.birthDate}
+                <Calendar size={14} /> {formattedBirthDate}
               </div>
 
               <div className="d-flex align-items-center gap-2">
@@ -245,7 +253,11 @@ export default function StepReview({
                 className="doc-preview-frame"
               />
             ) : (
-              <img src={previewUrl} alt="Preview" className="doc-preview-image" />
+              <img
+                src={previewUrl}
+                alt="Preview"
+                className="doc-preview-image"
+              />
             )}
           </div>
         </div>

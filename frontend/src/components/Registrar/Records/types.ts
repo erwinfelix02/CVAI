@@ -1,4 +1,4 @@
-export type StudentStatus = "Active" | "Dropped" | "Graduated";
+export type StudentStatus = "Active" | "Inactive" | "Dropped" | "Graduated";
 
 export type StudentRow = {
   id: string; // student id

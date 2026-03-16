@@ -6,7 +6,7 @@
   justify-content: center;
   align-items: center;
   padding: 16px;
-  z-index: 999;
+  z-index: 9999;
 }
 
 .app-modal {
@@ -251,7 +251,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: 10000;
 }
 
 .preview-modal {
@@ -271,4 +271,19 @@
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #eee;
+}
+.confirm-modal {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  width: 400px;
+  max-width: 90%;
+  text-align: center;
+}
+
+.confirm-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
 }

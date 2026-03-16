@@ -101,10 +101,30 @@ export default function ActivityLogsPage() {
       const data = res.data;
 
       setStats([
-        { label: "Total Events", value: data.total, icon: Activity, tone: "blue" },
-        { label: "Successful", value: data.success, icon: CheckCircle2, tone: "green" },
-        { label: "Warnings", value: data.warnings, icon: AlertTriangle, tone: "orange" },
-        { label: "Security Events", value: data.security, icon: Shield, tone: "red" },
+        {
+          label: "Total Events",
+          value: data.total,
+          icon: Activity,
+          tone: "blue",
+        },
+        {
+          label: "Successful",
+          value: data.success,
+          icon: CheckCircle2,
+          tone: "green",
+        },
+        {
+          label: "Warnings",
+          value: data.warnings,
+          icon: AlertTriangle,
+          tone: "orange",
+        },
+        {
+          label: "Security Events",
+          value: data.security,
+          icon: Shield,
+          tone: "red",
+        },
       ]);
     } catch (error) {
       console.error("Failed to fetch stats:", error);
@@ -217,7 +237,10 @@ export default function ActivityLogsPage() {
 
       setConfirmModalOpen(false);
       setExportModalOpen(false);
-      showAlert(`Logs exported successfully (${selectedExportStatus}).`, "success");
+      showAlert(
+        `Logs exported successfully (${selectedExportStatus}).`,
+        "success",
+      );
     } catch (error) {
       console.error("Failed to export logs:", error);
       showAlert("Failed to export logs.", "error");
