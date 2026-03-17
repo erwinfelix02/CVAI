@@ -214,7 +214,7 @@
 /* ✅ Constrain modal width and keep centered */
 .courses-modal-dialog {
   width: 100%;
-  max-width: 760px;     /* desktop size like screenshot */
+  max-width: 760px; /* desktop size like screenshot */
   margin: 0 auto;
 }
 

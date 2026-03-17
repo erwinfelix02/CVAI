@@ -79,6 +79,10 @@ function getActivityMeta(log: LogRow): Pick<ActivityRow, "icon" | "tone"> {
 }
 
 export default function SuperAdminDashboard() {
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [isWelcomeClosing, setIsWelcomeClosing] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState("");
+
   const [totalUsers, setTotalUsers] = useState(0);
   const [aiItems, setAiItems] = useState(0);
   const [systemEvents, setSystemEvents] = useState(0);
@@ -89,6 +93,35 @@ export default function SuperAdminDashboard() {
   const [loadingFaqs, setLoadingFaqs] = useState(false);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [loadingPortals, setLoadingPortals] = useState(false);
+
+  useEffect(() => {
+    const message = localStorage.getItem("welcomeMessage");
+
+    if (message) {
+      setWelcomeMessage(message);
+      setShowWelcome(true);
+      setIsWelcomeClosing(false);
+      localStorage.removeItem("welcomeMessage");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showWelcome) return;
+
+    const fadeTimer = setTimeout(() => {
+      setIsWelcomeClosing(true);
+    }, 1800);
+
+    const removeTimer = setTimeout(() => {
+      setShowWelcome(false);
+      setIsWelcomeClosing(false);
+    }, 2400);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, [showWelcome]);
 
   useEffect(() => {
     const load = async () => {
@@ -311,54 +344,70 @@ export default function SuperAdminDashboard() {
   ];
 
   return (
-    <div className="superadmin-dashboard">
-      <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-3 mb-md-4">
-        <div>
-          <h2 className="fw-bold mb-1">Super Admin Dashboard</h2>
-          <p className="text-muted mb-0">
-            Manage portals, users, and AI knowledge base
-          </p>
+    <>
+      {showWelcome && (
+        <div
+          className={`welcome-overlay ${isWelcomeClosing ? "fade-out" : ""}`}
+        >
+          <div className={`welcome-box ${isWelcomeClosing ? "fade-out" : ""}`}>
+            <div className="welcome-icon-wrap">
+              <CheckCircle2 size={34} />
+            </div>
+            <h4>{welcomeMessage}</h4>
+            <p>You have successfully signed in.</p>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="row g-3 g-md-4 mb-3 mb-md-4">
-        {stats.map((s) => (
-          <div key={s.label} className="col-12 col-sm-6 col-xl-3">
-            <StatCard
-              label={s.label}
-              value={s.value}
-              icon={s.icon}
-              tone={s.tone}
+      <div className="superadmin-dashboard">
+        <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-3 mb-md-4">
+          <div>
+            <h2 className="fw-bold mb-1">Super Admin Dashboard</h2>
+            <p className="text-muted mb-0">
+              Manage portals, users, and AI knowledge base
+            </p>
+          </div>
+        </div>
+
+        <div className="row g-3 g-md-4 mb-3 mb-md-4">
+          {stats.map((s) => (
+            <div key={s.label} className="col-12 col-sm-6 col-xl-3">
+              <StatCard
+                label={s.label}
+                value={s.value}
+                icon={s.icon}
+                tone={s.tone}
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="row g-3 g-md-4 mb-3 mb-md-4">
+          <div className="col-12 col-lg-6">
+            <PortalStatusCard
+              title="Portal Status"
+              rightPill={portalPill}
+              rows={portalRows}
             />
           </div>
-        ))}
-      </div>
 
-      <div className="row g-3 g-md-4 mb-3 mb-md-4">
-        <div className="col-12 col-lg-6">
-          <PortalStatusCard
-            title="Portal Status"
-            rightPill={portalPill}
-            rows={portalRows}
-          />
+          <div className="col-12 col-lg-6">
+            <RecentActivityCard
+              title="Recent Activity"
+              viewAllLabel="View All"
+              viewAllTo="/superadmin/logs"
+              rows={activityRows}
+              rightIcon={ArrowRight}
+            />
+          </div>
         </div>
 
-        <div className="col-12 col-lg-6">
-          <RecentActivityCard
-            title="Recent Activity"
-            viewAllLabel="View All"
-            viewAllTo="/superadmin/logs"
-            rows={activityRows}
-            rightIcon={ArrowRight}
-          />
+        <div className="row g-3 g-md-4">
+          <div className="col-12">
+            <QuickActionsGrid title="Quick Actions" items={quick} />
+          </div>
         </div>
       </div>
-
-      <div className="row g-3 g-md-4">
-        <div className="col-12">
-          <QuickActionsGrid title="Quick Actions" items={quick} />
-        </div>
-      </div>
-    </div>
+    </>
   );
 }

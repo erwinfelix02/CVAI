@@ -116,10 +116,15 @@ export default function SignIn() {
 
       const { token, redirect, user } = res.data;
 
-localStorage.setItem("sessionToken", token);
-localStorage.setItem("user", JSON.stringify(user));
-localStorage.setItem("lastActivity", Date.now().toString());
-window.location.href = redirect;
+      localStorage.setItem("sessionToken", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("lastActivity", Date.now().toString());
+      localStorage.setItem(
+        "welcomeMessage",
+        `Welcome back, ${user?.firstName || user?.fullName || "User"}!`,
+      );
+
+      window.location.href = redirect;
     } catch (error: any) {
       setLoading(false);
       setAnimateAlert(false);
@@ -176,7 +181,7 @@ window.location.href = redirect;
             <button
               type="button"
               className="auth-back-btn d-inline-flex align-items-center gap-2"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/")}
             >
               <ArrowLeft size={18} />
               <span>Back</span>
@@ -204,7 +209,9 @@ window.location.href = redirect;
                   <FaUser className="outlined-icon" />
                   <div className="error-space">
                     <span
-                      className={errors.email ? "error-text show" : "error-text"}
+                      className={
+                        errors.email ? "error-text show" : "error-text"
+                      }
                     >
                       {errors.email || "placeholder"}
                     </span>
@@ -232,7 +239,9 @@ window.location.href = redirect;
                   </button>
                   <div className="error-space">
                     <span
-                      className={errors.password ? "error-text show" : "error-text"}
+                      className={
+                        errors.password ? "error-text show" : "error-text"
+                      }
                     >
                       {errors.password || "placeholder"}
                     </span>
@@ -270,7 +279,9 @@ window.location.href = redirect;
                     </button>
                   </div>
                   <div className="error-space">
-                    <span className={mathError ? "error-text show" : "error-text"}>
+                    <span
+                      className={mathError ? "error-text show" : "error-text"}
+                    >
                       {mathError || "placeholder"}
                     </span>
                   </div>

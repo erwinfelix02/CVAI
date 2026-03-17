@@ -6,6 +6,7 @@ import {
   UserX,
   FileText,
   UserPlus,
+  CheckCircle2,
 } from "lucide-react";
 
 import StatCard from "../../components/Registrar/Dashboard/StatCard";
@@ -22,9 +23,15 @@ import AIInsightsCard from "../../components/Registrar/Dashboard/AIInsightsCard"
 import ProtectedLayout from "../../layouts/ProtectedLayout";
 import "../../styles/registrar-dashboard.css";
 
+const REGISTRAR_ROLE_ID = "registrar";
+
 export default function RegistrarDashboard() {
   const quickRef = useRef<HTMLDivElement | null>(null);
   const recentRef = useRef<HTMLDivElement | null>(null);
+
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [isWelcomeClosing, setIsWelcomeClosing] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState("");
 
   const [totalStudents, setTotalStudents] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
@@ -34,6 +41,65 @@ export default function RegistrarDashboard() {
     enrolled: 0,
     cancelled: 0,
   });
+
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [loadingPerms, setLoadingPerms] = useState(true);
+
+  useEffect(() => {
+    const message = localStorage.getItem("welcomeMessage");
+
+    if (message) {
+      setWelcomeMessage(message);
+      setShowWelcome(true);
+      setIsWelcomeClosing(false);
+      localStorage.removeItem("welcomeMessage");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showWelcome) return;
+
+    const fadeTimer = setTimeout(() => {
+      setIsWelcomeClosing(true);
+    }, 1800);
+
+    const removeTimer = setTimeout(() => {
+      setShowWelcome(false);
+      setIsWelcomeClosing(false);
+    }, 2400);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, [showWelcome]);
+
+  useEffect(() => {
+    async function loadPerms() {
+      setLoadingPerms(true);
+      try {
+        const res = await fetch(
+          `http://localhost:5000/api/roles/${REGISTRAR_ROLE_ID}`,
+        );
+
+        if (!res.ok) {
+          console.error("Failed to fetch role perms:", res.status);
+          setPermissions([]);
+          return;
+        }
+
+        const role = await res.json();
+        setPermissions(Array.isArray(role?.permissions) ? role.permissions : []);
+      } catch (err) {
+        console.error("Failed to load permissions", err);
+        setPermissions([]);
+      } finally {
+        setLoadingPerms(false);
+      }
+    }
+
+    loadPerms();
+  }, []);
 
   useEffect(() => {
     const fetchEnrollmentCounts = async () => {
@@ -70,7 +136,6 @@ export default function RegistrarDashboard() {
     fetchTotalStudents();
   }, []);
 
-  // Sync heights of Quick Actions and Recent Applications
   useEffect(() => {
     if (!quickRef.current || !recentRef.current) return;
 
@@ -82,8 +147,7 @@ export default function RegistrarDashboard() {
         return;
       }
 
-      recentRef.current!.style.height =
-        quickRef.current!.offsetHeight + "px";
+      recentRef.current!.style.height = quickRef.current!.offsetHeight + "px";
     };
 
     syncHeight();
@@ -103,7 +167,7 @@ export default function RegistrarDashboard() {
     const fetchPending = async () => {
       try {
         const res = await fetch(
-          "http://localhost:5000/api/preregistrations/pending-count"
+          "http://localhost:5000/api/preregistrations/pending-count",
         );
         const data = await res.json();
         setPendingCount(data.count);
@@ -114,6 +178,37 @@ export default function RegistrarDashboard() {
 
     fetchPending();
   }, []);
+
+  useEffect(() => {
+    const fetchRecent = async () => {
+      try {
+        const res = await fetch(
+          "http://localhost:5000/api/preregistrations/recent",
+        );
+        const data = await res.json();
+
+        const mapped = data.map((app: any) => ({
+          initials: app.personal.firstName[0] + app.personal.lastName[0],
+          name: app.personal.firstName + " " + app.personal.lastName,
+          program: app.academic.course,
+          ref: app.registrationId,
+          date: new Date(app.createdAt).toISOString().split("T")[0],
+          status: app.status,
+        }));
+
+        setRecent(mapped);
+      } catch (err) {
+        console.error("Failed to fetch recent applications", err);
+      }
+    };
+
+    fetchRecent();
+  }, []);
+
+  const canManageDocuments = permissions.includes("manage_documents");
+  const canProcessApplications = permissions.includes("process_applications");
+  const canManageStudents = permissions.includes("manage_students");
+  const canManageEnrollment = permissions.includes("manage_enrollment");
 
   const stats = useMemo<StatCardProps[]>(
     () => [
@@ -146,57 +241,70 @@ export default function RegistrarDashboard() {
         tone: "red",
       },
     ],
-    [pendingCount, totalStudents, enrollmentCounts]
+    [pendingCount, totalStudents, enrollmentCounts],
   );
 
-  const quickActions: QuickActionItem[] = [
-    {
-      label: "Review Applications",
-      icon: FileText,
-      badge: pendingCount,
-      to: "/registrar/applications",
-    },
-    { label: "Enroll Student", icon: UserPlus, to: "/registrar/enrollment" },
-    { label: "View All Students", icon: Users, to: "/registrar/students" },
-    {
-      label: "Process Documents",
-      icon: FileText,
-      badge: 12,
-      to: "/registrar/documents",
-    },
-  ];
+  const quickActions: QuickActionItem[] = useMemo(() => {
+    if (loadingPerms) return [];
 
-  useEffect(() => {
-    const fetchRecent = async () => {
-      try {
-        const res = await fetch(
-          "http://localhost:5000/api/preregistrations/recent"
-        );
-        const data = await res.json();
-
-        const mapped = data.map((app: any) => ({
-          initials: app.personal.firstName[0] + app.personal.lastName[0],
-          name: app.personal.firstName + " " + app.personal.lastName,
-          program: app.academic.course,
-          ref: app.registrationId,
-          date: new Date(app.createdAt).toISOString().split("T")[0],
-          status: app.status,
-        }));
-
-        setRecent(mapped);
-      } catch (err) {
-        console.error("Failed to fetch recent applications", err);
-      }
-    };
-
-    fetchRecent();
-  }, []);
+    return [
+      canProcessApplications
+        ? {
+            label: "Review Applications",
+            icon: FileText,
+            badge: pendingCount,
+            to: "/registrar/applications",
+          }
+        : null,
+      canManageEnrollment
+        ? {
+            label: "Enroll Student",
+            icon: UserPlus,
+            to: "/registrar/enrollment",
+          }
+        : null,
+      canManageStudents
+        ? {
+            label: "View All Students",
+            icon: Users,
+            to: "/registrar/students",
+          }
+        : null,
+      canManageDocuments
+        ? {
+            label: "Process Documents",
+            icon: FileText,
+            badge: 12,
+            to: "/registrar/documents",
+          }
+        : null,
+    ].filter(Boolean) as QuickActionItem[];
+  }, [
+    loadingPerms,
+    canProcessApplications,
+    canManageEnrollment,
+    canManageStudents,
+    canManageDocuments,
+    pendingCount,
+  ]);
 
   return (
     <ProtectedLayout>
-      <div className="registrar-dashboard">
+      {showWelcome && (
+        <div
+          className={`welcome-overlay ${isWelcomeClosing ? "fade-out" : ""}`}
+        >
+          <div className={`welcome-box ${isWelcomeClosing ? "fade-out" : ""}`}>
+            <div className="welcome-icon-wrap">
+              <CheckCircle2 size={34} />
+            </div>
+            <h4>{welcomeMessage}</h4>
+            <p>You have successfully signed in.</p>
+          </div>
+        </div>
+      )}
 
-        {/* Header */}
+      <div className="registrar-dashboard">
         <div className="mb-3 mb-md-4">
           <h2 className="fw-bold mb-1">Registrar Dashboard</h2>
           <p className="text-muted mb-0">
@@ -204,7 +312,6 @@ export default function RegistrarDashboard() {
           </p>
         </div>
 
-        {/* Stats */}
         <div className="row g-3 g-md-4 mb-3">
           {stats.map((s) => (
             <div key={s.label} className="col-12 col-sm-6 col-xl-3">
@@ -213,9 +320,7 @@ export default function RegistrarDashboard() {
           ))}
         </div>
 
-        {/* Quick Actions + Recent Applications */}
         <div className="row g-3 g-md-4 mb-3 mb-md-4">
-
           <div className="col-12 col-lg-4">
             <div ref={quickRef}>
               <QuickActionsCard title="Quick Actions" items={quickActions} />
@@ -231,16 +336,13 @@ export default function RegistrarDashboard() {
               items={recent}
             />
           </div>
-
         </div>
 
-        {/* AI Insights (moved here) */}
         <div className="row g-3 g-md-4">
           <div className="col-12">
             <AIInsightsCard />
           </div>
         </div>
-
       </div>
     </ProtectedLayout>
   );

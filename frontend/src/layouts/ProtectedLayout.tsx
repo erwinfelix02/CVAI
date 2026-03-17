@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import useIdleLogout from "../customHooks/useIdleLogout";
+import IdleLogoutOverlay from "../customHooks/IdleLogoutOverlay";
 
 interface Props {
   children: ReactNode;
@@ -30,16 +31,13 @@ export default function ProtectedLayout({ children }: Props) {
           },
         });
 
-        // If not allowed or unavailable, keep default idle timeout from hook
         if (!res.ok) return;
 
         const s: SecuritySettingsDTO = await res.json().catch(() => ({
           sessionTimeoutMinutes: 30,
         }));
 
-        setSessionTimeoutMinutes(
-          Number(s.sessionTimeoutMinutes ?? 30),
-        );
+        setSessionTimeoutMinutes(Number(s.sessionTimeoutMinutes ?? 30));
       } catch (e) {
         console.error("Failed to load security settings:", e);
       }
@@ -48,7 +46,12 @@ export default function ProtectedLayout({ children }: Props) {
     load();
   }, []);
 
-  useIdleLogout(sessionTimeoutMinutes);
+  useIdleLogout(sessionTimeoutMinutes, 10);
 
-  return <>{children}</>;
+  return (
+    <>
+      <IdleLogoutOverlay />
+      {children}
+    </>
+  );
 }

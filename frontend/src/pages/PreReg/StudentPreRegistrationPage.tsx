@@ -430,7 +430,7 @@ export default function StudentPreRegistrationPage() {
           <button
             type="button"
             className="prereg-back-btn d-inline-flex align-items-center gap-2"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/")}
           >
             <ArrowLeft size={18} />
             <span>Back</span>
