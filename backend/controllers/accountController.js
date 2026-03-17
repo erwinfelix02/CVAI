@@ -147,14 +147,83 @@ export const sendStudentCredentialsBulk = async (req, res) => {
         const fullName = `${user.firstName} ${user.middleName ? user.middleName + " " : ""}${user.lastName}`;
         const safeMessage = message ? validator.escape(message) : "";
 
-        const emailHtml = `
-          <h2>Welcome to ${appName}</h2>
-          <p>Hello <strong>${fullName}</strong>,</p>
-          ${safeMessage ? `<p>${safeMessage}</p>` : `<p>Your account has been activated.</p>`}
-          <p><strong>ID Number:</strong> ${user.idNumber}</p>
-          <p><strong>Temporary Password:</strong> ${tempPassword}</p>
-          <p>Please log in and change your password immediately.</p>
-        `;
+       const emailHtml = `
+  <div style="margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding:20px 0; background-color:#f4f6f8;">
+      <tr>
+        <td align="center">
+
+          <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+            
+            <!-- Header -->
+            <tr>
+              <td style="background:#1d4ed8; color:#ffffff; padding:20px; text-align:center;">
+                <h2 style="margin:0; font-size:24px;">Welcome to ${appName}</h2>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding:30px; color:#333333;">
+                <p style="margin-top:0; font-size:16px;">
+                  Hello <strong>${fullName}</strong>,
+                </p>
+
+                ${
+                  safeMessage
+                    ? `<p style="font-size:15px; line-height:1.6;">${safeMessage}</p>`
+                    : `<p style="font-size:15px; line-height:1.6;">Your account has been successfully <strong>activated</strong>.</p>`
+                }
+
+                <p style="font-size:15px; line-height:1.6; margin-bottom:20px;">
+                  You may now use the following credentials to log in:
+                </p>
+
+                <!-- Credentials Box -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:6px; overflow:hidden; margin-bottom:20px;">
+                  <tr>
+                    <td style="padding:14px; width:35%; background:#f9fafb; font-weight:bold;">Login Email</td>
+                    <td style="padding:14px;">${user.email}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:14px; background:#f9fafb; font-weight:bold; border-top:1px solid #e5e7eb;">ID Number</td>
+                    <td style="padding:14px; border-top:1px solid #e5e7eb;">${user.idNumber}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:14px; background:#f9fafb; font-weight:bold; border-top:1px solid #e5e7eb;">Temporary Password</td>
+                    <td style="padding:14px; border-top:1px solid #e5e7eb;"><strong>${tempPassword}</strong></td>
+                  </tr>
+                </table>
+
+                <!-- Reminder Box -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px; background:#fff7ed; border:1px solid #fdba74; border-radius:6px;">
+                  <tr>
+                    <td style="padding:14px; color:#9a3412; font-size:14px; line-height:1.6;">
+                      <strong>Important:</strong> Please log in and change your password immediately for security purposes.
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="font-size:14px; line-height:1.6; color:#555555; margin-bottom:0;">
+                  Keep your login details secure and do not share them with anyone.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="background:#f9fafb; text-align:center; padding:15px; font-size:12px; color:#777777;">
+                This is an automated message from ${appName}. Please do not reply directly to this email.
+              </td>
+            </tr>
+
+          </table>
+
+        </td>
+      </tr>
+    </table>
+  </div>
+`;
 
         // ✅ SEND EMAIL FIRST (sendEmail unchanged)
         await sendEmail(

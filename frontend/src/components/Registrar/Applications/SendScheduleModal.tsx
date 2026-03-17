@@ -47,6 +47,8 @@ export default function SendScheduleModal({
   if (!open) return null;
 
   const handleSend = async () => {
+    if (!date || !time || !location || students.length === 0 || sending) return;
+
     try {
       setSending(true);
       setError(null);
@@ -69,8 +71,19 @@ export default function SendScheduleModal({
   };
 
   return (
-    <div className="rs-modal-backdrop" role="dialog" aria-modal="true">
-      <div className="rs-modal" role="document">
+    <div
+      className="rs-modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      onClick={() => {
+        if (!sending) onClose();
+      }}
+    >
+      <div
+        className="rs-modal"
+        role="document"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="rs-modal-header">
           <div className="rs-modal-title">
             <Calendar size={18} />
@@ -79,7 +92,9 @@ export default function SendScheduleModal({
 
           <button
             className="rs-icon-btn"
-            onClick={onClose}
+            onClick={() => {
+              if (!sending) onClose();
+            }}
             aria-label="Close modal"
             disabled={sending}
           >
@@ -167,7 +182,9 @@ export default function SendScheduleModal({
         <div className="rs-modal-footer">
           <button
             className="rs-btn rs-btn-ghost"
-            onClick={onClose}
+            onClick={() => {
+              if (!sending) onClose();
+            }}
             disabled={sending}
           >
             Cancel
@@ -176,7 +193,9 @@ export default function SendScheduleModal({
           <button
             className="rs-btn rs-btn-primary"
             onClick={handleSend}
-            disabled={!date || !time || !location || students.length === 0 || sending}
+            disabled={
+              !date || !time || !location || students.length === 0 || sending
+            }
           >
             {sending ? "Sending..." : `Send Schedule to ${count} Student(s)`}
           </button>

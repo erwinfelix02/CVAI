@@ -55,7 +55,13 @@ type RegistrarSettings = {
   smsNotifications: boolean;
   updatedBy?: string;
 };
-
+type CourseOption = {
+  code: string;
+  name: string;
+  yearLevels?: number;
+  department?: string;
+  status?: "Active" | "Inactive";
+};
 const steps: { key: StepKey; label: string }[] = [
   { key: "personal", label: "Personal Info" },
   { key: "academic", label: "Academic Info" },
@@ -167,7 +173,7 @@ export default function StudentPreRegistrationPage() {
     useState<RegistrarSettings | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(true);
 
-  const [courseOptions, setCourseOptions] = useState<string[]>([]);
+  const [courseOptions, setCourseOptions] = useState<CourseOption[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
 
   useEffect(() => {
@@ -198,31 +204,44 @@ export default function StudentPreRegistrationPage() {
   }, []);
 
   useEffect(() => {
-    (async () => {
-      try {
-        setCoursesLoading(true);
-        const res = await fetch(
-          "http://localhost:5000/api/courses?status=Active",
-        );
-        const data = await res.json();
+  (async () => {
+    try {
+      setCoursesLoading(true);
 
-        const list = (Array.isArray(data) ? data : [])
-          .filter((c: any) => (c.status ?? "Active") === "Active")
-          .map((c: any) =>
-            String(c.code || "")
-              .trim()
-              .toUpperCase(),
-          )
-          .filter(Boolean);
+      const res = await fetch("http://localhost:5000/api/courses?status=Active");
+      if (!res.ok) throw new Error("Failed to load courses");
 
-        setCourseOptions(Array.from(new Set(list)).sort());
-      } catch (e) {
-        setCourseOptions([]);
-      } finally {
-        setCoursesLoading(false);
-      }
-    })();
-  }, []);
+      const data = await res.json();
+
+      const list: CourseOption[] = (Array.isArray(data) ? data : [])
+  .filter((c: any) => (c.status ?? "Active") === "Active")
+  .map((c: any): CourseOption => {
+    const status: "Active" | "Inactive" =
+      c.status === "Inactive" ? "Inactive" : "Active";
+
+    return {
+      code: String(c.code || "").trim().toUpperCase(),
+      name: String(c.name || "").trim(),
+      yearLevels: Number(c.yearLevels || 0),
+      department: String(c.department || "").trim(),
+      status,
+    };
+  })
+  .filter((c) => c.code && c.name);
+
+      const unique = Array.from(
+        new Map(list.map((c) => [c.code, c])).values(),
+      ).sort((a, b) => a.name.localeCompare(b.name));
+
+      setCourseOptions(unique);
+    } catch (e) {
+      console.error("Failed to load courses:", e);
+      setCourseOptions([]);
+    } finally {
+      setCoursesLoading(false);
+    }
+  })();
+}, []);
 
   const [submitted, setSubmitted] = useState({
     personal: false,

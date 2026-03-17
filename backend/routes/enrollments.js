@@ -59,19 +59,87 @@ router.post("/schedule", async (req, res) => {
         continue;
       }
 
-      const html = `
-        <h2>📅 Enrollment Schedule</h2>
-        <p>Hello <b>${studentName}</b>,</p>
-        <p>Your enrollment schedule is set. Please go to school on:</p>
-        <ul>
-          <li><b>Date:</b> ${date}</li>
-          <li><b>Time:</b> ${time}</li>
-          <li><b>Location:</b> ${location}</li>
-        </ul>
-        ${notes ? `<p><b>Notes:</b> ${notes}</p>` : ""}
-        <hr/>
-        <p><b>Registration ID:</b> ${p.registrationId}</p>
-      `;
+     const html = `
+  <div style="margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding:20px 0; background-color:#f4f6f8;">
+      <tr>
+        <td align="center">
+
+          <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+            
+            <!-- Header -->
+            <tr>
+              <td style="background:#0f766e; color:#ffffff; padding:20px; text-align:center;">
+                <h2 style="margin:0; font-size:24px;">Enrollment Schedule</h2>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding:30px; color:#333333;">
+                <p style="margin-top:0; font-size:16px;">Hello <strong>${studentName}</strong>,</p>
+                <p style="font-size:15px; line-height:1.6; margin-bottom:20px;">
+                  Your enrollment schedule has been set. Please go to school on the following schedule:
+                </p>
+
+                <!-- Schedule Card -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:6px; overflow:hidden; margin-bottom:20px;">
+                  <tr>
+                    <td style="padding:14px; width:35%; background:#f9fafb; font-weight:bold;">Date</td>
+                    <td style="padding:14px;">${date}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:14px; width:35%; background:#f9fafb; font-weight:bold; border-top:1px solid #e5e7eb;">Time</td>
+                    <td style="padding:14px; border-top:1px solid #e5e7eb;">${time}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:14px; width:35%; background:#f9fafb; font-weight:bold; border-top:1px solid #e5e7eb;">Location</td>
+                    <td style="padding:14px; border-top:1px solid #e5e7eb;">${location}</td>
+                  </tr>
+                </table>
+
+                ${
+                  notes
+                    ? `
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px; background:#fffbeb; border:1px solid #fde68a; border-radius:6px;">
+                  <tr>
+                    <td style="padding:14px; color:#92400e;">
+                      <strong>Notes:</strong> ${notes}
+                    </td>
+                  </tr>
+                </table>
+                `
+                    : ""
+                }
+
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;">
+                  <tr>
+                    <td style="padding:14px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; color:#1e3a8a;">
+                      <strong>Registration ID:</strong> ${p.registrationId}
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin-top:24px; font-size:14px; line-height:1.6; color:#555555;">
+                  Please keep your registration ID for reference and arrive on time for your scheduled enrollment.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="background:#f9fafb; text-align:center; padding:15px; font-size:12px; color:#777777;">
+                This is an automated message. Please do not reply directly to this email.
+              </td>
+            </tr>
+
+          </table>
+
+        </td>
+      </tr>
+    </table>
+  </div>
+`;
 
       const existing = await Enrollment.findOne({
         registrationId: p.registrationId,
@@ -97,8 +165,25 @@ router.post("/schedule", async (req, res) => {
         studentName,
         email: to,
 
-        personal: p.personal,
-        academic: p.academic,
+        personal: {
+  firstName: p.personal?.firstName || "",
+  middleName: p.personal?.middleName || "",
+  lastName: p.personal?.lastName || "",
+  email: p.personal?.email || "",
+  phone: p.personal?.phone || "",
+  address: p.personal?.address || "",
+  birthDate: p.personal?.birthDate || p.personal?.birthdate || "",
+  guardian: p.personal?.guardian || "",
+  guardianPhone: p.personal?.guardianPhone || "",
+  gender: p.personal?.gender || "",
+},
+        academic: {
+  program: p.academic?.course || "",
+  yearLevel: p.academic?.yearLevel || "",
+  department: p.academic?.course || "",
+  applicantType: p.academic?.applicantType || "",
+  previousSchool: p.academic?.previousSchool || "",
+},
         documents: p.documents,
 
         credentials: {

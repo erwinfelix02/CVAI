@@ -270,19 +270,20 @@ export default function StudentEnrollmentPage() {
     verifiedDocs,
   }: {
     enrollmentId: string;
-    updatedInfo: {
-      fullName: string;
-      studentId: string;
-      email: string;
-      phone: string;
-      address: string;
-      birthdate: string;
-      guardian: string;
-      guardianPhone: string;
-      program: string;
-      yearLevel: string;
-      department: string;
-    };
+   updatedInfo: {
+  fullName: string;
+  studentId: string;
+  email: string;
+  phone: string;
+  address: string;
+  birthDate: string;
+  birthdate?: string;
+  guardian: string;
+  guardianPhone: string;
+  program: string;
+  yearLevel: string;
+  department: string;
+};
     notes: string;
     verifiedDocs: string[];
   }) => {
@@ -293,11 +294,14 @@ export default function StudentEnrollmentPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            updatedInfo,
-            notes,
-            verifiedDocs,
-            updatedBy: registrarEmail,
-          }),
+  updatedInfo: {
+    ...updatedInfo,
+    birthdate: updatedInfo.birthDate,
+  },
+  notes,
+  verifiedDocs,
+  updatedBy: registrarEmail,
+}),
         },
       );
 

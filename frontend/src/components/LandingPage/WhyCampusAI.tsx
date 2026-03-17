@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Button from "../Authentication/Button";
 import CheckIcon from "../../assets/check.png";
 import "../../styles/whycampus.css";
-import CampusIcon from "../../assets/graduation.png";
 import ArrowIcon from "../../assets/arrow-right.png";
+import SchoolLogo from "../../assets/graystone1.jpg";
 
 export function WhyCampusAI() {
   const navigate = useNavigate();
@@ -54,9 +54,13 @@ export function WhyCampusAI() {
           <div className="col-md-4 reveal delay-2">
             <div className="bg-white shadow-sm rounded-4 p-4 why-card">
               <div className="mb-3 d-flex align-items-center gap-3">
-                <div className="navbar-logo-wrapper flex-shrink-0">
-                  <img src={CampusIcon} alt="" width={18} height={18} />
-                </div>
+              <div className="navbar-logo-wrapper flex-shrink-0">
+  <img
+    src={SchoolLogo}
+    alt="School Logo"
+    className="school-logo"
+  />
+</div>
 
                 <div>
                   <h6 className="fw-bold mb-1">Campus AI</h6>

@@ -20,7 +20,7 @@ export function CTA() {
 
           <button
             className="btn cta-btn d-inline-flex align-items-center gap-2 reveal delay-4"
-            onClick={() => navigate("/registrar")}
+            onClick={() => navigate("/prereg")}
           >
             Register Now
             <img src={ArrowIcon} alt="" className="cta-btn-icon" />

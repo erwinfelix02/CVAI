@@ -239,11 +239,10 @@ export default function CoursesManagementPage() {
 
         <div className="card shadow-sm border-0 mt-3 mt-md-4">
           <div className="card-body p-3 p-md-4">
-            <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
-              <h5 className="fw-bold mb-0">All Courses</h5>
-              <CoursesToolbar query={query} onQueryChange={setQuery} />
-            </div>
-
+           <div className="courses-header-row mb-3">
+  <h5 className="fw-bold mb-0">All Courses</h5>
+  <CoursesToolbar query={query} onQueryChange={setQuery} />
+</div>
             {hasRows ? (
               <CoursesTable
                 items={filtered}

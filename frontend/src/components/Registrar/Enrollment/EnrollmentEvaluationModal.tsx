@@ -12,19 +12,20 @@ type Props = {
 
   onEnroll: (args: {
     enrollmentId: string;
-    updatedInfo: {
-      fullName: string;
-      studentId: string;
-      email: string;
-      phone: string;
-      address: string;
-      birthdate: string;
-      guardian: string;
-      guardianPhone: string;
-      program: string;
-      yearLevel: string;
-      department: string;
-    };
+  updatedInfo: {
+  fullName: string;
+  studentId: string;
+  email: string;
+  phone: string;
+  address: string;
+  birthDate: string;
+  birthdate?: string;
+  guardian: string;
+  guardianPhone: string;
+  program: string;
+  yearLevel: string;
+  department: string;
+};
     notes: string;
     verifiedDocs: string[];
   }) => Promise<void> | void;
@@ -41,18 +42,25 @@ const requiredDocs = [
 
 const yearOptions = ["1", "2", "3", "4", "5"];
 const currentYear = new Date().getFullYear();
-const studentIdPrefix = `STU-${currentYear}-`;
+const studentIdPrefix = `GIP-${currentYear}-`;
 
 function toISODate(value?: string) {
   if (!value) return "";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
 
   const raw = String(value).trim();
+
+  if (!raw) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
   if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) return raw.slice(0, 10);
 
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toISOString().slice(0, 10);
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function isValidEmail(value: string) {
@@ -60,8 +68,7 @@ function isValidEmail(value: string) {
 }
 
 function isValidPhone(value: string) {
-  const cleaned = value.replace(/\s+/g, "");
-  return /^(09\d{9}|\+639\d{9})$/.test(cleaned);
+  return /^\+639\d{9}$/.test(value.trim());
 }
 
 function isValidName(value: string) {
@@ -75,7 +82,15 @@ function isValidAddress(value: string) {
 function isValidBirthdate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
+function normalizePHPhone(value: string) {
+  const cleaned = value.replace(/\s+/g, "").trim();
 
+  if (/^09\d{9}$/.test(cleaned)) return `+63${cleaned.slice(1)}`;
+  if (/^639\d{9}$/.test(cleaned)) return `+${cleaned}`;
+  if (/^\+639\d{9}$/.test(cleaned)) return cleaned;
+
+  return cleaned;
+}
 export default function EnrollmentEvaluationModal({
   open,
   onClose,
@@ -131,16 +146,27 @@ export default function EnrollmentEvaluationModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose, confirmOpen]);
 
-  const programOptions = useMemo(() => {
-    const set = new Set<string>();
-    sections.forEach((s) => {
-      if ((s as any).program) set.add(String((s as any).program));
-    });
-    const arr = Array.from(set);
-    return arr.length === 0
-      ? ["BS Computer Science", "BS Information Technology"]
-      : arr;
-  }, [sections]);
+const programOptions = useMemo(() => {
+  const set = new Set<string>();
+
+  sections.forEach((s) => {
+    const value = (s as any).program || (s as any).course;
+    if (value) set.add(String(value));
+  });
+
+  const currentProgram =
+    student?.academic?.program || student?.academic?.course || "";
+
+  if (currentProgram) {
+    set.add(String(currentProgram));
+  }
+
+  const arr = Array.from(set);
+
+  return arr.length === 0
+    ? ["BS Computer Science", "BS Information Technology"]
+    : arr;
+}, [sections, student]);
 
   useEffect(() => {
     if (!open || !student) return;
@@ -159,13 +185,15 @@ export default function EnrollmentEvaluationModal({
 
     setFullName(computedName);
     setEmail(student.email || student.personal?.email || "");
-    setPhone(student.personal?.phone || "");
+    setPhone(normalizePHPhone(student.personal?.phone || ""));
     setAddress(student.personal?.address || "");
-    setBirthdate(toISODate(student.personal?.birthdate));
+setBirthdate(
+  toISODate(student.personal?.birthDate || student.personal?.birthdate || ""),
+);
     setGuardian(student.personal?.guardian || "");
-    setGuardianPhone(student.personal?.guardianPhone || "");
-    setProgram(student.academic?.program || "");
-    setYearLevel(student.academic?.yearLevel?.toString() || "");
+    setGuardianPhone(normalizePHPhone(student.personal?.guardianPhone || ""));
+   setProgram(student.academic?.program || student.academic?.course || "");
+setYearLevel(student.academic?.yearLevel?.toString() || "");
 
     if (student.studentIdNumber?.startsWith(studentIdPrefix)) {
       const digits = student.studentIdNumber
@@ -193,7 +221,7 @@ export default function EnrollmentEvaluationModal({
     [docsChecked],
   );
 
-  const studentIdValid = new RegExp(`^STU-${currentYear}-\\d{3}$`).test(
+  const studentIdValid = new RegExp(`^GIP-${currentYear}-\\d{3}$`).test(
     studentId.trim(),
   );
 
@@ -218,8 +246,9 @@ export default function EnrollmentEvaluationModal({
     phone: !phone.trim()
       ? "Phone is required."
       : !isValidPhone(phone.trim())
-        ? "Phone is invalid. Use 09XXXXXXXXX or +639XXXXXXXXX."
+        ? "Phone is invalid. Use +639XXXXXXXXX."
         : "",
+
     address: !address.trim()
       ? "Address is required."
       : !isValidAddress(address.trim())
@@ -238,7 +267,7 @@ export default function EnrollmentEvaluationModal({
     guardianPhone: !guardianPhone.trim()
       ? "Guardian Phone is required."
       : !isValidPhone(guardianPhone.trim())
-        ? "Guardian Phone is invalid. Use 09XXXXXXXXX or +639XXXXXXXXX."
+        ? "Guardian Phone is invalid. Use +639XXXXXXXXX."
         : "",
   };
 
@@ -249,8 +278,11 @@ export default function EnrollmentEvaluationModal({
   const fullNameError =
     showStep1Errors || fullName.trim() ? step1Errors.fullName : "";
   const studentIdError =
-    showStep1Errors || studentId !== studentIdPrefix ? step1Errors.studentId : "";
-  const programError = showStep1Errors || program.trim() ? step1Errors.program : "";
+    showStep1Errors || studentId !== studentIdPrefix
+      ? step1Errors.studentId
+      : "";
+  const programError =
+    showStep1Errors || program.trim() ? step1Errors.program : "";
   const yearLevelError =
     showStep1Errors || yearLevel.trim() ? step1Errors.yearLevel : "";
   const emailError = showStep1Errors || email.trim() ? step1Errors.email : "";
@@ -307,18 +339,19 @@ export default function EnrollmentEvaluationModal({
       await onEnroll({
         enrollmentId: student._id,
         updatedInfo: {
-          fullName: fullName.trim(),
-          studentId: studentId.trim(),
-          email: email.trim(),
-          phone: phone.trim(),
-          address: address.trim(),
-          birthdate: birthdate.trim(),
-          guardian: guardian.trim(),
-          guardianPhone: guardianPhone.trim(),
-          program: program.trim(),
-          yearLevel: yearLevel.trim(),
-          department: (student.academic?.department || program).trim(),
-        },
+  fullName: fullName.trim(),
+  studentId: studentId.trim(),
+  email: email.trim(),
+  phone: normalizePHPhone(phone.trim()),
+  address: address.trim(),
+  birthDate: birthdate.trim(),
+  birthdate: birthdate.trim(),
+  guardian: guardian.trim(),
+  guardianPhone: normalizePHPhone(guardianPhone.trim()),
+  program: program.trim(),
+  yearLevel: yearLevel.trim(),
+  department: (student.academic?.department || program).trim(),
+},
         notes: notes.trim(),
         verifiedDocs,
       });
@@ -340,7 +373,10 @@ export default function EnrollmentEvaluationModal({
         if (e.target === e.currentTarget && !confirmOpen) onClose();
       }}
     >
-      <div className="enroll-eval-modal" onMouseDown={(e) => e.stopPropagation()}>
+      <div
+        className="enroll-eval-modal"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <div className="enroll-eval-header">
           <div className="fw-bold fs-4">Enrollment Evaluation</div>
           <button
@@ -380,7 +416,8 @@ export default function EnrollmentEvaluationModal({
           {step === 1 && (
             <>
               <div className="text-muted mb-3">
-                Fill in missing info (required) and verify everything is correct.
+                Fill in missing info (required) and verify everything is
+                correct.
               </div>
 
               <div className="text-muted small mb-3">
@@ -484,13 +521,41 @@ export default function EnrollmentEvaluationModal({
                       error={emailError}
                     />
 
-                    <FieldInput
-                      label="Phone"
-                      value={phone}
-                      onChange={setPhone}
-                      required
-                      error={phoneError}
-                    />
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fw-semibold">
+                        Phone <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        className={`form-control ${phoneError ? "is-invalid" : ""}`}
+                        value={phone || "+639"}
+                        onChange={(e) => {
+                          let value = e.target.value;
+
+                          // remove everything except digits
+                          let digits = value.replace(/\D/g, "");
+
+                          // ensure it starts with 639
+                          if (!digits.startsWith("639")) {
+                            if (digits.startsWith("9")) digits = "63" + digits;
+                            else digits = "639";
+                          }
+
+                          // limit to 12 digits (639 + 9 digits)
+                          digits = digits.slice(0, 12);
+
+                          setPhone("+" + digits);
+                        }}
+                        onFocus={() => {
+                          if (!phone) setPhone("+639");
+                        }}
+                        placeholder="+639XXXXXXXXX"
+                      />
+                      {phoneError && (
+                        <div className="text-danger small mt-1">
+                          {phoneError}
+                        </div>
+                      )}
+                    </div>
 
                     <FieldInput
                       label="Address"
@@ -525,13 +590,44 @@ export default function EnrollmentEvaluationModal({
                       error={guardianError}
                     />
 
-                    <FieldInput
-                      label="Guardian Phone"
-                      value={guardianPhone}
-                      onChange={setGuardianPhone}
-                      required
-                      error={guardianPhoneError}
-                    />
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fw-semibold">
+                        Guardian Phone <span className="text-danger">*</span>
+                      </label>
+
+                      <input
+                        className={`form-control ${guardianPhoneError ? "is-invalid" : ""}`}
+                        value={guardianPhone}
+                        onChange={(e) => {
+                          let digits = e.target.value.replace(/\D/g, "");
+
+                          // If user starts typing (like 912...), auto prepend 639
+                          if (digits.startsWith("9")) {
+                            digits = "639" + digits;
+                          }
+
+                          // If empty or invalid start → default to 639
+                          if (!digits.startsWith("639")) {
+                            digits = "639";
+                          }
+
+                          // limit to 12 digits total (639 + 9 digits)
+                          digits = digits.slice(0, 12);
+
+                          setGuardianPhone("+" + digits);
+                        }}
+                        onFocus={() => {
+                          if (!guardianPhone) setGuardianPhone("+639");
+                        }}
+                        placeholder="Enter mobile number"
+                      />
+
+                      {guardianPhoneError && (
+                        <div className="text-danger small mt-1">
+                          {guardianPhoneError}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {showStep1Errors && !step1Valid ? (
@@ -547,7 +643,8 @@ export default function EnrollmentEvaluationModal({
           {step === 2 && (
             <>
               <div className="text-muted mb-3">
-                Check that all required documents have been submitted and are valid.
+                Check that all required documents have been submitted and are
+                valid.
               </div>
 
               <div className="d-flex flex-column gap-2">
@@ -561,7 +658,10 @@ export default function EnrollmentEvaluationModal({
                           className="form-check-input mt-0"
                           checked={checked}
                           onChange={(e) =>
-                            setDocsChecked((p) => ({ ...p, [d]: e.target.checked }))
+                            setDocsChecked((p) => ({
+                              ...p,
+                              [d]: e.target.checked,
+                            }))
                           }
                         />
                         <div className="fw-semibold">{d}</div>
@@ -610,7 +710,8 @@ export default function EnrollmentEvaluationModal({
 
               <div className="mb-3">
                 <label className="form-label fw-semibold">
-                  Evaluation Notes <span className="text-muted">(Optional)</span>
+                  Evaluation Notes{" "}
+                  <span className="text-muted">(Optional)</span>
                 </label>
                 <textarea
                   className="form-control"
@@ -709,8 +810,8 @@ export default function EnrollmentEvaluationModal({
                   Are you sure you want to enroll this student?
                 </div>
                 <div className="text-muted small">
-                  This will submit the evaluation, save the verified details, and
-                  mark the student as enrolled.
+                  This will submit the evaluation, save the verified details,
+                  and mark the student as enrolled.
                 </div>
               </div>
 
@@ -750,7 +851,9 @@ function StepItem({
   done: boolean;
 }) {
   return (
-    <div className={`enroll-step ${active ? "active" : ""} ${done ? "done" : ""}`}>
+    <div
+      className={`enroll-step ${active ? "active" : ""} ${done ? "done" : ""}`}
+    >
       <div className="enroll-step-icon">{icon}</div>
       <div className="enroll-step-label">{label}</div>
     </div>

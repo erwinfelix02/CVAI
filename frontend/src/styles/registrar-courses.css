@@ -34,16 +34,35 @@
   font-weight: 800;
   line-height: 1;
 }
+.courses-header-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
 
-/* Search */
 .courses-toolbar {
-  width: 100%;
+  display: flex;
+  align-items: center;
+  margin: 0;
 }
 
 .courses-search {
   position: relative;
-  width: 100%;
-  max-width: 320px;
+  width: 300px;
+}
+.courses-toolbar {
+  display: flex;
+  align-items: center;
+}
+.courses-search {
+  position: relative;
+  width: 280px; /* adjust if you want wider */
+}
+
+.courses-search {
+  position: relative;
+  width: 300px;
 }
 
 .courses-search-icon {

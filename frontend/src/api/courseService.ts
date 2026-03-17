@@ -2,8 +2,10 @@ import axios from "axios";
 
 const API = "http://localhost:5000/api/courses";
 
-export const getCourses = async () => {
-  const res = await axios.get(API);
+export const getCourses = async (status?: "Active" | "Inactive") => {
+  const res = await axios.get(API, {
+    params: status ? { status } : {},
+  });
   return res.data;
 };
 

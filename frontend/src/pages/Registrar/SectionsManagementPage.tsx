@@ -114,18 +114,24 @@ const loadCourses = async () => {
       const data = await getSections();
 
       const mapped: SectionItem[] = (Array.isArray(data) ? data : []).map(
-        (s: any) => ({
-          id: s._id,
-          code: s.code,
-          yearLevel: s.yearLevel,
-          program: s.program,
-          adviser: s.adviser ?? "TBA",
-          room: s.room,
-          schedule: s.schedule,
-          enrolled: s.enrolled ?? 0,
-          capacity: s.capacity,
-        }),
-      );
+  (s: any) => ({
+    id: s._id,
+    code: s.code,
+    yearLevel: s.yearLevel,
+
+    // ✅ IMPORTANT: normalize to course name
+    program:
+      typeof s.program === "object"
+        ? s.program.name
+        : s.program,
+
+    adviser: s.adviser ?? "TBA",
+    room: s.room,
+    schedule: s.schedule,
+    enrolled: s.enrolled ?? 0,
+    capacity: s.capacity,
+  }),
+);
 
       setSections(mapped);
     } catch (err: any) {
@@ -247,7 +253,7 @@ const loadCourses = async () => {
   };
 
 const courseOptions = useMemo(() => {
-  const unique = courses.map((c) => c.code);
+  const unique = courses.map((c) => c.name);
   return ["All Courses", ...Array.from(new Set(unique))];
 }, [courses]);
 

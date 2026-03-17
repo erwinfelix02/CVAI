@@ -7,7 +7,7 @@ type Props = {
 
 export default function CoursesToolbar({ query, onQueryChange }: Props) {
   return (
-    <div className="courses-toolbar d-flex justify-content-end">
+    <div className="courses-toolbar">
       <div className="courses-search">
         <Search size={18} className="courses-search-icon" />
         <input

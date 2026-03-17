@@ -26,6 +26,7 @@ export default function ApplicationDetailsModal({
   const [activeTab, setActiveTab] = useState<TabType>("personal");
   const [previewFile, setPreviewFile] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmType>(null);
+
   const [loading, setLoading] = useState(false);
 
   if (!open || !application) return null;
@@ -41,7 +42,7 @@ export default function ApplicationDetailsModal({
     : "";
 
   const updateStatus = async () => {
-    if (!confirmAction) return;
+    if (!confirmAction || loading) return;
 
     try {
       setLoading(true);
@@ -83,7 +84,12 @@ export default function ApplicationDetailsModal({
 
   return (
     <>
-      <div className="app-modal-backdrop" onClick={onClose}>
+      <div
+        className="app-modal-backdrop"
+        onClick={() => {
+          if (!loading) onClose();
+        }}
+      >
         <div className="app-modal" onClick={(e) => e.stopPropagation()}>
           <div className="app-modal-header">
             <h4>Application Details</h4>
@@ -93,7 +99,13 @@ export default function ApplicationDetailsModal({
                 {status}
               </span>
 
-              <button className="close-btn" onClick={onClose}>
+              <button
+                className="close-btn"
+                onClick={() => {
+                  if (!loading) onClose();
+                }}
+                disabled={loading}
+              >
                 <X size={18} />
               </button>
             </div>
@@ -130,7 +142,8 @@ export default function ApplicationDetailsModal({
                     <User size={16} /> Full Name
                   </div>
                   <div className="info-value">
-                    {personal.firstName} {personal.middleName} {personal.lastName}
+                    {personal.firstName} {personal.middleName}{" "}
+                    {personal.lastName}
                   </div>
                 </div>
 
@@ -190,7 +203,10 @@ export default function ApplicationDetailsModal({
                 {[
                   { label: "Birth Certificate", file: documents.birthCert },
                   { label: "Form 137", file: documents.form137 },
-                  { label: "Good Moral Certificate", file: documents.goodMoral },
+                  {
+                    label: "Good Moral Certificate",
+                    file: documents.goodMoral,
+                  },
                   { label: "2x2 ID Photo", file: documents.idPhoto },
                 ].map((doc) => (
                   <div
@@ -221,6 +237,7 @@ export default function ApplicationDetailsModal({
               <button
                 className="btn btn-outline-danger"
                 onClick={() => setConfirmAction("Rejected")}
+                disabled={loading}
               >
                 Reject
               </button>
@@ -228,6 +245,7 @@ export default function ApplicationDetailsModal({
               <button
                 className="btn btn-primary"
                 onClick={() => setConfirmAction("Approved")}
+                disabled={loading}
               >
                 Approve Registration
               </button>
@@ -267,7 +285,9 @@ export default function ApplicationDetailsModal({
       {confirmAction && (
         <div
           className="app-modal-backdrop"
-          onClick={() => setConfirmAction(null)}
+          onClick={() => {
+            if (!loading) setConfirmAction(null);
+          }}
         >
           <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
             <h4>
@@ -285,7 +305,10 @@ export default function ApplicationDetailsModal({
             <div className="confirm-actions">
               <button
                 className="btn btn-secondary"
-                onClick={() => setConfirmAction(null)}
+                onClick={() => {
+                  if (!loading) setConfirmAction(null);
+                }}
+                disabled={loading}
               >
                 Cancel
               </button>

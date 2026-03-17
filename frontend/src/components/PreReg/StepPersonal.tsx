@@ -45,29 +45,24 @@ export default function StepPersonal({
 
   const sanitizeEmail = (v: string) => normalizeText(v).slice(0, 120);
 
-  const sanitizePhone = (v: string) => {
-    const digits = String(v || "").replace(/\D/g, "");
+const sanitizePhone = (v: string) => {
+  const raw = String(v || "");
+  let digits = raw.replace(/\D/g, "");
 
-    if (!digits) return "";
+  if (!digits) return "";
 
-    if (digits.startsWith("639")) {
-      return `+${digits.slice(0, 12)}`;
-    }
+  if (digits.startsWith("639")) {
+    digits = digits.slice(3);
+  } else if (digits.startsWith("09")) {
+    digits = digits.slice(1);
+  } else if (digits.startsWith("63")) {
+    digits = digits.slice(2);
+  }
 
-    if (digits.startsWith("09")) {
-      return `+63${digits.slice(1, 11)}`;
-    }
+  digits = digits.slice(0, 9);
 
-    if (digits.startsWith("9")) {
-      return `+63${digits.slice(0, 10)}`;
-    }
-
-    if (digits.startsWith("63")) {
-      return `+${digits.slice(0, 12)}`;
-    }
-
-    return `+639${digits.slice(0, 9)}`.slice(0, 13);
-  };
+  return digits ? `+639${digits}` : "+639";
+};
 
   // preserve spaces while typing
   const sanitizeAddress = (v: string) => {
@@ -389,13 +384,32 @@ export default function StepPersonal({
             Phone <span className="text-danger">*</span>
           </label>
           <input
-            className={inputClass("phone")}
-            value={value.phone || ""}
-            placeholder="Enter phone number"
-            inputMode="numeric"
-            onChange={(e) => set("phone", e.target.value)}
-            onBlur={() => onBlurField("phone")}
-          />
+  className={inputClass("phone")}
+  value={value.phone || ""}
+  placeholder="+639XXXXXXXXX"
+  inputMode="numeric"
+  onFocus={() => {
+    if (!value.phone) onChange({ ...value, phone: "+639" });
+  }}
+  onChange={(e) => {
+    const input = e.target.value;
+
+    // if user clears everything, allow empty
+    if (!input.trim()) {
+      onChange({ ...value, phone: "" });
+      if (submitted || touched.phone) {
+        setLocalErrors((prev) => ({
+          ...prev,
+          phone: validateField("phone", ""),
+        }));
+      }
+      return;
+    }
+
+    set("phone", input);
+  }}
+  onBlur={() => onBlurField("phone")}
+/>
           <div className="invalid-feedback d-block">
             {invalid("phone") ? getError("phone") : "\u00A0"}
           </div>

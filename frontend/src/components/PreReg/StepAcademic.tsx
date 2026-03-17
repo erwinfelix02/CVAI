@@ -10,6 +10,14 @@ import type { AcademicInfo } from "../../pages/PreReg/StudentPreRegistrationPage
 type Errors = Partial<Record<keyof AcademicInfo, string>>;
 type Touched = Partial<Record<keyof AcademicInfo, boolean>>;
 
+type CourseOption = {
+  code: string;
+  name: string;
+  yearLevels?: number;
+  department?: string;
+  status?: "Active" | "Inactive";
+};
+
 export default function StepAcademic({
   value,
   onChange,
@@ -22,7 +30,7 @@ export default function StepAcademic({
   onChange: (v: AcademicInfo) => void;
   submitted: boolean;
   errors: Errors;
-  courseOptions?: string[];
+  courseOptions?: CourseOption[];
   coursesLoading?: boolean;
 }) {
   const [localErrors, setLocalErrors] = useState<Errors>({});
@@ -33,7 +41,7 @@ export default function StepAcademic({
 
   const hasDangerChars = (v: string) => /[<>$`{};]/.test(v);
 
-  const sanitizeSelect = (v: string) => normalizeText(v).slice(0, 40);
+  const sanitizeSelect = (v: string) => normalizeText(v).slice(0, 120);
 
   const sanitizeSchool = (v: string) => {
     let s = normalizeText(v);
@@ -52,15 +60,18 @@ export default function StepAcademic({
     switch (key) {
       case "applicantType":
         if (!val.trim()) return "Applicant type is required.";
-        if (!["Freshman", "Transferee", "Returning"].includes(val))
+        if (!["Freshman", "Transferee", "Returning"].includes(val)) {
           return "Invalid applicant type.";
+        }
         break;
 
       case "course":
         if (!val.trim()) return "Course/Program is required.";
 
-        // ✅ validate against active courses if we have them
-        if (courseOptions.length > 0 && !courseOptions.includes(val)) {
+        if (
+          courseOptions.length > 0 &&
+          !courseOptions.some((course) => course.name === val)
+        ) {
           return "Invalid course selected.";
         }
         break;
@@ -80,19 +91,18 @@ export default function StepAcademic({
   const validateAll = () => {
     const newErrors: Errors = {};
 
-    (["applicantType", "course", "previousSchool"] as (keyof AcademicInfo)[]).forEach(
-      (k) => {
-        const msg = validateField(k, (value as any)[k] ?? "");
-        if (msg) newErrors[k] = msg;
-      },
-    );
+    (
+      ["applicantType", "course", "previousSchool"] as (keyof AcademicInfo)[]
+    ).forEach((k) => {
+      const msg = validateField(k, (value as any)[k] ?? "");
+      if (msg) newErrors[k] = msg;
+    });
 
     setLocalErrors(newErrors);
   };
 
   useEffect(() => {
     if (submitted) validateAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submitted, courseOptions]);
 
   const set = (k: keyof AcademicInfo, v: string) => {
@@ -171,7 +181,6 @@ export default function StepAcademic({
       </div>
 
       <div className="row g-3">
-        {/* Applicant Type */}
         <div className="col-12 col-md-6">
           <label className={labelClass("applicantType")}>
             <LabelIcon>
@@ -197,7 +206,6 @@ export default function StepAcademic({
           </div>
         </div>
 
-        {/* Course */}
         <div className="col-12 col-md-6">
           <label className={labelClass("course")}>
             <LabelIcon>
@@ -220,9 +228,9 @@ export default function StepAcademic({
                   : "No active courses available"}
             </option>
 
-            {courseOptions.map((c) => (
-              <option key={c} value={c}>
-                {c}
+            {courseOptions.map((course) => (
+              <option key={course.code} value={course.name}>
+                {course.name}
               </option>
             ))}
           </select>
@@ -232,7 +240,6 @@ export default function StepAcademic({
           </div>
         </div>
 
-        {/* Previous School */}
         {value.applicantType === "Transferee" && (
           <div className="col-12">
             <label className={labelClass("previousSchool")}>

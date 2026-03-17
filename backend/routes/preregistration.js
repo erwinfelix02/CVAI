@@ -160,16 +160,66 @@ router.post(
         const appName = process.env.APP_NAME || "CVAI Portal";
 
         const emailHtml = `
-          <h2>Pre-Registration Submitted</h2>
-          <p>Hello <strong>${fullName}</strong>,</p>
-          <p>Your pre-registration application has been successfully submitted.</p>
-          <p><strong>Registration ID:</strong> ${newApp.registrationId}</p>
-          <p><strong>Course:</strong> ${course || "N/A"}</p>
-          <p><strong>Status:</strong> Pending</p>
-          <p>Please keep your Registration ID for future reference.</p>
-          <hr />
-          <p>Thank you for applying to ${appName}.</p>
-        `;
+  <div style="margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding:20px 0;">
+      <tr>
+        <td align="center">
+          
+          <!-- Main Card -->
+          <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+            
+            <!-- Header -->
+            <tr>
+              <td style="background:#1a73e8; color:#ffffff; padding:20px; text-align:center;">
+                <h2 style="margin:0;">Pre-Registration Submitted</h2>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding:30px; color:#333;">
+                <p style="margin-top:0;">Hello <strong>${fullName}</strong>,</p>
+
+                <p>Your pre-registration application has been successfully submitted.</p>
+
+                <!-- Info Box -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0; border:1px solid #eee; border-radius:6px;">
+                  <tr>
+                    <td style="padding:12px;"><strong>Registration ID:</strong></td>
+                    <td style="padding:12px;">${newApp.registrationId}</td>
+                  </tr>
+                  <tr style="background:#f9fafb;">
+                    <td style="padding:12px;"><strong>Course:</strong></td>
+                    <td style="padding:12px;">${course || "N/A"}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:12px;"><strong>Status:</strong></td>
+                    <td style="padding:12px; color:#f59e0b;"><strong>Pending</strong></td>
+                  </tr>
+                </table>
+
+                <p>Please keep your Registration ID for future reference.</p>
+
+                <hr style="border:none; border-top:1px solid #eee; margin:20px 0;" />
+
+                <p style="margin-bottom:0;">Thank you for applying to <strong>${appName}</strong>.</p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="background:#f4f6f8; text-align:center; padding:15px; font-size:12px; color:#777;">
+                © ${new Date().getFullYear()} ${appName}. All rights reserved.
+              </td>
+            </tr>
+
+          </table>
+
+        </td>
+      </tr>
+    </table>
+  </div>
+`;
 
         await sendEmail(
           email,
@@ -275,11 +325,100 @@ router.patch("/:id/status", async (req, res) => {
       return res.status(404).json({ message: "Application not found" });
     }
 
-    const emailHtml = `
-      <h2>Application Status Update</h2>
-      <p>Your registration ID: <strong>${updated.registrationId}</strong></p>
-      <p>Status: <strong>${status}</strong></p>
-    `;
+  const emailHtml = `
+<div style="margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:20px 0;">
+    <tr>
+      <td align="center">
+        
+        <!-- Card -->
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background:#111827; color:#ffffff; padding:20px; text-align:center;">
+              <h2 style="margin:0;">Application Status Update</h2>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:30px; color:#333; text-align:center;">
+              
+              <p style="margin:0 0 10px;">Your Registration ID</p>
+              <h3 style="margin:0; color:#1a73e8;">
+                ${updated.registrationId}
+              </h3>
+
+              <!-- Status Badge -->
+              <div style="margin:25px 0;">
+                <span style="
+                  display:inline-block;
+                  padding:10px 20px;
+                  border-radius:20px;
+                  font-size:14px;
+                  font-weight:bold;
+                  background:${status === 'Approved' ? '#dcfce7' : status === 'Rejected' ? '#fee2e2' : '#fef3c7'};
+                  color:${status === 'Approved' ? '#166534' : status === 'Rejected' ? '#991b1b' : '#92400e'};
+                ">
+                  ${status}
+                </span>
+              </div>
+
+              <!-- Dynamic Message -->
+              ${
+                status === 'Approved'
+                  ? `
+                  <p style="margin:15px 0 0; font-size:16px; color:#166534; font-weight:bold;">
+                    🎉 Congratulations! Your application has been approved.
+                  </p>
+                  <p style="margin:8px 0 0; font-size:14px;">
+                    Please wait for the official schedule of your school visit or orientation.
+                  </p>
+                  <p style="margin:5px 0 0; font-size:13px; color:#555;">
+                    You will receive another email with the exact date and instructions.
+                  </p>
+                  `
+                  : status === 'Rejected'
+                  ? `
+                  <p style="margin:15px 0 0; font-size:14px; color:#991b1b;">
+                    We regret to inform you that your application was not approved.
+                  </p>
+                  <p style="margin:5px 0 0; font-size:13px; color:#555;">
+                    You may contact the admissions office for further details.
+                  </p>
+                  `
+                  : `
+                  <p style="margin:15px 0 0; font-size:14px; color:#92400e;">
+                    Your application is currently under review.
+                  </p>
+                  <p style="margin:5px 0 0; font-size:13px; color:#555;">
+                    Please wait for further updates regarding your application status.
+                  </p>
+                  `
+              }
+
+              <p style="margin:20px 0 0;">
+                Please keep your registration ID for future reference.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f4f6f8; text-align:center; padding:15px; font-size:12px; color:#777;">
+              This is an automated update. Please do not reply.
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</div>
+`;
 
     await sendEmail(
       updated.personal.email,

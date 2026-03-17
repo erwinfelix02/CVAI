@@ -26,6 +26,7 @@ export type EnrollmentItem = {
     phone?: string;
     address?: string;
     birthdate?: string;
+    birthDate?: string;
     guardian?: string;
     guardianPhone?: string;
     email?: string;
@@ -33,12 +34,13 @@ export type EnrollmentItem = {
   };
 
   academic?: {
-    program?: string;
-    yearLevel?: string | number;
-    department?: string;
-    applicantType?: string;
-    previousSchool?: string;
-  };
+  program?: string;
+  course?: string;
+  yearLevel?: string | number;
+  department?: string;
+  applicantType?: string;
+  previousSchool?: string;
+};
 
   schedule?: {
     date?: string;
