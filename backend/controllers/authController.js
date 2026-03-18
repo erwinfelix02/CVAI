@@ -3,11 +3,21 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import sendEmail from "../utils/sendEmail.js";
 import { addLog, getClientIp } from "../utils/logActivity.js";
+import SecuritySettings from "../models/SecuritySettings.js";
+
+async function getOrCreateSecuritySettings() {
+  let settings = await SecuritySettings.findOne();
+  if (!settings) settings = await SecuritySettings.create({});
+  return settings;
+}
 
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     const ip = getClientIp(req);
+
+    const securitySettings = await getOrCreateSecuritySettings();
+    const maxLoginAttempts = securitySettings.maxLoginAttempts || 3;
 
     if (!email || !password) {
       addLog({
@@ -82,7 +92,7 @@ export const login = async (req, res) => {
     if (!isMatch) {
       user.loginAttempts += 1;
 
-      if (user.loginAttempts >= 3) {
+      if (user.loginAttempts >= maxLoginAttempts) {
         user.lockUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
         user.loginAttempts = 0;
         await user.save();
@@ -103,7 +113,7 @@ export const login = async (req, res) => {
         });
       }
 
-      const triesLeft = 3 - user.loginAttempts;
+      const triesLeft = maxLoginAttempts - user.loginAttempts;
       await user.save();
 
       addLog({
@@ -189,20 +199,20 @@ export const login = async (req, res) => {
     });
 
     return res.json({
-  message: "Login successful",
-  token,
-  redirect,
-  user: {
-    _id: user._id,
-    firstName: user.firstName,
-    middleName: user.middleName,
-    lastName: user.lastName,
-    email: user.email,
-    role: user.role,
-    department: user.department,
-    status: user.status,
-  },
-});
+      message: "Login successful",
+      token,
+      redirect,
+      user: {
+        _id: user._id,
+        firstName: user.firstName,
+        middleName: user.middleName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        status: user.status,
+      },
+    });
   } catch (err) {
     console.error("AUTH ERROR:", err);
 
@@ -260,7 +270,7 @@ export const logout = async (req, res) => {
       role: "unknown",
       type: "System",
       details: "Failed to logout user",
-      ip: getClientIp(req),
+      ip,
       status: "error",
     });
 

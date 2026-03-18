@@ -102,7 +102,7 @@ export default function UsersPage() {
       setUsers(mapped);
     } catch (err) {
       console.error(err);
-      alert("Failed to load users from database");
+      showAlert("Failed to load users from database", "error");
     }
   };
 

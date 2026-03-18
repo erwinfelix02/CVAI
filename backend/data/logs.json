@@ -1,5 +1,53 @@
 [
   {
+    "id": "2f74bcd6-22a6-40d4-aa1a-8ee668fb8936",
+    "date": "2026-03-18",
+    "time": "08:17:53",
+    "action": "User Login",
+    "user": "erwinfelix528@gmail.com",
+    "role": "Super Admin",
+    "type": "Auth",
+    "details": "Successful login",
+    "ip": "127.0.0.1",
+    "status": "success"
+  },
+  {
+    "id": "6b7137c2-34d0-4d9f-89e5-880c98012ef7",
+    "date": "2026-03-18",
+    "time": "08:17:41",
+    "action": "Failed Login Attempt",
+    "user": "erwinfelix528@gmail.com",
+    "role": "Super Admin",
+    "type": "Security",
+    "details": "Invalid password. 4 attempt(s) left before lock.",
+    "ip": "127.0.0.1",
+    "status": "warning"
+  },
+  {
+    "id": "fd9bc6e3-b4c8-45fb-90ec-ddef720c91b3",
+    "date": "2026-03-18",
+    "time": "08:16:53",
+    "action": "User Login",
+    "user": "erwinfelix528@gmail.com",
+    "role": "Super Admin",
+    "type": "Auth",
+    "details": "Successful login",
+    "ip": "127.0.0.1",
+    "status": "success"
+  },
+  {
+    "id": "0396f2bd-b558-4fe3-939d-a480c64bd1f4",
+    "date": "2026-03-17",
+    "time": "07:39:46",
+    "action": "User Login",
+    "user": "erwinfelix528@gmail.com",
+    "role": "Super Admin",
+    "type": "Auth",
+    "details": "Successful login",
+    "ip": "127.0.0.1",
+    "status": "success"
+  },
+  {
     "id": "db45a7ef-041c-4a46-ae45-5cb6cb62d8a4",
     "date": "2026-03-17",
     "time": "21:57:20",

@@ -89,7 +89,9 @@ export default function RegistrarDashboard() {
         }
 
         const role = await res.json();
-        setPermissions(Array.isArray(role?.permissions) ? role.permissions : []);
+        setPermissions(
+          Array.isArray(role?.permissions) ? role.permissions : [],
+        );
       } catch (err) {
         console.error("Failed to load permissions", err);
         setPermissions([]);
