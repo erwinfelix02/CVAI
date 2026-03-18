@@ -1,4 +1,4 @@
-import  { forwardRef } from "react";
+import { forwardRef } from "react";
 import { Link } from "react-router-dom";
 
 export type RecentApplication = {
@@ -52,7 +52,9 @@ const RecentApplicationsCard = forwardRef<HTMLDivElement, Props>(
                       <div className="registrar-avatar">{a.initials}</div>
 
                       <div className="min-w-0">
-                        <div className="fw-semibold text-truncate">{a.name}</div>
+                        <div className="fw-semibold text-truncate">
+                          {a.name}
+                        </div>
                         <div className="text-muted small text-truncate">
                           {a.program} • {a.ref}
                         </div>
@@ -61,10 +63,18 @@ const RecentApplicationsCard = forwardRef<HTMLDivElement, Props>(
 
                     <div className="d-flex align-items-center gap-3">
                       <div className="text-muted small text-end registrar-app-meta">
-                        <div>{a.date}</div>
+                        <div>
+                          {new Date(a.date).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </div>
                       </div>
 
-                      <span className={`registrar-status ${a.status}`}>
+                      <span
+                        className={`registrar-status ${a.status.toLowerCase()}`}
+                      >
                         {a.status}
                       </span>
                     </div>
