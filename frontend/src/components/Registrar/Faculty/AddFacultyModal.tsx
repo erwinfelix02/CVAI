@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
-import { getActiveDepartments } from "../../../api/departmentService"; // ✅ adjust path if needed
+import { getActiveDepartments } from "../../../api/departmentService";
 
 const GENDERS = ["Male", "Female", "Prefer not to say"] as const;
 type Gender = (typeof GENDERS)[number];
@@ -19,18 +19,17 @@ type FacultyForm = {
   firstName: string;
   middleName: string;
   lastName: string;
-  idNumber: string; // GIP-YYYY-### (auto)
+  idNumber: string;
   email: string;
-  phone: string; // +639#########
+  phone: string;
   gender: Gender | "";
-  department: string | ""; // will store department name (or you can store _id if you prefer)
+  department: string | "";
   notes: string;
 };
 
 type Errors = Partial<Record<keyof FacultyForm, string>>;
 type Touched = Partial<Record<keyof FacultyForm, boolean>>;
 
-// ✅ department shape from backend (based on your Department model usage)
 type DepartmentDB = {
   _id: string;
   code: string;
@@ -39,8 +38,6 @@ type DepartmentDB = {
   head?: string;
   description?: string;
 };
-
-/* ---------------- HELPERS ---------------- */
 
 function capitalizeWords(value: string) {
   return value
@@ -60,7 +57,6 @@ function isValidEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
 }
 
-// ✅ +639 + 9 digits (total +639######### => 13 chars)
 function isValidPHPhonePlus63(v: string) {
   return /^\+639\d{9}$/.test(v.trim());
 }
@@ -106,12 +102,12 @@ export default function AddFacultyModal({
   const [localErrors, setLocalErrors] = useState<Errors>({});
   const [showReview, setShowReview] = useState(false);
 
-  // ✅ Departments dropdown state
   const [departments, setDepartments] = useState<DepartmentDB[]>([]);
   const [deptLoading, setDeptLoading] = useState(false);
-  const [deptError, setDeptError] = useState<string>("");
+  const [deptError, setDeptError] = useState("");
 
-  /* ---------------- FETCH ACTIVE DEPARTMENTS ---------------- */
+  const [idLoading, setIdLoading] = useState(false);
+  const [idError, setIdError] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -127,7 +123,6 @@ export default function AddFacultyModal({
 
         if (!mounted) return;
 
-        // extra safety: keep only Active
         const activeOnly = (data || []).filter((d) => d.status === "Active");
         setDepartments(activeOnly);
       } catch (err: any) {
@@ -146,19 +141,71 @@ export default function AddFacultyModal({
     };
   }, [open]);
 
-  /* ---------------- VALIDATION ---------------- */
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+
+    const loadFacultyId = async () => {
+      try {
+        setIdLoading(true);
+        setIdError("");
+
+        const res = await fetch("/api/users/reserve-faculty-id", {
+          method: "GET",
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.message || "Failed to generate faculty ID.");
+        }
+
+        if (!cancelled) {
+          const generatedId = data?.idNumber || "";
+
+          setForm((prev) => ({
+            ...prev,
+            idNumber: generatedId,
+          }));
+
+          if (!generatedId) {
+            setIdError("Failed to load automatic faculty ID.");
+          }
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setForm((prev) => ({
+            ...prev,
+            idNumber: "",
+          }));
+          setIdError(err?.message || "Failed to load automatic faculty ID.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIdLoading(false);
+        }
+      }
+    };
+
+    loadFacultyId();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   const validateField = (k: keyof FacultyForm, raw?: string): string => {
     const v = (raw ?? (form as any)[k] ?? "") as string;
 
-    const first = form.firstName.trim();
-    const middle = form.middleName.trim();
-    const last = form.lastName.trim();
-    const id = form.idNumber.trim();
-    const email = form.email.trim();
-    const phone = form.phone.trim();
-    const gender = form.gender;
-    const dept = form.department;
+    const first = k === "firstName" ? v.trim() : form.firstName.trim();
+    const middle = k === "middleName" ? v.trim() : form.middleName.trim();
+    const last = k === "lastName" ? v.trim() : form.lastName.trim();
+    const id = k === "idNumber" ? v.trim() : form.idNumber.trim();
+    const email = k === "email" ? v.trim() : form.email.trim();
+    const phone = k === "phone" ? v.trim() : form.phone.trim();
+    const gender = k === "gender" ? (v as Gender | "") : form.gender;
+    const dept = k === "department" ? v.trim() : form.department;
 
     switch (k) {
       case "firstName":
@@ -182,11 +229,12 @@ export default function AddFacultyModal({
         return "";
 
       case "idNumber": {
-        if (!id) return "ID number is required.";
-       const pattern = new RegExp(`^GIP-${currentYear}-\\d{3}$`);
+        if (idLoading) return "";
+        if (idError) return idError;
+        if (!id) return "Faculty ID could not be generated.";
+
+        const pattern = new RegExp(`^GIP-${currentYear}-\\d{3}$`);
         if (!pattern.test(id)) return `Format: ${idPrefix}### (3 digits).`;
-        if (!/^[A-Za-z0-9-]+$/.test(id))
-          return "ID can only contain letters, numbers, and dashes.";
         return "";
       }
 
@@ -236,9 +284,8 @@ export default function AddFacultyModal({
   const invalid = (k: keyof FacultyForm) =>
     (submitted || touched[k]) && !!localErrors[k];
 
-  const errorText = (k: keyof FacultyForm) => (invalid(k) ? localErrors[k] : "\u00A0");
-
-  /* ---------------- MODAL BEHAVIOR ---------------- */
+  const errorText = (k: keyof FacultyForm) =>
+    invalid(k) ? localErrors[k] : "\u00A0";
 
   useEffect(() => {
     if (!open) return;
@@ -259,7 +306,6 @@ export default function AddFacultyModal({
     };
   }, [open, onClose, isLoading, showReview]);
 
-  // reset when open
   useEffect(() => {
     if (!open) return;
 
@@ -279,11 +325,11 @@ export default function AddFacultyModal({
     setTouched({});
     setLocalErrors({});
     setShowReview(false);
+    setIdLoading(false);
+    setIdError("");
   }, [open]);
 
   if (!open) return null;
-
-  /* ---------------- HANDLERS ---------------- */
 
   const update = (key: keyof FacultyForm, value: string) => {
     const cleanValue = sanitizeInput(value);
@@ -300,7 +346,7 @@ export default function AddFacultyModal({
     setSubmitted(true);
 
     const all = validateAll();
-    if (hasErrors(all as Record<string, unknown>)) return;
+    if (hasErrors(all as Record<string, unknown>) || idLoading) return;
 
     setShowReview(true);
   };
@@ -313,6 +359,8 @@ export default function AddFacultyModal({
     });
   };
 
+  const idFieldError = submitted ? validateField("idNumber") : "";
+
   return (
     <>
       {!showReview && (
@@ -323,7 +371,6 @@ export default function AddFacultyModal({
             aria-modal="true"
             onMouseDown={(e) => e.stopPropagation()}
           >
-            {/* HEADER */}
             <div className="users-modal-header">
               <div>
                 <h3 className="users-modal-title">Add Faculty Account</h3>
@@ -342,13 +389,13 @@ export default function AddFacultyModal({
               </button>
             </div>
 
-            {/* BODY */}
             <div className="users-modal-body">
               <div className="users-form-grid">
-                {/* NAME ROW */}
                 <div className="users-name-row users-col-span-2">
                   <div className="users-field users-input-with-icon">
-                    <label className={`users-label ${invalid("firstName") ? "is-invalid-label" : ""}`}>
+                    <label
+                      className={`users-label ${invalid("firstName") ? "is-invalid-label" : ""}`}
+                    >
                       First Name <span className="req">*</span>
                     </label>
 
@@ -357,17 +404,23 @@ export default function AddFacultyModal({
                       <input
                         className={`users-input ${invalid("firstName") ? "is-invalid" : ""}`}
                         value={form.firstName}
-                        onChange={(e) => update("firstName", capitalizeWords(e.target.value))}
+                        onChange={(e) =>
+                          update("firstName", capitalizeWords(e.target.value))
+                        }
                         onBlur={() => onBlurField("firstName")}
                         placeholder="Enter first name"
                       />
                     </div>
 
-                    <div className="users-invalid-feedback">{errorText("firstName")}</div>
+                    <div className="users-invalid-feedback">
+                      {errorText("firstName")}
+                    </div>
                   </div>
 
                   <div className="users-field users-input-with-icon">
-                    <label className={`users-label ${invalid("middleName") ? "is-invalid-label" : ""}`}>
+                    <label
+                      className={`users-label ${invalid("middleName") ? "is-invalid-label" : ""}`}
+                    >
                       Middle Name
                     </label>
 
@@ -376,19 +429,25 @@ export default function AddFacultyModal({
                       <input
                         className={`users-input ${invalid("middleName") ? "is-invalid" : ""}`}
                         value={form.middleName}
-                        onChange={(e) => update("middleName", capitalizeWords(e.target.value))}
+                        onChange={(e) =>
+                          update("middleName", capitalizeWords(e.target.value))
+                        }
                         onBlur={() => onBlurField("middleName")}
                         placeholder="Optional"
                       />
                     </div>
 
                     <div className="users-invalid-feedback">
-                      {invalid("middleName") ? errorText("middleName") : "\u00A0"}
+                      {invalid("middleName")
+                        ? errorText("middleName")
+                        : "\u00A0"}
                     </div>
                   </div>
 
                   <div className="users-field users-input-with-icon">
-                    <label className={`users-label ${invalid("lastName") ? "is-invalid-label" : ""}`}>
+                    <label
+                      className={`users-label ${invalid("lastName") ? "is-invalid-label" : ""}`}
+                    >
                       Last Name <span className="req">*</span>
                     </label>
 
@@ -397,48 +456,57 @@ export default function AddFacultyModal({
                       <input
                         className={`users-input ${invalid("lastName") ? "is-invalid" : ""}`}
                         value={form.lastName}
-                        onChange={(e) => update("lastName", capitalizeWords(e.target.value))}
+                        onChange={(e) =>
+                          update("lastName", capitalizeWords(e.target.value))
+                        }
                         onBlur={() => onBlurField("lastName")}
                         placeholder="Enter last name"
                       />
                     </div>
 
-                    <div className="users-invalid-feedback">{errorText("lastName")}</div>
+                    <div className="users-invalid-feedback">
+                      {errorText("lastName")}
+                    </div>
                   </div>
                 </div>
 
-                {/* ID / EMAIL / PHONE */}
                 <div className="users-row-3 users-col-span-2">
                   <div className="users-field users-input-with-icon">
-                    <label className={`users-label ${invalid("idNumber") ? "is-invalid-label" : ""}`}>
+                    <label
+                      className={`users-label ${idFieldError ? "is-invalid-label" : ""}`}
+                    >
                       ID Number <span className="req">*</span>
                     </label>
 
                     <div className="users-input-wrapper">
                       <Hash className="users-input-icon" size={16} />
                       <input
-                        className={`users-input ${invalid("idNumber") ? "is-invalid" : ""}`}
-                        value={form.idNumber}
-                        onChange={(e) => {
-                          let value = e.target.value;
-
-                          if (value.startsWith(idPrefix)) value = value.replace(idPrefix, "");
-
-                          const digits = value.replace(/\D/g, "").slice(0, 3);
-                          const finalValue = digits.length > 0 ? idPrefix + digits : "";
-
-                          update("idNumber", finalValue);
-                        }}
-                        onBlur={() => onBlurField("idNumber")}
+                        className={`users-input ${idFieldError ? "is-invalid" : ""}`}
+                        value={idLoading ? "Loading..." : form.idNumber}
+                        disabled
+                        readOnly
                         placeholder={`e.g., ${idPrefix}001`}
+                        style={{
+                          opacity: 1,
+                          backgroundColor: "#e9ecef",
+                          cursor: "not-allowed",
+                        }}
                       />
                     </div>
 
-                    <div className="users-invalid-feedback">{errorText("idNumber")}</div>
+                    <div className="text-muted small mt-1">
+                      Auto-generated by the system.
+                    </div>
+
+                    <div className="users-invalid-feedback">
+                      {submitted ? idFieldError || "\u00A0" : "\u00A0"}
+                    </div>
                   </div>
 
                   <div className="users-field users-input-with-icon">
-                    <label className={`users-label ${invalid("email") ? "is-invalid-label" : ""}`}>
+                    <label
+                      className={`users-label ${invalid("email") ? "is-invalid-label" : ""}`}
+                    >
                       Email <span className="req">*</span>
                     </label>
 
@@ -454,11 +522,15 @@ export default function AddFacultyModal({
                       />
                     </div>
 
-                    <div className="users-invalid-feedback">{errorText("email")}</div>
+                    <div className="users-invalid-feedback">
+                      {errorText("email")}
+                    </div>
                   </div>
 
                   <div className="users-field users-input-with-icon">
-                    <label className={`users-label ${invalid("phone") ? "is-invalid-label" : ""}`}>
+                    <label
+                      className={`users-label ${invalid("phone") ? "is-invalid-label" : ""}`}
+                    >
                       Phone <span className="req">*</span>
                     </label>
 
@@ -470,15 +542,20 @@ export default function AddFacultyModal({
                         onChange={(e) => {
                           let value = e.target.value;
 
-                          if (value.startsWith(phonePrefix)) value = value.replace(phonePrefix, "");
+                          if (value.startsWith(phonePrefix)) {
+                            value = value.replace(phonePrefix, "");
+                          }
 
                           let digits = value.replace(/\D/g, "");
 
-                          if (digits.length > 0 && digits[0] !== "9") digits = "9" + digits.slice(1);
+                          if (digits.length > 0 && digits[0] !== "9") {
+                            digits = "9" + digits.slice(1);
+                          }
 
                           digits = digits.slice(0, 10);
 
-                          const finalValue = digits.length > 0 ? "+63" + digits : "";
+                          const finalValue =
+                            digits.length > 0 ? "+63" + digits : "";
                           update("phone", finalValue);
                         }}
                         onBlur={() => onBlurField("phone")}
@@ -486,14 +563,17 @@ export default function AddFacultyModal({
                       />
                     </div>
 
-                    <div className="users-invalid-feedback">{errorText("phone")}</div>
+                    <div className="users-invalid-feedback">
+                      {errorText("phone")}
+                    </div>
                   </div>
                 </div>
 
-                {/* GENDER / DEPARTMENT */}
                 <div className="users-row-2 users-col-span-2">
                   <div className="users-field users-input-with-icon has-select">
-                    <label className={`users-label ${invalid("gender") ? "is-invalid-label" : ""}`}>
+                    <label
+                      className={`users-label ${invalid("gender") ? "is-invalid-label" : ""}`}
+                    >
                       Gender <span className="req">*</span>
                     </label>
 
@@ -514,11 +594,15 @@ export default function AddFacultyModal({
                       </select>
                     </div>
 
-                    <div className="users-invalid-feedback">{errorText("gender")}</div>
+                    <div className="users-invalid-feedback">
+                      {errorText("gender")}
+                    </div>
                   </div>
 
                   <div className="users-field users-input-with-icon has-select">
-                    <label className={`users-label ${invalid("department") ? "is-invalid-label" : ""}`}>
+                    <label
+                      className={`users-label ${invalid("department") ? "is-invalid-label" : ""}`}
+                    >
                       Department <span className="req">*</span>
                     </label>
 
@@ -532,7 +616,9 @@ export default function AddFacultyModal({
                         disabled={deptLoading}
                       >
                         <option value="">
-                          {deptLoading ? "Loading departments..." : "Select department"}
+                          {deptLoading
+                            ? "Loading departments..."
+                            : "Select department"}
                         </option>
 
                         {departments.map((d) => (
@@ -549,14 +635,17 @@ export default function AddFacultyModal({
                   </div>
                 </div>
 
-                {/* STATUS / ROLE */}
                 <div className="users-row-2 users-col-span-2">
                   <div className="users-field users-input-with-icon">
                     <label className="users-label">Status</label>
 
                     <div className="users-input-wrapper">
                       <ShieldCheck className="users-input-icon" size={16} />
-                      <input className="users-input users-status-inactive text-center" value="Inactive" readOnly />
+                      <input
+                        className="users-input users-status-inactive text-center"
+                        value="Inactive"
+                        readOnly
+                      />
                     </div>
 
                     <div className="users-invalid-feedback">&nbsp;</div>
@@ -566,13 +655,16 @@ export default function AddFacultyModal({
                     <label className="users-label">Portal Role</label>
                     <div className="users-input-wrapper">
                       <ShieldCheck className="users-input-icon" size={16} />
-                      <input className="users-input users-status-active text-center" value="Faculty" readOnly />
+                      <input
+                        className="users-input users-status-active text-center"
+                        value="Faculty"
+                        readOnly
+                      />
                     </div>
                     <div className="users-invalid-feedback">&nbsp;</div>
                   </div>
                 </div>
 
-                {/* NOTES */}
                 <div className="users-field users-col-span-2">
                   <label className="users-label">
                     Notes <span className="optional">(Optional)</span>
@@ -587,14 +679,19 @@ export default function AddFacultyModal({
                     rows={3}
                   />
 
-                  <div className="users-invalid-feedback">&nbsp;</div>
+                  <div className="users-invalid-feedback">
+                    {invalid("notes") ? errorText("notes") : "\u00A0"}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* FOOTER */}
             <div className="users-modal-footer">
-              <button type="button" className="btn btn-light" onClick={onClose}>
+              <button
+                type="button"
+                className="btn btn-light"
+                onClick={onClose}
+              >
                 Cancel
               </button>
 
@@ -602,7 +699,7 @@ export default function AddFacultyModal({
                 type="button"
                 className="btn btn-primary"
                 onClick={handleSubmit}
-                disabled={isLoading}
+                disabled={isLoading || idLoading}
               >
                 Review
               </button>
@@ -611,7 +708,6 @@ export default function AddFacultyModal({
         </div>
       )}
 
-      {/* REVIEW MODAL */}
       <AddUserReviewModal
         open={showReview}
         data={{

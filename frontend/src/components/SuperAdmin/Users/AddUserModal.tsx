@@ -146,6 +146,9 @@ export default function AddUserModal({
   const [deptLoading, setDeptLoading] = useState(false);
   const [deptError, setDeptError] = useState("");
 
+  const [idLoading, setIdLoading] = useState(false);
+  const [idError, setIdError] = useState("");
+
   const form = useMemo<AddUserFormState>(
     () => ({
       firstName,
@@ -253,6 +256,7 @@ export default function AddUserModal({
       setRole("");
       setDepartment("");
       setIdNumber("");
+      setIdError("");
       setLocalErrors((p) => ({
         ...p,
         role: "Registrar account already exists.",
@@ -297,25 +301,72 @@ export default function AddUserModal({
   useEffect(() => {
     if (!open) return;
 
-    const prefix = getIdPrefixByRole(role);
-
-    if (!prefix) {
+    if (!role) {
       setIdNumber("");
+      setIdError("");
+      setIdLoading(false);
       return;
     }
 
-    const digits = idNumber.replace(/\D/g, "").slice(0, 3);
-    const finalValue = digits ? `${prefix}${digits}` : "";
-
-    setIdNumber(finalValue);
-
-    if (submitted || touched.idNumber) {
-      setLocalErrors((p) => ({
-        ...p,
-        idNumber: validateField("idNumber"),
-      }));
+    if (role === "Registrar" && hasRegistrarAlready) {
+      setIdNumber("");
+      setIdError("Registrar account already exists.");
+      setIdLoading(false);
+      return;
     }
-  }, [role, open]);
+
+    let cancelled = false;
+
+    const loadReservedId = async () => {
+      try {
+        setIdLoading(true);
+        setIdError("");
+        setIdNumber("");
+
+        const res = await fetch(
+          `/api/users/reserve-user-id?role=${encodeURIComponent(role)}`,
+          {
+            method: "GET",
+          },
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.message || "Failed to generate user ID.");
+        }
+
+        if (!cancelled) {
+          const generatedId = data?.idNumber || "";
+          setIdNumber(generatedId);
+
+          if (!generatedId) {
+            setIdError("Failed to load automatic user ID.");
+          } else if (submitted || touched.idNumber) {
+            setLocalErrors((p) => ({
+              ...p,
+              idNumber: "",
+            }));
+          }
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setIdNumber("");
+          setIdError(err?.message || "Failed to load automatic user ID.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIdLoading(false);
+        }
+      }
+    };
+
+    loadReservedId();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, role, hasRegistrarAlready, submitted, touched.idNumber]);
 
   const validateField = (k: keyof AddUserFormState): string => {
     const first = firstName.trim();
@@ -350,8 +401,10 @@ export default function AddUserModal({
         return "";
 
       case "idNumber": {
-        if (!id) return "ID number is required.";
         if (!role) return "Select a role first.";
+        if (idLoading) return "";
+        if (idError) return idError;
+        if (!id) return "ID number could not be generated.";
 
         const prefix = getIdPrefixByRole(role);
         const pattern = new RegExp(`^${prefix}\\d{3}$`);
@@ -470,6 +523,8 @@ export default function AddUserModal({
     setShowReview(false);
     setReviewData(null);
     setDeptError("");
+    setIdLoading(false);
+    setIdError("");
   }, [open]);
 
   if (!open) return null;
@@ -499,7 +554,7 @@ export default function AddUserModal({
     setSubmitted(true);
 
     const all = validateAll();
-    if (hasErrors(all as Record<string, unknown>)) return;
+    if (hasErrors(all as Record<string, unknown>) || idLoading) return;
 
     const cleanFirst = toTitleCase(firstName);
     const cleanMiddle = toTitleCase(middleName);
@@ -525,6 +580,8 @@ export default function AddUserModal({
 
     setShowReview(true);
   };
+
+  const idFieldError = submitted ? validateField("idNumber") : "";
 
   return (
     <>
@@ -654,51 +711,41 @@ export default function AddUserModal({
 
                 <div className="users-row-3 users-col-span-2">
                   <div className="users-field users-input-with-icon">
-                    <label className={labelClass("idNumber")}>
+                    <label
+                      className={`users-label ${idFieldError ? "is-invalid-label" : ""}`}
+                    >
                       ID Number <span className="req">*</span>
                     </label>
                     <div className="users-input-wrapper">
                       <Hash className="users-input-icon" size={16} />
                       <input
-                        className={inputClass("idNumber")}
-                        value={idNumber}
-                        onChange={(e) => {
-                          const prefix = getIdPrefixByRole(role);
-
-                          if (!prefix) {
-                            setIdNumber("");
-                            return;
-                          }
-
-                          let value = e.target.value;
-
-                          if (value.startsWith(prefix)) {
-                            value = value.replace(prefix, "");
-                          }
-
-                          const digits = value.replace(/\D/g, "").slice(0, 3);
-                          const finalValue =
-                            digits.length > 0 ? prefix + digits : "";
-
-                          setIdNumber(finalValue);
-
-                          if (submitted || touched.idNumber) {
-                            setLocalErrors((p) => ({
-                              ...p,
-                              idNumber: validateField("idNumber"),
-                            }));
-                          }
-                        }}
-                        onBlur={() => onBlurField("idNumber")}
+                        className={`users-input ${idFieldError ? "is-invalid" : ""}`}
+                        value={
+                          !role
+                            ? ""
+                            : idLoading
+                              ? "Loading..."
+                              : idNumber
+                        }
+                        disabled
+                        readOnly
                         placeholder={
                           role
                             ? `e.g., ${getIdPrefixByRole(role)}001`
                             : "Select role first"
                         }
+                        style={{
+                          opacity: 1,
+                          backgroundColor: "#e9ecef",
+                          cursor: "not-allowed",
+                        }}
                       />
                     </div>
+                    <div className="text-muted small mt-1">
+                      Auto-generated by the system.
+                    </div>
                     <div className="users-invalid-feedback">
-                      {invalid("idNumber") ? getError("idNumber") : "\u00A0"}
+                      {submitted ? idFieldError || "\u00A0" : "\u00A0"}
                     </div>
                   </div>
 
@@ -811,24 +858,19 @@ export default function AddUserModal({
                         onChange={(e) => {
                           const nextRole = e.target.value as UserRole | "";
                           setRole(nextRole);
+                          setIdNumber("");
+                          setIdError("");
 
                           if (submitted || touched.role) {
                             setLocalErrors((p) => ({
                               ...p,
                               role: nextRole
-                                ? validateField("role")
+                                ? ""
                                 : "Role is required.",
                             }));
                           }
 
                           setTimeout(() => {
-                            if (submitted || touched.idNumber) {
-                              setLocalErrors((p) => ({
-                                ...p,
-                                idNumber: "",
-                              }));
-                            }
-
                             if (submitted || touched.department) {
                               setLocalErrors((p) => ({
                                 ...p,
@@ -946,7 +988,11 @@ export default function AddUserModal({
                   Cancel
                 </button>
 
-                <button type="submit" className="btn btn-primary">
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={idLoading || isLoading}
+                >
                   Create
                 </button>
               </div>

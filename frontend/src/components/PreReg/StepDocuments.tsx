@@ -6,6 +6,8 @@ import DocumentUploadRow from "./DocumentUploadRow";
 type Errors = Partial<Record<keyof DocumentsState, string>>;
 type Touched = Partial<Record<keyof DocumentsState, boolean>>;
 
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+
 export default function StepDocuments({
   value,
   onChange,
@@ -22,11 +24,17 @@ export default function StepDocuments({
 
   const validateAll = (v: DocumentsState) => {
     const next: Errors = {};
+
     if (!v.birthCert) next.birthCert = "This document is required.";
-    if (!v.form137) next.form137 = "This document is required.";
-    if (!v.goodMoral) next.goodMoral = "This document is required.";
     if (!v.idPhoto) next.idPhoto = "This document is required.";
-    setLocalErrors(next);
+
+    setLocalErrors((prev) => ({
+      ...prev,
+      birthCert: next.birthCert || "",
+      goodMoral: prev.goodMoral || "",
+      idPhoto: next.idPhoto || "",
+    }));
+
     return next;
   };
 
@@ -35,18 +43,48 @@ export default function StepDocuments({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submitted]);
 
-  const markTouched = (k: keyof DocumentsState) =>
+  const markTouched = (k: keyof DocumentsState) => {
+    setTouched((prev) => ({ ...prev, [k]: true }));
+  };
+
+  const setFile = (k: keyof DocumentsState, f: File | null) => {
     setTouched((prev) => ({ ...prev, [k]: true }));
 
-  const set = (k: keyof DocumentsState, f: File | null) => {
+    if (f) {
+      if (f.type !== "application/pdf") {
+        const nextValue = { ...value, [k]: null };
+        onChange(nextValue);
+        setLocalErrors((prev) => ({
+          ...prev,
+          [k]: "Only PDF files are allowed.",
+        }));
+        return;
+      }
+
+      if (f.size > MAX_FILE_SIZE) {
+        const nextValue = { ...value, [k]: null };
+        onChange(nextValue);
+        setLocalErrors((prev) => ({
+          ...prev,
+          [k]: "File must not exceed 2MB.",
+        }));
+        return;
+      }
+    }
+
     const nextValue = { ...value, [k]: f };
     onChange(nextValue);
 
-    // validate while fixing (same behavior as other steps)
-    if (submitted || touched[k]) validateAll(nextValue);
+    setLocalErrors((prev) => ({
+      ...prev,
+      [k]: "",
+    }));
+
+    if (submitted || touched[k]) {
+      validateAll(nextValue);
+    }
   };
 
-  // ✅ IMPORTANT: only show errors when submitted or touched
   const showError = (k: keyof DocumentsState) => submitted || touched[k];
 
   const getError = (k: keyof DocumentsState) => {
@@ -63,11 +101,12 @@ export default function StepDocuments({
           </span>
           <h4 className="fw-bold mb-0">Required Documents</h4>
         </div>
-        <span className="chip chip-muted">PDF files only</span>
+        <span className="chip chip-muted">PDF files only • Max 2MB each</span>
       </div>
 
       <p className="text-muted mb-4">
         Upload the following documents in <strong>PDF format only</strong>.
+        Maximum of <strong> 2MB per file</strong>.
       </p>
 
       <div className="d-flex flex-column gap-3">
@@ -75,36 +114,30 @@ export default function StepDocuments({
           title="Birth Certificate"
           file={value.birthCert}
           accept="application/pdf"
-          onChange={(f) => set("birthCert", f)}
+          onChange={(f) => setFile("birthCert", f)}
           onTouched={() => markTouched("birthCert")}
           error={getError("birthCert")}
-        />
-
-        <DocumentUploadRow
-          title="Form 137 / Transcript of Records"
-          file={value.form137}
-          accept="application/pdf"
-          onChange={(f) => set("form137", f)}
-          onTouched={() => markTouched("form137")}
-          error={getError("form137")}
+          required
         />
 
         <DocumentUploadRow
           title="Good Moral Certificate"
           file={value.goodMoral}
           accept="application/pdf"
-          onChange={(f) => set("goodMoral", f)}
+          onChange={(f) => setFile("goodMoral", f)}
           onTouched={() => markTouched("goodMoral")}
           error={getError("goodMoral")}
+          required={false}
         />
 
         <DocumentUploadRow
           title="2x2 ID Photo"
           file={value.idPhoto}
           accept="application/pdf"
-          onChange={(f) => set("idPhoto", f)}
+          onChange={(f) => setFile("idPhoto", f)}
           onTouched={() => markTouched("idPhoto")}
           error={getError("idPhoto")}
+          required
         />
       </div>
     </div>

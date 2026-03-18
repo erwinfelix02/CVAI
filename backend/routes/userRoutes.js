@@ -9,6 +9,8 @@ import {
   updateUserContactInfo,
   getRegistrarByRole,
   getPortalStatuses,
+  reserveFacultyId,
+  reserveUserId,
 } from "../controllers/userController.js";
 import {
   authMiddleware,
@@ -17,7 +19,6 @@ import {
 
 const router = express.Router();
 
-// Student list: Registrar and Super Admin
 router.get(
   "/students",
   authMiddleware,
@@ -25,7 +26,6 @@ router.get(
   getStudentUsers
 );
 
-// Portal statuses: Super Admin only
 router.get(
   "/portal-statuses",
   authMiddleware,
@@ -33,7 +33,9 @@ router.get(
   getPortalStatuses
 );
 
-// All users: Super Admin only
+router.get("/reserve-faculty-id", reserveFacultyId);
+router.get("/reserve-user-id", reserveUserId);
+
 router.get(
   "/",
   authMiddleware,
@@ -41,7 +43,6 @@ router.get(
   getUsers
 );
 
-// Create user: Super Admin only
 router.post(
   "/",
   authMiddleware,
@@ -49,7 +50,6 @@ router.post(
   createUser
 );
 
-// Send credentials: Super Admin only
 router.post(
   "/:id/send-credentials",
   authMiddleware,
@@ -57,7 +57,6 @@ router.post(
   sendCredentials
 );
 
-// Get registrar account: Registrar and Super Admin
 router.get(
   "/role/registrar",
   authMiddleware,
@@ -65,7 +64,6 @@ router.get(
   getRegistrarByRole
 );
 
-// Get user by id: Registrar and Super Admin
 router.get(
   "/:id",
   authMiddleware,
@@ -73,7 +71,6 @@ router.get(
   getUserById
 );
 
-// Update user: Super Admin only
 router.patch(
   "/:id",
   authMiddleware,
@@ -81,7 +78,6 @@ router.patch(
   updateUser
 );
 
-// Update contact: Registrar and Super Admin
 router.patch(
   "/:id/contact",
   authMiddleware,

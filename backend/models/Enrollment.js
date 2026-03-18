@@ -117,7 +117,6 @@ const enrollmentSchema = new mongoose.Schema(
 
     documents: {
       birthCert: String,
-      form137: String,
       goodMoral: String,
       idPhoto: String,
     },

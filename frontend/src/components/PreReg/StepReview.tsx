@@ -27,21 +27,31 @@ import { useState, useEffect } from "react";
 function DocChip({
   label,
   ok,
+  optional = false,
   onClick,
 }: {
   label: string;
   ok: boolean;
+  optional?: boolean;
   onClick?: () => void;
 }) {
+  const text = ok ? "Uploaded" : optional ? "Not uploaded" : "Missing";
+
   return (
     <button
       type="button"
-      className={`chip ${ok ? "chip-success chip-clickable" : "chip-muted"}`}
+      className={`chip ${
+        ok
+          ? "chip-success chip-clickable"
+          : optional
+            ? "chip-muted"
+            : "chip-muted"
+      }`}
       onClick={ok ? onClick : undefined}
       disabled={!ok}
     >
       {ok ? <BadgeCheck size={16} /> : <BadgeX size={16} />}
-      {label}: {ok ? "Uploaded" : "Missing"}
+      {label}: {text}
     </button>
   );
 }
@@ -76,10 +86,6 @@ export default function StepReview({
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  /* ========================= */
-  /* Safe Object URL Handling */
-  /* ========================= */
-
   useEffect(() => {
     if (!previewFile) {
       setPreviewUrl(null);
@@ -93,10 +99,6 @@ export default function StepReview({
       URL.revokeObjectURL(url);
     };
   }, [previewFile]);
-
-  /* ========================= */
-  /* ESC + Scroll Lock */
-  /* ========================= */
 
   useEffect(() => {
     if (!previewFile) return;
@@ -117,10 +119,9 @@ export default function StepReview({
   }, [previewFile]);
 
   const docList = [
-    { label: "Birth Certificate", file: docs.birthCert },
-    { label: "Form 137 / Transcript of Records", file: docs.form137 },
-    { label: "Good Moral Certificate", file: docs.goodMoral },
-    { label: "2x2 ID Photo", file: docs.idPhoto },
+    { label: "Birth Certificate", file: docs.birthCert, optional: false },
+    { label: "Good Moral Certificate", file: docs.goodMoral, optional: true },
+    { label: "2x2 ID Photo", file: docs.idPhoto, optional: false },
   ];
 
   return (
@@ -135,7 +136,6 @@ export default function StepReview({
       </div>
 
       <div className="row g-3">
-        {/* PERSONAL */}
         <div className="col-12 col-lg-6">
           <div className="prereg-review-card">
             <div className="fw-semibold mb-3 d-flex align-items-center gap-2">
@@ -171,7 +171,6 @@ export default function StepReview({
           </div>
         </div>
 
-        {/* ACADEMIC */}
         <div className="col-12 col-lg-6">
           <div className="prereg-review-card">
             <div className="fw-semibold mb-3 d-flex align-items-center gap-2">
@@ -200,7 +199,6 @@ export default function StepReview({
           </div>
         </div>
 
-        {/* DOCUMENTS */}
         <div className="col-12">
           <div className="prereg-review-card">
             <div className="fw-semibold mb-2 d-flex align-items-center gap-2">
@@ -214,9 +212,15 @@ export default function StepReview({
                   key={d.label}
                   label={d.label}
                   ok={!!d.file}
+                  optional={d.optional}
                   onClick={() => setPreviewFile(d.file ?? null)}
                 />
               ))}
+            </div>
+
+            <div className="small text-muted mt-3">
+              Good Moral Certificate is optional and may be submitted later if
+              not yet available.
             </div>
           </div>
         </div>
@@ -229,7 +233,6 @@ export default function StepReview({
         </div>
       </div>
 
-      {/* ================= PDF / IMAGE PREVIEW ================= */}
       {previewFile && previewUrl && (
         <div
           className="doc-preview-overlay"
@@ -240,6 +243,7 @@ export default function StepReview({
             onClick={(e) => e.stopPropagation()}
           >
             <button
+              type="button"
               className="doc-preview-close"
               onClick={() => setPreviewFile(null)}
             >

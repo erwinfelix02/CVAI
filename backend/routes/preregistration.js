@@ -8,6 +8,8 @@ import contract from "../utils/blockchain.js";
 
 const router = express.Router();
 
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "uploads/");
@@ -18,7 +20,18 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: MAX_FILE_SIZE,
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype !== "application/pdf") {
+      return cb(new Error("Only PDF files are allowed."));
+    }
+    cb(null, true);
+  },
+});
 
 function normalizePHPhone(phone) {
   const digits = String(phone || "").replace(/\D/g, "");
@@ -41,10 +54,9 @@ function normalizePHPhone(phone) {
 router.post(
   "/",
   upload.fields([
-    { name: "birthCert" },
-    { name: "form137" },
-    { name: "goodMoral" },
-    { name: "idPhoto" },
+    { name: "birthCert", maxCount: 1 },
+    { name: "goodMoral", maxCount: 1 },
+    { name: "idPhoto", maxCount: 1 },
   ]),
   async (req, res) => {
     try {
@@ -138,9 +150,6 @@ router.post(
           birthCert: req.files?.birthCert?.[0]
             ? `/uploads/${req.files.birthCert[0].filename}`
             : null,
-          form137: req.files?.form137?.[0]
-            ? `/uploads/${req.files.form137[0].filename}`
-            : null,
           goodMoral: req.files?.goodMoral?.[0]
             ? `/uploads/${req.files.goodMoral[0].filename}`
             : null,
@@ -164,25 +173,19 @@ router.post(
     <table width="100%" cellpadding="0" cellspacing="0" style="padding:20px 0;">
       <tr>
         <td align="center">
-          
-          <!-- Main Card -->
           <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.1);">
-            
-            <!-- Header -->
             <tr>
               <td style="background:#1a73e8; color:#ffffff; padding:20px; text-align:center;">
                 <h2 style="margin:0;">Pre-Registration Submitted</h2>
               </td>
             </tr>
 
-            <!-- Body -->
             <tr>
               <td style="padding:30px; color:#333;">
                 <p style="margin-top:0;">Hello <strong>${fullName}</strong>,</p>
 
                 <p>Your pre-registration application has been successfully submitted.</p>
 
-                <!-- Info Box -->
                 <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0; border:1px solid #eee; border-radius:6px;">
                   <tr>
                     <td style="padding:12px;"><strong>Registration ID:</strong></td>
@@ -206,15 +209,12 @@ router.post(
               </td>
             </tr>
 
-            <!-- Footer -->
             <tr>
               <td style="background:#f4f6f8; text-align:center; padding:15px; font-size:12px; color:#777;">
                 © ${new Date().getFullYear()} ${appName}. All rights reserved.
               </td>
             </tr>
-
           </table>
-
         </td>
       </tr>
     </table>
@@ -325,32 +325,25 @@ router.patch("/:id/status", async (req, res) => {
       return res.status(404).json({ message: "Application not found" });
     }
 
-  const emailHtml = `
+    const emailHtml = `
 <div style="margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="padding:20px 0;">
     <tr>
       <td align="center">
-        
-        <!-- Card -->
         <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.1);">
-          
-          <!-- Header -->
           <tr>
             <td style="background:#111827; color:#ffffff; padding:20px; text-align:center;">
               <h2 style="margin:0;">Application Status Update</h2>
             </td>
           </tr>
 
-          <!-- Body -->
           <tr>
             <td style="padding:30px; color:#333; text-align:center;">
-              
               <p style="margin:0 0 10px;">Your Registration ID</p>
               <h3 style="margin:0; color:#1a73e8;">
                 ${updated.registrationId}
               </h3>
 
-              <!-- Status Badge -->
               <div style="margin:25px 0;">
                 <span style="
                   display:inline-block;
@@ -358,19 +351,18 @@ router.patch("/:id/status", async (req, res) => {
                   border-radius:20px;
                   font-size:14px;
                   font-weight:bold;
-                  background:${status === 'Approved' ? '#dcfce7' : status === 'Rejected' ? '#fee2e2' : '#fef3c7'};
-                  color:${status === 'Approved' ? '#166534' : status === 'Rejected' ? '#991b1b' : '#92400e'};
+                  background:${status === "Approved" ? "#dcfce7" : "#fee2e2"};
+                  color:${status === "Approved" ? "#166534" : "#991b1b"};
                 ">
                   ${status}
                 </span>
               </div>
 
-              <!-- Dynamic Message -->
               ${
-                status === 'Approved'
+                status === "Approved"
                   ? `
                   <p style="margin:15px 0 0; font-size:16px; color:#166534; font-weight:bold;">
-                    🎉 Congratulations! Your application has been approved.
+                    Congratulations! Your application has been approved.
                   </p>
                   <p style="margin:8px 0 0; font-size:14px;">
                     Please wait for the official schedule of your school visit or orientation.
@@ -379,8 +371,7 @@ router.patch("/:id/status", async (req, res) => {
                     You will receive another email with the exact date and instructions.
                   </p>
                   `
-                  : status === 'Rejected'
-                  ? `
+                  : `
                   <p style="margin:15px 0 0; font-size:14px; color:#991b1b;">
                     We regret to inform you that your application was not approved.
                   </p>
@@ -388,32 +379,20 @@ router.patch("/:id/status", async (req, res) => {
                     You may contact the admissions office for further details.
                   </p>
                   `
-                  : `
-                  <p style="margin:15px 0 0; font-size:14px; color:#92400e;">
-                    Your application is currently under review.
-                  </p>
-                  <p style="margin:5px 0 0; font-size:13px; color:#555;">
-                    Please wait for further updates regarding your application status.
-                  </p>
-                  `
               }
 
               <p style="margin:20px 0 0;">
                 Please keep your registration ID for future reference.
               </p>
-
             </td>
           </tr>
 
-          <!-- Footer -->
           <tr>
             <td style="background:#f4f6f8; text-align:center; padding:15px; font-size:12px; color:#777;">
               This is an automated update. Please do not reply.
             </td>
           </tr>
-
         </table>
-
       </td>
     </tr>
   </table>
@@ -515,6 +494,28 @@ router.delete("/:id", async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
+});
+
+router.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({
+        message: "Each file must not exceed 2MB.",
+      });
+    }
+
+    return res.status(400).json({
+      message: err.message,
+    });
+  }
+
+  if (err) {
+    return res.status(400).json({
+      message: err.message || "Upload error",
+    });
+  }
+
+  next();
 });
 
 export default router;

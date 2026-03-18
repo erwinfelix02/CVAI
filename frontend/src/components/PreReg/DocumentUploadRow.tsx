@@ -2,20 +2,24 @@ import { useRef, useState } from "react";
 import { UploadCloud, Trash2, FileText } from "lucide-react";
 import AuthAlert from "../Authentication/AuthAlert";
 
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+
 export default function DocumentUploadRow({
   title,
   file,
   accept = "application/pdf",
   onChange,
   error,
-  onTouched, // ✅ NEW
+  onTouched,
+  required = true,
 }: {
   title: string;
   file?: File | null;
   accept?: string;
   onChange: (f: File | null) => void;
   error?: string;
-  onTouched?: () => void; // ✅ NEW
+  onTouched?: () => void;
+  required?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -31,35 +35,48 @@ export default function DocumentUploadRow({
   };
 
   const handleFileChange = (selectedFile: File | null) => {
-    onTouched?.(); // ✅ mark touched on any attempt
+    onTouched?.();
 
     if (!selectedFile) {
       onChange(null);
+      if (inputRef.current) inputRef.current.value = "";
       return;
     }
 
     if (selectedFile.type !== "application/pdf") {
+      onChange(null);
       if (inputRef.current) inputRef.current.value = "";
       showAlert("Only PDF files are allowed.", "error");
       return;
     }
 
-    if (selectedFile.size > 5 * 1024 * 1024) {
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      onChange(null);
       if (inputRef.current) inputRef.current.value = "";
-      showAlert("File must be less than 5MB.", "error");
+      showAlert("File must not exceed 2MB.", "error");
       return;
     }
 
     onChange(selectedFile);
+    if (inputRef.current) inputRef.current.value = "";
     showAlert("PDF uploaded successfully.", "success");
   };
 
   return (
     <div className={`prereg-doc-row ${error ? "is-invalid" : ""}`}>
       <div className="prereg-doc-left">
-        <div className={`prereg-doc-title ${error ? "text-danger fw-semibold" : ""}`}>
+        <div
+          className={`prereg-doc-title ${error ? "text-danger fw-semibold" : ""}`}
+        >
           <FileText size={18} className="prereg-doc-ico" />
-          {title} <span className="text-danger">*</span>
+          {title}{" "}
+          {required ? (
+            <span className="text-danger">*</span>
+          ) : (
+            <span className="text-muted" style={{ fontSize: 13 }}>
+              (Optional)
+            </span>
+          )}
         </div>
 
         <div className="prereg-doc-sub">
@@ -72,7 +89,11 @@ export default function DocumentUploadRow({
           </div>
         ) : null}
 
-        <AuthAlert message={alertMessage} type={alertType} visible={alertVisible} />
+        <AuthAlert
+          message={alertMessage}
+          type={alertType}
+          visible={alertVisible}
+        />
       </div>
 
       <div className="prereg-doc-actions">
@@ -88,7 +109,7 @@ export default function DocumentUploadRow({
           type="button"
           className="btn prereg-upload-btn"
           onClick={() => {
-            onTouched?.(); // ✅ touched when clicking upload too
+            onTouched?.();
             inputRef.current?.click();
           }}
         >
@@ -101,8 +122,9 @@ export default function DocumentUploadRow({
             type="button"
             className="btn prereg-remove-btn"
             onClick={() => {
-              onTouched?.(); // ✅ touched on remove
+              onTouched?.();
               onChange(null);
+              if (inputRef.current) inputRef.current.value = "";
             }}
           >
             <Trash2 size={18} />

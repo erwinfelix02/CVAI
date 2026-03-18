@@ -54,15 +54,27 @@ const makeFullName = (
   firstName: string,
   middleName: string,
   lastName: string,
-) => [firstName, middleName, lastName].filter((x) => x && x.trim()).join(" ").trim();
+) =>
+  [firstName, middleName, lastName]
+    .filter((x) => x && x.trim())
+    .join(" ")
+    .trim();
 
 const ROLE_UI: Record<
   string,
-  { tone: RoleCardItem["tone"]; icon: RoleCardItem["icon"]; nameFallback: string }
+  {
+    tone: RoleCardItem["tone"];
+    icon: RoleCardItem["icon"];
+    nameFallback: string;
+  }
 > = {
   superadmin: { tone: "purple", icon: Shield, nameFallback: "Super Admin" },
   registrar: { tone: "blue", icon: ClipboardList, nameFallback: "Registrar" },
-  depthead: { tone: "orange", icon: Building2, nameFallback: "Department Head" },
+  depthead: {
+    tone: "orange",
+    icon: Building2,
+    nameFallback: "Department Head",
+  },
   finance: { tone: "green", icon: Wallet, nameFallback: "Finance" },
   faculty: { tone: "teal", icon: BookOpen, nameFallback: "Faculty" },
   student: { tone: "indigo", icon: GraduationCap, nameFallback: "Student" },
@@ -97,16 +109,19 @@ export default function RoleManagementPage() {
       setLoading(true);
 
       const rolesData = await getRoles();
-      const mappedRoles: RoleCardItem[] = (Array.isArray(rolesData) ? rolesData : []).map(
-        (r: any) => ({
+      const mappedRoles: RoleCardItem[] = (
+        Array.isArray(rolesData) ? rolesData : []
+      )
+        .filter((r: any) => r.roleId !== "superadmin") // 👈 remove superadmin
+        .map((r: any) => ({
           id: r.roleId,
           name: r.name ?? ROLE_UI[r.roleId]?.nameFallback ?? r.roleId,
           users: 0,
           tone: ROLE_UI[r.roleId]?.tone ?? "indigo",
           icon: ROLE_UI[r.roleId]?.icon ?? Shield,
           permissions: Array.isArray(r.permissions) ? r.permissions : [],
-        }),
-      );
+        }));
+
       setRoles(mappedRoles);
 
       const usersData = await getUsers();
@@ -146,7 +161,7 @@ export default function RoleManagementPage() {
   const [editRoleId, setEditRoleId] = useState<string | null>(null);
 
   const selectedRole = selectedRoleId
-    ? roles.find((r) => r.id === selectedRoleId) ?? null
+    ? (roles.find((r) => r.id === selectedRoleId) ?? null)
     : null;
 
   const rolesWithCounts = useMemo(() => {
@@ -163,11 +178,11 @@ export default function RoleManagementPage() {
   }, [roles, users]);
 
   const detailsRole = detailsRoleId
-    ? rolesWithCounts.find((r) => r.id === detailsRoleId) ?? null
+    ? (rolesWithCounts.find((r) => r.id === detailsRoleId) ?? null)
     : null;
 
   const editRole = editRoleId
-    ? rolesWithCounts.find((r) => r.id === editRoleId) ?? null
+    ? (rolesWithCounts.find((r) => r.id === editRoleId) ?? null)
     : null;
 
   const saveRolePermissions = async (roleId: string, perms: string[]) => {
@@ -178,7 +193,9 @@ export default function RoleManagementPage() {
 
       setRoles((prev) =>
         prev.map((r) =>
-          r.id === roleId ? { ...r, permissions: updated?.permissions ?? perms } : r,
+          r.id === roleId
+            ? { ...r, permissions: updated?.permissions ?? perms }
+            : r,
         ),
       );
 
@@ -194,10 +211,7 @@ export default function RoleManagementPage() {
     }
   };
 
-  const handleUpdateUser = async (
-    userId: string,
-    patch: Partial<UserItem>,
-  ) => {
+  const handleUpdateUser = async (userId: string, patch: Partial<UserItem>) => {
     try {
       setLoading(true);
 

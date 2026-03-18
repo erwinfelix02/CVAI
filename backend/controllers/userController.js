@@ -1,6 +1,67 @@
 import User from "../models/User.js";
+import ReservedId from "../models/ReservedId.js";
 import sendEmail from "../utils/sendEmail.js";
 import validator from "validator";
+import { generateId } from "../utils/generateId.js";
+
+function getUserIdChecks() {
+  return [
+    { model: User, field: "idNumber" },
+    { model: ReservedId, field: "idNumber" },
+  ];
+}
+export const reserveUserId = async (req, res) => {
+  try {
+    const { role } = req.query;
+
+    const allowedRoles = ["Registrar", "Dept Head", "Finance"];
+
+    if (!role || !allowedRoles.includes(String(role))) {
+      return res.status(400).json({
+        message: "A valid role is required.",
+      });
+    }
+
+    const idNumber = await generateId({
+      prefix: "GIP",
+      scope: "user",
+      checks: getUserIdChecks(),
+      startAt: 1,
+    });
+
+    return res.status(200).json({ idNumber });
+  } catch (err) {
+    console.error("reserveUserId error:", err);
+    return res.status(500).json({
+      message: err.message || "Failed to generate user ID.",
+    });
+  }
+};
+
+function getFacultyIdChecks() {
+  return [
+    { model: User, field: "idNumber" },
+    { model: ReservedId, field: "idNumber" },
+  ];
+}
+
+export const reserveFacultyId = async (_req, res) => {
+  try {
+    const idNumber = await generateId({
+      prefix: "GIP",
+      scope: "faculty",
+      checks: getFacultyIdChecks(),
+      startAt: 1,
+    });
+
+    return res.status(200).json({ idNumber });
+  } catch (err) {
+    console.error("reserveFacultyId error:", err);
+    return res.status(500).json({
+      message: err.message || "Failed to generate faculty ID.",
+    });
+  }
+};
 
 export const createUser = async (req, res) => {
   try {
@@ -43,6 +104,13 @@ export const createUser = async (req, res) => {
       validator.normalizeEmail(String(email).trim()) || String(email).trim();
     const cleanDepartment = validator.escape(String(department).trim());
     const cleanNotes = notes ? validator.escape(String(notes).trim()) : "";
+
+    const currentYear = new Date().getFullYear();
+    if (!new RegExp(`^GIP-${currentYear}-\\d{3}$`).test(cleanIdNumber)) {
+      return res.status(400).json({
+        message: `ID number must follow the format GIP-${currentYear}-###.`,
+      });
+    }
 
     if (!validator.isEmail(cleanEmail)) {
       return res.status(400).json({ message: "Invalid email format." });
@@ -105,7 +173,8 @@ export const createUser = async (req, res) => {
         cleanDepartment === "Finance Office"
       ) {
         return res.status(400).json({
-          message: "Department Head cannot be assigned to Registrar or Finance Office.",
+          message:
+            "Department Head cannot be assigned to Registrar or Finance Office.",
         });
       }
     }
@@ -169,8 +238,8 @@ export const createUser = async (req, res) => {
         field === "email"
           ? "Email"
           : field === "idNumber"
-          ? "ID number"
-          : field;
+            ? "ID number"
+            : field;
 
       return res.status(400).json({
         message: `${formattedField} already exists.`,

@@ -26,7 +26,6 @@ export default function ApplicationDetailsModal({
   const [activeTab, setActiveTab] = useState<TabType>("personal");
   const [previewFile, setPreviewFile] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmType>(null);
-
   const [loading, setLoading] = useState(false);
 
   if (!open || !application) return null;
@@ -81,6 +80,16 @@ export default function ApplicationDetailsModal({
       setLoading(false);
     }
   };
+
+  const documentList = [
+    { label: "Birth Certificate", file: documents.birthCert, optional: false },
+    {
+      label: "Good Moral Certificate",
+      file: documents.goodMoral,
+      optional: true,
+    },
+    { label: "2x2 ID Photo", file: documents.idPhoto, optional: false },
+  ];
 
   return (
     <>
@@ -200,15 +209,7 @@ export default function ApplicationDetailsModal({
 
             {activeTab === "documents" && (
               <div className="doc-card-list">
-                {[
-                  { label: "Birth Certificate", file: documents.birthCert },
-                  { label: "Form 137", file: documents.form137 },
-                  {
-                    label: "Good Moral Certificate",
-                    file: documents.goodMoral,
-                  },
-                  { label: "2x2 ID Photo", file: documents.idPhoto },
-                ].map((doc) => (
+                {documentList.map((doc) => (
                   <div
                     key={doc.label}
                     className={`doc-card ${doc.file ? "clickable" : ""}`}
@@ -216,18 +217,39 @@ export default function ApplicationDetailsModal({
                   >
                     <div className="doc-left">
                       <span className="doc-icon">📄</span>
-                      <span>{doc.label}</span>
+                      <span>
+                        {doc.label}
+                        {doc.optional && (
+                          <span
+                            style={{
+                              marginLeft: 8,
+                              fontSize: 12,
+                              opacity: 0.7,
+                            }}
+                          >
+                            (Optional)
+                          </span>
+                        )}
+                      </span>
                     </div>
 
                     <span
                       className={`doc-status ${
-                        doc.file ? "uploaded" : "missing"
+                        doc.file ? "uploaded" : doc.optional ? "optional" : "missing"
                       }`}
                     >
-                      {doc.file ? "Uploaded" : "Missing"}
+                      {doc.file
+                        ? "Uploaded"
+                        : doc.optional
+                          ? "Not uploaded"
+                          : "Missing"}
                     </span>
                   </div>
                 ))}
+
+                <div className="text-muted mt-2" style={{ fontSize: 13 }}>
+                  Good Moral Certificate is optional and may be submitted later.
+                </div>
               </div>
             )}
           </div>
@@ -259,7 +281,7 @@ export default function ApplicationDetailsModal({
           <div className="preview-modal" onClick={(e) => e.stopPropagation()}>
             <div className="preview-header">
               <h5>Document Preview</h5>
-              <button onClick={() => setPreviewFile(null)}>
+              <button type="button" onClick={() => setPreviewFile(null)}>
                 <X size={18} />
               </button>
             </div>

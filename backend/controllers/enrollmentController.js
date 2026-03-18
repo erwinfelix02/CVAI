@@ -1,10 +1,90 @@
 import Enrollment from "../models/Enrollment.js";
 import Student from "../models/Student.js";
+import User from "../models/User.js";
+import ReservedId from "../models/ReservedId.js";
 import { addLog, getClientIp } from "../utils/logActivity.js";
+import { generateId } from "../utils/generateId.js";
 
 function isISODateString(v) {
   return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 }
+
+function normalizePhone(value = "") {
+  let cleanPhone = String(value).trim().replace(/\s+/g, "");
+
+  if (/^09\d{9}$/.test(cleanPhone)) {
+    cleanPhone = "+63" + cleanPhone.slice(1);
+  }
+
+  if (/^639\d{9}$/.test(cleanPhone)) {
+    cleanPhone = "+" + cleanPhone;
+  }
+
+  return cleanPhone;
+}
+
+function getStudentIdChecks() {
+  return [
+    { model: Student, field: "studentIdNumber" },
+    { model: User, field: "idNumber" },
+    { model: ReservedId, field: "idNumber" },
+  ];
+}
+
+export const reserveStudentId = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const enrollment = await Enrollment.findById(id)
+      .select("_id studentRef studentIdNumber")
+      .lean();
+
+    if (!enrollment) {
+      return res.status(404).json({ message: "Enrollment not found." });
+    }
+
+    if (enrollment.studentRef && enrollment.studentIdNumber) {
+      return res.status(200).json({
+        studentIdNumber: enrollment.studentIdNumber,
+      });
+    }
+
+    const existingReservation = await ReservedId.findOne({
+      referenceId: id,
+      type: "student",
+      used: false,
+    })
+      .select("idNumber")
+      .lean();
+
+    if (existingReservation?.idNumber) {
+      return res.status(200).json({
+        studentIdNumber: existingReservation.idNumber,
+      });
+    }
+
+    const studentIdNumber = await generateId({
+      prefix: "GIP",
+      scope: "student",
+      checks: getStudentIdChecks(),
+      startAt: 1,
+    });
+
+    await ReservedId.create({
+      referenceId: id,
+      type: "student",
+      idNumber: studentIdNumber,
+      used: false,
+    });
+
+    return res.status(200).json({ studentIdNumber });
+  } catch (err) {
+    console.error("reserveStudentId error:", err);
+    return res.status(500).json({
+      message: err.message || "Failed to reserve student ID.",
+    });
+  }
+};
 
 export const evaluateEnrollment = async (req, res) => {
   const updatedBy = req.body?.updatedBy || "registrar";
@@ -19,7 +99,6 @@ export const evaluateEnrollment = async (req, res) => {
 
     const requiredFields = [
       "fullName",
-      "studentId",
       "email",
       "phone",
       "address",
@@ -47,14 +126,28 @@ export const evaluateEnrollment = async (req, res) => {
     }
 
     if (enrollment.studentRef) {
-      return res.status(409).json({ message: "This enrollment was already evaluated." });
+      return res.status(409).json({
+        message: "This enrollment was already evaluated.",
+      });
     }
 
-    const studentIdNumber = String(updatedInfo.studentId).trim();
+    let studentIdNumber = "";
 
-    const existingStudent = await Student.findOne({ studentIdNumber });
-    if (existingStudent) {
-      return res.status(409).json({ message: "A student with this Student ID already exists." });
+    const reservation = await ReservedId.findOne({
+      referenceId: id,
+      type: "student",
+      used: false,
+    });
+
+    if (reservation?.idNumber) {
+      studentIdNumber = reservation.idNumber;
+    } else {
+      studentIdNumber = await generateId({
+        prefix: "GIP",
+        scope: "student",
+        checks: getStudentIdChecks(),
+        startAt: 1,
+      });
     }
 
     const studentDoc = await Student.create({
@@ -63,12 +156,12 @@ export const evaluateEnrollment = async (req, res) => {
 
       fullName: String(updatedInfo.fullName).trim(),
       email: String(updatedInfo.email).trim(),
-      phone: String(updatedInfo.phone).trim(),
+      phone: normalizePhone(updatedInfo.phone),
       address: String(updatedInfo.address).trim(),
       birthdate: new Date(updatedInfo.birthdate),
 
       guardian: String(updatedInfo.guardian).trim(),
-      guardianPhone: String(updatedInfo.guardianPhone).trim(),
+      guardianPhone: normalizePhone(updatedInfo.guardianPhone),
 
       program: String(updatedInfo.program).trim(),
       yearLevel: Number(updatedInfo.yearLevel),
@@ -92,11 +185,11 @@ export const evaluateEnrollment = async (req, res) => {
     enrollment.personal = {
       ...(enrollment.personal || {}),
       email: String(updatedInfo.email).trim(),
-      phone: String(updatedInfo.phone).trim(),
+      phone: normalizePhone(updatedInfo.phone),
       address: String(updatedInfo.address).trim(),
       birthdate: String(updatedInfo.birthdate).trim(),
       guardian: String(updatedInfo.guardian).trim(),
-      guardianPhone: String(updatedInfo.guardianPhone).trim(),
+      guardianPhone: normalizePhone(updatedInfo.guardianPhone),
     };
 
     enrollment.academic = {
@@ -107,6 +200,22 @@ export const evaluateEnrollment = async (req, res) => {
     };
 
     await enrollment.save();
+
+    if (reservation) {
+      reservation.used = true;
+      await reservation.save();
+    } else {
+      await ReservedId.updateMany(
+        {
+          idNumber: studentIdNumber,
+          type: "student",
+          used: false,
+        },
+        {
+          $set: { used: true },
+        }
+      );
+    }
 
     addLog({
       action: "Evaluate Enrollment",
@@ -122,6 +231,7 @@ export const evaluateEnrollment = async (req, res) => {
       message: "Student enrolled successfully.",
       student: studentDoc,
       enrollment,
+      studentIdNumber,
     });
   } catch (err) {
     console.error(err);
@@ -140,6 +250,6 @@ export const evaluateEnrollment = async (req, res) => {
       return res.status(409).json({ message: "Duplicate student id/email." });
     }
 
-    return res.status(500).json({ message: "Server error." });
+    return res.status(500).json({ message: err.message || "Server error." });
   }
 };

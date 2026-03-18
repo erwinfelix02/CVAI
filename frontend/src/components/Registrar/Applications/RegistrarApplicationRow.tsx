@@ -13,7 +13,17 @@ function StatusPill({ status }: { status: ApplicationStatus }) {
 
   return <span className={`registrar-status ${cls}`}>{status}</span>;
 }
+function formatDate(date: string | Date) {
+  if (!date) return "";
 
+  const d = new Date(date);
+
+  return d.toLocaleDateString("en-PH", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
 type Props = {
   item: ApplicationRow;
   onReview: (id: string) => void;
@@ -61,7 +71,7 @@ export default function RegistrarApplicationRow({
             {item.program} • {item.yearLevel}
           </div>
           <div className="text-muted small text-truncate">
-            {item.id} • Submitted {item.submitted}
+            {item.id} • Submitted {formatDate(item.submitted)}
           </div>
         </div>
       </div>

@@ -287,3 +287,7 @@
   justify-content: center;
   gap: 10px;
 }
+.doc-status.optional {
+  background: #ffffff;
+  color: #6b7280;
+}

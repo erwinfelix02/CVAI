@@ -12,20 +12,20 @@ type Props = {
 
   onEnroll: (args: {
     enrollmentId: string;
-  updatedInfo: {
-  fullName: string;
-  studentId: string;
-  email: string;
-  phone: string;
-  address: string;
-  birthDate: string;
-  birthdate?: string;
-  guardian: string;
-  guardianPhone: string;
-  program: string;
-  yearLevel: string;
-  department: string;
-};
+    updatedInfo: {
+      fullName: string;
+      studentId: string;
+      email: string;
+      phone: string;
+      address: string;
+      birthDate: string;
+      birthdate?: string;
+      guardian: string;
+      guardianPhone: string;
+      program: string;
+      yearLevel: string;
+      department: string;
+    };
     notes: string;
     verifiedDocs: string[];
   }) => Promise<void> | void;
@@ -82,6 +82,7 @@ function isValidAddress(value: string) {
 function isValidBirthdate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
+
 function normalizePHPhone(value: string) {
   const cleaned = value.replace(/\s+/g, "").trim();
 
@@ -91,6 +92,7 @@ function normalizePHPhone(value: string) {
 
   return cleaned;
 }
+
 export default function EnrollmentEvaluationModal({
   open,
   onClose,
@@ -123,6 +125,9 @@ export default function EnrollmentEvaluationModal({
   const [showStep2Errors, setShowStep2Errors] = useState(false);
   const [showStep3Errors, setShowStep3Errors] = useState(false);
 
+  const [idLoading, setIdLoading] = useState(false);
+  const [idError, setIdError] = useState("");
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -146,27 +151,27 @@ export default function EnrollmentEvaluationModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose, confirmOpen]);
 
-const programOptions = useMemo(() => {
-  const set = new Set<string>();
+  const programOptions = useMemo(() => {
+    const set = new Set<string>();
 
-  sections.forEach((s) => {
-    const value = (s as any).program || (s as any).course;
-    if (value) set.add(String(value));
-  });
+    sections.forEach((s) => {
+      const value = (s as any).program || (s as any).course;
+      if (value) set.add(String(value));
+    });
 
-  const currentProgram =
-    student?.academic?.program || student?.academic?.course || "";
+    const currentProgram =
+      student?.academic?.program || student?.academic?.course || "";
 
-  if (currentProgram) {
-    set.add(String(currentProgram));
-  }
+    if (currentProgram) {
+      set.add(String(currentProgram));
+    }
 
-  const arr = Array.from(set);
+    const arr = Array.from(set);
 
-  return arr.length === 0
-    ? ["BS Computer Science", "BS Information Technology"]
-    : arr;
-}, [sections, student]);
+    return arr.length === 0
+      ? ["BS Computer Science", "BS Information Technology"]
+      : arr;
+  }, [sections, student]);
 
   useEffect(() => {
     if (!open || !student) return;
@@ -187,25 +192,16 @@ const programOptions = useMemo(() => {
     setEmail(student.email || student.personal?.email || "");
     setPhone(normalizePHPhone(student.personal?.phone || ""));
     setAddress(student.personal?.address || "");
-setBirthdate(
-  toISODate(student.personal?.birthDate || student.personal?.birthdate || ""),
-);
+    setBirthdate(
+      toISODate(student.personal?.birthDate || student.personal?.birthdate || ""),
+    );
     setGuardian(student.personal?.guardian || "");
     setGuardianPhone(normalizePHPhone(student.personal?.guardianPhone || ""));
-   setProgram(student.academic?.program || student.academic?.course || "");
-setYearLevel(student.academic?.yearLevel?.toString() || "");
+    setProgram(student.academic?.program || student.academic?.course || "");
+    setYearLevel(student.academic?.yearLevel?.toString() || "");
 
-    if (student.studentIdNumber?.startsWith(studentIdPrefix)) {
-      const digits = student.studentIdNumber
-        .replace(studentIdPrefix, "")
-        .replace(/\D/g, "")
-        .slice(0, 3);
-
-      setStudentId(digits ? `${studentIdPrefix}${digits}` : studentIdPrefix);
-    } else {
-      setStudentId(studentIdPrefix);
-    }
-
+    setStudentId("");
+    setIdError("");
     setNotes("");
     setFinalConfirm(false);
 
@@ -214,6 +210,54 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
       initialDocs[d] = false;
     });
     setDocsChecked(initialDocs);
+  }, [open, student]);
+
+  useEffect(() => {
+    if (!open || !student?._id) return;
+
+    let cancelled = false;
+
+    const loadReservedId = async () => {
+      try {
+        setIdLoading(true);
+        setIdError("");
+
+        const res = await fetch(
+          `/api/enrollment/${student._id}/reserve-student-id`,
+          {
+            method: "GET",
+          },
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.message || "Failed to reserve student ID.");
+        }
+
+        if (!cancelled) {
+          setStudentId(data.studentIdNumber || "");
+          if (!data.studentIdNumber) {
+            setIdError("Failed to load automatic student ID.");
+          }
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setStudentId("");
+          setIdError(err?.message || "Failed to load automatic student ID.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIdLoading(false);
+        }
+      }
+    };
+
+    loadReservedId();
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, student]);
 
   const verifiedCount = useMemo(
@@ -231,11 +275,15 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
       : !isValidName(fullName.trim())
         ? "Full Name contains invalid characters. Use letters, spaces, apostrophes, commas, periods, or hyphens only."
         : "",
-    studentId: !studentId.trim()
-      ? "Student ID Number is required."
-      : !studentIdValid
-        ? `Student ID Number must follow the format ${studentIdPrefix}###.`
-        : "",
+    studentId: idLoading
+      ? ""
+      : idError
+        ? idError
+        : !studentId.trim()
+          ? "Student ID could not be generated."
+          : !studentIdValid
+            ? `Student ID Number must follow the format ${studentIdPrefix}###.`
+            : "",
     program: !program.trim() ? "Course / Program is required." : "",
     yearLevel: !yearLevel.trim() ? "Year Level is required." : "",
     email: !email.trim()
@@ -248,7 +296,6 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
       : !isValidPhone(phone.trim())
         ? "Phone is invalid. Use +639XXXXXXXXX."
         : "",
-
     address: !address.trim()
       ? "Address is required."
       : !isValidAddress(address.trim())
@@ -277,10 +324,7 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
 
   const fullNameError =
     showStep1Errors || fullName.trim() ? step1Errors.fullName : "";
-  const studentIdError =
-    showStep1Errors || studentId !== studentIdPrefix
-      ? step1Errors.studentId
-      : "";
+  const studentIdError = showStep1Errors ? step1Errors.studentId : "";
   const programError =
     showStep1Errors || program.trim() ? step1Errors.program : "";
   const yearLevelError =
@@ -301,7 +345,7 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
   const goNext = () => {
     if (step === 1) {
       setShowStep1Errors(true);
-      if (!step1Valid) return;
+      if (!step1Valid || idLoading) return;
       setStep(2);
       return;
     }
@@ -316,7 +360,7 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
   const goBack = () => setStep((s) => (s === 3 ? 2 : 1));
 
   const onEnrollClick = () => {
-    if (loading) return;
+    if (loading || idLoading) return;
 
     setShowStep1Errors(true);
     setShowStep2Errors(true);
@@ -328,7 +372,7 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
   };
 
   const confirmEnroll = async () => {
-    if (submittingRef.current || loading) return;
+    if (submittingRef.current || loading || idLoading) return;
     submittingRef.current = true;
 
     const verifiedDocs = Object.entries(docsChecked)
@@ -339,19 +383,19 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
       await onEnroll({
         enrollmentId: student._id,
         updatedInfo: {
-  fullName: fullName.trim(),
-  studentId: studentId.trim(),
-  email: email.trim(),
-  phone: normalizePHPhone(phone.trim()),
-  address: address.trim(),
-  birthDate: birthdate.trim(),
-  birthdate: birthdate.trim(),
-  guardian: guardian.trim(),
-  guardianPhone: normalizePHPhone(guardianPhone.trim()),
-  program: program.trim(),
-  yearLevel: yearLevel.trim(),
-  department: (student.academic?.department || program).trim(),
-},
+          fullName: fullName.trim(),
+          studentId: studentId.trim(),
+          email: email.trim(),
+          phone: normalizePHPhone(phone.trim()),
+          address: address.trim(),
+          birthDate: birthdate.trim(),
+          birthdate: birthdate.trim(),
+          guardian: guardian.trim(),
+          guardianPhone: normalizePHPhone(guardianPhone.trim()),
+          program: program.trim(),
+          yearLevel: yearLevel.trim(),
+          department: (student.academic?.department || program).trim(),
+        },
         notes: notes.trim(),
         verifiedDocs,
       });
@@ -442,24 +486,18 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
                       </label>
                       <input
                         className={`form-control ${studentIdError ? "is-invalid" : ""}`}
-                        value={studentId}
-                        onChange={(e) => {
-                          let value = e.target.value;
-
-                          if (value.startsWith(studentIdPrefix)) {
-                            value = value.replace(studentIdPrefix, "");
-                          }
-
-                          const digits = value.replace(/\D/g, "").slice(0, 3);
-                          const finalValue = digits.length
-                            ? `${studentIdPrefix}${digits}`
-                            : studentIdPrefix;
-
-                          setStudentId(finalValue);
+                        value={idLoading ? "Loading..." : studentId}
+                        disabled
+                        style={{
+                          opacity: 1,
+                          backgroundColor: "#e9ecef",
+                          cursor: "not-allowed",
                         }}
                         placeholder={`${studentIdPrefix}001`}
-                        inputMode="numeric"
                       />
+                      <div className="text-muted small mt-1">
+                        Auto-generated by the system.
+                      </div>
                       {studentIdError ? (
                         <div className="text-danger small mt-1">
                           {studentIdError}
@@ -530,19 +568,14 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
                         value={phone || "+639"}
                         onChange={(e) => {
                           let value = e.target.value;
-
-                          // remove everything except digits
                           let digits = value.replace(/\D/g, "");
 
-                          // ensure it starts with 639
                           if (!digits.startsWith("639")) {
                             if (digits.startsWith("9")) digits = "63" + digits;
                             else digits = "639";
                           }
 
-                          // limit to 12 digits (639 + 9 digits)
                           digits = digits.slice(0, 12);
-
                           setPhone("+" + digits);
                         }}
                         onFocus={() => {
@@ -601,17 +634,14 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
                         onChange={(e) => {
                           let digits = e.target.value.replace(/\D/g, "");
 
-                          // If user starts typing (like 912...), auto prepend 639
                           if (digits.startsWith("9")) {
-                            digits = "639" + digits;
+                            digits = "63" + digits;
                           }
 
-                          // If empty or invalid start → default to 639
                           if (!digits.startsWith("639")) {
                             digits = "639";
                           }
 
-                          // limit to 12 digits total (639 + 9 digits)
                           digits = digits.slice(0, 12);
 
                           setGuardianPhone("+" + digits);
@@ -753,7 +783,7 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
               <button
                 className="btn btn-light"
                 onClick={goBack}
-                disabled={loading || confirmOpen}
+                disabled={loading || confirmOpen || idLoading}
               >
                 Back
               </button>
@@ -764,7 +794,7 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
             <button
               className="btn btn-light"
               onClick={onClose}
-              disabled={loading || confirmOpen}
+              disabled={loading || confirmOpen || idLoading}
             >
               Cancel
             </button>
@@ -773,7 +803,7 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
               <button
                 className="btn btn-primary"
                 onClick={goNext}
-                disabled={loading || confirmOpen}
+                disabled={loading || confirmOpen || idLoading}
               >
                 Next
               </button>
@@ -781,7 +811,7 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
               <button
                 className="btn btn-primary"
                 onClick={onEnrollClick}
-                disabled={loading || confirmOpen}
+                disabled={loading || confirmOpen || idLoading}
               >
                 Enroll
               </button>
@@ -819,14 +849,14 @@ setYearLevel(student.academic?.yearLevel?.toString() || "");
                 <button
                   className="btn btn-light"
                   onClick={() => setConfirmOpen(false)}
-                  disabled={loading}
+                  disabled={loading || idLoading}
                 >
                   Cancel
                 </button>
                 <button
                   className="btn btn-primary"
                   onClick={confirmEnroll}
-                  disabled={loading}
+                  disabled={loading || idLoading}
                 >
                   Yes, Enroll
                 </button>

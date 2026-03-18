@@ -35,7 +35,6 @@ export type AcademicInfo = {
 
 export type DocumentsState = {
   birthCert?: File | null;
-  form137?: File | null;
   goodMoral?: File | null;
   idPhoto?: File | null;
 };
@@ -55,6 +54,7 @@ type RegistrarSettings = {
   smsNotifications: boolean;
   updatedBy?: string;
 };
+
 type CourseOption = {
   code: string;
   name: string;
@@ -62,6 +62,7 @@ type CourseOption = {
   department?: string;
   status?: "Active" | "Inactive";
 };
+
 const steps: { key: StepKey; label: string }[] = [
   { key: "personal", label: "Personal Info" },
   { key: "academic", label: "Academic Info" },
@@ -93,11 +94,11 @@ function validatePersonal(v: PersonalInfo): PersonalErrors {
     e.email = "Enter a valid email (example@gmail.com).";
   }
 
- if (v.phone.trim()) {
-  if (!/^\+639\d{9}$/.test(v.phone.trim())) {
-    e.phone = "Use PH format: +639XXXXXXXXX.";
+  if (v.phone.trim()) {
+    if (!/^\+639\d{9}$/.test(v.phone.trim())) {
+      e.phone = "Use PH format: +639XXXXXXXXX.";
+    }
   }
-}
 
   if (v.birthDate) {
     const chosen = new Date(v.birthDate);
@@ -125,8 +126,6 @@ function validateAcademic(v: AcademicInfo): AcademicErrors {
 function validateDocs(v: DocumentsState): DocsErrors {
   const e: DocsErrors = {};
   if (!v.birthCert) e.birthCert = "Birth Certificate is required.";
-  if (!v.form137) e.form137 = "Form 137 / TOR is required.";
-  if (!v.goodMoral) e.goodMoral = "Good Moral Certificate is required.";
   if (!v.idPhoto) e.idPhoto = "2x2 ID Photo is required.";
   return e;
 }
@@ -164,7 +163,6 @@ export default function StudentPreRegistrationPage() {
 
   const [docs, setDocs] = useState<DocumentsState>({
     birthCert: null,
-    form137: null,
     goodMoral: null,
     idPhoto: null,
   });
@@ -204,44 +202,44 @@ export default function StudentPreRegistrationPage() {
   }, []);
 
   useEffect(() => {
-  (async () => {
-    try {
-      setCoursesLoading(true);
+    (async () => {
+      try {
+        setCoursesLoading(true);
 
-      const res = await fetch("http://localhost:5000/api/courses?status=Active");
-      if (!res.ok) throw new Error("Failed to load courses");
+        const res = await fetch("http://localhost:5000/api/courses?status=Active");
+        if (!res.ok) throw new Error("Failed to load courses");
 
-      const data = await res.json();
+        const data = await res.json();
 
-      const list: CourseOption[] = (Array.isArray(data) ? data : [])
-  .filter((c: any) => (c.status ?? "Active") === "Active")
-  .map((c: any): CourseOption => {
-    const status: "Active" | "Inactive" =
-      c.status === "Inactive" ? "Inactive" : "Active";
+        const list: CourseOption[] = (Array.isArray(data) ? data : [])
+          .filter((c: any) => (c.status ?? "Active") === "Active")
+          .map((c: any): CourseOption => {
+            const status: "Active" | "Inactive" =
+              c.status === "Inactive" ? "Inactive" : "Active";
 
-    return {
-      code: String(c.code || "").trim().toUpperCase(),
-      name: String(c.name || "").trim(),
-      yearLevels: Number(c.yearLevels || 0),
-      department: String(c.department || "").trim(),
-      status,
-    };
-  })
-  .filter((c) => c.code && c.name);
+            return {
+              code: String(c.code || "").trim().toUpperCase(),
+              name: String(c.name || "").trim(),
+              yearLevels: Number(c.yearLevels || 0),
+              department: String(c.department || "").trim(),
+              status,
+            };
+          })
+          .filter((c) => c.code && c.name);
 
-      const unique = Array.from(
-        new Map(list.map((c) => [c.code, c])).values(),
-      ).sort((a, b) => a.name.localeCompare(b.name));
+        const unique = Array.from(
+          new Map(list.map((c) => [c.code, c])).values(),
+        ).sort((a, b) => a.name.localeCompare(b.name));
 
-      setCourseOptions(unique);
-    } catch (e) {
-      console.error("Failed to load courses:", e);
-      setCourseOptions([]);
-    } finally {
-      setCoursesLoading(false);
-    }
-  })();
-}, []);
+        setCourseOptions(unique);
+      } catch (e) {
+        console.error("Failed to load courses:", e);
+        setCourseOptions([]);
+      } finally {
+        setCoursesLoading(false);
+      }
+    })();
+  }, []);
 
   const [submitted, setSubmitted] = useState({
     personal: false,
@@ -351,7 +349,6 @@ export default function StudentPreRegistrationPage() {
       formData.append("data", JSON.stringify({ personal, academic }));
 
       if (docs.birthCert) formData.append("birthCert", docs.birthCert);
-      if (docs.form137) formData.append("form137", docs.form137);
       if (docs.goodMoral) formData.append("goodMoral", docs.goodMoral);
       if (docs.idPhoto) formData.append("idPhoto", docs.idPhoto);
 
