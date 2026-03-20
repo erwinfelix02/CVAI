@@ -218,18 +218,19 @@ export default function AddDepartmentModal({
           </div>
 
           <button
-            className="dept-modal-close"
-            type="button"
-            onClick={() => {
-              if (isLoading) return;
-              if (confirmOpen) setConfirmOpen(false);
-              else onClose();
-            }}
-            aria-label="Close"
-            disabled={isLoading}
-          >
-            <X size={18} />
-          </button>
+  type="button"
+  className="dept-modal-close app-icon-btn app-icon-btn-sm"
+  onClick={() => {
+    if (isLoading) return;
+    if (confirmOpen) setConfirmOpen(false);
+    else onClose();
+  }}
+  aria-label="Close"
+  title="Close"
+  disabled={isLoading}
+>
+  <X size={18} />
+</button>
         </div>
 
         <div className="dept-modal-body">
@@ -345,43 +346,93 @@ export default function AddDepartmentModal({
         </div>
 
         {confirmOpen && (
-          <div
-            className="dept-confirm-backdrop"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="dept-confirm-card">
-              <div className="dept-confirm-title">
-                {isEdit ? "Confirm Save" : "Confirm Create"}
-              </div>
+  <div
+    className="dept-confirm-backdrop"
+    role="dialog"
+    aria-modal="true"
+    aria-label={isEdit ? "Confirm Save Department" : "Confirm Create Department"}
+    onMouseDown={(e) => {
+      if (e.target === e.currentTarget && !isLoading) {
+        setConfirmOpen(false);
+      }
+    }}
+  >
+    <div
+      className="dept-confirm-card"
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <div className="dept-confirm-header">
+        <div className="dept-confirm-title">
+          {isEdit ? "Confirm Save" : "Confirm Create"}
+        </div>
 
-              <div className="dept-confirm-text">
-                Are you sure you want to{" "}
-                {isEdit ? "save changes" : "create this department"}?
-              </div>
+        <button
+          type="button"
+          className="app-icon-btn app-icon-btn-sm"
+          onClick={() => setConfirmOpen(false)}
+          aria-label="Close"
+          title="Close"
+          disabled={isLoading}
+        >
+          <X size={16} />
+        </button>
+      </div>
 
-              <div className="dept-confirm-actions">
-                <button
-                  type="button"
-                  className="btn btn-light"
-                  onClick={() => setConfirmOpen(false)}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </button>
+      <div className="dept-confirm-body">
+        <div className="fw-bold mb-1">
+          {isEdit ? "Save changes?" : "Create this department?"}
+        </div>
 
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={confirmSubmit}
-                  disabled={isLoading}
-                >
-                  Yes, {isEdit ? "Save" : "Create"}
-                </button>
-              </div>
-            </div>
+        <div className="text-muted small">
+          {isEdit
+            ? "This will update the department details."
+            : "This will create a new department."}
+        </div>
+
+        <div className="mt-3 small text-start w-100">
+          <div>
+            <span className="text-muted">Code:</span>{" "}
+            <span className="fw-semibold">{normalizeCode(form.code)}</span>
           </div>
-        )}
+          <div>
+            <span className="text-muted">Name:</span>{" "}
+            <span className="fw-semibold">{form.name.trim()}</span>
+          </div>
+          <div>
+            <span className="text-muted">Status:</span>{" "}
+            <span className="fw-semibold">{form.status}</span>
+          </div>
+          {form.description.trim() ? (
+            <div>
+              <span className="text-muted">Description:</span>{" "}
+              <span className="fw-semibold">{form.description.trim()}</span>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="dept-confirm-actions">
+        <button
+          type="button"
+          className="btn btn-light"
+          onClick={() => setConfirmOpen(false)}
+          disabled={isLoading}
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={confirmSubmit}
+          disabled={isLoading}
+        >
+          Yes, {isEdit ? "Save" : "Create"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </div>
   );

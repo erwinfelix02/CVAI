@@ -36,8 +36,12 @@ export default function StudentEnrollmentPage() {
   const [enrolledLoading, setEnrolledLoading] = useState(true);
 
   const [enrollments, setEnrollments] = useState<EnrollmentItem[]>([]);
-  const [enrolledStudents, setEnrolledStudents] = useState<EnrollmentItem[]>([]);
-  const [archivedStudents, setArchivedStudents] = useState<EnrollmentItem[]>([]);
+  const [enrolledStudents, setEnrolledStudents] = useState<EnrollmentItem[]>(
+    [],
+  );
+  const [archivedStudents, setArchivedStudents] = useState<EnrollmentItem[]>(
+    [],
+  );
 
   const [stats, setStats] = useState<{
     pending: number;
@@ -126,14 +130,17 @@ export default function StudentEnrollmentPage() {
   };
 
   const fetchRegistrarAccount = async () => {
-  try {
-    const data = await getRegistrarByRole();
-    setRegistrarAccount(data || null);
-  } catch (error: any) {
-    console.error("Failed to fetch registrar account:", error?.message || error);
-    setRegistrarAccount(null);
-  }
-};
+    try {
+      const data = await getRegistrarByRole();
+      setRegistrarAccount(data || null);
+    } catch (error: any) {
+      console.error(
+        "Failed to fetch registrar account:",
+        error?.message || error,
+      );
+      setRegistrarAccount(null);
+    }
+  };
 
   const loadSections = async () => {
     try {
@@ -270,20 +277,20 @@ export default function StudentEnrollmentPage() {
     verifiedDocs,
   }: {
     enrollmentId: string;
-   updatedInfo: {
-  fullName: string;
-  studentId: string;
-  email: string;
-  phone: string;
-  address: string;
-  birthDate: string;
-  birthdate?: string;
-  guardian: string;
-  guardianPhone: string;
-  program: string;
-  yearLevel: string;
-  department: string;
-};
+    updatedInfo: {
+      fullName: string;
+      studentId: string;
+      email: string;
+      phone: string;
+      address: string;
+      birthDate: string;
+      birthdate?: string;
+      guardian: string;
+      guardianPhone: string;
+      program: string;
+      yearLevel: string;
+      department: string;
+    };
     notes: string;
     verifiedDocs: string[];
   }) => {
@@ -294,14 +301,14 @@ export default function StudentEnrollmentPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-  updatedInfo: {
-    ...updatedInfo,
-    birthdate: updatedInfo.birthDate,
-  },
-  notes,
-  verifiedDocs,
-  updatedBy: registrarEmail,
-}),
+            updatedInfo: {
+              ...updatedInfo,
+              birthdate: updatedInfo.birthDate,
+            },
+            notes,
+            verifiedDocs,
+            updatedBy: registrarEmail,
+          }),
         },
       );
 
@@ -485,6 +492,31 @@ export default function StudentEnrollmentPage() {
     }
   };
 
+  const handleDeleteEnrolledOne = async (enrollmentId: string) => {
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/enrollments/${enrollmentId}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ updatedBy: registrarEmail }),
+        },
+      );
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to delete enrolled student.");
+      }
+
+      await Promise.all([loadEnrolled(enrolledQuery), fetchStats()]);
+      showAlert("Enrolled student deleted successfully.", "success");
+    } catch (e: any) {
+      console.error(e);
+      showAlert(e?.message || "Failed to delete enrolled student.", "error");
+    }
+  };
+
   const handleUnarchiveEnrolled = async (enrollmentId: string) => {
     try {
       const res = await fetch(
@@ -635,6 +667,7 @@ export default function StudentEnrollmentPage() {
           onSendCredentials={openCredentialsForSelected}
           onSendCredentialsOne={openCredentialsForOne}
           onArchiveOne={handleArchiveEnrolled}
+          onDeleteOne={handleDeleteEnrolledOne}
         />
 
         <ArchivedEnrolledStudentsModal

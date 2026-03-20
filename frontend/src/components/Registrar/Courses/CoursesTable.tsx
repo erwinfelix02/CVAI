@@ -46,7 +46,7 @@ export default function CoursesTable({ items, onEdit, onDelete }: Props) {
   };
 
   return (
-    <div className="table-responsive" style={{ position: "relative" }}>
+    <div className="table-responsive courses-table-wrap">
       <table className="table align-middle courses-table mb-0">
         <thead>
           <tr className="text-muted">
@@ -110,7 +110,9 @@ export default function CoursesTable({ items, onEdit, onDelete }: Props) {
           {items.length === 0 && (
             <tr>
               <td colSpan={6}>
-                <div className="py-4 text-center text-muted">No courses found.</div>
+                <div className="py-4 text-center text-muted">
+                  No courses found.
+                </div>
               </td>
             </tr>
           )}
@@ -130,12 +132,17 @@ export default function CoursesTable({ items, onEdit, onDelete }: Props) {
             }
           }}
         >
-          <div className="sec-confirm-popup" onMouseDown={(e) => e.stopPropagation()}>
+          <div
+            className="sec-confirm-popup"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             <div className="sec-confirm-header">Confirm Delete</div>
 
             <div className="sec-confirm-body">
               <div className="fw-bold mb-1">Delete this course?</div>
-              <div className="text-muted small">This action cannot be undone.</div>
+              <div className="text-muted small">
+                This action cannot be undone.
+              </div>
 
               <div className="mt-3 small">
                 <div>
@@ -161,6 +168,7 @@ export default function CoursesTable({ items, onEdit, onDelete }: Props) {
                   setTarget(null);
                 }}
                 disabled={deleting}
+                type="button"
               >
                 Cancel
               </button>
@@ -169,6 +177,7 @@ export default function CoursesTable({ items, onEdit, onDelete }: Props) {
                 className="btn btn-danger"
                 onClick={confirmDelete}
                 disabled={deleting}
+                type="button"
               >
                 {deleting ? "Deleting..." : "Yes, Delete"}
               </button>

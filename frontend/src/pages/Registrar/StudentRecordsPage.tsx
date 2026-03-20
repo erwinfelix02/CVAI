@@ -537,13 +537,15 @@ const loadRegistrarAccount = async () => {
                 </div>
 
                 <button
-                  type="button"
-                  className="registrar-export-modal-close"
-                  onClick={handleCloseExportModal}
-                  disabled={exporting}
-                >
-                  <X size={18} />
-                </button>
+  type="button"
+  className="app-icon-btn app-icon-btn-sm"
+  onClick={handleCloseExportModal}
+  disabled={exporting}
+  aria-label="Close"
+  title="Close"
+>
+  <X size={16} />
+</button>
               </div>
 
               <div className="registrar-export-modal-body">
@@ -631,48 +633,63 @@ const loadRegistrarAccount = async () => {
         )}
 
         {confirmModalOpen && (
-          <div
-            className="registrar-confirm-backdrop"
-            onClick={handleCloseConfirmModal}
-          >
-            <div
-              className="registrar-confirm-modal"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="registrar-confirm-icon">
-                <TriangleAlert size={22} />
-              </div>
+         <div
+  className="registrar-confirm-backdrop"
+  onClick={handleCloseConfirmModal}
+>
+  <div
+    className="registrar-confirm-modal"
+    onClick={(e) => e.stopPropagation()}
+  >
+    <div className="registrar-confirm-header">
+      <div className="registrar-confirm-title">Confirm Export</div>
 
-              <h5 className="fw-bold mb-2 text-center">Confirm Export</h5>
+      <button
+        type="button"
+        className="app-icon-btn app-icon-btn-sm"
+        onClick={handleCloseConfirmModal}
+        disabled={exporting}
+        aria-label="Close"
+        title="Close"
+      >
+        <X size={16} />
+      </button>
+    </div>
 
-              <p className="text-muted text-center mb-0">
-                Are you sure you want to export{" "}
-                <span className="fw-semibold">{selectedExportStatus}</span>{" "}
-                student records as a CSV file?
-              </p>
+    <div className="registrar-confirm-body">
+      <div className="registrar-confirm-icon">
+        <TriangleAlert size={22} />
+      </div>
 
-              <div className="registrar-confirm-actions">
-                <button
-                  type="button"
-                  className="btn btn-light border"
-                  onClick={handleCloseConfirmModal}
-                  disabled={exporting}
-                >
-                  Cancel
-                </button>
+      <p className="text-muted text-center mb-0">
+        Are you sure you want to export{" "}
+        <span className="fw-semibold">{selectedExportStatus}</span>{" "}
+        student records as a CSV file?
+      </p>
+    </div>
 
-                <button
-                  type="button"
-                  className="btn btn-primary d-flex align-items-center gap-2"
-                  onClick={handleDownloadExport}
-                  disabled={exporting}
-                >
-                  <Download size={16} />
-                  {exporting ? "Exporting..." : "Yes, Export"}
-                </button>
-              </div>
-            </div>
-          </div>
+    <div className="registrar-confirm-actions">
+      <button
+        type="button"
+        className="btn btn-light border"
+        onClick={handleCloseConfirmModal}
+        disabled={exporting}
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        className="btn btn-primary d-flex align-items-center gap-2"
+        onClick={handleDownloadExport}
+        disabled={exporting}
+      >
+        <Download size={16} />
+        {exporting ? "Exporting..." : "Yes, Export"}
+      </button>
+    </div>
+  </div>
+</div>
         )}
       </div>
     </>

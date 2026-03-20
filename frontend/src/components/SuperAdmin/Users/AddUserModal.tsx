@@ -50,15 +50,6 @@ type Touched = Partial<Record<keyof AddUserFormState, boolean>>;
 
 const ALL_ROLES: UserRole[] = ["Registrar", "Dept Head", "Finance"];
 
-const DEPARTMENTS = [
-  "Computer Science",
-  "Registrar Office",
-  "Finance Office",
-  "Engineering",
-  "Business",
-  "Arts & Sciences",
-];
-
 const REGISTRAR_DEPT = "Registrar Office";
 const FINANCE_DEPT = "Finance Office";
 
@@ -244,9 +235,7 @@ export default function AddUserModal({
       return hasRegistrarAlready ? [] : [REGISTRAR_DEPT];
     }
 
-    return hasRegistrarAlready
-      ? DEPARTMENTS.filter((d) => d !== REGISTRAR_DEPT)
-      : DEPARTMENTS;
+    return [];
   }, [role, departments, usedDeptHeadDepartments, hasRegistrarAlready]);
 
   useEffect(() => {
@@ -287,9 +276,7 @@ export default function AddUserModal({
       return;
     }
 
-    if (department === REGISTRAR_DEPT && hasRegistrarAlready) {
-      setDepartment("");
-    }
+    setDepartment("");
   }, [role, open, department, departmentOptions, hasRegistrarAlready]);
 
   useEffect(() => {
@@ -317,7 +304,7 @@ export default function AddUserModal({
 
     let cancelled = false;
 
-    const loadReservedId = async () => {
+    const loadPreviewUserId = async () => {
       try {
         setIdLoading(true);
         setIdError("");
@@ -333,14 +320,14 @@ export default function AddUserModal({
         const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data?.message || "Failed to generate user ID.");
+          throw new Error(data?.message || "Failed to preview user ID.");
         }
 
         if (!cancelled) {
-          const generatedId = data?.idNumber || "";
-          setIdNumber(generatedId);
+          const previewId = data?.idNumber || "";
+          setIdNumber(previewId);
 
-          if (!generatedId) {
+          if (!previewId) {
             setIdError("Failed to load automatic user ID.");
           } else if (submitted || touched.idNumber) {
             setLocalErrors((p) => ({
@@ -361,7 +348,7 @@ export default function AddUserModal({
       }
     };
 
-    loadReservedId();
+    loadPreviewUserId();
 
     return () => {
       cancelled = true;
@@ -439,8 +426,17 @@ export default function AddUserModal({
 
       case "department":
         if (!department) return "Department is required.";
-        if (hasRegistrarAlready && department === REGISTRAR_DEPT) {
-          return "Registrar Office is already assigned.";
+        if (role === "Registrar" && department !== REGISTRAR_DEPT) {
+          return "Registrar role must be assigned to Registrar Office.";
+        }
+        if (role === "Finance" && department !== FINANCE_DEPT) {
+          return "Finance role must be assigned to Finance Office.";
+        }
+        if (
+          role === "Dept Head" &&
+          (department === REGISTRAR_DEPT || department === FINANCE_DEPT)
+        ) {
+          return "Department Head cannot be assigned to Registrar or Finance Office.";
         }
         return "";
 
@@ -568,7 +564,7 @@ export default function AddUserModal({
       firstName: cleanFirst,
       middleName: cleanMiddle,
       lastName: cleanLast,
-      idNumber: idNumber.trim(),
+      idNumber: idNumber.trim(), // preview only
       email: email.trim(),
       phone: phone.trim(),
       gender: gender as Gender,
@@ -608,7 +604,14 @@ export default function AddUserModal({
       )}
 
       {!showReview && (
-        <div className="users-modal-backdrop" onMouseDown={onClose}>
+        <div
+  className="users-modal-backdrop"
+  onMouseDown={(e) => {
+    if (e.target === e.currentTarget && !isLoading) {
+      onClose();
+    }
+  }}
+>
           <div
             className="users-modal users-modal-compact"
             role="dialog"
@@ -624,14 +627,19 @@ export default function AddUserModal({
                 </p>
               </div>
 
-              <button
-                type="button"
-                className="users-modal-close"
-                onClick={onClose}
-                aria-label="Close"
-              >
-                <X size={18} />
-              </button>
+             <button
+  type="button"
+  className="users-modal-close app-icon-btn app-icon-btn-sm"
+  onClick={() => {
+    if (isLoading) return;
+    onClose();
+  }}
+  aria-label="Close"
+  title="Close"
+  disabled={isLoading}
+>
+  <X size={18} />
+</button>
             </div>
 
             <form onSubmit={openReview} className="users-modal-body">
@@ -720,13 +728,7 @@ export default function AddUserModal({
                       <Hash className="users-input-icon" size={16} />
                       <input
                         className={`users-input ${idFieldError ? "is-invalid" : ""}`}
-                        value={
-                          !role
-                            ? ""
-                            : idLoading
-                              ? "Loading..."
-                              : idNumber
-                        }
+                        value={!role ? "" : idLoading ? "Loading..." : idNumber}
                         disabled
                         readOnly
                         placeholder={
@@ -742,7 +744,7 @@ export default function AddUserModal({
                       />
                     </div>
                     <div className="text-muted small mt-1">
-                      Auto-generated by the system.
+                      Auto-generated preview only. Final ID is assigned on save.
                     </div>
                     <div className="users-invalid-feedback">
                       {submitted ? idFieldError || "\u00A0" : "\u00A0"}
@@ -804,11 +806,13 @@ export default function AddUserModal({
                         className={selectClass("gender")}
                         value={gender}
                         onChange={(e) => {
-                          setGender(e.target.value as Gender | "");
+                          const nextGender = e.target.value as Gender | "";
+                          setGender(nextGender);
+
                           if (submitted || touched.gender) {
                             setLocalErrors((p) => ({
                               ...p,
-                              gender: validateField("gender"),
+                              gender: nextGender ? "" : "Gender is required.",
                             }));
                           }
                         }}
@@ -864,9 +868,7 @@ export default function AddUserModal({
                           if (submitted || touched.role) {
                             setLocalErrors((p) => ({
                               ...p,
-                              role: nextRole
-                                ? ""
-                                : "Role is required.",
+                              role: nextRole ? "" : "Role is required.",
                             }));
                           }
 
@@ -981,12 +983,13 @@ export default function AddUserModal({
 
               <div className="users-modal-footer">
                 <button
-                  type="button"
-                  className="btn btn-light"
-                  onClick={onClose}
-                >
-                  Cancel
-                </button>
+  type="button"
+  className="btn btn-light"
+  onClick={onClose}
+  disabled={isLoading}
+>
+  Cancel
+</button>
 
                 <button
                   type="submit"

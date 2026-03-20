@@ -6,6 +6,7 @@ import {
   Users as UsersIcon,
   RefreshCw,
   MapPin,
+  X,
 } from "lucide-react";
 
 type Insight = {
@@ -193,10 +194,12 @@ export default function AIInsightsCard() {
       </div>
 
       {showFlagged && (
-        <div
-          className="ai-modal-backdrop"
-          onClick={() => setShowFlagged(false)}
-        >
+  <div
+    className="ai-modal-backdrop"
+    onMouseDown={(e) => {
+      if (e.target === e.currentTarget) setShowFlagged(false);
+    }}
+  >
           <div
             className="ai-modal-card"
             onClick={(e) => e.stopPropagation()}
@@ -204,12 +207,15 @@ export default function AIInsightsCard() {
             <div className="d-flex align-items-center justify-content-between mb-2">
               <div className="fw-bold">Flagged registrations</div>
 
-              <button
-                className="btn btn-sm btn-light"
-                onClick={() => setShowFlagged(false)}
-              >
-                ✕
-              </button>
+             <button
+  type="button"
+  className="app-icon-btn app-icon-btn-sm"
+  onClick={() => setShowFlagged(false)}
+  aria-label="Close"
+  title="Close"
+>
+  <X size={16} />
+</button>
             </div>
 
             {flaggedLoading ? (

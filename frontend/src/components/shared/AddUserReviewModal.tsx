@@ -1,8 +1,5 @@
+import { useEffect } from "react";
 import { X, CheckCircle, Loader2 } from "lucide-react";
-
-/* ======================================================
-   🔹 Generic Review Type (Reusable Everywhere)
-====================================================== */
 
 export type ReviewUserData = {
   firstName: string;
@@ -32,6 +29,24 @@ export default function AddUserReviewModal({
   onConfirm,
   isLoading = false,
 }: Props) {
+  useEffect(() => {
+    if (!open) return;
+
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isLoading) {
+        onBack();
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleEsc);
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleEsc);
+    };
+  }, [open, onBack, isLoading]);
+
   if (!open) return null;
 
   const fullName = [data.firstName, data.middleName, data.lastName]
@@ -43,13 +58,21 @@ export default function AddUserReviewModal({
   };
 
   return (
-    <div className="users-modal-backdrop">
+    <div
+      className="users-modal-backdrop"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && !isLoading) {
+          onBack();
+        }
+      }}
+    >
       <div
         className="users-modal users-modal-compact"
         role="dialog"
         aria-modal="true"
+        aria-label="Review Application"
+        onMouseDown={(e) => e.stopPropagation()}
       >
-        {/* HEADER */}
         <div className="users-modal-header">
           <div className="users-review-title">
             <h3 className="users-modal-title">
@@ -60,15 +83,16 @@ export default function AddUserReviewModal({
 
           <button
             type="button"
-            className="users-modal-close"
-            onClick={isLoading ? undefined : onBack}
+            className="users-modal-close app-icon-btn app-icon-btn-sm"
+            onClick={onBack}
+            aria-label="Close"
+            title="Close"
             disabled={isLoading}
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* BODY */}
         <div className="users-modal-body space-y-6">
           <div className="users-review-grid">
             <section className="users-review-card">
@@ -97,10 +121,10 @@ export default function AddUserReviewModal({
           </section>
         </div>
 
-        {/* FOOTER */}
         <div className="users-modal-footer">
           <button
-            className="btn btn-light"
+            type="button"
+            className="btn btn-light users-btn"
             onClick={onBack}
             disabled={isLoading}
           >
@@ -108,6 +132,7 @@ export default function AddUserReviewModal({
           </button>
 
           <button
+            type="button"
             className="btn btn-primary d-flex align-items-center gap-2"
             onClick={handleSubmit}
             disabled={isLoading}

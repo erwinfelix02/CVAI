@@ -64,20 +64,22 @@ export default function ArchivedApplicationsModal({
 
   return (
     <>
-      <div className="modal fade show d-block">
+      <div className="modal fade show d-block archived-modal-overlay">
         <div className="modal-dialog modal-xl modal-dialog-centered">
-          <div className="modal-content border-0 shadow">
-            <div className="modal-header">
+          <div className="modal-content border-0 shadow archived-modal-card">
+            <div className="modal-header archived-modal-header">
               <h5 className="modal-title fw-bold">
                 Archived Applications ({items.length})
               </h5>
 
               <button
                 type="button"
-                className="btn btn-light border-0"
+                className="archived-icon-btn archived-icon-btn-sm"
                 onClick={onClose}
+                aria-label="Close"
+                title="Close"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
@@ -108,7 +110,7 @@ export default function ArchivedApplicationsModal({
 
                     <button
                       type="button"
-                      className="btn btn-danger archived-delete-selected"
+                      className="archived-delete-selected"
                       disabled={selectedCount === 0}
                       onClick={() => setConfirmDeleteOpen(true)}
                     >
@@ -132,6 +134,7 @@ export default function ArchivedApplicationsModal({
                                 checked ? "is-checked" : ""
                               }`}
                               onClick={() => toggleSelect(item.id)}
+                              aria-label={`Select ${item.name}`}
                             />
 
                             <div className="archived-app-info">
@@ -149,22 +152,26 @@ export default function ArchivedApplicationsModal({
 
                           <div className="archived-app-actions">
                             <button
-                              className="btn btn-warning text-dark"
+                              type="button"
+                              className="archived-icon-btn archived-icon-btn-warning"
                               onClick={() => onUnarchive(item.id)}
+                              aria-label={`Unarchive ${item.name}`}
+                              title="Unarchive"
                             >
                               <RotateCcw size={16} />
-                              <span className="ms-2">Unarchive</span>
                             </button>
 
                             <button
-                              className="btn btn-danger"
+                              type="button"
+                              className="archived-icon-btn archived-icon-btn-danger"
                               onClick={() => {
                                 setSelectedIds(new Set([item.id]));
                                 setConfirmDeleteOpen(true);
                               }}
+                              aria-label={`Delete ${item.name}`}
+                              title="Delete"
                             >
                               <Trash2 size={16} />
-                              <span className="ms-2">Delete</span>
                             </button>
                           </div>
                         </div>
@@ -175,7 +182,7 @@ export default function ArchivedApplicationsModal({
               )}
             </div>
 
-            <div className="modal-footer">
+            <div className="modal-footer archived-modal-footer">
               <button className="btn btn-secondary" onClick={onClose}>
                 Close
               </button>
@@ -189,22 +196,26 @@ export default function ArchivedApplicationsModal({
       {confirmDeleteOpen && (
         <div className="modal fade show d-block delete-confirm-overlay">
           <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content border-0 shadow">
-              <div className="modal-header">
+            <div className="modal-content border-0 shadow archived-confirm-card">
+              <div className="modal-header archived-confirm-header">
                 <h5 className="modal-title fw-bold">
                   Permanently Delete Archived Application
                   {selectedCount > 1 ? "s" : ""}
                 </h5>
 
                 <button
-                  className="btn btn-light border-0"
+                  type="button"
+                  className="archived-icon-btn archived-icon-btn-sm"
                   onClick={() => setConfirmDeleteOpen(false)}
+                  aria-label="Close"
+                  title="Close"
+                  disabled={isDeleting}
                 >
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
 
-              <div className="modal-body">
+              <div className="modal-body archived-confirm-body">
                 <p>
                   Are you sure you want to permanently delete{" "}
                   <strong>{selectedCount}</strong> archived application
@@ -228,10 +239,11 @@ export default function ArchivedApplicationsModal({
                 </div>
               </div>
 
-              <div className="modal-footer">
+              <div className="modal-footer archived-confirm-footer">
                 <button
                   className="btn btn-secondary"
                   onClick={() => setConfirmDeleteOpen(false)}
+                  disabled={isDeleting}
                 >
                   Cancel
                 </button>

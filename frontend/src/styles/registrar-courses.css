@@ -14,16 +14,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .bg-soft-primary {
   background: #e7f1ff;
   color: #0d6efd;
 }
+
 .bg-soft-success {
   background: #e9f8ef;
   color: #198754;
 }
+
+.bg-soft-danger {
+  background: #fdecec;
+  color: #dc3545;
+}
+
 .bg-soft-secondary {
   background: #eef2f7;
   color: #6c757d;
@@ -34,35 +42,30 @@
   font-weight: 800;
   line-height: 1;
 }
+
+/* Header row */
 .courses-header-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .courses-toolbar {
   display: flex;
   align-items: center;
-  margin: 0;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
+/* Search */
 .courses-search {
   position: relative;
-  width: 300px;
-}
-.courses-toolbar {
-  display: flex;
-  align-items: center;
-}
-.courses-search {
-  position: relative;
-  width: 280px; /* adjust if you want wider */
-}
-
-.courses-search {
-  position: relative;
-  width: 300px;
+  flex: 1 1 260px;
+  min-width: 220px;
+  max-width: 360px;
 }
 
 .courses-search-icon {
@@ -71,24 +74,66 @@
   top: 50%;
   transform: translateY(-50%);
   color: #6c757d;
+  pointer-events: none;
 }
 
 .courses-search-input {
-  padding-left: 42px;
-  border-radius: 12px;
+  width: 100%;
   height: 44px;
+  border-radius: 12px;
+  padding-left: 42px;
+  border: 1px solid #d9dee7;
+  background: #fff;
+}
+
+.courses-search-input:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+}
+
+/* Filters */
+.courses-filter {
+  flex: 1 1 180px;
+  min-width: 160px;
+  max-width: 240px;
+}
+
+.courses-filter-select {
+  width: 100%;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #d9dee7;
+  background: #fff;
+  padding-left: 14px;
+  padding-right: 38px;
+  font-weight: 500;
+}
+
+.courses-filter-select:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
 }
 
 /* Table */
+.courses-table-wrap {
+  position: relative;
+}
+
+.courses-table {
+  min-width: 860px;
+}
+
 .courses-table thead th {
   font-weight: 600;
   border-bottom: 1px solid #e9ecef !important;
+  white-space: nowrap;
 }
 
 .courses-table tbody td {
   border-top: 1px solid #f0f2f5 !important;
   padding-top: 18px;
   padding-bottom: 18px;
+  vertical-align: middle;
 }
 
 .status-pill {
@@ -98,6 +143,7 @@
   font-weight: 700;
   font-size: 13px;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .status-active {
@@ -114,185 +160,6 @@
   color: #0d6efd;
 }
 
-/* Modal overlay */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  z-index: 1050;
-}
-
-/* Make dialog full width on small screens */
-@media (max-width: 576px) {
-  .modal-dialog {
-    width: 100%;
-    margin: 0;
-  }
-  .courses-search {
-    max-width: 100%;
-  }
-}
-/* Modal overlay */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 14px;
-  z-index: 1050;
-}
-
-/* Modal container look */
-.courses-modal {
-  border-radius: 18px;
-  padding: 8px;
-  background: #fff !important;
-  opacity: 1 !important;
-}
-
-/* Inputs match screenshot */
-.courses-input {
-  height: 48px;
-  border-radius: 12px;
-  border: 1px solid #e6edf5;
-  background: #fff;
-}
-
-.courses-input:focus {
-  box-shadow: none;
-  border-color: #cfe2ff;
-}
-
-/* Blue focus ring style like screenshot */
-.courses-input-focus:focus {
-  border-color: #0d6efd;
-  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
-}
-
-/* Buttons */
-.courses-btn-cancel {
-  border-radius: 12px;
-  height: 44px;
-  padding: 0 16px;
-}
-
-.courses-btn-primary {
-  border-radius: 12px;
-  height: 44px;
-  padding: 0 18px;
-}
-
-/* Make modal full-width on small screens */
-@media (max-width: 576px) {
-  .modal-dialog {
-    margin: 0;
-    max-width: 100%;
-  }
-
-  .courses-modal {
-    border-radius: 16px;
-  }
-}
-/* Overlay */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  z-index: 1050;
-}
-
-/* ✅ Constrain modal width and keep centered */
-.courses-modal-dialog {
-  width: 100%;
-  max-width: 760px; /* desktop size like screenshot */
-  margin: 0 auto;
-}
-
-/* Modal look */
-.courses-modal {
-  border-radius: 18px;
-  overflow: hidden;
-}
-
-/* Inputs */
-.courses-input {
-  height: 48px;
-  border-radius: 12px;
-  border: 1px solid #e6edf5;
-}
-
-.courses-input:focus {
-  box-shadow: none;
-  border-color: #cfe2ff;
-}
-
-.courses-input-focus:focus {
-  border-color: #0d6efd;
-  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
-}
-
-/* Buttons */
-.courses-btn-cancel,
-.courses-btn-primary {
-  border-radius: 12px;
-  height: 44px;
-  padding: 0 18px;
-}
-
-/* ✅ Mobile: full width but still looks like modal */
-@media (max-width: 576px) {
-  .courses-modal-dialog {
-    max-width: 100%;
-  }
-}
-/* Confirmation popup inside modal */
-.sec-confirm-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2100;
-  padding: 16px;
-}
-
-.sec-confirm-popup {
-  width: 100%;
-  max-width: 420px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-}
-
-.sec-confirm-header {
-  padding: 14px 16px;
-  font-weight: 800;
-  border-bottom: 1px solid #eef2f7;
-}
-
-.sec-confirm-body {
-  padding: 14px 16px;
-}
-
-.sec-confirm-footer {
-  padding: 12px 16px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  border-top: 1px solid #eef2f7;
-}
 .table-action-btn {
   width: 34px;
   height: 34px;
@@ -335,4 +202,130 @@
 .delete-action-btn:hover:not(:disabled) {
   background: #fff5f5;
   border-color: #ef4444;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1050;
+}
+
+.courses-modal-dialog {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.courses-modal {
+  border-radius: 18px;
+  overflow: hidden;
+  background: #fff !important;
+  opacity: 1 !important;
+}
+
+.courses-input {
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid #e6edf5;
+  background: #fff;
+}
+
+.courses-input:focus {
+  box-shadow: none;
+  border-color: #cfe2ff;
+}
+
+.courses-input-focus:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+}
+
+.courses-btn-cancel,
+.courses-btn-primary {
+  border-radius: 12px;
+  height: 44px;
+  padding: 0 18px;
+}
+
+/* Confirmation popup */
+.sec-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2100;
+  padding: 16px;
+}
+
+.sec-confirm-popup {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.sec-confirm-header {
+  padding: 14px 16px;
+  font-weight: 800;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.sec-confirm-body {
+  padding: 14px 16px;
+}
+
+.sec-confirm-footer {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #eef2f7;
+}
+
+.app-icon-btn {
+  width: 42px;
+  height: 42px;
+  border: 1px solid #d7dce5;
+  border-radius: 12px;
+  background: #fff;
+  color: #374151;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  flex-shrink: 0;
+}
+
+.app-icon-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #111827;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 24, 40, 0.08);
+}
+
+.app-icon-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.app-icon-btn-sm {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
 }

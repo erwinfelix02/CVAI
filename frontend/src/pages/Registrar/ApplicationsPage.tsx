@@ -360,6 +360,50 @@ export default function ApplicationsPage() {
     }
   };
 
+  const handleDelete = async (registrationId: string) => {
+    try {
+      setIsSubmitting(true);
+
+      const res = await fetch(
+        `http://localhost:5000/api/preregistrations/${registrationId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to delete application");
+      }
+
+      setApplications((prev: any[]) =>
+        prev.filter(
+          (app: any) => String(app.registrationId) !== String(registrationId),
+        ),
+      );
+
+      setSelectedApp((prev: any | null) =>
+        prev && String(prev.registrationId) === String(registrationId)
+          ? null
+          : prev,
+      );
+
+      setSelectedApprovedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(String(registrationId));
+        return next;
+      });
+
+      showAlert("Application deleted successfully.", "success");
+    } catch (err: any) {
+      console.error(err);
+      showAlert(err.message || "Failed to delete application", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleDeleteArchived = async (registrationIds: string[]) => {
     try {
       setIsSubmitting(true);
@@ -463,6 +507,7 @@ export default function ApplicationsPage() {
             onSendSchedule={openScheduleModal}
             onArchive={handleArchive}
             onUnarchive={handleUnarchive}
+            onDelete={handleDelete}
             onReview={(id) => {
               const found = applications.find(
                 (a) => String(a.registrationId) === id,

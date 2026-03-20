@@ -16,7 +16,7 @@ type Props = {
   initial?: CourseItem | null;
   onCreate: (item: CourseItem) => Promise<void> | void;
   onUpdate: (item: CourseItem) => Promise<void> | void;
-  departmentOptions?: string[]; // ✅ should be ACTIVE departments only
+  departmentOptions?: string[];
 };
 
 type Errors = Partial<Record<keyof Payload, string>>;
@@ -31,11 +31,10 @@ export default function AddCourseModal({
   initial,
   onCreate,
   onUpdate,
-  departmentOptions = [], // ✅ default empty
+  departmentOptions = [],
 }: Props) {
   const isEdit = !!initial;
 
-  // ✅ normalize + unique + sorted (safe)
   const activeDepartments = useMemo(() => {
     const list = Array.isArray(departmentOptions) ? departmentOptions : [];
     return list
@@ -53,9 +52,9 @@ export default function AddCourseModal({
     status: "Active",
   });
 
-  const [touched, setTouched] = useState<Partial<Record<keyof Payload, boolean>>>(
-    {},
-  );
+  const [touched, setTouched] = useState<
+    Partial<Record<keyof Payload, boolean>>
+  >({});
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState("");
 
@@ -92,7 +91,6 @@ export default function AddCourseModal({
     setConfirming(false);
   }, [open, isEdit, initial]);
 
-  // lock body scroll
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -102,7 +100,6 @@ export default function AddCourseModal({
     };
   }, [open]);
 
-  // ESC close (closes confirm first)
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -132,13 +129,14 @@ export default function AddCourseModal({
     if (!Number.isFinite(y)) e.yearLevels = "Year Levels is required.";
     else if (y < 1 || y > 10) e.yearLevels = "Year Levels must be 1–10.";
 
-    // ✅ Department: required + must be one of ACTIVE departments (when list exists)
     if (!data.department.trim()) {
       e.department = "Department is required.";
-    } else if (activeDepartments.length > 0 && !activeDepartments.includes(data.department)) {
+    } else if (
+      activeDepartments.length > 0 &&
+      !activeDepartments.includes(data.department)
+    ) {
       e.department = "Selected department is not active.";
     } else if (activeDepartments.length === 0) {
-      // optional: show a clearer message if no active departments loaded
       e.department = "No active departments available.";
     }
 
@@ -198,7 +196,7 @@ export default function AddCourseModal({
 
       setConfirmOpen(false);
       onClose();
-    } catch (err) {
+    } catch {
       setFormError("Something went wrong. Please try again.");
     } finally {
       setConfirming(false);
@@ -231,12 +229,12 @@ export default function AddCourseModal({
             </h5>
 
             <button
-              className="btn p-0 d-flex align-items-center justify-content-center"
               type="button"
+              className="app-icon-btn app-icon-btn-sm"
               onClick={onClose}
               aria-label="Close"
+              title="Close"
               disabled={confirmOpen || confirming}
-              style={{ width: 34, height: 34, borderRadius: 10 }}
             >
               <X size={18} />
             </button>
@@ -270,7 +268,9 @@ export default function AddCourseModal({
                     fieldError("yearLevels") ? "is-invalid" : ""
                   }`}
                   value={form.yearLevels}
-                  onChange={(e) => setField("yearLevels", Number(e.target.value))}
+                  onChange={(e) =>
+                    setField("yearLevels", Number(e.target.value))
+                  }
                   onBlur={() => markTouched("yearLevels")}
                   disabled={confirmOpen || confirming}
                 >
@@ -280,7 +280,9 @@ export default function AddCourseModal({
                     </option>
                   ))}
                 </select>
-                <div className="invalid-feedback">{fieldError("yearLevels")}</div>
+                <div className="invalid-feedback">
+                  {fieldError("yearLevels")}
+                </div>
               </div>
 
               <div className="col-12">
@@ -300,7 +302,6 @@ export default function AddCourseModal({
                 <div className="invalid-feedback">{fieldError("name")}</div>
               </div>
 
-              {/* ✅ ACTIVE DEPARTMENTS ONLY */}
               <div className="col-12">
                 <label className="form-label fw-semibold">
                   Department <span className="text-danger">*</span>
@@ -313,10 +314,14 @@ export default function AddCourseModal({
                   value={form.department}
                   onChange={(e) => setField("department", e.target.value)}
                   onBlur={() => markTouched("department")}
-                  disabled={confirmOpen || confirming || activeDepartments.length === 0}
+                  disabled={
+                    confirmOpen || confirming || activeDepartments.length === 0
+                  }
                 >
                   <option value="">
-                    {activeDepartments.length ? "Select department" : "No active departments"}
+                    {activeDepartments.length
+                      ? "Select department"
+                      : "No active departments"}
                   </option>
 
                   {activeDepartments.map((d) => (
@@ -326,7 +331,9 @@ export default function AddCourseModal({
                   ))}
                 </select>
 
-                <div className="invalid-feedback">{fieldError("department")}</div>
+                <div className="invalid-feedback">
+                  {fieldError("department")}
+                </div>
               </div>
 
               <div className="col-12">
@@ -338,7 +345,9 @@ export default function AddCourseModal({
                     fieldError("status") ? "is-invalid" : ""
                   }`}
                   value={form.status}
-                  onChange={(e) => setField("status", e.target.value as CourseStatus)}
+                  onChange={(e) =>
+                    setField("status", e.target.value as CourseStatus)
+                  }
                   onBlur={() => markTouched("status")}
                   disabled={confirmOpen || confirming}
                 >
@@ -381,7 +390,8 @@ export default function AddCourseModal({
               aria-modal="true"
               aria-label={isEdit ? "Confirm Update" : "Confirm Add"}
               onMouseDown={(e) => {
-                if (e.target === e.currentTarget && !confirming) setConfirmOpen(false);
+                if (e.target === e.currentTarget && !confirming)
+                  setConfirmOpen(false);
               }}
             >
               <div
@@ -389,7 +399,20 @@ export default function AddCourseModal({
                 onMouseDown={(e) => e.stopPropagation()}
               >
                 <div className="sec-confirm-header">
-                  {isEdit ? "Confirm Update" : "Confirm Add"}
+                  <div className="sec-confirm-title">
+                    {isEdit ? "Confirm Update" : "Confirm Add"}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="app-icon-btn app-icon-btn-sm"
+                    onClick={() => setConfirmOpen(false)}
+                    aria-label="Close"
+                    title="Close"
+                    disabled={confirming}
+                  >
+                    <X size={16} />
+                  </button>
                 </div>
 
                 <div className="sec-confirm-body">
@@ -406,7 +429,9 @@ export default function AddCourseModal({
                   <div className="mt-3 small">
                     <div>
                       <span className="text-muted">Code:</span>{" "}
-                      <span className="fw-semibold">{normalizeCode(form.code)}</span>
+                      <span className="fw-semibold">
+                        {normalizeCode(form.code)}
+                      </span>
                     </div>
                     <div>
                       <span className="text-muted">Name:</span>{" "}

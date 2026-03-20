@@ -252,11 +252,13 @@ export default function EditStudentInfoModal({
           <div className="header-right">
             <button
               type="button"
-              className="close-btn"
+              className="app-icon-btn app-icon-btn-sm"
               onClick={onClose}
               disabled={loading}
+              aria-label="Close"
+              title="Close"
             >
-              <X size={18} />
+              <X size={16} />
             </button>
           </div>
         </div>
@@ -502,15 +504,30 @@ export default function EditStudentInfoModal({
               className="registrar-confirm-modal"
               onMouseDown={(e) => e.stopPropagation()}
             >
-              <div className="registrar-confirm-icon">
-                <TriangleAlert size={22} />
+              <div className="registrar-confirm-header">
+                <div className="registrar-confirm-title">Confirm Update</div>
+
+                <button
+                  type="button"
+                  className="app-icon-btn app-icon-btn-sm"
+                  onClick={handleCloseConfirm}
+                  disabled={loading}
+                  aria-label="Close"
+                  title="Close"
+                >
+                  <X size={16} />
+                </button>
               </div>
 
-              <h5 className="fw-bold mb-2 text-center">Confirm Update</h5>
+              <div className="registrar-confirm-body">
+                <div className="registrar-confirm-icon">
+                  <TriangleAlert size={22} />
+                </div>
 
-              <p className="text-muted text-center mb-0">
-                Are you sure you want to save the updated student information?
-              </p>
+                <p className="text-muted text-center mb-0">
+                  Are you sure you want to save the updated student information?
+                </p>
+              </div>
 
               <div className="registrar-confirm-actions">
                 <button

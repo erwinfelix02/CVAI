@@ -364,7 +364,14 @@ export default function AddFacultyModal({
   return (
     <>
       {!showReview && (
-        <div className="users-modal-backdrop" onMouseDown={onClose}>
+        <div
+  className="users-modal-backdrop"
+  onMouseDown={(e) => {
+    if (e.target === e.currentTarget && !isLoading) {
+      onClose();
+    }
+  }}
+>
           <div
             className="users-modal users-modal-compact"
             role="dialog"
@@ -380,13 +387,18 @@ export default function AddFacultyModal({
               </div>
 
               <button
-                type="button"
-                className="users-modal-close"
-                onClick={onClose}
-                aria-label="Close"
-              >
-                <X size={18} />
-              </button>
+  type="button"
+  className="users-modal-close app-icon-btn app-icon-btn-sm"
+  onClick={() => {
+    if (isLoading) return;
+    onClose();
+  }}
+  aria-label="Close"
+  title="Close"
+  disabled={isLoading}
+>
+  <X size={18} />
+</button>
             </div>
 
             <div className="users-modal-body">
@@ -687,13 +699,14 @@ export default function AddFacultyModal({
             </div>
 
             <div className="users-modal-footer">
-              <button
-                type="button"
-                className="btn btn-light"
-                onClick={onClose}
-              >
-                Cancel
-              </button>
+             <button
+  type="button"
+  className="btn btn-light"
+  onClick={onClose}
+  disabled={isLoading}
+>
+  Cancel
+</button>
 
               <button
                 type="button"

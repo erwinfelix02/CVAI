@@ -44,11 +44,11 @@ export default function UsersTable({ rows, onView, onSendCredentials }: Props) {
                 <div className="d-flex justify-content-end align-items-center gap-2">
                   <button
                     type="button"
-                    className="users-action-btn"
+                    className="app-icon-btn app-icon-btn-sm"
                     onClick={() => onView(u)}
                     title="View User"
                   >
-                    <Eye size={18} />
+                    <Eye size={16} />
                   </button>
 
                   {u.createdBy === "SuperAdmin" &&
@@ -56,11 +56,11 @@ export default function UsersTable({ rows, onView, onSendCredentials }: Props) {
                     !u.credentialsSent && (
                       <button
                         type="button"
-                        className="users-action-btn"
+                        className="app-icon-btn app-icon-btn-sm app-icon-btn-primary"
                         onClick={() => onSendCredentials(u)}
                         title="Send Credentials"
                       >
-                        <Send size={18} />
+                        <Send size={16} />
                       </button>
                     )}
                 </div>

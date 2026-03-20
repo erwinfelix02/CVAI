@@ -109,13 +109,16 @@ export default function ApplicationDetailsModal({
               </span>
 
               <button
-                className="close-btn"
+                type="button"
+                className="app-icon-btn app-icon-btn-sm"
                 onClick={() => {
                   if (!loading) onClose();
                 }}
                 disabled={loading}
+                aria-label="Close"
+                title="Close"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
           </div>
@@ -281,8 +284,14 @@ export default function ApplicationDetailsModal({
           <div className="preview-modal" onClick={(e) => e.stopPropagation()}>
             <div className="preview-header">
               <h5>Document Preview</h5>
-              <button type="button" onClick={() => setPreviewFile(null)}>
-                <X size={18} />
+              <button
+                type="button"
+                className="app-icon-btn app-icon-btn-sm"
+                onClick={() => setPreviewFile(null)}
+                aria-label="Close preview"
+                title="Close"
+              >
+                <X size={16} />
               </button>
             </div>
 
@@ -312,17 +321,34 @@ export default function ApplicationDetailsModal({
           }}
         >
           <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
-            <h4>
-              {confirmAction === "Approved"
-                ? "Approve Application?"
-                : "Reject Application?"}
-            </h4>
+            <div className="confirm-modal-header">
+              <h4 className="confirm-modal-title">
+                {confirmAction === "Approved"
+                  ? "Approve Application?"
+                  : "Reject Application?"}
+              </h4>
 
-            <p>
-              Are you sure you want to{" "}
-              {confirmAction === "Approved" ? "approve" : "reject"} this
-              registration?
-            </p>
+              <button
+                type="button"
+                className="app-icon-btn app-icon-btn-sm"
+                onClick={() => {
+                  if (!loading) setConfirmAction(null);
+                }}
+                disabled={loading}
+                aria-label="Close confirmation"
+                title="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="confirm-modal-body">
+              <p>
+                Are you sure you want to{" "}
+                {confirmAction === "Approved" ? "approve" : "reject"} this
+                registration?
+              </p>
+            </div>
 
             <div className="confirm-actions">
               <button

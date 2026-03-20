@@ -51,7 +51,12 @@ export default function ContactSupportModal({ open, onClose }: Props) {
 
   return (
     <>
-      <div className="rh-contact-modal-backdrop" onClick={onClose} />
+      <div
+        className="rh-contact-modal-backdrop"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      />
 
       <div className="rh-contact-modal-wrap">
         <div
@@ -73,11 +78,12 @@ export default function ContactSupportModal({ open, onClose }: Props) {
 
             <button
               type="button"
-              className="rh-contact-modal-close"
+              className="rh-contact-modal-close app-icon-btn app-icon-btn-sm"
               onClick={onClose}
               aria-label="Close"
+              title="Close"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
 

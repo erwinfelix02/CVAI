@@ -10,12 +10,7 @@ type Props = {
   onClose: () => void;
 };
 
-export default function QuickGuideModal({
-  open,
-  guide,
-  icon,
-  onClose,
-}: Props) {
+export default function QuickGuideModal({ open, guide, icon, onClose }: Props) {
   useEffect(() => {
     if (!open) return;
 
@@ -38,7 +33,12 @@ export default function QuickGuideModal({
 
   return (
     <>
-      <div className="rh-guide-modal-backdrop" onClick={onClose} />
+      <div
+        className="rh-guide-modal-backdrop"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      />
 
       <div className="rh-guide-modal-wrap">
         <div
@@ -62,11 +62,12 @@ export default function QuickGuideModal({
 
             <button
               type="button"
-              className="rh-guide-modal-close"
+              className="rh-guide-modal-close app-icon-btn app-icon-btn-sm"
               onClick={onClose}
               aria-label="Close"
+              title="Close"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
 
@@ -75,7 +76,10 @@ export default function QuickGuideModal({
 
             <div className="rh-guide-steps-list">
               {guide.steps.map((step) => (
-                <div className="rh-guide-step-item" key={`${guide.id}-${step.step}`}>
+                <div
+                  className="rh-guide-step-item"
+                  key={`${guide.id}-${step.step}`}
+                >
                   <div className="rh-guide-step-number">{step.step}</div>
 
                   <div className="rh-guide-step-content">

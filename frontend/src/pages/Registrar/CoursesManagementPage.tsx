@@ -14,7 +14,6 @@ import {
   updateCourse,
   deleteCourse,
 } from "../../api/courseService";
-
 import { getDepartments } from "../../api/departmentService";
 
 import "../../styles/registrar-courses.css";
@@ -24,6 +23,9 @@ export default function CoursesManagementPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const [query, setQuery] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("All Departments");
+  const [statusFilter, setStatusFilter] = useState("All Status");
+
   const [openAdd, setOpenAdd] = useState(false);
   const [editing, setEditing] = useState<CourseItem | null>(null);
 
@@ -92,7 +94,7 @@ export default function CoursesManagementPage() {
         .sort((a: string, b: string) => a.localeCompare(b));
 
       setDepartmentOptions(activeNames);
-    } catch (err) {
+    } catch {
       setDepartmentOptions([]);
     }
   };
@@ -104,20 +106,34 @@ export default function CoursesManagementPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return courses;
 
     return courses.filter((c) => {
-      const hay = `${c.code} ${c.name} ${c.department} ${c.status}`.toLowerCase();
-      return hay.includes(q);
+      const matchesQuery =
+        !q ||
+        `${c.code} ${c.name} ${c.department} ${c.status}`
+          .toLowerCase()
+          .includes(q);
+
+      const matchesDepartment =
+        departmentFilter === "All Departments" ||
+        c.department === departmentFilter;
+
+      const matchesStatus =
+        statusFilter === "All Status" || c.status === statusFilter;
+
+      return matchesQuery && matchesDepartment && matchesStatus;
     });
-  }, [courses, query]);
+  }, [courses, query, departmentFilter, statusFilter]);
 
   const totals = useMemo(() => {
     const totalCourses = courses.length;
     const activeCourses = courses.filter((c) => c.status === "Active").length;
+    const inactiveCourses = courses.filter(
+      (c) => c.status === "Inactive",
+    ).length;
     const departments = new Set(courses.map((c) => c.department)).size;
 
-    return { totalCourses, activeCourses, departments };
+    return { totalCourses, activeCourses, inactiveCourses, departments };
   }, [courses]);
 
   const openCreate = () => {
@@ -234,15 +250,26 @@ export default function CoursesManagementPage() {
         <CourseStatsRow
           totalCourses={totals.totalCourses}
           activeCourses={totals.activeCourses}
+          inactiveCourses={totals.inactiveCourses}
           departments={totals.departments}
         />
 
         <div className="card shadow-sm border-0 mt-3 mt-md-4">
           <div className="card-body p-3 p-md-4">
-           <div className="courses-header-row mb-3">
-  <h5 className="fw-bold mb-0">All Courses</h5>
-  <CoursesToolbar query={query} onQueryChange={setQuery} />
-</div>
+            <div className="courses-header-row mb-3">
+              <h5 className="fw-bold mb-0">All Courses</h5>
+
+              <CoursesToolbar
+                query={query}
+                onQueryChange={setQuery}
+                departmentFilter={departmentFilter}
+                onDepartmentFilterChange={setDepartmentFilter}
+                statusFilter={statusFilter}
+                onStatusFilterChange={setStatusFilter}
+                departmentOptions={departmentOptions}
+              />
+            </div>
+
             {hasRows ? (
               <CoursesTable
                 items={filtered}
@@ -254,7 +281,7 @@ export default function CoursesManagementPage() {
                 <div className="users-empty-icon">📭</div>
                 <h5 className="fw-semibold mb-1">No courses found</h5>
                 <p className="text-muted mb-0">
-                  Try adjusting your search or click <b>Add Course</b>.
+                  Try adjusting your search or filters, or click <b>Add Course</b>.
                 </p>
               </div>
             )}

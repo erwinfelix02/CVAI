@@ -8,6 +8,7 @@ type Props = {
   onReview: (id: string) => void;
   onArchive: (id: string) => void;
   onUnarchive: (id: string) => void;
+  onDelete: (id: string) => void;
   selectedApprovedIds: Set<string>;
   onToggleApproved: (id: string) => void;
   onDeselectAllApproved: () => void;
@@ -20,6 +21,7 @@ export default function RegistrarApplicationsList({
   onReview,
   onArchive,
   onUnarchive,
+  onDelete,
   selectedApprovedIds,
   onToggleApproved,
   onDeselectAllApproved,
@@ -61,6 +63,7 @@ export default function RegistrarApplicationsList({
                 onReview={onReview}
                 onArchive={onArchive}
                 onUnarchive={onUnarchive}
+                onDelete={onDelete}
                 isApprovedSelected={
                   a.status === "Approved" &&
                   !a.scheduleSent &&

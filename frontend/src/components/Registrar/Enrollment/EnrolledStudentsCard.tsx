@@ -24,6 +24,7 @@ export type EnrolledStudentsCardProps = {
   onSendCredentials: () => void;
   onSendCredentialsOne: (enrollmentId: string) => void;
   onArchiveOne: (enrollmentId: string) => void;
+  onDeleteOne: (enrollmentId: string) => void;
 };
 
 export default function EnrolledStudentsCard({
@@ -41,6 +42,7 @@ export default function EnrolledStudentsCard({
   onSendCredentials,
   onSendCredentialsOne,
   onArchiveOne,
+  onDeleteOne,
 }: EnrolledStudentsCardProps) {
   const selectableIds = useMemo(
     () => items.filter((x) => !x.credentialsSent).map((x) => x._id),
@@ -58,7 +60,9 @@ export default function EnrolledStudentsCard({
       <div className="card-body">
         <div className="enrolled-head">
           <div className="d-flex align-items-center gap-2 flex-wrap">
-            <h5 className="fw-bold mb-0">Enrolled Students ({enrolledCount})</h5>
+            <h5 className="fw-bold mb-0">
+              Enrolled Students ({enrolledCount})
+            </h5>
 
             <button
               type="button"
@@ -74,7 +78,9 @@ export default function EnrolledStudentsCard({
             <button
               type="button"
               className="enrolled-link-btn"
-              onClick={allSelected ? onClearAll : () => onSelectAll(selectableIds)}
+              onClick={
+                allSelected ? onClearAll : () => onSelectAll(selectableIds)
+              }
               disabled={selectableIds.length === 0}
             >
               <Users size={18} />
@@ -118,13 +124,15 @@ export default function EnrolledStudentsCard({
               onToggleSelect={onToggleSelect}
               onSendCredentialsOne={onSendCredentialsOne}
               onArchiveOne={onArchiveOne}
+              onDeleteOne={onDeleteOne}
             />
           ) : (
             <div className="users-empty-state">
               <div className="users-empty-icon">📭</div>
               <h5 className="fw-semibold mb-1">No enrolled students found</h5>
               <p className="text-muted mb-0">
-                Try adjusting your search or check back after enrollment updates.
+                Try adjusting your search or check back after enrollment
+                updates.
               </p>
             </div>
           )}

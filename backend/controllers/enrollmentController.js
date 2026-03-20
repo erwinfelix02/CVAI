@@ -1,9 +1,8 @@
 import Enrollment from "../models/Enrollment.js";
 import Student from "../models/Student.js";
 import User from "../models/User.js";
-import ReservedId from "../models/ReservedId.js";
 import { addLog, getClientIp } from "../utils/logActivity.js";
-import { generateId } from "../utils/generateId.js";
+import { generateId, peekNextId } from "../utils/generateId.js";
 
 function isISODateString(v) {
   return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
@@ -27,10 +26,13 @@ function getStudentIdChecks() {
   return [
     { model: Student, field: "studentIdNumber" },
     { model: User, field: "idNumber" },
-    { model: ReservedId, field: "idNumber" },
   ];
 }
 
+/**
+ * Preview only.
+ * Does NOT reserve anything.
+ */
 export const reserveStudentId = async (req, res) => {
   try {
     const { id } = req.params;
@@ -43,45 +45,25 @@ export const reserveStudentId = async (req, res) => {
       return res.status(404).json({ message: "Enrollment not found." });
     }
 
+    // If already enrolled, show real saved student ID
     if (enrollment.studentRef && enrollment.studentIdNumber) {
       return res.status(200).json({
         studentIdNumber: enrollment.studentIdNumber,
       });
     }
 
-    const existingReservation = await ReservedId.findOne({
-      referenceId: id,
-      type: "student",
-      used: false,
-    })
-      .select("idNumber")
-      .lean();
-
-    if (existingReservation?.idNumber) {
-      return res.status(200).json({
-        studentIdNumber: existingReservation.idNumber,
-      });
-    }
-
-    const studentIdNumber = await generateId({
+    const studentIdNumber = await peekNextId({
       prefix: "GIP",
       scope: "student",
       checks: getStudentIdChecks(),
       startAt: 1,
     });
 
-    await ReservedId.create({
-      referenceId: id,
-      type: "student",
-      idNumber: studentIdNumber,
-      used: false,
-    });
-
     return res.status(200).json({ studentIdNumber });
   } catch (err) {
-    console.error("reserveStudentId error:", err);
+    console.error("reserveStudentId preview error:", err);
     return res.status(500).json({
-      message: err.message || "Failed to reserve student ID.",
+      message: err.message || "Failed to preview student ID.",
     });
   }
 };
@@ -131,24 +113,13 @@ export const evaluateEnrollment = async (req, res) => {
       });
     }
 
-    let studentIdNumber = "";
-
-    const reservation = await ReservedId.findOne({
-      referenceId: id,
-      type: "student",
-      used: false,
+    // FINAL ID generation happens only here on save
+    const studentIdNumber = await generateId({
+      prefix: "GIP",
+      scope: "student",
+      checks: getStudentIdChecks(),
+      startAt: 1,
     });
-
-    if (reservation?.idNumber) {
-      studentIdNumber = reservation.idNumber;
-    } else {
-      studentIdNumber = await generateId({
-        prefix: "GIP",
-        scope: "student",
-        checks: getStudentIdChecks(),
-        startAt: 1,
-      });
-    }
 
     const studentDoc = await Student.create({
       enrollmentId: enrollment._id,
@@ -200,22 +171,6 @@ export const evaluateEnrollment = async (req, res) => {
     };
 
     await enrollment.save();
-
-    if (reservation) {
-      reservation.used = true;
-      await reservation.save();
-    } else {
-      await ReservedId.updateMany(
-        {
-          idNumber: studentIdNumber,
-          type: "student",
-          used: false,
-        },
-        {
-          $set: { used: true },
-        }
-      );
-    }
 
     addLog({
       action: "Evaluate Enrollment",

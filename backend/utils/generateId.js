@@ -4,17 +4,6 @@ function buildId({ prefix, year, seq }) {
   return `${prefix}-${year}-${String(seq).padStart(3, "0")}`;
 }
 
-function randomize(array) {
-  const copy = [...array];
-
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-
-  return copy;
-}
-
 async function idExistsInAnyCollection({ checks = [], id }) {
   for (const check of checks) {
     if (!check?.model || !check?.field) continue;
@@ -30,25 +19,78 @@ async function idExistsInAnyCollection({ checks = [], id }) {
   return false;
 }
 
-async function findRandomAvailableSequence({ prefix, year, checks = [] }) {
-  const allNumbers = Array.from({ length: 999 }, (_, i) => i + 1);
-  const shuffled = randomize(allNumbers);
-
-  for (const seq of shuffled) {
+async function findAvailableSequence({
+  prefix,
+  year,
+  checks = [],
+  startSeq = 1,
+}) {
+  for (let seq = startSeq; seq <= 999; seq += 1) {
     const candidateId = buildId({ prefix, year, seq });
     const exists = await idExistsInAnyCollection({
       checks,
       id: candidateId,
     });
 
-    if (!exists) {
-      return candidateId;
-    }
+    if (!exists) return seq;
+  }
+
+  for (let seq = 1; seq < startSeq; seq += 1) {
+    const candidateId = buildId({ prefix, year, seq });
+    const exists = await idExistsInAnyCollection({
+      checks,
+      id: candidateId,
+    });
+
+    if (!exists) return seq;
   }
 
   return null;
 }
 
+/**
+ * Preview the next available ID without reserving it
+ * and without incrementing the counter.
+ */
+export async function peekNextId({
+  prefix,
+  scope = "global",
+  checks = [],
+  startAt = 1,
+}) {
+  if (!prefix) {
+    throw new Error("Prefix is required.");
+  }
+
+  const year = new Date().getFullYear();
+  const counterKey = `${scope}:${prefix}:${year}`;
+
+  const counter = await IdCounter.findOne({ key: counterKey })
+    .select("seq")
+    .lean();
+
+  const nextStart = Math.max((counter?.seq || 0) + 1, startAt);
+
+  const seq = await findAvailableSequence({
+    prefix,
+    year,
+    checks,
+    startSeq: nextStart,
+  });
+
+  if (!seq) {
+    throw new Error(
+      `All ID numbers for ${prefix}-${year} are already used. Please switch to a 4-digit format.`,
+    );
+  }
+
+  return buildId({ prefix, year, seq });
+}
+
+/**
+ * Generate the final ID for actual save.
+ * This increments the counter and guarantees uniqueness.
+ */
 export async function generateId({
   prefix,
   scope = "global",
@@ -83,36 +125,33 @@ export async function generateId({
       await counter.save();
     }
 
-    if (seq <= 999) {
-      const id = buildId({
-        prefix,
-        year,
-        seq,
-      });
+    if (seq > 999) break;
 
-      const exists = await idExistsInAnyCollection({
-        checks,
-        id,
-      });
+    const id = buildId({
+      prefix,
+      year,
+      seq,
+    });
 
-      if (!exists) {
-        return id;
-      }
+    const exists = await idExistsInAnyCollection({
+      checks,
+      id,
+    });
 
-      continue;
+    if (!exists) {
+      return id;
     }
-
-    break;
   }
 
-  const randomAvailableId = await findRandomAvailableSequence({
+  const seq = await findAvailableSequence({
     prefix,
     year,
     checks,
+    startSeq: startAt,
   });
 
-  if (randomAvailableId) {
-    return randomAvailableId;
+  if (seq) {
+    return buildId({ prefix, year, seq });
   }
 
   throw new Error(

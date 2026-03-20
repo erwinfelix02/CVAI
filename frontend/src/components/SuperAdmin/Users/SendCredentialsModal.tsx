@@ -19,18 +19,40 @@ export default function SendCredentialsModal({
 }: Props) {
   useEffect(() => {
     if (!open) return;
+
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isLoading) {
+        onClose();
+      }
+    };
+
     document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleEsc);
+
     return () => {
       document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleEsc);
     };
-  }, [open]);
+  }, [open, onClose, isLoading]);
 
   if (!open || !user) return null;
 
   return (
-    <div className="users-modal-backdrop">
-      <div className="users-modal users-modal-compact modern-modal">
-        {/* HEADER */}
+    <div
+      className="users-modal-backdrop"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && !isLoading) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        className="users-modal users-modal-compact modern-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Send Login Credentials"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <div className="users-modal-header modern-header">
           <div>
             <h3 className="modal-title">Send Login Credentials</h3>
@@ -41,17 +63,18 @@ export default function SendCredentialsModal({
           </div>
 
           <button
-            className="modal-close-btn"
+            type="button"
+            className="modal-close-btn app-icon-btn app-icon-btn-sm"
             onClick={onClose}
+            aria-label="Close"
+            title="Close"
             disabled={isLoading}
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* BODY */}
         <div className="users-modal-body">
-          {/* Info Card */}
           <div className="modern-info-card">
             <div className="info-row">
               <User size={16} />
@@ -72,15 +95,14 @@ export default function SendCredentialsModal({
             </div>
           </div>
 
-          {/* Notice Box */}
           <div className="modern-notice-box">
             The user will be required to change their password upon first login.
           </div>
         </div>
 
-        {/* FOOTER */}
         <div className="users-modal-footer modern-footer">
           <button
+            type="button"
             className="btn btn-light modern-cancel"
             onClick={onClose}
             disabled={isLoading}
@@ -89,6 +111,7 @@ export default function SendCredentialsModal({
           </button>
 
           <button
+            type="button"
             className="btn btn-primary modern-send-btn"
             onClick={onConfirm}
             disabled={isLoading}

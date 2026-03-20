@@ -175,7 +175,7 @@ export const login = async (req, res) => {
         redirect = "/registrar";
         break;
       case "Dept Head":
-        redirect = "/department-head";
+        redirect = "/dept-head";
         break;
       case "Finance":
         redirect = "/finance";

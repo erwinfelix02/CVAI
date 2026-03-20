@@ -125,14 +125,21 @@ export default function StudentDetailsModal({
           <h4>Student Details</h4>
 
           <div className="header-right">
-            <button className="close-btn" onClick={onClose}>
-              <X size={18} />
+            <button
+              type="button"
+              className="app-icon-btn app-icon-btn-sm"
+              onClick={onClose}
+              aria-label="Close"
+              title="Close"
+            >
+              <X size={16} />
             </button>
           </div>
         </div>
 
         <div className="tab-container">
           <button
+            type="button"
             className={activeTab === "overview" ? "active" : ""}
             onClick={() => setActiveTab("overview")}
           >
@@ -140,6 +147,7 @@ export default function StudentDetailsModal({
           </button>
 
           <button
+            type="button"
             className={activeTab === "academic" ? "active" : ""}
             onClick={() => setActiveTab("academic")}
           >

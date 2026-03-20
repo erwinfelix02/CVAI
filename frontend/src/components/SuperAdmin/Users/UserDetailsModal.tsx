@@ -79,7 +79,12 @@ export default function UserDetailsModal({ open, user, onClose }: Props) {
   if (!open || !user) return null;
 
   return (
-    <div className="users-modal-backdrop" onMouseDown={onClose}>
+    <div
+      className="users-modal-backdrop"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
         className="users-modal users-details-modal"
         role="dialog"
@@ -96,11 +101,12 @@ export default function UserDetailsModal({ open, user, onClose }: Props) {
 
           <button
             type="button"
-            className="users-modal-close"
+            className="users-modal-close app-icon-btn app-icon-btn-sm"
             onClick={onClose}
             aria-label="Close"
+            title="Close"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
@@ -178,10 +184,14 @@ export default function UserDetailsModal({ open, user, onClose }: Props) {
         </div>
 
         <div className="users-modal-footer">
-          <button type="button" className="btn btn-light" onClick={onClose}>
-            Close
-          </button>
-        </div>
+  <button
+    type="button"
+    className="btn btn-light users-btn"
+    onClick={onClose}
+  >
+    Close
+  </button>
+</div>
       </div>
     </div>
   );

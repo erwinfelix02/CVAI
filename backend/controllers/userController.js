@@ -1,15 +1,16 @@
 import User from "../models/User.js";
-import ReservedId from "../models/ReservedId.js";
+import Student from "../models/Student.js";
 import sendEmail from "../utils/sendEmail.js";
 import validator from "validator";
-import { generateId } from "../utils/generateId.js";
+import { generateId, peekNextId } from "../utils/generateId.js";
 
 function getUserIdChecks() {
   return [
     { model: User, field: "idNumber" },
-    { model: ReservedId, field: "idNumber" },
+    { model: Student, field: "studentIdNumber" },
   ];
 }
+
 export const reserveUserId = async (req, res) => {
   try {
     const { role } = req.query;
@@ -22,7 +23,7 @@ export const reserveUserId = async (req, res) => {
       });
     }
 
-    const idNumber = await generateId({
+    const idNumber = await peekNextId({
       prefix: "GIP",
       scope: "user",
       checks: getUserIdChecks(),
@@ -31,34 +32,27 @@ export const reserveUserId = async (req, res) => {
 
     return res.status(200).json({ idNumber });
   } catch (err) {
-    console.error("reserveUserId error:", err);
+    console.error("reserveUserId preview error:", err);
     return res.status(500).json({
-      message: err.message || "Failed to generate user ID.",
+      message: err.message || "Failed to preview user ID.",
     });
   }
 };
 
-function getFacultyIdChecks() {
-  return [
-    { model: User, field: "idNumber" },
-    { model: ReservedId, field: "idNumber" },
-  ];
-}
-
 export const reserveFacultyId = async (_req, res) => {
   try {
-    const idNumber = await generateId({
+    const idNumber = await peekNextId({
       prefix: "GIP",
       scope: "faculty",
-      checks: getFacultyIdChecks(),
+      checks: getUserIdChecks(),
       startAt: 1,
     });
 
     return res.status(200).json({ idNumber });
   } catch (err) {
-    console.error("reserveFacultyId error:", err);
+    console.error("reserveFacultyId preview error:", err);
     return res.status(500).json({
-      message: err.message || "Failed to generate faculty ID.",
+      message: err.message || "Failed to preview faculty ID.",
     });
   }
 };
@@ -82,7 +76,6 @@ export const createUser = async (req, res) => {
     if (
       !firstName ||
       !lastName ||
-      !idNumber ||
       !email ||
       !phone ||
       !gender ||
@@ -99,14 +92,15 @@ export const createUser = async (req, res) => {
       ? validator.escape(String(middleName).trim())
       : "";
     const cleanLastName = validator.escape(String(lastName).trim());
-    const cleanIdNumber = validator.escape(String(idNumber).trim());
     const cleanEmail =
       validator.normalizeEmail(String(email).trim()) || String(email).trim();
     const cleanDepartment = validator.escape(String(department).trim());
     const cleanNotes = notes ? validator.escape(String(notes).trim()) : "";
 
     const currentYear = new Date().getFullYear();
-    if (!new RegExp(`^GIP-${currentYear}-\\d{3}$`).test(cleanIdNumber)) {
+    const previewId = idNumber ? validator.escape(String(idNumber).trim()) : "";
+
+    if (previewId && !new RegExp(`^GIP-${currentYear}-\\d{3}$`).test(previewId)) {
       return res.status(400).json({
         message: `ID number must follow the format GIP-${currentYear}-###.`,
       });
@@ -186,13 +180,6 @@ export const createUser = async (req, res) => {
       });
     }
 
-    const existingId = await User.findOne({ idNumber: cleanIdNumber });
-    if (existingId) {
-      return res.status(400).json({
-        message: "ID number already exists.",
-      });
-    }
-
     if (role === "Dept Head") {
       const existingDeptHead = await User.findOne({
         role: "Dept Head",
@@ -206,11 +193,20 @@ export const createUser = async (req, res) => {
       }
     }
 
+    const idScope = role === "Faculty" ? "faculty" : "user";
+
+    let finalIdNumber = await generateId({
+      prefix: "GIP",
+      scope: idScope,
+      checks: getUserIdChecks(),
+      startAt: 1,
+    });
+
     const user = new User({
       firstName: cleanFirstName,
       middleName: cleanMiddleName,
       lastName: cleanLastName,
-      idNumber: cleanIdNumber,
+      idNumber: finalIdNumber,
       email: cleanEmail,
       phone: cleanPhone,
       gender,
@@ -227,6 +223,8 @@ export const createUser = async (req, res) => {
 
     return res.status(201).json({
       message: "User created successfully (inactive).",
+      user,
+      idNumber: finalIdNumber,
     });
   } catch (err) {
     console.error("createUser error:", err);
