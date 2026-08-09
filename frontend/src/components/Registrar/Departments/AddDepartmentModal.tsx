@@ -43,35 +43,41 @@ export default function AddDepartmentModal({
   const confirmingRef = useRef(false);
 
   const [form, setForm] = useState<Payload>({ ...EMPTY_FORM });
+  const [initialForm, setInitialForm] = useState<Payload>({ ...EMPTY_FORM });
+
   const [touched, setTouched] = useState<
     Partial<Record<keyof Payload, boolean>>
   >({});
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
 
-    console.log("MODAL INITIAL:", initial);
+    let nextForm: Payload;
 
     if (initial?.id) {
-      setForm({
+      nextForm = {
         code: initial.code ?? "",
         name: initial.name ?? "",
         description: initial.description ?? "",
         status: initial.status ?? "Active",
-      });
+      };
     } else {
-      setForm({ ...EMPTY_FORM });
+      nextForm = { ...EMPTY_FORM };
     }
 
+    setForm(nextForm);
+    setInitialForm(nextForm);
     setTouched({});
     setErrors({});
     setFormError("");
     setConfirmOpen(false);
+    setDiscardOpen(false);
     confirmingRef.current = false;
-  }, [open, initial?.id]);
+  }, [open, initial?.id, initial]);
 
   useEffect(() => {
     if (!open) return;
@@ -84,22 +90,77 @@ export default function AddDepartmentModal({
     };
   }, [open]);
 
+  const hasUnsavedChanges = useMemo(() => {
+    return (
+      form.code !== initialForm.code ||
+      form.name !== initialForm.name ||
+      form.description !== initialForm.description ||
+      form.status !== initialForm.status
+    );
+  }, [form, initialForm]);
+
+  const shouldWarnBeforeUnload =
+    open && hasUnsavedChanges && !confirmOpen && !isLoading;
+
+  useEffect(() => {
+    if (!shouldWarnBeforeUnload) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [shouldWarnBeforeUnload]);
+
+  const requestClose = () => {
+    if (isLoading) return;
+
+    if (confirmOpen) {
+      setConfirmOpen(false);
+      return;
+    }
+
+    if (hasUnsavedChanges) {
+      setDiscardOpen(true);
+      return;
+    }
+
+    onClose();
+  };
+
+  const forceClose = () => {
+    setDiscardOpen(false);
+    setConfirmOpen(false);
+    onClose();
+  };
+
   useEffect(() => {
     if (!open) return;
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        if (isLoading) return;
+
         if (confirmOpen) {
           setConfirmOpen(false);
-        } else {
-          onClose();
+          return;
         }
+
+        if (discardOpen) {
+          setDiscardOpen(false);
+          return;
+        }
+
+        requestClose();
       }
     };
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, confirmOpen, onClose]);
+  }, [open, confirmOpen, discardOpen, isLoading, hasUnsavedChanges]);
 
   const validate = (data: Payload): Errors => {
     const e: Errors = {};
@@ -172,7 +233,7 @@ export default function AddDepartmentModal({
   };
 
   const confirmSubmit = () => {
-    if (confirmingRef.current) return;
+    if (confirmingRef.current || isLoading) return;
     confirmingRef.current = true;
 
     const payload = {
@@ -192,6 +253,7 @@ export default function AddDepartmentModal({
     }
 
     setConfirmOpen(false);
+    setDiscardOpen(false);
     confirmingRef.current = false;
   };
 
@@ -206,8 +268,13 @@ export default function AddDepartmentModal({
       aria-modal="true"
       aria-label={isEdit ? "Edit Department" : "Add Department"}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget && !confirmOpen) {
-          onClose();
+        if (
+          e.target === e.currentTarget &&
+          !confirmOpen &&
+          !discardOpen &&
+          !isLoading
+        ) {
+          requestClose();
         }
       }}
     >
@@ -218,19 +285,15 @@ export default function AddDepartmentModal({
           </div>
 
           <button
-  type="button"
-  className="dept-modal-close app-icon-btn app-icon-btn-sm"
-  onClick={() => {
-    if (isLoading) return;
-    if (confirmOpen) setConfirmOpen(false);
-    else onClose();
-  }}
-  aria-label="Close"
-  title="Close"
-  disabled={isLoading}
->
-  <X size={18} />
-</button>
+            type="button"
+            className="dept-modal-close app-icon-btn app-icon-btn-sm"
+            onClick={requestClose}
+            aria-label="Close"
+            title="Close"
+            disabled={isLoading}
+          >
+            <X size={18} />
+          </button>
         </div>
 
         <div className="dept-modal-body">
@@ -245,6 +308,7 @@ export default function AddDepartmentModal({
                 value={form.code}
                 onChange={(e) => setField("code", e.target.value)}
                 onBlur={() => markTouched("code")}
+                disabled={isLoading}
               />
               <div className="dept-error-slot">
                 {fieldError("code") || "\u00A0"}
@@ -276,6 +340,7 @@ export default function AddDepartmentModal({
                 value={form.name}
                 onChange={(e) => setField("name", e.target.value)}
                 onBlur={() => markTouched("name")}
+                disabled={isLoading}
               />
               <div className="dept-error-slot">
                 {fieldError("name") || "\u00A0"}
@@ -293,6 +358,7 @@ export default function AddDepartmentModal({
                   setField("status", e.target.value as DepartmentStatus)
                 }
                 onBlur={() => markTouched("status")}
+                disabled={isLoading}
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
@@ -313,6 +379,7 @@ export default function AddDepartmentModal({
                 onChange={(e) => setField("description", e.target.value)}
                 onBlur={() => markTouched("description")}
                 rows={4}
+                disabled={isLoading}
               />
               <div className="dept-error-slot">
                 {fieldError("description") || "\u00A0"}
@@ -329,7 +396,7 @@ export default function AddDepartmentModal({
           <button
             className="btn btn-light"
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             disabled={isLoading}
           >
             Cancel
@@ -346,93 +413,160 @@ export default function AddDepartmentModal({
         </div>
 
         {confirmOpen && (
-  <div
-    className="dept-confirm-backdrop"
-    role="dialog"
-    aria-modal="true"
-    aria-label={isEdit ? "Confirm Save Department" : "Confirm Create Department"}
-    onMouseDown={(e) => {
-      if (e.target === e.currentTarget && !isLoading) {
-        setConfirmOpen(false);
-      }
-    }}
-  >
-    <div
-      className="dept-confirm-card"
-      onMouseDown={(e) => e.stopPropagation()}
-    >
-      <div className="dept-confirm-header">
-        <div className="dept-confirm-title">
-          {isEdit ? "Confirm Save" : "Confirm Create"}
-        </div>
+          <div
+            className="dept-confirm-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-label={
+              isEdit ? "Confirm Save Department" : "Confirm Create Department"
+            }
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget && !isLoading) {
+                setConfirmOpen(false);
+              }
+            }}
+          >
+            <div
+              className="dept-confirm-card"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="dept-confirm-header">
+                <div className="dept-confirm-title">
+                  {isEdit ? "Confirm Save" : "Confirm Create"}
+                </div>
 
-        <button
-          type="button"
-          className="app-icon-btn app-icon-btn-sm"
-          onClick={() => setConfirmOpen(false)}
-          aria-label="Close"
-          title="Close"
-          disabled={isLoading}
-        >
-          <X size={16} />
-        </button>
-      </div>
+                <button
+                  type="button"
+                  className="app-icon-btn app-icon-btn-sm"
+                  onClick={() => setConfirmOpen(false)}
+                  aria-label="Close"
+                  title="Close"
+                  disabled={isLoading}
+                >
+                  <X size={16} />
+                </button>
+              </div>
 
-      <div className="dept-confirm-body">
-        <div className="fw-bold mb-1">
-          {isEdit ? "Save changes?" : "Create this department?"}
-        </div>
+              <div className="dept-confirm-body">
+                <div className="fw-bold mb-1">
+                  {isEdit ? "Save changes?" : "Create this department?"}
+                </div>
 
-        <div className="text-muted small">
-          {isEdit
-            ? "This will update the department details."
-            : "This will create a new department."}
-        </div>
+                <div className="text-muted small">
+                  {isEdit
+                    ? "This will update the department details."
+                    : "This will create a new department."}
+                </div>
 
-        <div className="mt-3 small text-start w-100">
-          <div>
-            <span className="text-muted">Code:</span>{" "}
-            <span className="fw-semibold">{normalizeCode(form.code)}</span>
-          </div>
-          <div>
-            <span className="text-muted">Name:</span>{" "}
-            <span className="fw-semibold">{form.name.trim()}</span>
-          </div>
-          <div>
-            <span className="text-muted">Status:</span>{" "}
-            <span className="fw-semibold">{form.status}</span>
-          </div>
-          {form.description.trim() ? (
-            <div>
-              <span className="text-muted">Description:</span>{" "}
-              <span className="fw-semibold">{form.description.trim()}</span>
+                <div className="mt-3 small text-start w-100">
+                  <div>
+                    <span className="text-muted">Code:</span>{" "}
+                    <span className="fw-semibold">{normalizeCode(form.code)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted">Name:</span>{" "}
+                    <span className="fw-semibold">{form.name.trim()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted">Status:</span>{" "}
+                    <span className="fw-semibold">{form.status}</span>
+                  </div>
+                  {form.description.trim() ? (
+                    <div>
+                      <span className="text-muted">Description:</span>{" "}
+                      <span className="fw-semibold">
+                        {form.description.trim()}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="dept-confirm-actions">
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  onClick={() => setConfirmOpen(false)}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={confirmSubmit}
+                  disabled={isLoading}
+                >
+                  Yes, {isEdit ? "Save" : "Create"}
+                </button>
+              </div>
             </div>
-          ) : null}
-        </div>
-      </div>
+          </div>
+        )}
 
-      <div className="dept-confirm-actions">
-        <button
-          type="button"
-          className="btn btn-light"
-          onClick={() => setConfirmOpen(false)}
-          disabled={isLoading}
-        >
-          Cancel
-        </button>
+        {discardOpen && (
+          <div
+            className="dept-confirm-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirm Discard Department Changes"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget && !isLoading) {
+                setDiscardOpen(false);
+              }
+            }}
+          >
+            <div
+              className="dept-confirm-card"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="dept-confirm-header">
+                <div className="dept-confirm-title">Discard changes?</div>
 
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={confirmSubmit}
-          disabled={isLoading}
-        >
-          Yes, {isEdit ? "Save" : "Create"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+                <button
+                  type="button"
+                  className="app-icon-btn app-icon-btn-sm"
+                  onClick={() => setDiscardOpen(false)}
+                  aria-label="Close"
+                  title="Close"
+                  disabled={isLoading}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="dept-confirm-body">
+                <div className="fw-bold mb-1">
+                  You have unsaved input in this form.
+                </div>
+                <div className="text-muted small">
+                  Closing this modal will discard your changes.
+                </div>
+              </div>
+
+              <div className="dept-confirm-actions">
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  onClick={() => setDiscardOpen(false)}
+                  disabled={isLoading}
+                >
+                  Keep Editing
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={forceClose}
+                  disabled={isLoading}
+                >
+                  Discard & Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

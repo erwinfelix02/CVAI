@@ -29,10 +29,10 @@
   font-size: 0.8rem;
   line-height: 1.1;
 
-  margin-top: 2px !important;   /* 🔥 reduce gap */
+  margin-top: 2px !important; /* 🔥 reduce gap */
   margin-bottom: 0 !important;
 
-  min-height: 14px;             /* still prevents layout jump */
+  min-height: 14px; /* still prevents layout jump */
 }
 
 /* 🔥 remove extra spacing from form groups */
@@ -598,4 +598,468 @@
   align-items: center;
   justify-content: center;
   text-align: center;
+}
+.app-icon-btn {
+  width: 42px;
+  height: 42px;
+  border: 1px solid #d7dce5;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #374151;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.app-icon-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #111827;
+}
+
+.app-icon-btn-sm {
+  width: 40px;
+  height: 40px;
+}
+.prereg-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 3000;
+}
+
+.prereg-confirm-modal {
+  width: 100%;
+  max-width: 460px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+  overflow: hidden;
+}
+
+.prereg-confirm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.prereg-confirm-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.prereg-confirm-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.prereg-confirm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+@media (max-width: 576px) {
+  .prereg-confirm-footer {
+    flex-direction: column;
+  }
+
+  .prereg-confirm-footer .btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   TERMS & CONDITIONS
+   ========================================================= */
+
+.prereg-terms-card {
+  width: 100%;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 16px 18px;
+  background: #fff;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.prereg-terms-card:hover {
+  border-color: #b8c2cc;
+}
+
+.prereg-terms-card.prereg-terms-agreed {
+  border-color: #198754;
+  background: #f6fff9;
+}
+
+.prereg-terms-check-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.prereg-terms-checkbox {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border: 2px solid #adb5bd;
+  border-radius: 6px;
+  background: #fff;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.prereg-terms-checkbox:hover {
+  border-color: #0d6efd;
+}
+
+.prereg-terms-checkbox:active {
+  transform: scale(0.95);
+}
+
+.prereg-terms-checkbox.checked {
+  background: #198754;
+  border-color: #198754;
+}
+
+.prereg-terms-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.prereg-terms-inline-link {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: #0d6efd;
+  font-size: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  display: inline;
+}
+
+.prereg-terms-inline-link:hover {
+  color: #0a58ca;
+}
+
+.prereg-terms-status {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.terms-status-agreed {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #198754;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.terms-status-required {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #fff3cd;
+  color: #856404;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* =========================================================
+   RESPONSIVE TERMS
+   ========================================================= */
+
+@media (max-width: 576px) {
+  .prereg-terms-card {
+    padding: 14px;
+  }
+
+  .prereg-terms-check-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .prereg-terms-checkbox {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .prereg-terms-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Keep Required / Agreed at the TOP */
+  .prereg-terms-status {
+    flex-shrink: 0;
+    margin-left: auto;
+    margin-top: 0;
+    align-self: flex-start;
+    white-space: nowrap;
+  }
+
+  .terms-status-required {
+    font-size: 0.7rem;
+    padding: 4px 7px;
+  }
+
+  .terms-status-agreed {
+    font-size: 0.75rem;
+  }
+}
+
+/* =========================================================
+   VERY SMALL PHONES
+   ========================================================= */
+
+@media (max-width: 380px) {
+  .prereg-terms-check-row {
+    gap: 8px;
+  }
+
+  .prereg-terms-checkbox {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+  }
+
+  .prereg-terms-status {
+    margin-left: auto;
+  }
+
+  .terms-status-required {
+    font-size: 0.65rem;
+    padding: 3px 6px;
+  }
+
+  .terms-status-agreed {
+    font-size: 0.7rem;
+  }
+}
+
+/* =========================================================
+   TERMS MODAL OVERLAY
+   ========================================================= */
+
+.prereg-terms-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(15, 23, 42, 0.58);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  overflow-y: auto;
+}
+
+/* =========================================================
+   TERMS MODAL
+   ========================================================= */
+
+.prereg-terms-modal {
+  width: min(700px, 100%);
+  max-height: min(720px, calc(100vh - 40px));
+
+  background: #fff;
+  border-radius: 16px;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+/* =========================================================
+   TERMS MODAL HEADER
+   ========================================================= */
+
+.prereg-terms-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  padding: 18px 20px;
+
+  border-bottom: 1px solid #e9ecef;
+
+  flex-shrink: 0;
+}
+
+.prereg-terms-icon {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+
+  border-radius: 10px;
+
+  background: #e7f1ff;
+  color: #0d6efd;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =========================================================
+   TERMS MODAL BODY
+   ========================================================= */
+
+.prereg-terms-modal-body {
+  padding: 20px;
+
+  overflow-y: auto;
+
+  color: #495057;
+
+  line-height: 1.65;
+}
+
+.prereg-terms-modal-body section {
+  margin-bottom: 18px;
+}
+
+.prereg-terms-modal-body section:last-child {
+  margin-bottom: 0;
+}
+
+.prereg-terms-modal-body h6 {
+  color: #212529;
+  margin-bottom: 6px;
+}
+
+.prereg-terms-modal-body p {
+  margin-bottom: 0;
+  font-size: 0.92rem;
+}
+
+/* =========================================================
+   TERMS MODAL FOOTER
+   ========================================================= */
+
+.prereg-terms-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  padding: 15px 20px;
+
+  border-top: 1px solid #e9ecef;
+
+  flex-shrink: 0;
+}
+
+.prereg-terms-modal-footer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  min-height: 40px;
+}
+
+/* =========================================================
+   SUBMIT WARNING
+   ========================================================= */
+
+.prereg-submit-warning {
+  max-width: 320px;
+  line-height: 1.35;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+/* =========================================================
+   DISABLED SUBMIT BUTTON
+   ========================================================= */
+
+.prereg-footer .btn-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* =========================================================
+   MOBILE FOOTER BUTTON RESPONSIVENESS
+   ========================================================= */
+
+@media (max-width: 576px) {
+  .prereg-footer {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .prereg-footer-left,
+  .prereg-footer-right {
+    width: 100%;
+  }
+
+  .prereg-footer-left button,
+  .prereg-footer-right button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Submit button wrapper */
+  .prereg-footer-right > .d-flex {
+    width: 100%;
+    align-items: stretch !important;
+  }
+
+  .prereg-submit-warning {
+    width: 100%;
+    max-width: none;
+    text-align: center !important;
+  }
 }

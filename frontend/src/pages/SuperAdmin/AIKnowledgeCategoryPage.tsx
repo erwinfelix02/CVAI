@@ -113,12 +113,12 @@ export default function AIKnowledgeCategoryPage() {
     return result;
   }, [faqs, query, filter]);
 
-  const currentCategory =
-    (categoryId && categoryMeta[categoryId as keyof typeof categoryMeta]) || {
-      title: "Category",
-      subtitle: "Knowledge base category",
-      icon: GraduationCap,
-    };
+  const currentCategory = (categoryId &&
+    categoryMeta[categoryId as keyof typeof categoryMeta]) || {
+    title: "Category",
+    subtitle: "Knowledge base category",
+    icon: GraduationCap,
+  };
 
   return (
     <div className="superadmin-kb">

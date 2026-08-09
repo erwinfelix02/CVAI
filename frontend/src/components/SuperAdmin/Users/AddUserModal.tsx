@@ -106,6 +106,20 @@ type AddUserModalProps = {
   existingUsers: UserRow[];
 };
 
+const EMPTY_FORM: AddUserFormState = {
+  firstName: "",
+  middleName: "",
+  lastName: "",
+  idNumber: "",
+  email: "",
+  phone: "",
+  gender: "",
+  role: "",
+  status: "inactive",
+  department: "",
+  notes: "",
+};
+
 export default function AddUserModal({
   open,
   onClose,
@@ -128,6 +142,8 @@ export default function AddUserModal({
   const [localErrors, setLocalErrors] = useState<AddUserErrors>({});
   const [touched, setTouched] = useState<Touched>({});
   const [showReview, setShowReview] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
+
   const [reviewData, setReviewData] = useState<Omit<
     AddUserPayload,
     "tempPassword"
@@ -168,6 +184,10 @@ export default function AddUserModal({
       notes,
     ],
   );
+
+  const [initialForm, setInitialForm] = useState<AddUserFormState>({
+    ...EMPTY_FORM,
+  });
 
   const hasRegistrarAlready = useMemo(() => {
     return existingUsers.some((u) => String(u.role).trim() === "Registrar");
@@ -327,6 +347,11 @@ export default function AddUserModal({
           const previewId = data?.idNumber || "";
           setIdNumber(previewId);
 
+          setInitialForm((prev) => ({
+            ...prev,
+            idNumber: previewId,
+          }));
+
           if (!previewId) {
             setIdError("Failed to load automatic user ID.");
           } else if (submitted || touched.idNumber) {
@@ -340,6 +365,10 @@ export default function AddUserModal({
         if (!cancelled) {
           setIdNumber("");
           setIdError(err?.message || "Failed to load automatic user ID.");
+          setInitialForm((prev) => ({
+            ...prev,
+            idNumber: "",
+          }));
         }
       } finally {
         if (!cancelled) {
@@ -479,16 +508,78 @@ export default function AddUserModal({
   const selectClass = (k: keyof AddUserFormState) =>
     `users-select ${invalid(k) ? "is-invalid" : ""}`;
 
+  const hasUnsavedChanges = useMemo(() => {
+    return (
+      form.firstName !== initialForm.firstName ||
+      form.middleName !== initialForm.middleName ||
+      form.lastName !== initialForm.lastName ||
+      form.idNumber !== initialForm.idNumber ||
+      form.email !== initialForm.email ||
+      form.phone !== initialForm.phone ||
+      form.gender !== initialForm.gender ||
+      form.role !== initialForm.role ||
+      form.status !== initialForm.status ||
+      form.department !== initialForm.department ||
+      form.notes !== initialForm.notes
+    );
+  }, [form, initialForm]);
+
+  const shouldWarnBeforeUnload =
+    open && hasUnsavedChanges && !isLoading && !idLoading;
+
+  useEffect(() => {
+    if (!shouldWarnBeforeUnload) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [shouldWarnBeforeUnload]);
+
+  const requestClose = () => {
+    if (isLoading || idLoading) return;
+
+    if (showReview) {
+      setShowReview(false);
+      return;
+    }
+
+    if (hasUnsavedChanges) {
+      setDiscardOpen(true);
+      return;
+    }
+
+    onClose();
+  };
+
+  const forceClose = () => {
+    setDiscardOpen(false);
+    setShowReview(false);
+    onClose();
+  };
+
   useEffect(() => {
     if (!open) return;
 
     const onKey = (ev: KeyboardEvent) => {
-      if (ev.key === "Escape") {
-        if (isLoading) return;
+      if (ev.key !== "Escape") return;
+      if (isLoading || idLoading) return;
 
-        if (showReview) setShowReview(false);
-        else onClose();
+      if (discardOpen) {
+        setDiscardOpen(false);
+        return;
       }
+
+      if (showReview) {
+        setShowReview(false);
+        return;
+      }
+
+      requestClose();
     };
 
     window.addEventListener("keydown", onKey);
@@ -498,7 +589,7 @@ export default function AddUserModal({
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [open, onClose, showReview, isLoading]);
+  }, [open, showReview, isLoading, idLoading, discardOpen, hasUnsavedChanges]);
 
   useEffect(() => {
     if (!open) return;
@@ -518,9 +609,14 @@ export default function AddUserModal({
     setLocalErrors({});
     setShowReview(false);
     setReviewData(null);
+    setDiscardOpen(false);
     setDeptError("");
     setIdLoading(false);
     setIdError("");
+
+    setInitialForm({
+      ...EMPTY_FORM,
+    });
   }, [open]);
 
   if (!open) return null;
@@ -564,7 +660,7 @@ export default function AddUserModal({
       firstName: cleanFirst,
       middleName: cleanMiddle,
       lastName: cleanLast,
-      idNumber: idNumber.trim(), // preview only
+      idNumber: idNumber.trim(),
       email: email.trim(),
       phone: phone.trim(),
       gender: gender as Gender,
@@ -605,13 +701,13 @@ export default function AddUserModal({
 
       {!showReview && (
         <div
-  className="users-modal-backdrop"
-  onMouseDown={(e) => {
-    if (e.target === e.currentTarget && !isLoading) {
-      onClose();
-    }
-  }}
->
+          className="users-modal-backdrop"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !isLoading) {
+              requestClose();
+            }
+          }}
+        >
           <div
             className="users-modal users-modal-compact"
             role="dialog"
@@ -627,369 +723,368 @@ export default function AddUserModal({
                 </p>
               </div>
 
-             <button
-  type="button"
-  className="users-modal-close app-icon-btn app-icon-btn-sm"
-  onClick={() => {
-    if (isLoading) return;
-    onClose();
-  }}
-  aria-label="Close"
-  title="Close"
-  disabled={isLoading}
->
-  <X size={18} />
-</button>
+              <button
+                type="button"
+                className="users-modal-close app-icon-btn app-icon-btn-sm"
+                onClick={requestClose}
+                aria-label="Close"
+                title="Close"
+                disabled={isLoading}
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            <form onSubmit={openReview} className="users-modal-body">
-              <div className="users-form-grid">
-                <div className="users-name-row users-col-span-2">
-                  <div className="users-field users-input-with-icon">
-                    <label className={labelClass("firstName")}>
-                      First Name <span className="req">*</span>
-                    </label>
-                    <div className="users-input-wrapper">
-                      <User className="users-input-icon" size={16} />
-                      <input
-                        className={inputClass("firstName")}
-                        value={firstName}
-                        onChange={(e) =>
-                          setFirstName(
-                            sanitizeInput(toTitleCase(e.target.value)),
-                          )
-                        }
-                        onBlur={() => onBlurField("firstName")}
-                        placeholder="Enter first name"
-                      />
-                    </div>
-                    <div className="users-invalid-feedback">
-                      {invalid("firstName") ? getError("firstName") : "\u00A0"}
-                    </div>
-                  </div>
-
-                  <div className="users-field users-input-with-icon">
-                    <label className={labelClass("middleName")}>
-                      Middle Name
-                    </label>
-                    <div className="users-input-wrapper">
-                      <User className="users-input-icon" size={16} />
-                      <input
-                        className={inputClass("middleName")}
-                        value={middleName}
-                        onChange={(e) =>
-                          setMiddleName(
-                            sanitizeInput(toTitleCase(e.target.value)),
-                          )
-                        }
-                        onBlur={() => onBlurField("middleName")}
-                        placeholder="Optional"
-                      />
-                    </div>
-                    <div className="users-invalid-feedback">
-                      {invalid("middleName")
-                        ? getError("middleName")
-                        : "\u00A0"}
-                    </div>
-                  </div>
-
-                  <div className="users-field users-input-with-icon">
-                    <label className={labelClass("lastName")}>
-                      Last Name <span className="req">*</span>
-                    </label>
-                    <div className="users-input-wrapper">
-                      <User className="users-input-icon" size={16} />
-                      <input
-                        className={inputClass("lastName")}
-                        value={lastName}
-                        onChange={(e) =>
-                          setLastName(
-                            sanitizeInput(toTitleCase(e.target.value)),
-                          )
-                        }
-                        onBlur={() => onBlurField("lastName")}
-                        placeholder="Enter last name"
-                      />
-                    </div>
-                    <div className="users-invalid-feedback">
-                      {invalid("lastName") ? getError("lastName") : "\u00A0"}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="users-row-3 users-col-span-2">
-                  <div className="users-field users-input-with-icon">
-                    <label
-                      className={`users-label ${idFieldError ? "is-invalid-label" : ""}`}
-                    >
-                      ID Number <span className="req">*</span>
-                    </label>
-                    <div className="users-input-wrapper">
-                      <Hash className="users-input-icon" size={16} />
-                      <input
-                        className={`users-input ${idFieldError ? "is-invalid" : ""}`}
-                        value={!role ? "" : idLoading ? "Loading..." : idNumber}
-                        disabled
-                        readOnly
-                        placeholder={
-                          role
-                            ? `e.g., ${getIdPrefixByRole(role)}001`
-                            : "Select role first"
-                        }
-                        style={{
-                          opacity: 1,
-                          backgroundColor: "#e9ecef",
-                          cursor: "not-allowed",
-                        }}
-                      />
-                    </div>
-                    <div className="text-muted small mt-1">
-                      Auto-generated preview only. Final ID is assigned on save.
-                    </div>
-                    <div className="users-invalid-feedback">
-                      {submitted ? idFieldError || "\u00A0" : "\u00A0"}
-                    </div>
-                  </div>
-
-                  <div className="users-field users-input-with-icon">
-                    <label className={labelClass("email")}>
-                      Email <span className="req">*</span>
-                    </label>
-                    <div className="users-input-wrapper">
-                      <Mail className="users-input-icon" size={16} />
-                      <input
-                        className={inputClass("email")}
-                        value={email}
-                        onChange={(e) =>
-                          setEmail(sanitizeInput(e.target.value))
-                        }
-                        onBlur={() => onBlurField("email")}
-                        placeholder="Enter email address"
-                        type="email"
-                      />
-                    </div>
-                    <div className="users-invalid-feedback">
-                      {invalid("email") ? getError("email") : "\u00A0"}
-                    </div>
-                  </div>
-
-                  <div className="users-field users-input-with-icon">
-                    <label className={labelClass("phone")}>
-                      Phone <span className="req">*</span>
-                    </label>
-                    <div className="users-input-wrapper">
-                      <Phone className="users-input-icon" size={16} />
-                      <input
-                        className={inputClass("phone")}
-                        value={phone}
-                        onChange={handlePhoneChange}
-                        onBlur={() => onBlurField("phone")}
-                        placeholder="+639XXXXXXXXX"
-                        inputMode="numeric"
-                        maxLength={13}
-                      />
-                    </div>
-                    <div className="users-invalid-feedback">
-                      {invalid("phone") ? getError("phone") : "\u00A0"}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="users-row-2 users-col-span-2">
-                  <div className="users-field users-input-with-icon has-select">
-                    <label className={labelClass("gender")}>
-                      Gender <span className="req">*</span>
-                    </label>
-                    <div className="users-input-wrapper">
-                      <Users className="users-input-icon" size={16} />
-                      <select
-                        className={selectClass("gender")}
-                        value={gender}
-                        onChange={(e) => {
-                          const nextGender = e.target.value as Gender | "";
-                          setGender(nextGender);
-
-                          if (submitted || touched.gender) {
-                            setLocalErrors((p) => ({
-                              ...p,
-                              gender: nextGender ? "" : "Gender is required.",
-                            }));
+            <form onSubmit={openReview} className="users-modal-form">
+              <div className="users-modal-body">
+                <div className="users-form-grid">
+                  <div className="users-name-row users-col-span-2">
+                    <div className="users-field users-input-with-icon">
+                      <label className={labelClass("firstName")}>
+                        First Name <span className="req">*</span>
+                      </label>
+                      <div className="users-input-wrapper">
+                        <User className="users-input-icon" size={16} />
+                        <input
+                          className={inputClass("firstName")}
+                          value={firstName}
+                          onChange={(e) =>
+                            setFirstName(
+                              sanitizeInput(toTitleCase(e.target.value)),
+                            )
                           }
-                        }}
-                        onBlur={() => onBlurField("gender")}
+                          onBlur={() => onBlurField("firstName")}
+                          placeholder="Enter first name"
+                        />
+                      </div>
+                      <div className="users-invalid-feedback">
+                        {invalid("firstName") ? getError("firstName") : "\u00A0"}
+                      </div>
+                    </div>
+
+                    <div className="users-field users-input-with-icon">
+                      <label className={labelClass("middleName")}>
+                        Middle Name
+                      </label>
+                      <div className="users-input-wrapper">
+                        <User className="users-input-icon" size={16} />
+                        <input
+                          className={inputClass("middleName")}
+                          value={middleName}
+                          onChange={(e) =>
+                            setMiddleName(
+                              sanitizeInput(toTitleCase(e.target.value)),
+                            )
+                          }
+                          onBlur={() => onBlurField("middleName")}
+                          placeholder="Optional"
+                        />
+                      </div>
+                      <div className="users-invalid-feedback">
+                        {invalid("middleName")
+                          ? getError("middleName")
+                          : "\u00A0"}
+                      </div>
+                    </div>
+
+                    <div className="users-field users-input-with-icon">
+                      <label className={labelClass("lastName")}>
+                        Last Name <span className="req">*</span>
+                      </label>
+                      <div className="users-input-wrapper">
+                        <User className="users-input-icon" size={16} />
+                        <input
+                          className={inputClass("lastName")}
+                          value={lastName}
+                          onChange={(e) =>
+                            setLastName(
+                              sanitizeInput(toTitleCase(e.target.value)),
+                            )
+                          }
+                          onBlur={() => onBlurField("lastName")}
+                          placeholder="Enter last name"
+                        />
+                      </div>
+                      <div className="users-invalid-feedback">
+                        {invalid("lastName") ? getError("lastName") : "\u00A0"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="users-row-3 users-col-span-2">
+                    <div className="users-field users-input-with-icon">
+                      <label
+                        className={`users-label ${idFieldError ? "is-invalid-label" : ""}`}
                       >
-                        <option value="" disabled>
-                          Select gender
-                        </option>
-                        {GENDERS.map((g) => (
-                          <option key={g} value={g}>
-                            {g}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="users-invalid-feedback">
-                      {invalid("gender") ? getError("gender") : "\u00A0"}
-                    </div>
-                  </div>
-
-                  <div className="users-field users-input-with-icon">
-                    <label className="users-label">
-                      Status <span className="req">*</span>
-                    </label>
-                    <div className="users-input-wrapper">
-                      <ShieldCheck className="users-input-icon" size={16} />
-                      <input
-                        className="users-input users-status-inactive text-center"
-                        value="Inactive"
-                        readOnly
-                      />
-                    </div>
-                    <div className="users-invalid-feedback">&nbsp;</div>
-                  </div>
-                </div>
-
-                <div className="users-row-2 users-col-span-2">
-                  <div className="users-field users-input-with-icon has-select">
-                    <label className={labelClass("role")}>
-                      Portal Role <span className="req">*</span>
-                    </label>
-                    <div className="users-input-wrapper">
-                      <ShieldCheck className="users-input-icon" size={16} />
-                      <select
-                        className={selectClass("role")}
-                        value={role}
-                        onChange={(e) => {
-                          const nextRole = e.target.value as UserRole | "";
-                          setRole(nextRole);
-                          setIdNumber("");
-                          setIdError("");
-
-                          if (submitted || touched.role) {
-                            setLocalErrors((p) => ({
-                              ...p,
-                              role: nextRole ? "" : "Role is required.",
-                            }));
+                        ID Number <span className="req">*</span>
+                      </label>
+                      <div className="users-input-wrapper">
+                        <Hash className="users-input-icon" size={16} />
+                        <input
+                          className={`users-input ${idFieldError ? "is-invalid" : ""}`}
+                          value={!role ? "" : idLoading ? "Loading..." : idNumber}
+                          disabled
+                          readOnly
+                          placeholder={
+                            role
+                              ? `e.g., ${getIdPrefixByRole(role)}001`
+                              : "Select role first"
                           }
+                          style={{
+                            opacity: 1,
+                            backgroundColor: "#e9ecef",
+                            cursor: "not-allowed",
+                          }}
+                        />
+                      </div>
+                      <div className="text-muted small mt-1">
+                        Auto-generated preview only. Final ID is assigned on save.
+                      </div>
+                      <div className="users-invalid-feedback">
+                        {submitted ? idFieldError || "\u00A0" : "\u00A0"}
+                      </div>
+                    </div>
 
-                          setTimeout(() => {
-                            if (submitted || touched.department) {
+                    <div className="users-field users-input-with-icon">
+                      <label className={labelClass("email")}>
+                        Email <span className="req">*</span>
+                      </label>
+                      <div className="users-input-wrapper">
+                        <Mail className="users-input-icon" size={16} />
+                        <input
+                          className={inputClass("email")}
+                          value={email}
+                          onChange={(e) =>
+                            setEmail(sanitizeInput(e.target.value))
+                          }
+                          onBlur={() => onBlurField("email")}
+                          placeholder="Enter email address"
+                          type="email"
+                        />
+                      </div>
+                      <div className="users-invalid-feedback">
+                        {invalid("email") ? getError("email") : "\u00A0"}
+                      </div>
+                    </div>
+
+                    <div className="users-field users-input-with-icon">
+                      <label className={labelClass("phone")}>
+                        Phone <span className="req">*</span>
+                      </label>
+                      <div className="users-input-wrapper">
+                        <Phone className="users-input-icon" size={16} />
+                        <input
+                          className={inputClass("phone")}
+                          value={phone}
+                          onChange={handlePhoneChange}
+                          onBlur={() => onBlurField("phone")}
+                          placeholder="+639XXXXXXXXX"
+                          inputMode="numeric"
+                          maxLength={13}
+                        />
+                      </div>
+                      <div className="users-invalid-feedback">
+                        {invalid("phone") ? getError("phone") : "\u00A0"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="users-row-2 users-col-span-2">
+                    <div className="users-field users-input-with-icon has-select">
+                      <label className={labelClass("gender")}>
+                        Gender <span className="req">*</span>
+                      </label>
+                      <div className="users-input-wrapper">
+                        <Users className="users-input-icon" size={16} />
+                        <select
+                          className={selectClass("gender")}
+                          value={gender}
+                          onChange={(e) => {
+                            const nextGender = e.target.value as Gender | "";
+                            setGender(nextGender);
+
+                            if (submitted || touched.gender) {
                               setLocalErrors((p) => ({
                                 ...p,
-                                department: validateField("department"),
+                                gender: nextGender ? "" : "Gender is required.",
                               }));
                             }
-                          }, 0);
-                        }}
-                        onBlur={() => onBlurField("role")}
-                      >
-                        <option value="" disabled>
-                          Select role
-                        </option>
-                        {roles.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
+                          }}
+                          onBlur={() => onBlurField("gender")}
+                        >
+                          <option value="" disabled>
+                            Select gender
                           </option>
-                        ))}
-                      </select>
+                          {GENDERS.map((g) => (
+                            <option key={g} value={g}>
+                              {g}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="users-invalid-feedback">
+                        {invalid("gender") ? getError("gender") : "\u00A0"}
+                      </div>
                     </div>
-                    <div className="users-invalid-feedback">
-                      {invalid("role") ? getError("role") : "\u00A0"}
+
+                    <div className="users-field users-input-with-icon">
+                      <label className="users-label">
+                        Status <span className="req">*</span>
+                      </label>
+                      <div className="users-input-wrapper">
+                        <ShieldCheck className="users-input-icon" size={16} />
+                        <input
+                          className="users-input users-status-inactive text-center"
+                          value="Inactive"
+                          readOnly
+                        />
+                      </div>
+                      <div className="users-invalid-feedback">&nbsp;</div>
                     </div>
                   </div>
 
-                  <div className="users-field users-input-with-icon has-select">
-                    <label className={labelClass("department")}>
-                      Department <span className="req">*</span>
-                    </label>
-                    <div className="users-input-wrapper">
-                      <Building2 className="users-input-icon" size={16} />
+                  <div className="users-row-2 users-col-span-2">
+                    <div className="users-field users-input-with-icon has-select">
+                      <label className={labelClass("role")}>
+                        Portal Role <span className="req">*</span>
+                      </label>
+                      <div className="users-input-wrapper">
+                        <ShieldCheck className="users-input-icon" size={16} />
+                        <select
+                          className={selectClass("role")}
+                          value={role}
+                          onChange={(e) => {
+                            const nextRole = e.target.value as UserRole | "";
+                            setRole(nextRole);
+                            setIdNumber("");
+                            setIdError("");
 
-                      {departmentLocked ? (
-                        <input
-                          className={inputClass("department")}
-                          value={department}
-                          readOnly
-                          onBlur={() => onBlurField("department")}
-                        />
-                      ) : (
-                        <>
-                          <select
-                            className={selectClass("department")}
-                            value={department}
-                            onChange={(e) => {
-                              setDepartment(e.target.value);
+                            if (submitted || touched.role) {
+                              setLocalErrors((p) => ({
+                                ...p,
+                                role: nextRole ? "" : "Role is required.",
+                              }));
+                            }
+
+                            setTimeout(() => {
                               if (submitted || touched.department) {
                                 setLocalErrors((p) => ({
                                   ...p,
                                   department: validateField("department"),
                                 }));
                               }
-                            }}
-                            onBlur={() => onBlurField("department")}
-                            disabled={role === "Dept Head" && deptLoading}
-                          >
-                            <option value="">
-                              {role === "Dept Head" && deptLoading
-                                ? "Loading departments..."
-                                : "Select department"}
+                            }, 0);
+                          }}
+                          onBlur={() => onBlurField("role")}
+                        >
+                          <option value="" disabled>
+                            Select role
+                          </option>
+                          {roles.map((r) => (
+                            <option key={r} value={r}>
+                              {r}
                             </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="users-invalid-feedback">
+                        {invalid("role") ? getError("role") : "\u00A0"}
+                      </div>
+                    </div>
 
-                            {departmentOptions.map((d) => (
-                              <option key={d} value={d}>
-                                {d}
+                    <div className="users-field users-input-with-icon has-select">
+                      <label className={labelClass("department")}>
+                        Department <span className="req">*</span>
+                      </label>
+                      <div className="users-input-wrapper">
+                        <Building2 className="users-input-icon" size={16} />
+
+                        {departmentLocked ? (
+                          <input
+                            className={inputClass("department")}
+                            value={department}
+                            readOnly
+                            onBlur={() => onBlurField("department")}
+                          />
+                        ) : (
+                          <>
+                            <select
+                              className={selectClass("department")}
+                              value={department}
+                              onChange={(e) => {
+                                setDepartment(e.target.value);
+                                if (submitted || touched.department) {
+                                  setLocalErrors((p) => ({
+                                    ...p,
+                                    department: validateField("department"),
+                                  }));
+                                }
+                              }}
+                              onBlur={() => onBlurField("department")}
+                              disabled={role === "Dept Head" && deptLoading}
+                            >
+                              <option value="">
+                                {role === "Dept Head" && deptLoading
+                                  ? "Loading departments..."
+                                  : "Select department"}
                               </option>
-                            ))}
-                          </select>
 
-                          {role === "Dept Head" && deptError && (
-                            <div className="text-danger small mt-1">
-                              {deptError}
-                            </div>
-                          )}
+                              {departmentOptions.map((d) => (
+                                <option key={d} value={d}>
+                                  {d}
+                                </option>
+                              ))}
+                            </select>
 
-                          {role === "Dept Head" &&
-                            !deptLoading &&
-                            !deptError &&
-                            departmentOptions.length === 0 && (
-                              <div className="text-muted small mt-1">
-                                All active departments already have a Department
-                                Head.
+                            {role === "Dept Head" && deptError && (
+                              <div className="text-danger small mt-1">
+                                {deptError}
                               </div>
                             )}
-                        </>
-                      )}
-                    </div>
-                    <div className="users-invalid-feedback">
-                      {invalid("department")
-                        ? getError("department")
-                        : "\u00A0"}
+
+                            {role === "Dept Head" &&
+                              !deptLoading &&
+                              !deptError &&
+                              departmentOptions.length === 0 && (
+                                <div className="text-muted small mt-1">
+                                  All active departments already have a Department
+                                  Head.
+                                </div>
+                              )}
+                          </>
+                        )}
+                      </div>
+                      <div className="users-invalid-feedback">
+                        {invalid("department")
+                          ? getError("department")
+                          : "\u00A0"}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="users-field users-col-span-2">
-                  <label className="users-label">Notes</label>
-                  <textarea
-                    className="users-textarea"
-                    value={notes}
-                    onChange={(e) => setNotes(sanitizeInput(e.target.value))}
-                    placeholder="Optional notes"
-                    rows={3}
-                  />
-                  <div className="users-invalid-feedback">&nbsp;</div>
+                  <div className="users-field users-col-span-2">
+                    <label className="users-label">Notes</label>
+                    <textarea
+                      className="users-textarea"
+                      value={notes}
+                      onChange={(e) => setNotes(sanitizeInput(e.target.value))}
+                      placeholder="Optional notes"
+                      rows={3}
+                    />
+                    <div className="users-invalid-feedback">&nbsp;</div>
+                  </div>
                 </div>
               </div>
 
               <div className="users-modal-footer">
                 <button
-  type="button"
-  className="btn btn-light"
-  onClick={onClose}
-  disabled={isLoading}
->
-  Cancel
-</button>
+                  type="button"
+                  className="btn btn-light"
+                  onClick={requestClose}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </button>
 
                 <button
                   type="submit"
@@ -1000,6 +1095,70 @@ export default function AddUserModal({
                 </button>
               </div>
             </form>
+
+            {discardOpen ? (
+              <div
+                className="users-modal-backdrop"
+                role="dialog"
+                aria-modal="true"
+                onMouseDown={(e) => {
+                  if (e.target === e.currentTarget && !isLoading) {
+                    setDiscardOpen(false);
+                  }
+                }}
+              >
+                <div
+                  className="users-modal users-modal-compact"
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <div className="users-modal-header">
+                    <div>
+                      <h3 className="users-modal-title">Discard changes?</h3>
+                      <p className="users-modal-subtitle">
+                        You have unsaved input in this form.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="users-modal-close app-icon-btn app-icon-btn-sm"
+                      onClick={() => setDiscardOpen(false)}
+                      aria-label="Close"
+                      title="Close"
+                      disabled={isLoading}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div className="users-modal-body">
+                    <p className="mb-0 text-muted">
+                      Closing this modal will discard your changes.
+                    </p>
+                  </div>
+
+                  <div className="users-modal-footer">
+                    <button
+                      type="button"
+                      className="btn btn-light"
+                      onClick={() => setDiscardOpen(false)}
+                      disabled={isLoading}
+                    >
+                      Keep Editing
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={forceClose}
+                      disabled={isLoading}
+                    >
+                      Discard & Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       )}

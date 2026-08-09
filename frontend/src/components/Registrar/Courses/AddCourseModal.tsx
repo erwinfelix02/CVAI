@@ -5,7 +5,7 @@ import type { CourseItem, CourseStatus } from "./types";
 type Payload = {
   code: string;
   name: string;
-  yearLevels: number;
+  yearLevels: number | "";
   department: string;
   status: CourseStatus;
 };
@@ -47,7 +47,15 @@ export default function AddCourseModal({
   const [form, setForm] = useState<Payload>({
     code: "",
     name: "",
-    yearLevels: 4,
+    yearLevels: "",
+    department: "",
+    status: "Active",
+  });
+
+  const [initialForm, setInitialForm] = useState<Payload>({
+    code: "",
+    name: "",
+    yearLevels: "",
     department: "",
     status: "Active",
   });
@@ -59,34 +67,40 @@ export default function AddCourseModal({
   const [formError, setFormError] = useState("");
 
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const confirmingRef = useRef(false);
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     if (!open) return;
 
+    let nextForm: Payload;
+
     if (isEdit && initial) {
-      setForm({
+      nextForm = {
         code: initial.code ?? "",
         name: initial.name ?? "",
-        yearLevels: initial.yearLevels ?? 4,
+        yearLevels: initial.yearLevels ?? "",
         department: initial.department ?? "",
         status: (initial.status ?? "Active") as CourseStatus,
-      });
+      };
     } else {
-      setForm({
+      nextForm = {
         code: "",
         name: "",
-        yearLevels: 4,
+        yearLevels: "",
         department: "",
         status: "Active",
-      });
+      };
     }
 
+    setForm(nextForm);
+    setInitialForm(nextForm);
     setTouched({});
     setErrors({});
     setFormError("");
     setConfirmOpen(false);
+    setDiscardOpen(false);
     confirmingRef.current = false;
     setConfirming(false);
   }, [open, isEdit, initial]);
@@ -100,17 +114,73 @@ export default function AddCourseModal({
     };
   }, [open]);
 
+  const hasUnsavedChanges = useMemo(() => {
+    return (
+      form.code !== initialForm.code ||
+      form.name !== initialForm.name ||
+      form.yearLevels !== initialForm.yearLevels ||
+      form.department !== initialForm.department ||
+      form.status !== initialForm.status
+    );
+  }, [form, initialForm]);
+
+  const shouldWarnBeforeUnload =
+    open && hasUnsavedChanges && !confirming && !confirmOpen;
+
+  useEffect(() => {
+    if (!shouldWarnBeforeUnload) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [shouldWarnBeforeUnload]);
+
+  const requestClose = () => {
+    if (confirmOpen || confirming) return;
+
+    if (hasUnsavedChanges) {
+      setDiscardOpen(true);
+      return;
+    }
+
+    onClose();
+  };
+
+  const forceClose = () => {
+    setDiscardOpen(false);
+    setConfirmOpen(false);
+    onClose();
+  };
+
   useEffect(() => {
     if (!open) return;
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (confirmOpen) setConfirmOpen(false);
-        else onClose();
+        if (confirming) return;
+
+        if (confirmOpen) {
+          setConfirmOpen(false);
+          return;
+        }
+
+        if (discardOpen) {
+          setDiscardOpen(false);
+          return;
+        }
+
+        requestClose();
       }
     };
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose, confirmOpen]);
+  }, [open, confirmOpen, discardOpen, confirming, hasUnsavedChanges]);
 
   const validate = (data: Payload): Errors => {
     const e: Errors = {};
@@ -125,7 +195,7 @@ export default function AddCourseModal({
     if (!data.name.trim()) e.name = "Course Name is required.";
     else if (data.name.trim().length < 6) e.name = "Course Name is too short.";
 
-    const y = Number(data.yearLevels);
+    const y = data.yearLevels === "" ? NaN : Number(data.yearLevels);
     if (!Number.isFinite(y)) e.yearLevels = "Year Levels is required.";
     else if (y < 1 || y > 10) e.yearLevels = "Year Levels must be 1–10.";
 
@@ -146,12 +216,17 @@ export default function AddCourseModal({
   };
 
   const setField = <K extends keyof Payload>(key: K, val: Payload[K]) => {
-    setForm((p) => ({ ...p, [key]: val }));
-    if (touched[key]) setErrors(validate({ ...form, [key]: val } as Payload));
+    setForm((prev) => {
+      const next = { ...prev, [key]: val };
+      if (touched[key]) {
+        setErrors(validate(next));
+      }
+      return next;
+    });
   };
 
   const markTouched = (key: keyof Payload) => {
-    setTouched((p) => ({ ...p, [key]: true }));
+    setTouched((prev) => ({ ...prev, [key]: true }));
     setErrors(validate(form));
   };
 
@@ -195,6 +270,7 @@ export default function AddCourseModal({
       else await onCreate(payload);
 
       setConfirmOpen(false);
+      setDiscardOpen(false);
       onClose();
     } catch {
       setFormError("Something went wrong. Please try again.");
@@ -215,7 +291,14 @@ export default function AddCourseModal({
       aria-modal="true"
       aria-label={isEdit ? "Edit Course" : "Add New Course"}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget && !confirmOpen) onClose();
+        if (
+          e.target === e.currentTarget &&
+          !confirmOpen &&
+          !discardOpen &&
+          !confirming
+        ) {
+          requestClose();
+        }
       }}
     >
       <div className="modal-dialog modal-dialog-centered courses-modal-dialog">
@@ -231,7 +314,7 @@ export default function AddCourseModal({
             <button
               type="button"
               className="app-icon-btn app-icon-btn-sm"
-              onClick={onClose}
+              onClick={requestClose}
               aria-label="Close"
               title="Close"
               disabled={confirmOpen || confirming}
@@ -269,11 +352,15 @@ export default function AddCourseModal({
                   }`}
                   value={form.yearLevels}
                   onChange={(e) =>
-                    setField("yearLevels", Number(e.target.value))
+                    setField(
+                      "yearLevels",
+                      e.target.value === "" ? "" : Number(e.target.value),
+                    )
                   }
                   onBlur={() => markTouched("yearLevels")}
                   disabled={confirmOpen || confirming}
                 >
+                  <option value="">Select year levels</option>
                   {[1, 2, 3, 4, 5].map((n) => (
                     <option key={n} value={n}>
                       {n} {n === 1 ? "Year" : "Years"}
@@ -366,7 +453,7 @@ export default function AddCourseModal({
           <div className="modal-footer border-0 pt-0">
             <button
               className="btn btn-light courses-btn-cancel"
-              onClick={onClose}
+              onClick={requestClose}
               disabled={confirmOpen || confirming}
               type="button"
             >
@@ -390,8 +477,9 @@ export default function AddCourseModal({
               aria-modal="true"
               aria-label={isEdit ? "Confirm Update" : "Confirm Add"}
               onMouseDown={(e) => {
-                if (e.target === e.currentTarget && !confirming)
+                if (e.target === e.currentTarget && !confirming) {
                   setConfirmOpen(false);
+                }
               }}
             >
               <div
@@ -473,6 +561,67 @@ export default function AddCourseModal({
                         ? "Saving..."
                         : "Creating..."
                       : `Yes, ${isEdit ? "Save" : "Create"}`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {discardOpen ? (
+            <div
+              className="sec-confirm-backdrop"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Confirm Discard Changes"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget && !confirming) {
+                  setDiscardOpen(false);
+                }
+              }}
+            >
+              <div
+                className="sec-confirm-popup"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <div className="sec-confirm-header">
+                  <div className="sec-confirm-title">Discard changes?</div>
+
+                  <button
+                    type="button"
+                    className="app-icon-btn app-icon-btn-sm"
+                    onClick={() => setDiscardOpen(false)}
+                    aria-label="Close"
+                    title="Close"
+                    disabled={confirming}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="sec-confirm-body">
+                  <div className="fw-bold mb-1">
+                    You have unsaved input in this form.
+                  </div>
+                  <div className="text-muted small">
+                    Closing this modal will discard your changes.
+                  </div>
+                </div>
+
+                <div className="sec-confirm-footer">
+                  <button
+                    className="btn btn-light"
+                    onClick={() => setDiscardOpen(false)}
+                    type="button"
+                  >
+                    Keep Editing
+                  </button>
+
+                  <button
+                    className="btn btn-danger"
+                    onClick={forceClose}
+                    type="button"
+                  >
+                    Discard & Close
                   </button>
                 </div>
               </div>

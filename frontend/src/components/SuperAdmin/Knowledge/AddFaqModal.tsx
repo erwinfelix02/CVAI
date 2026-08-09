@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
-import { Folder, HelpCircle, MessageSquareText, Users } from "lucide-react";
+import { Folder, HelpCircle, MessageSquareText, Users, X } from "lucide-react";
 import AuthAlert from "../../Authentication/AuthAlert";
 
 const ROLES = [
@@ -16,6 +16,21 @@ const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
+
+type FormSnapshot = {
+  question: string;
+  answer: string;
+  roleVisibility: string[];
+  visibleToAll: boolean;
+  step: "form" | "review";
+};
+
+function sameRoles(a: string[], b: string[]) {
+  if (a.length !== b.length) return false;
+  const aSorted = [...a].sort();
+  const bSorted = [...b].sort();
+  return aSorted.every((v, i) => v === bSorted[i]);
+}
 
 export default function AddFaqModal({
   category,
@@ -35,18 +50,25 @@ export default function AddFaqModal({
   const [step, setStep] = useState<"form" | "review">("form");
   const [loading, setLoading] = useState(false);
 
-  // ✅ prevent double submit + keep UI stable while showing success before close
   const [isClosing, setIsClosing] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
 
   const QUESTION_MAX = 120;
   const ANSWER_MAX = 250;
 
-  // ✅ AUTH ALERT STATE
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
 
   const closeTimerRef = useRef<number | null>(null);
+
+  const [initialSnapshot, setInitialSnapshot] = useState<FormSnapshot>({
+    question: "",
+    answer: "",
+    roleVisibility: [],
+    visibleToAll: false,
+    step: "form",
+  });
 
   const showAlert = (message: string, type: "success" | "error") => {
     setAnimateAlert(false);
@@ -57,20 +79,17 @@ export default function AddFaqModal({
     }, 50);
   };
 
-  // Clear alert when switching steps (keeps UI clean)
   useEffect(() => {
     setAlertMessage("");
     setAnimateAlert(false);
   }, [step]);
 
-  // Auto-hide alert after 3s
   useEffect(() => {
     if (!animateAlert) return;
     const t = window.setTimeout(() => setAnimateAlert(false), 3000);
     return () => window.clearTimeout(t);
   }, [animateAlert]);
 
-  // Cleanup any pending close timer when unmounting
   useEffect(() => {
     return () => {
       if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
@@ -79,18 +98,46 @@ export default function AddFaqModal({
 
   useEffect(() => {
     if (initialData) {
-      setQuestion(initialData.question || "");
-      setAnswer(initialData.answer || "");
-      setRoleVisibility(initialData.role_visibility || []);
-      if (initialData.role_visibility?.length === ROLES.length) {
-        setVisibleToAll(true);
-      } else {
-        setVisibleToAll(false);
-      }
+      const nextQuestion = initialData.question || "";
+      const nextAnswer = initialData.answer || "";
+      const nextRoleVisibility = initialData.role_visibility || [];
+      const nextVisibleToAll = nextRoleVisibility.length === ROLES.length;
+
+      setQuestion(nextQuestion);
+      setAnswer(nextAnswer);
+      setRoleVisibility(nextRoleVisibility);
+      setVisibleToAll(nextVisibleToAll);
+
+      setInitialSnapshot({
+        question: nextQuestion,
+        answer: nextAnswer,
+        roleVisibility: nextRoleVisibility,
+        visibleToAll: nextVisibleToAll,
+        step: "form",
+      });
+    } else {
+      setQuestion("");
+      setAnswer("");
+      setRoleVisibility([]);
+      setVisibleToAll(false);
+
+      setInitialSnapshot({
+        question: "",
+        answer: "",
+        roleVisibility: [],
+        visibleToAll: false,
+        step: "form",
+      });
     }
+
     setIsClosing(false);
     setStep("form");
-  }, [initialData]);
+    setDiscardOpen(false);
+  }, [initialData, openKey(initialData)]);
+
+  function openKey(data: any) {
+    return data?.id ?? "new";
+  }
 
   const toggleRole = (role: string) => {
     setRoleVisibility((prev) => {
@@ -128,10 +175,78 @@ export default function AddFaqModal({
     return true;
   };
 
+  const hasUnsavedChanges = useMemo(() => {
+    return (
+      question !== initialSnapshot.question ||
+      answer !== initialSnapshot.answer ||
+      visibleToAll !== initialSnapshot.visibleToAll ||
+      !sameRoles(roleVisibility, initialSnapshot.roleVisibility) ||
+      step !== initialSnapshot.step
+    );
+  }, [question, answer, visibleToAll, roleVisibility, step, initialSnapshot]);
+
+  const shouldWarnBeforeUnload = hasUnsavedChanges && !loading && !isClosing;
+
+  useEffect(() => {
+    if (!shouldWarnBeforeUnload) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [shouldWarnBeforeUnload]);
+
+  const requestClose = () => {
+    if (loading || isClosing) return;
+
+    if (step === "review") {
+      setStep("form");
+      return;
+    }
+
+    if (hasUnsavedChanges) {
+      setDiscardOpen(true);
+      return;
+    }
+
+    onClose();
+  };
+
+  const forceClose = () => {
+    setDiscardOpen(false);
+    setIsClosing(false);
+    onClose();
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (loading || isClosing) return;
+
+      if (discardOpen) {
+        setDiscardOpen(false);
+        return;
+      }
+
+      if (step === "review") {
+        setStep("form");
+        return;
+      }
+
+      requestClose();
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [loading, isClosing, discardOpen, step, hasUnsavedChanges]);
+
   const closeAfterSuccess = () => {
     setIsClosing(true);
 
-    // give user time to see success alert before closing
     closeTimerRef.current = window.setTimeout(() => {
       onClose();
     }, 1000);
@@ -166,10 +281,7 @@ export default function AddFaqModal({
         showAlert("FAQ added successfully.", "success");
       }
 
-      // refresh list on parent
       onSuccess();
-
-      // show alert then close
       closeAfterSuccess();
     } catch (err: any) {
       console.error(err);
@@ -181,9 +293,7 @@ export default function AddFaqModal({
       }
 
       const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Something went wrong.";
+        err?.response?.data?.message || err?.message || "Something went wrong.";
       showAlert(msg, "error");
     } finally {
       setLoading(false);
@@ -193,16 +303,29 @@ export default function AddFaqModal({
   const disableActions = loading || isClosing;
 
   return (
-    <div className="kb-modal-overlay" onClick={disableActions ? undefined : onClose}>
+    <div
+      className="kb-modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !disableActions) {
+          requestClose();
+        }
+      }}
+    >
       <div className="kb-modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="kb-modal-header">
           <h5>{initialData ? "Edit FAQ" : "Add FAQ"}</h5>
-          <button className="kb-close-btn" onClick={onClose} disabled={disableActions as any}>
-            ✕
+          <button
+            type="button"
+            className="kb-close-btn app-icon-btn app-icon-btn-sm"
+            onClick={requestClose}
+            aria-label="Close"
+            title="Close"
+            disabled={disableActions}
+          >
+            <X size={18} />
           </button>
         </div>
 
-        {/* ✅ AuthAlert inside modal (shows before auto-close) */}
         <AuthAlert
           message={alertMessage}
           type={alertType}
@@ -239,7 +362,9 @@ export default function AddFaqModal({
               </div>
 
               <div className="kb-role-section">
-                <label className="fw-semibold mb-2 d-block">Visible To Roles</label>
+                <label className="fw-semibold mb-2 d-block">
+                  Visible To Roles
+                </label>
                 <label className="kb-visible-all mb-2">
                   <input
                     type="checkbox"
@@ -312,8 +437,8 @@ export default function AddFaqModal({
                 </div>
 
                 <div className="kb-review-note">
-                  Please review your FAQ details. Click <b>Confirm</b> to save to
-                  the database.
+                  Please review your FAQ details. Click <b>Confirm</b> to save
+                  to the database.
                 </div>
               </div>
             </>
@@ -325,7 +450,7 @@ export default function AddFaqModal({
             <>
               <button
                 className="btn btn-secondary"
-                onClick={onClose}
+                onClick={requestClose}
                 disabled={disableActions}
               >
                 Cancel
@@ -366,6 +491,60 @@ export default function AddFaqModal({
             </>
           )}
         </div>
+
+        {discardOpen ? (
+          <div
+            className="kb-modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !disableActions) {
+                setDiscardOpen(false);
+              }
+            }}
+          >
+            <div className="kb-modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="kb-modal-header">
+                <h5>Discard changes?</h5>
+                <button
+                  type="button"
+                  className="kb-close-btn app-icon-btn app-icon-btn-sm"
+                  onClick={() => setDiscardOpen(false)}
+                  aria-label="Close"
+                  title="Close"
+                  disabled={disableActions}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="kb-modal-body">
+                <p className="mb-0 text-muted">
+                  You have unsaved changes in this FAQ. Closing now will discard
+                  them.
+                </p>
+              </div>
+
+              <div className="kb-modal-footer">
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setDiscardOpen(false)}
+                  disabled={disableActions}
+                >
+                  Keep Editing
+                </button>
+
+                <button
+                  className="btn btn-danger"
+                  onClick={forceClose}
+                  disabled={disableActions}
+                >
+                  Discard & Close
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

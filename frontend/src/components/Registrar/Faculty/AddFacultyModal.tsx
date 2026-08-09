@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AddUserReviewModal from "../../shared/AddUserReviewModal";
 import {
   User,
@@ -75,6 +75,18 @@ type Props = {
   isLoading: boolean;
 };
 
+const EMPTY_FORM: FacultyForm = {
+  firstName: "",
+  middleName: "",
+  lastName: "",
+  idNumber: "",
+  email: "",
+  phone: "",
+  gender: "",
+  department: "",
+  notes: "",
+};
+
 export default function AddFacultyModal({
   open,
   onClose,
@@ -85,22 +97,14 @@ export default function AddFacultyModal({
   const idPrefix = `GIP-${currentYear}-`;
   const phonePrefix = "+63";
 
-  const [form, setForm] = useState<FacultyForm>({
-    firstName: "",
-    middleName: "",
-    lastName: "",
-    idNumber: "",
-    email: "",
-    phone: "",
-    gender: "",
-    department: "",
-    notes: "",
-  });
+  const [form, setForm] = useState<FacultyForm>({ ...EMPTY_FORM });
+  const [initialForm, setInitialForm] = useState<FacultyForm>({ ...EMPTY_FORM });
 
   const [submitted, setSubmitted] = useState(false);
   const [touched, setTouched] = useState<Touched>({});
   const [localErrors, setLocalErrors] = useState<Errors>({});
   const [showReview, setShowReview] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
 
   const [departments, setDepartments] = useState<DepartmentDB[]>([]);
   const [deptLoading, setDeptLoading] = useState(false);
@@ -144,6 +148,20 @@ export default function AddFacultyModal({
   useEffect(() => {
     if (!open) return;
 
+    setForm({ ...EMPTY_FORM });
+    setInitialForm({ ...EMPTY_FORM });
+    setSubmitted(false);
+    setTouched({});
+    setLocalErrors({});
+    setShowReview(false);
+    setDiscardOpen(false);
+    setIdLoading(false);
+    setIdError("");
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
     let cancelled = false;
 
     const loadFacultyId = async () => {
@@ -169,6 +187,11 @@ export default function AddFacultyModal({
             idNumber: generatedId,
           }));
 
+          setInitialForm((prev) => ({
+            ...prev,
+            idNumber: generatedId,
+          }));
+
           if (!generatedId) {
             setIdError("Failed to load automatic faculty ID.");
           }
@@ -176,6 +199,10 @@ export default function AddFacultyModal({
       } catch (err: any) {
         if (!cancelled) {
           setForm((prev) => ({
+            ...prev,
+            idNumber: "",
+          }));
+          setInitialForm((prev) => ({
             ...prev,
             idNumber: "",
           }));
@@ -194,6 +221,67 @@ export default function AddFacultyModal({
       cancelled = true;
     };
   }, [open]);
+
+  const hasUnsavedChanges = useMemo(() => {
+    return (
+      form.firstName !== initialForm.firstName ||
+      form.middleName !== initialForm.middleName ||
+      form.lastName !== initialForm.lastName ||
+      form.idNumber !== initialForm.idNumber ||
+      form.email !== initialForm.email ||
+      form.phone !== initialForm.phone ||
+      form.gender !== initialForm.gender ||
+      form.department !== initialForm.department ||
+      form.notes !== initialForm.notes
+    );
+  }, [form, initialForm]);
+
+  const shouldWarnBeforeUnload =
+    open &&
+    hasUnsavedChanges &&
+    !isLoading &&
+    !idLoading;
+
+  useEffect(() => {
+    if (!shouldWarnBeforeUnload) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [shouldWarnBeforeUnload]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || isLoading) return;
+
+      if (discardOpen) {
+        setDiscardOpen(false);
+        return;
+      }
+
+      if (showReview) {
+        setShowReview(false);
+        return;
+      }
+
+      requestClose();
+    };
+
+    window.addEventListener("keydown", handleEsc);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      window.removeEventListener("keydown", handleEsc);
+      document.body.style.overflow = "";
+    };
+  }, [open, isLoading, showReview, discardOpen, hasUnsavedChanges, idLoading]);
 
   const validateField = (k: keyof FacultyForm, raw?: string): string => {
     const v = (raw ?? (form as any)[k] ?? "") as string;
@@ -287,50 +375,6 @@ export default function AddFacultyModal({
   const errorText = (k: keyof FacultyForm) =>
     invalid(k) ? localErrors[k] : "\u00A0";
 
-  useEffect(() => {
-    if (!open) return;
-
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isLoading) {
-        if (showReview) setShowReview(false);
-        else onClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleEsc);
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      window.removeEventListener("keydown", handleEsc);
-      document.body.style.overflow = "";
-    };
-  }, [open, onClose, isLoading, showReview]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    setForm({
-      firstName: "",
-      middleName: "",
-      lastName: "",
-      idNumber: "",
-      email: "",
-      phone: "",
-      gender: "",
-      department: "",
-      notes: "",
-    });
-
-    setSubmitted(false);
-    setTouched({});
-    setLocalErrors({});
-    setShowReview(false);
-    setIdLoading(false);
-    setIdError("");
-  }, [open]);
-
-  if (!open) return null;
-
   const update = (key: keyof FacultyForm, value: string) => {
     const cleanValue = sanitizeInput(value);
 
@@ -341,6 +385,30 @@ export default function AddFacultyModal({
       setLocalErrors((p) => ({ ...p, [key]: msg }));
     }
   };
+
+  const requestClose = () => {
+    if (isLoading || idLoading) return;
+
+    if (showReview) {
+      setShowReview(false);
+      return;
+    }
+
+    if (hasUnsavedChanges) {
+      setDiscardOpen(true);
+      return;
+    }
+
+    onClose();
+  };
+
+  const forceClose = () => {
+    setDiscardOpen(false);
+    setShowReview(false);
+    onClose();
+  };
+
+  if (!open) return null;
 
   const handleSubmit = () => {
     setSubmitted(true);
@@ -365,13 +433,13 @@ export default function AddFacultyModal({
     <>
       {!showReview && (
         <div
-  className="users-modal-backdrop"
-  onMouseDown={(e) => {
-    if (e.target === e.currentTarget && !isLoading) {
-      onClose();
-    }
-  }}
->
+          className="users-modal-backdrop"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !isLoading) {
+              requestClose();
+            }
+          }}
+        >
           <div
             className="users-modal users-modal-compact"
             role="dialog"
@@ -387,18 +455,15 @@ export default function AddFacultyModal({
               </div>
 
               <button
-  type="button"
-  className="users-modal-close app-icon-btn app-icon-btn-sm"
-  onClick={() => {
-    if (isLoading) return;
-    onClose();
-  }}
-  aria-label="Close"
-  title="Close"
-  disabled={isLoading}
->
-  <X size={18} />
-</button>
+                type="button"
+                className="users-modal-close app-icon-btn app-icon-btn-sm"
+                onClick={requestClose}
+                aria-label="Close"
+                title="Close"
+                disabled={isLoading}
+              >
+                <X size={18} />
+              </button>
             </div>
 
             <div className="users-modal-body">
@@ -699,14 +764,14 @@ export default function AddFacultyModal({
             </div>
 
             <div className="users-modal-footer">
-             <button
-  type="button"
-  className="btn btn-light"
-  onClick={onClose}
-  disabled={isLoading}
->
-  Cancel
-</button>
+              <button
+                type="button"
+                className="btn btn-light"
+                onClick={requestClose}
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
 
               <button
                 type="button"
@@ -717,6 +782,70 @@ export default function AddFacultyModal({
                 Review
               </button>
             </div>
+
+            {discardOpen ? (
+              <div
+                className="users-modal-backdrop"
+                role="dialog"
+                aria-modal="true"
+                onMouseDown={(e) => {
+                  if (e.target === e.currentTarget && !isLoading) {
+                    setDiscardOpen(false);
+                  }
+                }}
+              >
+                <div
+                  className="users-modal users-modal-compact"
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <div className="users-modal-header">
+                    <div>
+                      <h3 className="users-modal-title">Discard changes?</h3>
+                      <p className="users-modal-subtitle">
+                        You have unsaved input in this form.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="users-modal-close app-icon-btn app-icon-btn-sm"
+                      onClick={() => setDiscardOpen(false)}
+                      aria-label="Close"
+                      title="Close"
+                      disabled={isLoading}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div className="users-modal-body">
+                    <p className="mb-0 text-muted">
+                      Closing this modal will discard your changes.
+                    </p>
+                  </div>
+
+                  <div className="users-modal-footer">
+                    <button
+                      type="button"
+                      className="btn btn-light"
+                      onClick={() => setDiscardOpen(false)}
+                      disabled={isLoading}
+                    >
+                      Keep Editing
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={forceClose}
+                      disabled={isLoading}
+                    >
+                      Discard & Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       )}

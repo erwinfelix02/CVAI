@@ -322,8 +322,10 @@ export default function ActivityLogsPage() {
 
                 <button
                   type="button"
-                  className="superadmin-logs-modal-close"
+                  className="superadmin-logs-modal-close app-icon-btn app-icon-btn-sm"
                   onClick={handleCloseExportModal}
+                  aria-label="Close"
+                  title="Close"
                   disabled={exporting}
                 >
                   <X size={18} />

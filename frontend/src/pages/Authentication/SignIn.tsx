@@ -13,6 +13,8 @@ import ArrowIcon from "../../assets/arrow-right.png";
 import { FaUser, FaEye, FaEyeSlash, FaSyncAlt } from "react-icons/fa";
 import { API_BASE_URL } from "../../config";
 
+type MathOperator = "+" | "-" | "*";
+
 export default function SignIn() {
   const navigate = useNavigate();
 
@@ -25,7 +27,15 @@ export default function SignIn() {
 
   const [mathError, setMathError] = useState<string | null>(null);
   const [userAnswer, setUserAnswer] = useState("");
-  const [question, setQuestion] = useState({ a: 0, b: 0 });
+  const [question, setQuestion] = useState<{
+    a: number;
+    b: number;
+    operator: MathOperator;
+  }>({
+    a: 0,
+    b: 0,
+    operator: "+",
+  });
   const [isRotating, setIsRotating] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -35,10 +45,28 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
 
   const generateQuestion = () => {
-    setQuestion({
-      a: Math.floor(Math.random() * 100) + 1,
-      b: Math.floor(Math.random() * 10) + 1,
-    });
+    const operators: MathOperator[] = ["+", "-", "*"];
+    const operator = operators[Math.floor(Math.random() * operators.length)];
+
+    let a = 0;
+    let b = 0;
+
+    switch (operator) {
+      case "+":
+        a = Math.floor(Math.random() * 20) + 1;
+        b = Math.floor(Math.random() * 20) + 1;
+        break;
+      case "-":
+        a = Math.floor(Math.random() * 20) + 10;
+        b = Math.floor(Math.random() * 10) + 1;
+        break;
+      case "*":
+        a = Math.floor(Math.random() * 9) + 1;
+        b = Math.floor(Math.random() * 9) + 1;
+        break;
+    }
+
+    setQuestion({ a, b, operator });
     setUserAnswer("");
     setMathError(null);
     setSubmitted(false);
@@ -54,8 +82,20 @@ export default function SignIn() {
     setTimeout(() => setIsRotating(false), 600);
   };
 
-  const correctAnswer = question.a + question.b;
-  const isVerified = parseInt(userAnswer) === correctAnswer;
+  const correctAnswer = (() => {
+    switch (question.operator) {
+      case "+":
+        return question.a + question.b;
+      case "-":
+        return question.a - question.b;
+      case "*":
+        return question.a * question.b;
+      default:
+        return 0;
+    }
+  })();
+
+  const isVerified = parseInt(userAnswer, 10) === correctAnswer;
   const isMathEmpty = userAnswer === "";
 
   const isValidEmail = (value: string) =>
@@ -250,12 +290,14 @@ export default function SignIn() {
 
                 <div className="outlined-field math-field">
                   <div className="math-verification">
-                    <div className="number-box">{question.a}</div>+
-                    <div className="number-box">{question.b}</div>=
+                    <div className="number-box">{question.a}</div>
+                    <span className="mx-2">{question.operator}</span>
+                    <div className="number-box">{question.b}</div>
+                    <span className="mx-2">=</span>
                     <input
                       value={userAnswer}
                       onChange={(e) => {
-                        setUserAnswer(e.target.value.replace(/\D/g, ""));
+                        setUserAnswer(e.target.value.replace(/[^0-9-]/g, ""));
                         setMathError(null);
                         setSubmitted(false);
                       }}

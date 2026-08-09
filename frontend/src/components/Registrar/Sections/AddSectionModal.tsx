@@ -32,9 +32,11 @@ type Props = {
 function makeId(code: string) {
   return code.toLowerCase().replace(/\s+/g, "-");
 }
+
 function normalizeCode(input: string) {
   return input.trim().toUpperCase();
 }
+
 function isLikelyTimeSchedule(v: string) {
   const s = v.trim();
   if (!s) return false;
@@ -42,6 +44,7 @@ function isLikelyTimeSchedule(v: string) {
   const hasTimeHint = /am|pm|:|-/.test(s.toLowerCase());
   return hasDigit && hasTimeHint;
 }
+
 function yearLabel(n: number) {
   const suffix = n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th";
   return `${n}${suffix} Year`;
@@ -60,35 +63,25 @@ export default function AddSectionModal({
 }: Props) {
   const isEdit = !!initial;
 
-  // ✅ ONLY ACTIVE COURSES GO TO DROPDOWN
   const courseList = useMemo(() => {
     const list = Array.isArray(courses) ? courses : [];
     return list.filter((c) => c.status === "Active");
   }, [courses]);
 
-  // ✅ pick safe default program
-  const defaultProgram = courseList[0]?.name ?? "";
-
-  // ✅ selected course = initial.program if active, else first active
-  const selectedCourse = useMemo(() => {
-    if (!courseList.length) return null;
-
-    const fromInitial = initial?.program ?? "";
-    const found = courseList.find((c) => c.name === fromInitial);
-    return found ?? courseList[0];
-  }, [courseList, initial]);
-
-  const yearOptions = useMemo(() => {
-    const maxYears = selectedCourse?.yearLevels ?? 0;
-    if (!maxYears) return [];
-    return Array.from({ length: maxYears }, (_, i) => yearLabel(i + 1));
-  }, [selectedCourse]);
-
   const [form, setForm] = useState<Payload>({
     code: "",
     yearLevel: "",
     program: "",
-    capacity: 40,
+    capacity: "",
+    room: "",
+    schedule: "",
+  });
+
+  const [initialForm, setInitialForm] = useState<Payload>({
+    code: "",
+    yearLevel: "",
+    program: "",
+    capacity: "",
     room: "",
     schedule: "",
   });
@@ -100,18 +93,28 @@ export default function AddSectionModal({
   const [formError, setFormError] = useState<string>("");
 
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const confirmingRef = useRef(false);
+
+  const selectedCourse = useMemo(() => {
+    if (!courseList.length || !form.program) return null;
+    return courseList.find((c) => c.name === form.program) ?? null;
+  }, [courseList, form.program]);
+
+  const yearOptions = useMemo(() => {
+    const maxYears = selectedCourse?.yearLevels ?? 0;
+    if (!maxYears) return [];
+    return Array.from({ length: maxYears }, (_, i) => yearLabel(i + 1));
+  }, [selectedCourse]);
 
   useEffect(() => {
     if (!open) return;
 
-    const defaultYear = yearOptions[0] ?? "";
+    let nextForm: Payload;
 
     if (isEdit && initial) {
-      // ✅ keep initial program ONLY if it's still active
       const safeProgram =
-        courseList.find((c) => c.name === initial.program)?.name ??
-        defaultProgram;
+        courseList.find((c) => c.name === initial.program)?.name ?? "";
 
       const safeCourse = courseList.find((c) => c.name === safeProgram) ?? null;
 
@@ -120,35 +123,39 @@ export default function AddSectionModal({
         : [];
 
       const initialYear = (initial as any).yearLevel ?? "";
-      const safeYear = safeYearOptions.includes(initialYear)
-        ? initialYear
-        : safeYearOptions[0] ?? "";
+      const safeYear = safeYearOptions.includes(initialYear) ? initialYear : "";
 
-      setForm({
+      nextForm = {
         code: initial.code ?? "",
         yearLevel: safeYear,
         program: safeProgram,
-        capacity: Math.min(initial.capacity ?? 40, maxCapacity),
+        capacity:
+          initial.capacity !== undefined && initial.capacity !== null
+            ? Math.min(initial.capacity, maxCapacity)
+            : "",
         room: initial.room ?? "",
         schedule: initial.schedule ?? "",
-      });
+      };
     } else {
-      setForm({
+      nextForm = {
         code: "",
-        yearLevel: defaultYear,
-        program: defaultProgram,
-        capacity: Math.min(40, maxCapacity),
+        yearLevel: "",
+        program: "",
+        capacity: "",
         room: "",
         schedule: "",
-      });
+      };
     }
 
+    setForm(nextForm);
+    setInitialForm(nextForm);
     setTouched({});
     setErrors({});
     setFormError("");
     setConfirmOpen(false);
+    setDiscardOpen(false);
     confirmingRef.current = false;
-  }, [open, isEdit, initial, courseList, maxCapacity, yearOptions, defaultProgram]);
+  }, [open, isEdit, initial, courseList, maxCapacity]);
 
   useEffect(() => {
     if (!open) return;
@@ -159,17 +166,71 @@ export default function AddSectionModal({
     };
   }, [open]);
 
+  const hasUnsavedChanges = useMemo(() => {
+    return (
+      form.code !== initialForm.code ||
+      form.yearLevel !== initialForm.yearLevel ||
+      form.program !== initialForm.program ||
+      form.capacity !== initialForm.capacity ||
+      form.room !== initialForm.room ||
+      form.schedule !== initialForm.schedule
+    );
+  }, [form, initialForm]);
+
+  const shouldWarnBeforeUnload = open && hasUnsavedChanges;
+
+  useEffect(() => {
+    if (!shouldWarnBeforeUnload) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [shouldWarnBeforeUnload]);
+
+  const requestClose = () => {
+    if (confirmOpen) return;
+
+    if (hasUnsavedChanges) {
+      setDiscardOpen(true);
+      return;
+    }
+
+    onClose();
+  };
+
+  const forceClose = () => {
+    setDiscardOpen(false);
+    setConfirmOpen(false);
+    onClose();
+  };
+
   useEffect(() => {
     if (!open) return;
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (confirmOpen) setConfirmOpen(false);
-        else onClose();
+        if (confirmOpen) {
+          setConfirmOpen(false);
+          return;
+        }
+
+        if (discardOpen) {
+          setDiscardOpen(false);
+          return;
+        }
+
+        requestClose();
       }
     };
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose, confirmOpen]);
+  }, [open, confirmOpen, discardOpen, hasUnsavedChanges]);
 
   const validate = (data: Payload): Errors => {
     const e: Errors = {};
@@ -177,59 +238,75 @@ export default function AddSectionModal({
     const code = normalizeCode(data.code);
     if (!code) e.code = "Section Name is required.";
     else if (code.length < 4) e.code = "Use a longer section name (e.g., BSCS-1A).";
-    else if (!/^[A-Z0-9- ]+$/.test(code))
+    else if (!/^[A-Z0-9- ]+$/.test(code)) {
       e.code = "Only letters, numbers, spaces, and '-' are allowed.";
+    }
 
     if (!data.program) e.program = "Course/Program is required.";
 
     if (!data.yearLevel) e.yearLevel = "Year Level is required.";
-    else if (yearOptions.length && !yearOptions.includes(data.yearLevel))
+    else if (yearOptions.length && !yearOptions.includes(data.yearLevel)) {
       e.yearLevel = "Year Level is not valid for the selected course.";
+    }
 
     const cap = data.capacity === "" ? NaN : Number(data.capacity);
     if (!Number.isFinite(cap)) e.capacity = "Capacity is required.";
     else if (cap < 1) e.capacity = "Capacity must be at least 1.";
-    else if (cap > maxCapacity)
+    else if (cap > maxCapacity) {
       e.capacity = `Capacity cannot exceed ${maxCapacity} (Registrar Settings).`;
+    }
 
     if (!data.room.trim()) e.room = "Room is required.";
     else if (data.room.trim().length < 3) e.room = "Room is too short.";
 
     if (!data.schedule.trim()) e.schedule = "Schedule is required.";
-    else if (!isLikelyTimeSchedule(data.schedule))
-      e.schedule = "Enter a schedule like “MWF 8:00-9:30 AM”.";
+    else if (!isLikelyTimeSchedule(data.schedule)) {
+      e.schedule = 'Enter a schedule like "MWF 8:00-9:30 AM".';
+    }
 
-    if (!courseList.length)
+    if (!courseList.length) {
       e.program = "No ACTIVE courses available. Activate/add a course first.";
+    }
 
     return e;
   };
 
   const setField = <K extends keyof Payload>(key: K, val: Payload[K]) => {
-    setForm((p) => ({ ...p, [key]: val }));
-    if (touched[key]) setErrors(validate({ ...form, [key]: val }));
+    setForm((prev) => {
+      const next = { ...prev, [key]: val };
+      if (touched[key]) setErrors(validate(next));
+      return next;
+    });
   };
 
   const markTouched = (key: keyof Payload) => {
-    setTouched((p) => ({ ...p, [key]: true }));
+    setTouched((prev) => ({ ...prev, [key]: true }));
     setErrors(validate(form));
   };
 
   const onProgramChange = (programName: string) => {
-    setField("program", programName);
-
     const course = courseList.find((c) => c.name === programName) ?? null;
-    const maxYears = course?.yearLevels ?? 0;
 
-    const nextYearOptions = maxYears
-      ? Array.from({ length: maxYears }, (_, i) => yearLabel(i + 1))
+    const nextYearOptions = course?.yearLevels
+      ? Array.from({ length: course.yearLevels }, (_, i) => yearLabel(i + 1))
       : [];
 
     setForm((prev) => {
       const nextYear = nextYearOptions.includes(prev.yearLevel)
         ? prev.yearLevel
-        : nextYearOptions[0] ?? "";
-      return { ...prev, program: programName, yearLevel: nextYear };
+        : "";
+
+      const next = {
+        ...prev,
+        program: programName,
+        yearLevel: nextYear,
+      };
+
+      if (touched.program || touched.yearLevel) {
+        setErrors(validate(next));
+      }
+
+      return next;
     });
   };
 
@@ -277,6 +354,7 @@ export default function AddSectionModal({
       onUpdate(updated);
 
       setConfirmOpen(false);
+      setDiscardOpen(false);
       confirmingRef.current = false;
       onClose();
       return;
@@ -297,6 +375,7 @@ export default function AddSectionModal({
     onCreate(newItem);
 
     setConfirmOpen(false);
+    setDiscardOpen(false);
     confirmingRef.current = false;
     onClose();
   };
@@ -312,7 +391,9 @@ export default function AddSectionModal({
       aria-modal="true"
       aria-label={isEdit ? "Edit Section" : "Add New Section"}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget && !confirmOpen) onClose();
+        if (e.target === e.currentTarget && !confirmOpen && !discardOpen) {
+          requestClose();
+        }
       }}
     >
       <div className="sec-modal" onMouseDown={(e) => e.stopPropagation()}>
@@ -320,16 +401,17 @@ export default function AddSectionModal({
           <div className="sec-modal-title">
             {isEdit ? "Edit Section" : "Add New Section"}
           </div>
+
           <button
-  type="button"
-  className="sec-modal-close app-icon-btn app-icon-btn-sm"
-  onClick={onClose}
-  aria-label="Close"
-  title="Close"
-  disabled={confirmOpen}
->
-  <X size={18} />
-</button>
+            type="button"
+            className="sec-modal-close app-icon-btn app-icon-btn-sm"
+            onClick={requestClose}
+            aria-label="Close"
+            title="Close"
+            disabled={confirmOpen}
+          >
+            <X size={18} />
+          </button>
         </div>
 
         <div className="sec-modal-body">
@@ -359,17 +441,16 @@ export default function AddSectionModal({
                 value={form.yearLevel}
                 onChange={(e) => setField("yearLevel", e.target.value)}
                 onBlur={() => markTouched("yearLevel")}
-                disabled={!yearOptions.length}
+                disabled={!form.program || !yearOptions.length}
               >
-                {!yearOptions.length ? (
-                  <option value="">No year levels</option>
-                ) : (
-                  yearOptions.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))
-                )}
+                <option value="">
+                  {!form.program ? "Select course first" : "Select year level"}
+                </option>
+                {yearOptions.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
               </select>
               <div className="sec-error-slot">
                 {fieldError("yearLevel") || "\u00A0"}
@@ -417,6 +498,7 @@ export default function AddSectionModal({
                 type="number"
                 min={1}
                 max={maxCapacity}
+                placeholder="Enter capacity"
                 value={form.capacity}
                 onChange={(e) =>
                   setField(
@@ -471,7 +553,7 @@ export default function AddSectionModal({
           <button
             type="button"
             className="btn btn-light"
-            onClick={onClose}
+            onClick={requestClose}
             disabled={confirmOpen}
           >
             Cancel
@@ -496,20 +578,20 @@ export default function AddSectionModal({
               onMouseDown={(e) => e.stopPropagation()}
             >
               <div className="sec-confirm-header">
-  <div className="sec-confirm-title">
-    {isEdit ? "Confirm Update" : "Confirm Creation"}
-  </div>
+                <div className="sec-confirm-title">
+                  {isEdit ? "Confirm Update" : "Confirm Creation"}
+                </div>
 
-  <button
-    type="button"
-    className="app-icon-btn app-icon-btn-sm"
-    onClick={() => setConfirmOpen(false)}
-    aria-label="Close"
-    title="Close"
-  >
-    <X size={16} />
-  </button>
-</div>
+                <button
+                  type="button"
+                  className="app-icon-btn app-icon-btn-sm"
+                  onClick={() => setConfirmOpen(false)}
+                  aria-label="Close"
+                  title="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
 
               <div className="sec-confirm-body">
                 <div className="fw-bold mb-1">
@@ -531,6 +613,58 @@ export default function AddSectionModal({
                 </button>
                 <button className="btn btn-primary" onClick={onConfirm}>
                   Yes, {isEdit ? "Save" : "Create"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {discardOpen ? (
+          <div
+            className="sec-confirm-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirm Discard Changes"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setDiscardOpen(false);
+            }}
+          >
+            <div
+              className="sec-confirm-popup"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="sec-confirm-header">
+                <div className="sec-confirm-title">Discard changes?</div>
+
+                <button
+                  type="button"
+                  className="app-icon-btn app-icon-btn-sm"
+                  onClick={() => setDiscardOpen(false)}
+                  aria-label="Close"
+                  title="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="sec-confirm-body">
+                <div className="fw-bold mb-1">
+                  You have unsaved input in this form.
+                </div>
+                <div className="text-muted small">
+                  Closing this modal will discard your changes.
+                </div>
+              </div>
+
+              <div className="sec-confirm-footer">
+                <button
+                  className="btn btn-light"
+                  onClick={() => setDiscardOpen(false)}
+                >
+                  Keep Editing
+                </button>
+                <button className="btn btn-danger" onClick={forceClose}>
+                  Discard & Close
                 </button>
               </div>
             </div>

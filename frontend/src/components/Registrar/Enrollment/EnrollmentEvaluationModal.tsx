@@ -93,6 +93,30 @@ function normalizePHPhone(value: string) {
   return cleaned;
 }
 
+type InitialSnapshot = {
+  fullName: string;
+  studentId: string;
+  program: string;
+  yearLevel: string;
+  email: string;
+  phone: string;
+  address: string;
+  birthdate: string;
+  guardian: string;
+  guardianPhone: string;
+  notes: string;
+  finalConfirm: boolean;
+  docsChecked: Record<string, boolean>;
+};
+
+function makeEmptyDocsState() {
+  const next: Record<string, boolean> = {};
+  requiredDocs.forEach((d) => {
+    next[d] = false;
+  });
+  return next;
+}
+
 export default function EnrollmentEvaluationModal({
   open,
   onClose,
@@ -119,6 +143,7 @@ export default function EnrollmentEvaluationModal({
   const [finalConfirm, setFinalConfirm] = useState(false);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const submittingRef = useRef(false);
 
   const [showStep1Errors, setShowStep1Errors] = useState(false);
@@ -128,6 +153,22 @@ export default function EnrollmentEvaluationModal({
   const [idLoading, setIdLoading] = useState(false);
   const [idError, setIdError] = useState("");
 
+  const [initialSnapshot, setInitialSnapshot] = useState<InitialSnapshot>({
+    fullName: "",
+    studentId: "",
+    program: "",
+    yearLevel: "",
+    email: "",
+    phone: "",
+    address: "",
+    birthdate: "",
+    guardian: "",
+    guardianPhone: "",
+    notes: "",
+    finalConfirm: false,
+    docsChecked: makeEmptyDocsState(),
+  });
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -136,20 +177,6 @@ export default function EnrollmentEvaluationModal({
       document.body.style.overflow = prev;
     };
   }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (confirmOpen) setConfirmOpen(false);
-        else onClose();
-      }
-    };
-
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose, confirmOpen]);
 
   const programOptions = useMemo(() => {
     const set = new Set<string>();
@@ -178,6 +205,7 @@ export default function EnrollmentEvaluationModal({
 
     setStep(1);
     setConfirmOpen(false);
+    setDiscardOpen(false);
     submittingRef.current = false;
 
     setShowStep1Errors(false);
@@ -188,28 +216,51 @@ export default function EnrollmentEvaluationModal({
       student.studentName ||
       `${student.personal?.firstName ?? ""} ${student.personal?.lastName ?? ""}`.trim();
 
-    setFullName(computedName);
-    setEmail(student.email || student.personal?.email || "");
-    setPhone(normalizePHPhone(student.personal?.phone || ""));
-    setAddress(student.personal?.address || "");
-    setBirthdate(
-      toISODate(student.personal?.birthDate || student.personal?.birthdate || ""),
+    const nextFullName = computedName;
+    const nextEmail = student.email || student.personal?.email || "";
+    const nextPhone = normalizePHPhone(student.personal?.phone || "");
+    const nextAddress = student.personal?.address || "";
+    const nextBirthdate = toISODate(
+      student.personal?.birthDate || student.personal?.birthdate || "",
     );
-    setGuardian(student.personal?.guardian || "");
-    setGuardianPhone(normalizePHPhone(student.personal?.guardianPhone || ""));
-    setProgram(student.academic?.program || student.academic?.course || "");
-    setYearLevel(student.academic?.yearLevel?.toString() || "");
+    const nextGuardian = student.personal?.guardian || "";
+    const nextGuardianPhone = normalizePHPhone(student.personal?.guardianPhone || "");
+    const nextProgram = student.academic?.program || student.academic?.course || "";
+    const nextYearLevel = student.academic?.yearLevel?.toString() || "";
+
+    setFullName(nextFullName);
+    setEmail(nextEmail);
+    setPhone(nextPhone);
+    setAddress(nextAddress);
+    setBirthdate(nextBirthdate);
+    setGuardian(nextGuardian);
+    setGuardianPhone(nextGuardianPhone);
+    setProgram(nextProgram);
+    setYearLevel(nextYearLevel);
 
     setStudentId("");
     setIdError("");
     setNotes("");
     setFinalConfirm(false);
 
-    const initialDocs: Record<string, boolean> = {};
-    requiredDocs.forEach((d) => {
-      initialDocs[d] = false;
-    });
+    const initialDocs = makeEmptyDocsState();
     setDocsChecked(initialDocs);
+
+    setInitialSnapshot({
+      fullName: nextFullName,
+      studentId: "",
+      program: nextProgram,
+      yearLevel: nextYearLevel,
+      email: nextEmail,
+      phone: nextPhone,
+      address: nextAddress,
+      birthdate: nextBirthdate,
+      guardian: nextGuardian,
+      guardianPhone: nextGuardianPhone,
+      notes: "",
+      finalConfirm: false,
+      docsChecked: initialDocs,
+    });
   }, [open, student]);
 
   useEffect(() => {
@@ -240,11 +291,20 @@ export default function EnrollmentEvaluationModal({
           if (!previewId) {
             setIdError("Failed to load automatic student ID.");
           }
+
+          setInitialSnapshot((prev) => ({
+            ...prev,
+            studentId: previewId,
+          }));
         }
       } catch (err: any) {
         if (!cancelled) {
           setStudentId("");
           setIdError(err?.message || "Failed to load automatic student ID.");
+          setInitialSnapshot((prev) => ({
+            ...prev,
+            studentId: "",
+          }));
         }
       } finally {
         if (!cancelled) {
@@ -264,6 +324,100 @@ export default function EnrollmentEvaluationModal({
     () => Object.values(docsChecked).filter(Boolean).length,
     [docsChecked],
   );
+
+  const hasUnsavedChanges = useMemo(() => {
+    const docsChanged = requiredDocs.some(
+      (doc) => !!docsChecked[doc] !== !!initialSnapshot.docsChecked[doc],
+    );
+
+    return (
+      fullName !== initialSnapshot.fullName ||
+      studentId !== initialSnapshot.studentId ||
+      program !== initialSnapshot.program ||
+      yearLevel !== initialSnapshot.yearLevel ||
+      email !== initialSnapshot.email ||
+      phone !== initialSnapshot.phone ||
+      address !== initialSnapshot.address ||
+      birthdate !== initialSnapshot.birthdate ||
+      guardian !== initialSnapshot.guardian ||
+      guardianPhone !== initialSnapshot.guardianPhone ||
+      notes !== initialSnapshot.notes ||
+      finalConfirm !== initialSnapshot.finalConfirm ||
+      docsChanged
+    );
+  }, [
+    fullName,
+    studentId,
+    program,
+    yearLevel,
+    email,
+    phone,
+    address,
+    birthdate,
+    guardian,
+    guardianPhone,
+    notes,
+    finalConfirm,
+    docsChecked,
+    initialSnapshot,
+  ]);
+
+  const shouldWarnBeforeUnload =
+    open && hasUnsavedChanges && !confirmOpen && !loading && !idLoading;
+
+  useEffect(() => {
+    if (!shouldWarnBeforeUnload) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [shouldWarnBeforeUnload]);
+
+  const requestClose = () => {
+    if (loading || idLoading) return;
+
+    if (confirmOpen) {
+      setConfirmOpen(false);
+      return;
+    }
+
+    if (hasUnsavedChanges) {
+      setDiscardOpen(true);
+      return;
+    }
+
+    onClose();
+  };
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (loading || idLoading) return;
+
+        if (confirmOpen) {
+          setConfirmOpen(false);
+          return;
+        }
+
+        if (discardOpen) {
+          setDiscardOpen(false);
+          return;
+        }
+
+        requestClose();
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, confirmOpen, discardOpen, loading, idLoading, hasUnsavedChanges]);
 
   const studentIdValid = new RegExp(`^GIP-${currentYear}-\\d{3}$`).test(
     studentId.trim(),
@@ -403,6 +557,7 @@ export default function EnrollmentEvaluationModal({
       });
 
       setConfirmOpen(false);
+      setDiscardOpen(false);
       onClose();
     } finally {
       submittingRef.current = false;
@@ -416,7 +571,15 @@ export default function EnrollmentEvaluationModal({
       aria-modal="true"
       aria-label="Enrollment Evaluation"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget && !confirmOpen) onClose();
+        if (
+          e.target === e.currentTarget &&
+          !confirmOpen &&
+          !discardOpen &&
+          !loading &&
+          !idLoading
+        ) {
+          requestClose();
+        }
       }}
     >
       <div
@@ -428,10 +591,10 @@ export default function EnrollmentEvaluationModal({
           <button
             type="button"
             className="enroll-icon-btn enroll-icon-btn-sm"
-            onClick={onClose}
+            onClick={requestClose}
             aria-label="Close"
             title="Close"
-            disabled={confirmOpen}
+            disabled={confirmOpen || loading || idLoading}
           >
             <X size={16} />
           </button>
@@ -788,7 +951,7 @@ export default function EnrollmentEvaluationModal({
               <button
                 className="btn btn-light"
                 onClick={goBack}
-                disabled={loading || confirmOpen || idLoading}
+                disabled={loading || confirmOpen || discardOpen || idLoading}
               >
                 Back
               </button>
@@ -798,7 +961,7 @@ export default function EnrollmentEvaluationModal({
           <div className="d-flex gap-2">
             <button
               className="btn btn-light"
-              onClick={onClose}
+              onClick={requestClose}
               disabled={loading || confirmOpen || idLoading}
             >
               Cancel
@@ -808,7 +971,7 @@ export default function EnrollmentEvaluationModal({
               <button
                 className="btn btn-primary"
                 onClick={goNext}
-                disabled={loading || confirmOpen || idLoading}
+                disabled={loading || confirmOpen || discardOpen || idLoading}
               >
                 Next
               </button>
@@ -816,7 +979,7 @@ export default function EnrollmentEvaluationModal({
               <button
                 className="btn btn-primary"
                 onClick={onEnrollClick}
-                disabled={loading || confirmOpen || idLoading}
+                disabled={loading || confirmOpen || discardOpen || idLoading}
               >
                 Enroll
               </button>
@@ -876,6 +1039,67 @@ export default function EnrollmentEvaluationModal({
                   disabled={loading || idLoading}
                 >
                   Yes, Enroll
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {discardOpen ? (
+          <div
+            className="enroll-confirm-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirm Discard Enrollment Changes"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setDiscardOpen(false);
+            }}
+          >
+            <div
+              className="enroll-confirm-popup"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="enroll-confirm-header d-flex align-items-center justify-content-between">
+                <div className="enroll-confirm-title mb-0">Discard changes?</div>
+                <button
+                  type="button"
+                  className="enroll-icon-btn enroll-icon-btn-sm"
+                  onClick={() => setDiscardOpen(false)}
+                  aria-label="Close"
+                  title="Close"
+                  disabled={loading || idLoading}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="enroll-confirm-body">
+                <div className="fw-semibold mb-1">
+                  You have unsaved input in this evaluation.
+                </div>
+                <div className="text-muted small">
+                  Closing this modal will discard your changes.
+                </div>
+              </div>
+
+              <div className="enroll-confirm-actions">
+                <button
+                  className="btn btn-light"
+                  onClick={() => setDiscardOpen(false)}
+                  disabled={loading || idLoading}
+                >
+                  Keep Editing
+                </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={() => {
+                    setDiscardOpen(false);
+                    setConfirmOpen(false);
+                    onClose();
+                  }}
+                  disabled={loading || idLoading}
+                >
+                  Discard & Close
                 </button>
               </div>
             </div>
