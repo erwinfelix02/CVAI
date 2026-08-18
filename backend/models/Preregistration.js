@@ -67,6 +67,15 @@ const preregSchema = new mongoose.Schema(
       birthDate: encryptedField("personal.birthDate"),
       gender: encryptedField("personal.gender"),
       address: encryptedField("personal.address"),
+
+      barangay: encryptedField("personal.barangay"),
+      municipality: encryptedField("personal.municipality"),
+      province: encryptedField("personal.province"),
+      postalCode: encryptedField("personal.postalCode"),
+
+      provinceCode: String,
+      municipalityCode: String,
+      barangayCode: String,
     },
 
     academic: {
@@ -127,7 +136,10 @@ const preregSchema = new mongoose.Schema(
   },
 );
 
-preregSchema.index({ applicantIdentityHash: 1 }, { unique: true, sparse: true });
+preregSchema.index(
+  { applicantIdentityHash: 1 },
+  { unique: true, sparse: true },
+);
 
 preregSchema.pre("save", function () {
   if (!this.registrationId) {
@@ -143,6 +155,10 @@ preregSchema.pre("save", function () {
     "personal.birthDate",
     "personal.gender",
     "personal.address",
+    "personal.barangay",
+    "personal.municipality",
+    "personal.province",
+    "personal.postalCode",
     "academic.applicantType",
     "academic.course",
     "academic.previousSchool",
@@ -160,8 +176,12 @@ preregSchema.pre("save", function () {
   this.phoneHash = hashLookup("personal.phone", phone);
 
   const identityBase = [
-    String(firstName || "").trim().toLowerCase(),
-    String(lastName || "").trim().toLowerCase(),
+    String(firstName || "")
+      .trim()
+      .toLowerCase(),
+    String(lastName || "")
+      .trim()
+      .toLowerCase(),
     String(birthDate || "").trim(),
   ].join("|");
 
@@ -205,8 +225,12 @@ function rewriteLookupFilter(filter) {
 
   if (hasIdentityFields) {
     const base = [
-      String(filter["personal.firstName"] || "").trim().toLowerCase(),
-      String(filter["personal.lastName"] || "").trim().toLowerCase(),
+      String(filter["personal.firstName"] || "")
+        .trim()
+        .toLowerCase(),
+      String(filter["personal.lastName"] || "")
+        .trim()
+        .toLowerCase(),
       String(filter["personal.birthDate"] || "").trim(),
     ].join("|");
 
@@ -232,6 +256,11 @@ function applyEncryptedUpdate(update) {
     "personal.birthDate": "personal.birthDate",
     "personal.gender": "personal.gender",
     "personal.address": "personal.address",
+
+    "personal.barangay": "personal.barangay",
+    "personal.municipality": "personal.municipality",
+    "personal.province": "personal.province",
+    "personal.postalCode": "personal.postalCode",
     "academic.applicantType": "academic.applicantType",
     "academic.course": "academic.course",
     "academic.previousSchool": "academic.previousSchool",
@@ -282,8 +311,12 @@ function applyEncryptedUpdate(update) {
     plainBirthDate !== undefined
   ) {
     const base = [
-      String(plainFirstName || "").trim().toLowerCase(),
-      String(plainLastName || "").trim().toLowerCase(),
+      String(plainFirstName || "")
+        .trim()
+        .toLowerCase(),
+      String(plainLastName || "")
+        .trim()
+        .toLowerCase(),
       String(plainBirthDate || "").trim(),
     ].join("|");
 

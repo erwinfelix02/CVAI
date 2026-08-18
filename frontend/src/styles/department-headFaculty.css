@@ -1,0 +1,734 @@
+/* =========================================================
+   DEPARTMENT HEAD - FACULTY MANAGEMENT
+   ========================================================= */
+
+.faculty-page {
+  width: 100%;
+  min-height: 100%;
+}
+
+/* =========================================================
+   PAGE HEADER
+   ========================================================= */
+
+.faculty-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.faculty-page-header h1 {
+  color: #0f172a;
+  font-size: clamp(26px, 2.2vw, 32px);
+  line-height: 1.2;
+}
+
+.faculty-page-header p {
+  font-size: 17px;
+}
+
+/* =========================================================
+   REPORT BUTTON
+   ========================================================= */
+
+.faculty-report-btn {
+  min-height: 50px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  padding: 0 22px;
+
+  border: none;
+  border-radius: 12px;
+
+  background: #0e5c7e;
+  color: #ffffff;
+
+  font-size: 16px;
+  font-weight: 600;
+
+  white-space: nowrap;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.faculty-report-btn:hover {
+  background: #084d6b;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   STAT CARDS
+   ========================================================= */
+
+.faculty-stat-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+
+  width: 100%;
+  min-height: 97px;
+
+  padding: 20px !important;
+
+  background: #ffffff !important;
+
+  border: 1px solid #dce4eb !important;
+  border-radius: 15px !important;
+
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04) !important;
+
+  color: #0f172a !important;
+}
+
+.faculty-stat-icon {
+  width: 46px !important;
+  height: 46px !important;
+
+  min-width: 46px;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border-radius: 15px !important;
+
+  background: #e7f0f4 !important;
+
+  color: #0e5c7e !important;
+
+  opacity: 1 !important;
+}
+
+.faculty-stat-icon svg {
+  display: block !important;
+
+  width: 24px;
+  height: 24px;
+
+  color: #0e5c7e !important;
+
+  stroke: #0e5c7e !important;
+
+  opacity: 1 !important;
+}
+
+.faculty-stat-content {
+  display: flex !important;
+  flex-direction: column !important;
+
+  min-width: 0;
+
+  color: #0f172a !important;
+
+  opacity: 1 !important;
+}
+
+.faculty-stat-label {
+  display: block !important;
+
+  margin-bottom: 3px;
+
+  color: #58708c !important;
+
+  font-size: 14px !important;
+  font-weight: 400 !important;
+
+  line-height: 1.4;
+
+  opacity: 1 !important;
+}
+
+.faculty-stat-value {
+  display: block !important;
+
+  margin: 0;
+
+  color: #0b172a !important;
+
+  font-size: 24px !important;
+  font-weight: 700 !important;
+
+  line-height: 1.1;
+
+  opacity: 1 !important;
+}
+/* =========================================================
+   SEARCH / FILTER CARD
+   ========================================================= */
+
+.faculty-filter-card {
+  width: 100%;
+
+  padding: 20px;
+
+  background: #ffffff;
+
+  border: 1px solid #dce4eb;
+  border-radius: 15px;
+
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.03);
+}
+
+.faculty-search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+.faculty-search-box {
+  flex: 1;
+
+  height: 50px;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  padding: 0 16px;
+
+  border: 1px solid #d8e0e8;
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.faculty-search-box:focus-within {
+  border-color: #0e5c7e;
+
+  box-shadow:
+    0 0 0 3px rgba(14, 92, 126, 0.08);
+}
+
+.faculty-search-icon {
+  flex-shrink: 0;
+  color: #61758b;
+}
+
+.faculty-search-box input {
+  width: 100%;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  color: #0f172a;
+
+  font-size: 16px;
+}
+
+.faculty-search-box input::placeholder {
+  color: #58708c;
+}
+
+/* =========================================================
+   STATUS FILTER
+   ========================================================= */
+
+.faculty-status-filter {
+  position: relative;
+
+  width: 220px;
+  height: 50px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  flex-shrink: 0;
+
+  padding: 0 14px;
+
+  border: 1px solid #d8e0e8;
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  color: #0f172a;
+}
+
+.faculty-status-filter select {
+  width: 100%;
+
+  border: none;
+  outline: none;
+
+  appearance: none;
+
+  background: transparent;
+
+  color: #0f172a;
+
+  font-size: 16px;
+
+  cursor: pointer;
+}
+
+.faculty-filter-arrow {
+  position: absolute;
+  right: 13px;
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   FACULTY LIST
+   ========================================================= */
+
+.faculty-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* =========================================================
+   FACULTY CARD
+   ========================================================= */
+
+.faculty-card {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(180px, 250px)
+    110px;
+
+  align-items: center;
+
+  gap: 30px;
+
+  width: 100%;
+
+  padding: 20px;
+
+  background: #ffffff;
+
+  border: 1px solid #dce4eb;
+  border-radius: 15px;
+
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.03);
+
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.faculty-card:hover {
+  box-shadow:
+    0 7px 18px rgba(15, 23, 42, 0.07);
+
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   INFORMATION
+   ========================================================= */
+
+.faculty-information {
+  min-width: 0;
+
+  display: flex;
+  align-items: flex-start;
+
+  gap: 20px;
+}
+
+.faculty-avatar {
+  width: 50px;
+  height: 50px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #f0f3f5;
+
+  color: #0b172a;
+
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.faculty-details {
+  min-width: 0;
+}
+
+.faculty-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  gap: 8px;
+}
+
+.faculty-name {
+  margin: 0;
+
+  color: #08182c;
+
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.faculty-position {
+  margin-top: 5px;
+
+  color: #58708c;
+
+  font-size: 16px;
+}
+
+.faculty-dot {
+  margin: 0 5px;
+}
+
+.faculty-email {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  color: #58708c;
+
+  font-size: 14px;
+}
+
+.faculty-email span {
+  overflow-wrap: anywhere;
+}
+
+/* =========================================================
+   STATUS
+   ========================================================= */
+
+.faculty-status {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 28px;
+
+  padding: 3px 10px;
+
+  border-radius: 999px;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.faculty-status-available {
+  border: 1px solid #d5e2e8;
+
+  background: #ffffff;
+
+  color: #075d80;
+}
+
+.faculty-status-full {
+  background: #e9eef1;
+
+  color: #294a60;
+}
+
+.faculty-status-overloaded {
+  background: #f04444;
+
+  color: #ffffff;
+}
+
+/* =========================================================
+   SUBJECTS
+   ========================================================= */
+
+.faculty-subjects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+
+  margin-top: 10px;
+}
+
+.faculty-subject {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 28px;
+
+  padding: 3px 12px;
+
+  border: 1px solid #d8e0e8;
+  border-radius: 999px;
+
+  background: #ffffff;
+
+  color: #0f172a;
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* =========================================================
+   LOAD
+   ========================================================= */
+
+.faculty-load {
+  width: 100%;
+  min-width: 0;
+}
+
+.faculty-load-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 8px;
+
+  color: #58708c;
+
+  font-size: 14px;
+}
+
+.faculty-progress {
+  width: 100%;
+  height: 20px;
+
+  overflow: hidden;
+
+  border-radius: 999px;
+
+  background: #e9eef1;
+}
+
+.faculty-progress-bar {
+  height: 100%;
+
+  border-radius: inherit;
+
+  transition: width 0.3s ease;
+}
+
+.faculty-progress-normal {
+  background: #0e5c7e;
+}
+
+.faculty-progress-overloaded {
+  background: #ef4444;
+}
+
+/* =========================================================
+   VIEW BUTTON
+   ========================================================= */
+
+.faculty-view-btn {
+  width: 110px;
+  height: 46px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  border: 1px solid #d8e0e8;
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  color: #0f172a;
+
+  font-size: 16px;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.faculty-view-btn:hover {
+  background: #f5fafc;
+  border-color: #0e5c7e;
+}
+
+/* =========================================================
+   EMPTY STATE
+   ========================================================= */
+
+.faculty-empty-state {
+  width: 100%;
+
+  padding: 70px 20px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  background: #ffffff;
+
+  border: 1px solid #dce4eb;
+  border-radius: 15px;
+
+  color: #64748b;
+}
+
+.faculty-empty-state h5 {
+  margin: 15px 0 5px;
+
+  color: #0f172a;
+}
+
+.faculty-empty-state p {
+  margin: 0;
+}
+
+/* =========================================================
+   LARGE TABLET
+   ========================================================= */
+
+@media (max-width: 1200px) {
+  .faculty-card {
+    grid-template-columns:
+      minmax(0, 1fr)
+      210px
+      100px;
+
+    gap: 20px;
+  }
+}
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 992px) {
+  .faculty-page-header {
+    align-items: flex-start;
+  }
+
+  .faculty-search-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .faculty-status-filter {
+    width: 100%;
+  }
+
+  .faculty-card {
+    grid-template-columns:
+      minmax(0, 1fr)
+      210px;
+  }
+
+  .faculty-view-btn {
+    grid-column: 2;
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .faculty-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .faculty-report-btn {
+    width: 100%;
+  }
+
+  .faculty-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 20px;
+
+    padding: 18px;
+  }
+
+  .faculty-view-btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 480px) {
+  .faculty-page {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .faculty-page-header h1 {
+    font-size: 25px;
+  }
+
+  .faculty-page-header p {
+    font-size: 15px;
+  }
+
+  .faculty-stat-card {
+    padding: 16px;
+  }
+
+  .faculty-stat-icon {
+    width: 43px;
+    height: 43px;
+  }
+
+  .faculty-stat-value {
+    font-size: 22px;
+  }
+
+  .faculty-information {
+    gap: 12px;
+  }
+
+  .faculty-avatar {
+    width: 45px;
+    height: 45px;
+  }
+
+  .faculty-name {
+    font-size: 17px;
+  }
+
+  .faculty-position {
+    font-size: 14px;
+  }
+
+  .faculty-email {
+    font-size: 13px;
+  }
+
+  .faculty-subject {
+    font-size: 13px;
+  }
+}

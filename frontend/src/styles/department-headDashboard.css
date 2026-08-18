@@ -1,0 +1,134 @@
+/* =========================================================
+   DEPARTMENT HEAD DASHBOARD
+   TEACHING LOAD PILL
+   ========================================================= */
+
+.teaching-load-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 auto;
+
+  min-height: 28px;
+
+  padding: 5px 11px;
+
+  border-radius: 999px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  line-height: 1;
+
+  white-space: nowrap;
+}
+
+/* =========================================================
+   NORMAL LOAD
+   ========================================================= */
+
+.teaching-load-pill-ok {
+  color: #146c43;
+
+  background-color: #d1e7dd;
+
+  border: 1px solid #a3cfbb;
+}
+
+/* =========================================================
+   OVERLOAD
+   ========================================================= */
+
+.teaching-load-pill-danger {
+  color: #b02a37;
+
+  background-color: #f8d7da;
+
+  border: 1px solid #f1aeb5;
+}
+
+/* =========================================================
+   TABLET / MOBILE
+   ========================================================= */
+
+@media (max-width: 575.98px) {
+  .teaching-load-pill {
+    padding: 5px 9px;
+
+    font-size: 12px;
+  }
+}
+/* =========================================================
+   DEPARTMENT HEAD DASHBOARD
+   SCHEDULE CONFLICT BADGE
+   ========================================================= */
+
+.conflict-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 28px;
+
+  padding: 5px 11px;
+
+  border-radius: 999px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  line-height: 1;
+
+  white-space: nowrap;
+
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   WARNING
+   ========================================================= */
+
+.conflict-badge-warning {
+  color: #8a5a00;
+
+  background-color: #fff3cd;
+
+  border: 1px solid #ffe69c;
+}
+
+/* =========================================================
+   DANGER
+   ========================================================= */
+
+.conflict-badge-danger {
+  color: #b02a37;
+
+  background-color: #f8d7da;
+
+  border: 1px solid #f1aeb5;
+}
+
+/* =========================================================
+   INFO
+   ========================================================= */
+
+.conflict-badge-info {
+  color: #055160;
+
+  background-color: #cff4fc;
+
+  border: 1px solid #9eeaf9;
+}
+
+/* =========================================================
+   SMALL SCREEN
+   ========================================================= */
+
+@media (max-width: 575.98px) {
+  .conflict-badge {
+    padding: 5px 9px;
+
+    font-size: 12px;
+  }
+}

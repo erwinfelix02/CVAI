@@ -1,0 +1,817 @@
+/* =========================================================
+   DEPARTMENT HEAD
+   ROOM ALLOCATION
+   ========================================================= */
+
+/*
+  IMPORTANT:
+  This page intentionally does NOT use Bootstrap
+  .container-fluid / .row / .col-* for its main layout.
+
+  This prevents the Rooms page from creating horizontal
+  overflow that can push the sidebar.
+*/
+
+.rooms-page {
+  display: block;
+
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  margin: 0;
+  padding: 24px;
+
+  overflow-x: hidden;
+  overflow-y: visible;
+
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   PAGE CONTENT
+   ========================================================= */
+
+.rooms-page-content {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  margin: 0 auto;
+
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   PAGE HEADER
+   ========================================================= */
+
+.rooms-page-header {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 24px;
+
+  margin-bottom: 24px;
+
+  box-sizing: border-box;
+}
+
+.rooms-page-title {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.rooms-page-title h1 {
+  margin: 0 0 4px;
+
+  color: #0b172a;
+
+  font-size: clamp(26px, 2.2vw, 32px);
+  font-weight: 700;
+
+  line-height: 1.2;
+
+  overflow-wrap: anywhere;
+}
+
+.rooms-page-title p {
+  margin: 0;
+
+  color: #58708c;
+
+  font-size: 17px;
+
+  line-height: 1.5;
+
+  overflow-wrap: anywhere;
+}
+
+/* =========================================================
+   REQUEST ROOM BUTTON
+   ========================================================= */
+
+.rooms-request-btn {
+  min-width: 0;
+  min-height: 50px;
+
+  flex: 0 0 auto;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 10px;
+
+  padding: 0 24px;
+
+  border: none;
+  border-radius: 12px;
+
+  background: #0e5c7e;
+
+  color: #ffffff;
+
+  font-size: 16px;
+  font-weight: 500;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.rooms-request-btn:hover {
+  background: #084d6b;
+
+  color: #ffffff;
+
+  transform: translateY(-1px);
+}
+
+.rooms-request-btn:focus-visible {
+  outline: 3px solid rgba(14, 92, 126, 0.2);
+  outline-offset: 2px;
+}
+
+/* =========================================================
+   SEARCH / FILTER CARD
+   ========================================================= */
+
+.rooms-filter-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  margin-bottom: 24px;
+
+  padding: 20px;
+
+  background: #ffffff;
+
+  border: 1px solid #dce4eb;
+  border-radius: 15px;
+
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.03);
+
+  overflow: hidden;
+
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   SEARCH WRAPPER
+   ========================================================= */
+
+.room-search-wrapper {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 20px;
+
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   SEARCH BOX
+   ========================================================= */
+
+.room-search-box {
+  width: 100%;
+  min-width: 0;
+
+  flex: 1 1 auto;
+
+  height: 50px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 14px;
+
+  padding: 0 16px;
+
+  border: 1px solid #d8e0e8;
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  box-sizing: border-box;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.room-search-box:focus-within {
+  border-color: #0e5c7e;
+
+  box-shadow:
+    0 0 0 3px rgba(14, 92, 126, 0.08);
+}
+
+.room-search-icon {
+  flex: 0 0 auto;
+
+  color: #61758b;
+}
+
+.room-search-box input {
+  width: 100%;
+  min-width: 0;
+
+  padding: 0;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  color: #0f172a;
+
+  font-size: 16px;
+
+  line-height: 1.5;
+}
+
+.room-search-box input::placeholder {
+  color: #58708c;
+}
+
+/* =========================================================
+   TYPE FILTER
+   ========================================================= */
+
+.room-type-filter {
+  position: relative;
+
+  width: 220px;
+  min-width: 0;
+
+  flex: 0 0 220px;
+
+  height: 50px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 0 14px;
+
+  border: 1px solid #d8e0e8;
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  color: #0f172a;
+
+  box-sizing: border-box;
+}
+
+.room-type-filter > svg:first-child {
+  flex: 0 0 auto;
+}
+
+.room-type-filter select {
+  width: 100%;
+  min-width: 0;
+
+  padding: 0 25px 0 0;
+
+  border: none;
+  outline: none;
+
+  appearance: none;
+
+  background: transparent;
+
+  color: #0f172a;
+
+  font-size: 16px;
+
+  cursor: pointer;
+}
+
+.room-filter-arrow {
+  position: absolute;
+
+  top: 50%;
+  right: 13px;
+
+  transform: translateY(-50%);
+
+  pointer-events: none;
+
+  color: #61758b;
+}
+
+/* =========================================================
+   ROOMS GRID
+   ========================================================= */
+
+/*
+  CSS GRID is used instead of Bootstrap .row/.col.
+
+  This is the key fix for the sidebar issue.
+*/
+
+.rooms-grid {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 24px;
+
+  margin: 0;
+  padding: 0;
+
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   ROOM GRID ITEM
+   ========================================================= */
+
+.rooms-grid-item {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  display: flex;
+
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   ROOM CARD
+   ========================================================= */
+
+.room-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  min-height: 278px;
+
+  padding: 30px;
+
+  background: #ffffff;
+
+  border: 1px solid #dce4eb;
+  border-radius: 15px;
+
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.04);
+
+  overflow: hidden;
+
+  box-sizing: border-box;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.room-card:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 6px 18px rgba(15, 23, 42, 0.07);
+}
+
+/* =========================================================
+   ROOM HEADER
+   ========================================================= */
+
+.room-card-header {
+  width: 100%;
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+}
+
+.room-title-wrapper {
+  min-width: 0;
+
+  flex: 1 1 auto;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+}
+
+.room-title-icon {
+  flex: 0 0 auto;
+
+  color: #0e5c7e;
+}
+
+.room-name {
+  min-width: 0;
+
+  margin: 0;
+
+  color: #0b172a;
+
+  font-size: 20px;
+  font-weight: 600;
+
+  line-height: 1.3;
+
+  overflow-wrap: anywhere;
+}
+
+.room-type-badge {
+  min-width: 0;
+  max-width: 100%;
+
+  flex: 0 1 auto;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 28px;
+
+  padding: 3px 13px;
+
+  border: 1px solid #d8e0e8;
+  border-radius: 999px;
+
+  background: #ffffff;
+
+  color: #0b172a;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  white-space: nowrap;
+}
+
+/* =========================================================
+   BUILDING
+   ========================================================= */
+
+.room-building {
+  width: 100%;
+  min-width: 0;
+
+  margin-top: 10px;
+
+  color: #58708c;
+
+  font-size: 17px;
+
+  overflow-wrap: anywhere;
+}
+
+/* =========================================================
+   ROOM DETAILS
+   ========================================================= */
+
+.room-details {
+  width: 100%;
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  gap: 22px;
+
+  margin-top: 18px;
+}
+
+.room-detail {
+  min-width: 0;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 7px;
+
+  color: #58708c;
+
+  font-size: 16px;
+}
+
+.room-detail svg {
+  flex: 0 0 auto;
+
+  color: #71849a;
+}
+
+/* =========================================================
+   UTILIZATION
+   ========================================================= */
+
+.room-utilization {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  margin-top: 17px;
+}
+
+.room-utilization-header {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  margin-bottom: 7px;
+
+  color: #58708c;
+
+  font-size: 14px;
+}
+
+.room-progress {
+  width: 100%;
+  max-width: 100%;
+
+  height: 10px;
+
+  overflow: hidden;
+
+  border-radius: 999px;
+
+  background: #edf0f2;
+}
+
+.room-progress-bar {
+  height: 100%;
+
+  max-width: 100%;
+
+  border-radius: inherit;
+
+  background: #0e5c7e;
+
+  transition: width 0.3s ease;
+}
+
+/* =========================================================
+   SCHEDULE BUTTON
+   ========================================================= */
+
+.room-schedule-btn {
+  width: 100%;
+  max-width: 100%;
+
+  min-height: 46px;
+
+  margin-top: auto;
+  padding: 8px 15px;
+
+  border: 1px solid #d8e0e8;
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  color: #0b172a;
+
+  font-size: 16px;
+  font-weight: 400;
+
+  cursor: pointer;
+
+  box-sizing: border-box;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.room-schedule-btn:hover {
+  background: #f5f9fb;
+
+  border-color: #0e5c7e;
+
+  color: #0e5c7e;
+}
+
+/* =========================================================
+   EMPTY STATE
+   ========================================================= */
+
+.rooms-empty-state {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  padding: 60px 20px;
+
+  text-align: center;
+
+  background: #ffffff;
+
+  border: 1px solid #dce4eb;
+  border-radius: 15px;
+
+  box-sizing: border-box;
+
+  overflow: hidden;
+}
+
+.rooms-empty-state h5 {
+  margin: 0 0 6px;
+
+  color: #0b172a;
+}
+
+.rooms-empty-state p {
+  margin: 0;
+
+  color: #58708c;
+}
+
+/* =========================================================
+   LARGE TABLET
+   ========================================================= */
+
+@media (max-width: 1200px) {
+  .rooms-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .room-card {
+    padding: 24px;
+  }
+
+  .room-name {
+    font-size: 18px;
+  }
+}
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 992px) {
+  .rooms-page {
+    padding: 20px;
+  }
+
+  .rooms-page-header {
+    align-items: flex-start;
+  }
+
+  .room-search-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .room-search-box {
+    width: 100%;
+    flex: 0 0 auto;
+  }
+
+  .room-type-filter {
+    width: 100%;
+    flex: 0 0 auto;
+  }
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .rooms-page {
+    padding: 18px;
+  }
+
+  .rooms-page-header {
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 16px;
+  }
+
+  .rooms-request-btn {
+    width: 100%;
+    flex: 0 0 auto;
+  }
+
+  .rooms-filter-card {
+    padding: 15px;
+  }
+
+  .rooms-grid {
+    grid-template-columns: minmax(0, 1fr);
+
+    gap: 16px;
+  }
+
+  .room-card {
+    min-height: auto;
+
+    padding: 22px;
+  }
+
+  .room-card-header {
+    align-items: flex-start;
+  }
+}
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 480px) {
+  .rooms-page {
+    padding: 12px;
+  }
+
+  .rooms-page-title h1 {
+    font-size: 25px;
+  }
+
+  .rooms-page-title p {
+    font-size: 15px;
+  }
+
+  .rooms-filter-card {
+    padding: 12px;
+  }
+
+  .room-card {
+    padding: 18px;
+  }
+
+  .room-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .room-type-badge {
+    align-self: flex-start;
+  }
+
+  .room-details {
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: 12px;
+  }
+
+  .room-detail {
+    font-size: 15px;
+  }
+}
+
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 360px) {
+  .rooms-page {
+    padding: 8px;
+  }
+
+  .rooms-filter-card {
+    padding: 10px;
+  }
+
+  .room-card {
+    padding: 15px;
+  }
+
+  .rooms-request-btn {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+}

@@ -70,7 +70,9 @@ router.post(
 
       const data = JSON.parse(req.body.data);
 
-      const email = String(data?.personal?.email || "").trim().toLowerCase();
+      const email = String(data?.personal?.email || "")
+        .trim()
+        .toLowerCase();
       const phone = normalizePHPhone(data?.personal?.phone || "");
       const firstName = String(data?.personal?.firstName || "").trim();
       const middleName = String(data?.personal?.middleName || "").trim();
@@ -78,10 +80,26 @@ router.post(
       const birthDate = String(data?.personal?.birthDate || "").trim();
       const gender = String(data?.personal?.gender || "").trim();
       const address = String(data?.personal?.address || "").trim();
+      const barangay = String(data?.personal?.barangay || "").trim();
 
+      const municipality = String(data?.personal?.municipality || "").trim();
+
+      const province = String(data?.personal?.province || "").trim();
+
+      const postalCode = String(data?.personal?.postalCode || "").trim();
+
+      const provinceCode = String(data?.personal?.provinceCode || "").trim();
+
+      const municipalityCode = String(
+        data?.personal?.municipalityCode || "",
+      ).trim();
+
+      const barangayCode = String(data?.personal?.barangayCode || "").trim();
       const applicantType = String(data?.academic?.applicantType || "").trim();
       const course = String(data?.academic?.course || "").trim();
-      const previousSchool = String(data?.academic?.previousSchool || "").trim();
+      const previousSchool = String(
+        data?.academic?.previousSchool || "",
+      ).trim();
 
       const existingActive = await Preregistration.findOne({
         $or: [
@@ -138,6 +156,15 @@ router.post(
           birthDate,
           gender,
           address,
+
+          barangay,
+          municipality,
+          province,
+          postalCode,
+
+          provinceCode,
+          municipalityCode,
+          barangayCode,
         },
         academic: {
           applicantType,
@@ -253,7 +280,9 @@ router.post(
 router.get("/", async (req, res) => {
   try {
     const active = await Preregistration.find().sort({ createdAt: -1 });
-    const archived = await ArchivedPreregistration.find().sort({ createdAt: -1 });
+    const archived = await ArchivedPreregistration.find().sort({
+      createdAt: -1,
+    });
 
     const combined = [
       ...active.map((doc) => doc.toObject()),
@@ -415,7 +444,9 @@ router.patch("/:id/status", async (req, res) => {
 // Archive: move from active collection to archived collection
 router.post("/:id/archive", async (req, res) => {
   try {
-    const app = await Preregistration.findOne({ registrationId: req.params.id });
+    const app = await Preregistration.findOne({
+      registrationId: req.params.id,
+    });
 
     if (!app) {
       return res.status(404).json({ message: "Application not found" });
@@ -452,7 +483,9 @@ router.post("/:id/unarchive", async (req, res) => {
     });
 
     if (!archived) {
-      return res.status(404).json({ message: "Archived application not found" });
+      return res
+        .status(404)
+        .json({ message: "Archived application not found" });
     }
 
     const plain = archived.toObject();
@@ -484,7 +517,9 @@ router.delete("/:id", async (req, res) => {
     });
 
     if (!archived) {
-      return res.status(404).json({ message: "Archived application not found" });
+      return res
+        .status(404)
+        .json({ message: "Archived application not found" });
     }
 
     res.json({

@@ -1063,3 +1063,418 @@
     text-align: center !important;
   }
 }
+/* =========================================================
+   PHILIPPINE ADDRESS SELECTOR
+   ========================================================= */
+
+.prereg-address-selector {
+  width: 100%;
+  border: 1px solid #dfe5ec;
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.prereg-address-selector:focus-within {
+  border-color: #0b4a6f;
+  box-shadow: 0 0 0 0.15rem rgba(11, 74, 111, 0.1);
+}
+
+.prereg-address-selector.is-invalid {
+  border-color: #dc3545 !important;
+}
+
+/* =========================================================
+   SEARCH INPUT
+   ========================================================= */
+
+.prereg-address-search {
+  position: relative;
+  width: 100%;
+}
+
+.prereg-address-search-input {
+  width: 100%;
+  min-height: 48px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  border: 1px solid #d9e1e8;
+  border-radius: 12px;
+
+  background: #f8fafc;
+
+  padding: 0 14px;
+
+  color: #64748b;
+}
+
+.prereg-address-search-input:focus-within {
+  border-color: #0b4a6f;
+  background: #fff;
+  box-shadow: 0 0 0 0.15rem rgba(11, 74, 111, 0.08);
+}
+
+.prereg-address-search-input input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.prereg-address-search-input input::placeholder {
+  color: #94a3b8;
+}
+
+.prereg-address-spinner {
+  flex-shrink: 0;
+  animation: prereg-address-spin 1s linear infinite;
+}
+
+@keyframes prereg-address-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================
+   SEARCH RESULTS
+   ========================================================= */
+
+.prereg-address-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+
+  max-height: 260px;
+  overflow-y: auto;
+
+  background: #fff;
+  border: 1px solid #dfe5ec;
+  border-radius: 12px;
+
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+
+  z-index: 100;
+  padding: 6px;
+}
+
+.prereg-address-result {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  border: none;
+  background: transparent;
+
+  padding: 11px 12px;
+
+  border-radius: 9px;
+
+  color: #0f172a;
+  text-align: left;
+
+  cursor: pointer;
+
+  font-size: 14px;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.prereg-address-result:hover {
+  background: #eef5f8;
+  color: #0b4a6f;
+}
+
+.prereg-address-result svg {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.prereg-address-no-result {
+  padding: 14px;
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* =========================================================
+   ADDRESS LEVEL
+   ========================================================= */
+
+.prereg-address-level {
+  margin-top: 12px;
+}
+
+.prereg-address-level:first-child {
+  margin-top: 0;
+}
+
+.prereg-address-level-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  margin-bottom: 7px;
+
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.prereg-address-level-label button {
+  border: none;
+  background: transparent;
+
+  color: #0d6efd;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.prereg-address-level-label button:hover {
+  text-decoration: underline;
+}
+
+/* =========================================================
+   SELECTED PROVINCE
+   ========================================================= */
+
+.prereg-address-selected {
+  min-height: 48px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 11px 13px;
+
+  border-radius: 10px;
+
+  background: #f0f7fa;
+  border: 1px solid #d7e7ed;
+
+  color: #0b4a6f;
+}
+
+.prereg-address-selected strong {
+  flex: 1;
+}
+
+/* =========================================================
+   DROPDOWNS
+   ========================================================= */
+
+.prereg-address-mini-label {
+  display: block;
+
+  margin-bottom: 7px;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  color: #64748b;
+}
+
+.prereg-address-dropdown-wrap {
+  position: relative;
+}
+
+.prereg-address-dropdown-wrap .form-select {
+  min-height: 48px;
+  padding-right: 42px;
+
+  border-radius: 10px;
+  border-color: #d9e1e8;
+
+  background-image: none;
+}
+
+.prereg-address-dropdown-wrap .form-select:focus {
+  border-color: #0b4a6f;
+
+  box-shadow: 0 0 0 0.15rem rgba(11, 74, 111, 0.08);
+}
+
+.prereg-address-chevron {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+
+  transform: translateY(-50%);
+
+  pointer-events: none;
+
+  color: #64748b;
+}
+
+/* =========================================================
+   FINAL ADDRESS
+   ========================================================= */
+
+.prereg-address-final {
+  margin-top: 12px;
+
+  padding: 14px;
+
+  border-radius: 12px;
+
+  background: #f8fafc;
+  border: 1px solid #dfe7ee;
+}
+
+.prereg-address-final-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  margin-bottom: 10px;
+
+  color: #0f172a;
+}
+
+.prereg-address-change {
+  border: none;
+  background: transparent;
+
+  color: #0d6efd;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.prereg-address-change:hover {
+  text-decoration: underline;
+}
+
+/* =========================================================
+   READ-ONLY ADDRESS TEXTAREA
+   ========================================================= */
+
+.prereg-address-display {
+  resize: none;
+
+  min-height: 82px;
+
+  background: #fff !important;
+
+  color: #0f172a !important;
+
+  border-color: #d9e1e8;
+
+  font-size: 14px;
+
+  line-height: 1.55;
+
+  cursor: default;
+}
+
+.prereg-address-display:focus {
+  border-color: #d9e1e8;
+
+  box-shadow: none;
+}
+
+/* =========================================================
+   ADDRESS DETAILS
+   ========================================================= */
+
+.prereg-address-details {
+  display: grid;
+
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  gap: 10px;
+
+  margin-top: 12px;
+}
+
+.prereg-address-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  padding: 10px 11px;
+
+  border-radius: 9px;
+
+  background: #fff;
+
+  border: 1px solid #e8edf2;
+}
+
+.prereg-address-detail span {
+  font-size: 11px;
+
+  color: #64748b;
+
+  font-weight: 700;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.025em;
+}
+
+.prereg-address-detail strong {
+  font-size: 13px;
+
+  color: #0f172a;
+
+  line-height: 1.35;
+
+  word-break: break-word;
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .prereg-address-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 576px) {
+  .prereg-address-selector {
+    padding: 10px;
+  }
+
+  .prereg-address-details {
+    grid-template-columns: 1fr;
+  }
+
+  .prereg-address-final {
+    padding: 12px;
+  }
+
+  .prereg-address-detail {
+    padding: 9px 10px;
+  }
+
+  .prereg-address-search-results {
+    max-height: 220px;
+  }
+}

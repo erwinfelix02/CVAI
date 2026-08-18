@@ -1,14 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
-
 import { useNavigate } from "react-router-dom";
-
-import {
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle2,
-  Info,
-  X,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Info, X } from "lucide-react";
 
 import AuthAlert from "../../components/Authentication/AuthAlert";
 
@@ -24,7 +16,9 @@ import StepReview from "../../components/PreReg/StepReview";
 
 import "../../styles/prereg.css";
 
-/* ================= TYPES ================= */
+/* =========================================================
+   TYPES
+========================================================= */
 
 export type PersonalInfo = {
   firstName: string;
@@ -35,14 +29,29 @@ export type PersonalInfo = {
   birthDate: string;
   gender: string;
   address: string;
+
+  /* Philippine address components */
+  barangay?: string;
+  municipality?: string;
+  province?: string;
+
+  /*
+   * Postal code is OPTIONAL.
+   * available from the PSGC address database.
+   */
+  postalCode?: string;
+
+  /*
+   * PSGC codes are required for a complete
+   * address hierarchy.
+   */
+  provinceCode?: string;
+  municipalityCode?: string;
+  barangayCode?: string;
 };
 
 export type AcademicInfo = {
-  applicantType:
-    | "Freshman"
-    | "Transferee"
-    | "Returning"
-    | "";
+  applicantType: "Freshman" | "Transferee" | "Returning" | "";
   course: string;
   previousSchool?: string;
 };
@@ -53,17 +62,11 @@ export type DocumentsState = {
   idPhoto?: File | null;
 };
 
-type PersonalErrors = Partial<
-  Record<keyof PersonalInfo, string>
->;
+type PersonalErrors = Partial<Record<keyof PersonalInfo, string>>;
 
-type AcademicErrors = Partial<
-  Record<keyof AcademicInfo, string>
->;
+type AcademicErrors = Partial<Record<keyof AcademicInfo, string>>;
 
-type DocsErrors = Partial<
-  Record<keyof DocumentsState, string>
->;
+type DocsErrors = Partial<Record<keyof DocumentsState, string>>;
 
 type RegistrarSettings = {
   academicYear: string;
@@ -84,6 +87,10 @@ type CourseOption = {
   department?: string;
   status?: "Active" | "Inactive";
 };
+
+/* =========================================================
+   STEPS
+========================================================= */
 
 const steps: {
   key: StepKey;
@@ -107,20 +114,16 @@ const steps: {
   },
 ];
 
-/* ================= VALIDATORS ================= */
+/* =========================================================
+   VALIDATORS
+========================================================= */
 
-const emailRegex =
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validatePersonal(
-  v: PersonalInfo,
-): PersonalErrors {
+function validatePersonal(v: PersonalInfo): PersonalErrors {
   const e: PersonalErrors = {};
 
-  const req = (
-    k: keyof PersonalInfo,
-    msg: string,
-  ) => {
+  const req = (k: keyof PersonalInfo, msg: string) => {
     const val = String(v[k] ?? "").trim();
 
     if (!val) {
@@ -128,256 +131,224 @@ function validatePersonal(
     }
   };
 
-  req(
-    "firstName",
-    "First name is required.",
-  );
+  req("firstName", "First name is required.");
 
-  req(
-    "lastName",
-    "Last name is required.",
-  );
+  req("lastName", "Last name is required.");
 
-  req(
-    "email",
-    "Email is required.",
-  );
+  req("email", "Email is required.");
 
-  req(
-    "phone",
-    "Phone number is required.",
-  );
+  req("phone", "Phone number is required.");
 
-  req(
-    "birthDate",
-    "Birth date is required.",
-  );
+  req("birthDate", "Birth date is required.");
 
-  req(
-    "gender",
-    "Gender is required.",
-  );
+  req("gender", "Gender is required.");
 
-  req(
-    "address",
-    "Complete address is required.",
-  );
+  /*
+   * Address itself is required.
+   */
+  req("address", "Please select your complete address.");
 
-  if (
-    v.email.trim() &&
-    !emailRegex.test(v.email.trim())
-  ) {
-    e.email =
-      "Enter a valid email (example@gmail.com).";
+  if (!v.email.trim()) {
+    e.email = "Email is required.";
+  } else if (!emailRegex.test(v.email.trim())) {
+    e.email = "Enter a valid email (example@gmail.com).";
   }
 
   if (v.phone.trim()) {
-    if (
-      !/^\+639\d{9}$/.test(
-        v.phone.trim(),
-      )
-    ) {
-      e.phone =
-        "Use PH format: +639XXXXXXXXX.";
+    if (!/^\+639\d{9}$/.test(v.phone.trim())) {
+      e.phone = "Use PH format: +639XXXXXXXXX.";
     }
   }
 
   if (v.birthDate) {
-    const chosen = new Date(
-      v.birthDate,
-    );
+    const chosen = new Date(v.birthDate);
 
     const today = new Date();
 
-    today.setHours(
-      0,
-      0,
-      0,
-      0,
-    );
+    today.setHours(0, 0, 0, 0);
 
     if (chosen > today) {
-      e.birthDate =
-        "Birth date cannot be in the future.";
+      e.birthDate = "Birth date cannot be in the future.";
+    }
+  }
+
+  /*
+   * =======================================================
+   * IMPORTANT ADDRESS VALIDATION
+   *
+   * Postal code is intentionally NOT required.
+   *
+   * A Philippine address is considered complete when:
+   *
+   * - Barangay exists
+   * - Municipality/City exists
+   * - Province exists
+   * - Province PSGC code exists
+   * - Municipality PSGC code exists
+   * - Barangay PSGC code exists
+   *
+   * Postal code may be empty because the PSGC API
+   * does not provide one for every location.
+   * =======================================================
+   */
+  if (v.address) {
+    if (
+      !v.barangay ||
+      !v.municipality ||
+      !v.province ||
+      !v.provinceCode ||
+      !v.municipalityCode ||
+      !v.barangayCode
+    ) {
+      e.address = "Please select a complete Philippine address.";
     }
   }
 
   return e;
 }
 
-function validateAcademic(
-  v: AcademicInfo,
-): AcademicErrors {
+function validateAcademic(v: AcademicInfo): AcademicErrors {
   const e: AcademicErrors = {};
 
   if (!v.applicantType) {
-    e.applicantType =
-      "Applicant type is required.";
+    e.applicantType = "Applicant type is required.";
   }
 
   if (!v.course.trim()) {
-    e.course =
-      "Course is required.";
+    e.course = "Course is required.";
   }
 
-  if (
-    v.applicantType ===
-      "Transferee" &&
-    !v.previousSchool?.trim()
-  ) {
-    e.previousSchool =
-      "Previous school is required for transferees.";
+  if (v.applicantType === "Transferee" && !v.previousSchool?.trim()) {
+    e.previousSchool = "Previous school is required for transferees.";
   }
 
   return e;
 }
 
-function validateDocs(
-  v: DocumentsState,
-): DocsErrors {
+function validateDocs(v: DocumentsState): DocsErrors {
   const e: DocsErrors = {};
 
   if (!v.birthCert) {
-    e.birthCert =
-      "Birth Certificate is required.";
+    e.birthCert = "Birth Certificate is required.";
   }
 
   if (!v.idPhoto) {
-    e.idPhoto =
-      "2x2 ID Photo is required.";
+    e.idPhoto = "2x2 ID Photo is required.";
   }
 
   return e;
 }
 
-function hasErrors(
-  obj: Record<string, unknown>,
-) {
+function hasErrors(obj: Record<string, unknown>) {
   return Object.keys(obj).length > 0;
 }
 
-/* ================= PAGE ================= */
+/* =========================================================
+   PAGE
+========================================================= */
 
 export default function StudentPreRegistrationPage() {
-  const [activeStep, setActiveStep] =
-    useState<StepKey>("personal");
+  const [activeStep, setActiveStep] = useState<StepKey>("personal");
 
   const navigate = useNavigate();
 
-  const [alertMessage, setAlertMessage] =
-    useState("");
+  const [alertMessage, setAlertMessage] = useState("");
 
-  const [alertType, setAlertType] =
-    useState<"success" | "error">(
-      "success",
-    );
+  const [alertType, setAlertType] = useState<"success" | "error">("success");
 
-  const [showAlert, setShowAlert] =
-    useState(false);
+  const [showAlert, setShowAlert] = useState(false);
 
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [showLeaveConfirm, setShowLeaveConfirm] =
-    useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
-  /* ========================= */
-  /* TERMS STATE */
-  /* ========================= */
+  /* =========================================================
+     TERMS
+  ========================================================== */
 
-  const [agreedToTerms, setAgreedToTerms] =
-    useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  /* ========================= */
-  /* PERSONAL */
-  /* ========================= */
+  /* =========================================================
+     PERSONAL
+  ========================================================== */
 
-  const [personal, setPersonal] =
-    useState<PersonalInfo>({
-      firstName: "",
-      middleName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      birthDate: "",
-      gender: "",
-      address: "",
-    });
+  const [personal, setPersonal] = useState<PersonalInfo>({
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    birthDate: "",
+    gender: "",
+    address: "",
 
-  /* ========================= */
-  /* ACADEMIC */
-  /* ========================= */
+    barangay: "",
+    municipality: "",
+    province: "",
+    postalCode: "",
 
-  const [academic, setAcademic] =
-    useState<AcademicInfo>({
-      applicantType: "",
-      course: "",
-      previousSchool: "",
-    });
+    provinceCode: "",
+    municipalityCode: "",
+    barangayCode: "",
+  });
 
-  /* ========================= */
-  /* DOCUMENTS */
-  /* ========================= */
+  /* =========================================================
+     ACADEMIC
+  ========================================================== */
 
-  const [docs, setDocs] =
-    useState<DocumentsState>({
-      birthCert: null,
-      goodMoral: null,
-      idPhoto: null,
-    });
+  const [academic, setAcademic] = useState<AcademicInfo>({
+    applicantType: "",
+    course: "",
+    previousSchool: "",
+  });
 
-  /* ========================= */
-  /* REGISTRAR SETTINGS */
-  /* ========================= */
+  /* =========================================================
+     DOCUMENTS
+  ========================================================== */
 
-  const [
-    registrarSettings,
-    setRegistrarSettings,
-  ] =
-    useState<RegistrarSettings | null>(
-      null,
-    );
+  const [docs, setDocs] = useState<DocumentsState>({
+    birthCert: null,
+    goodMoral: null,
+    idPhoto: null,
+  });
 
-  const [settingsLoading, setSettingsLoading] =
-    useState(true);
+  /* =========================================================
+     REGISTRAR SETTINGS
+  ========================================================== */
 
-  /* ========================= */
-  /* COURSES */
-  /* ========================= */
+  const [registrarSettings, setRegistrarSettings] =
+    useState<RegistrarSettings | null>(null);
 
-  const [courseOptions, setCourseOptions] =
-    useState<CourseOption[]>([]);
+  const [settingsLoading, setSettingsLoading] = useState(true);
 
-  const [coursesLoading, setCoursesLoading] =
-    useState(false);
+  /* =========================================================
+     COURSES
+  ========================================================== */
 
-  /* ========================= */
-  /* LOAD SETTINGS */
-  /* ========================= */
+  const [courseOptions, setCourseOptions] = useState<CourseOption[]>([]);
+
+  const [coursesLoading, setCoursesLoading] = useState(false);
+
+  /* =========================================================
+     LOAD SETTINGS
+  ========================================================== */
 
   useEffect(() => {
     (async () => {
       try {
         setSettingsLoading(true);
 
-        const res = await fetch(
-          "http://localhost:5000/api/registrar/settings",
-        );
+        const res = await fetch("http://localhost:5000/api/registrar/settings");
 
         if (!res.ok) {
-          throw new Error(
-            "Failed to load registrar settings.",
-          );
+          throw new Error("Failed to load registrar settings.");
         }
 
         const data = await res.json();
 
         setRegistrarSettings(data);
       } catch (e) {
-        console.error(
-          "Failed to load registrar settings:",
-          e,
-        );
+        console.error("Failed to load registrar settings:", e);
 
         setRegistrarSettings({
           academicYear: "",
@@ -395,9 +366,9 @@ export default function StudentPreRegistrationPage() {
     })();
   }, []);
 
-  /* ========================= */
-  /* LOAD COURSES */
-  /* ========================= */
+  /* =========================================================
+     LOAD COURSES
+  ========================================================== */
 
   useEffect(() => {
     (async () => {
@@ -409,412 +380,236 @@ export default function StudentPreRegistrationPage() {
         );
 
         if (!res.ok) {
-          throw new Error(
-            "Failed to load courses",
-          );
+          throw new Error("Failed to load courses");
         }
 
         const data = await res.json();
 
-        const list: CourseOption[] = (
-          Array.isArray(data)
-            ? data
-            : []
-        )
-          .filter(
-            (c: any) =>
-              (c.status ?? "Active") ===
-              "Active",
-          )
+        const list: CourseOption[] = (Array.isArray(data) ? data : [])
+          .filter((c: any) => (c.status ?? "Active") === "Active")
           .map(
-            (
-              c: any,
-            ): CourseOption => {
-              const status:
-                | "Active"
-                | "Inactive" =
-                c.status ===
-                "Inactive"
-                  ? "Inactive"
-                  : "Active";
+            (c: any): CourseOption => ({
+              code: String(c.code || "")
+                .trim()
+                .toUpperCase(),
 
-              return {
-                code: String(
-                  c.code || "",
-                )
-                  .trim()
-                  .toUpperCase(),
+              name: String(c.name || "").trim(),
 
-                name: String(
-                  c.name || "",
-                ).trim(),
+              yearLevels: Number(c.yearLevels || 0),
 
-                yearLevels: Number(
-                  c.yearLevels || 0,
-                ),
+              department: String(c.department || "").trim(),
 
-                department:
-                  String(
-                    c.department ||
-                      "",
-                  ).trim(),
-
-                status,
-              };
-            },
+              status: c.status === "Inactive" ? "Inactive" : "Active",
+            }),
           )
-          .filter(
-            (c) =>
-              c.code &&
-              c.name,
-          );
+          .filter((c) => c.code && c.name);
 
-        const unique =
-          Array.from(
-            new Map(
-              list.map(
-                (c) => [
-                  c.code,
-                  c,
-                ],
-              ),
-            ).values(),
-          ).sort(
-            (a, b) =>
-              a.name.localeCompare(
-                b.name,
-              ),
-          );
+        const unique = Array.from(
+          new Map(list.map((c) => [c.code, c])).values(),
+        ).sort((a, b) => a.name.localeCompare(b.name));
 
-        setCourseOptions(
-          unique,
-        );
+        setCourseOptions(unique);
       } catch (e) {
-        console.error(
-          "Failed to load courses:",
-          e,
-        );
+        console.error("Failed to load courses:", e);
 
         setCourseOptions([]);
       } finally {
-        setCoursesLoading(
-          false,
-        );
+        setCoursesLoading(false);
       }
     })();
   }, []);
 
-  /* ========================= */
-  /* SUBMITTED */
-  /* ========================= */
+  /* =========================================================
+     SUBMITTED
+  ========================================================== */
 
-  const [submitted, setSubmitted] =
-    useState({
-      personal: false,
-      academic: false,
-      documents: false,
-    });
+  const [submitted, setSubmitted] = useState({
+    personal: false,
+    academic: false,
+    documents: false,
+  });
 
-  const [personalErrors, setPersonalErrors] =
-    useState<PersonalErrors>({});
+  const [personalErrors, setPersonalErrors] = useState<PersonalErrors>({});
 
-  const [academicErrors, setAcademicErrors] =
-    useState<AcademicErrors>({});
+  const [academicErrors, setAcademicErrors] = useState<AcademicErrors>({});
 
-  const [docsErrors, setDocsErrors] =
-    useState<DocsErrors>({});
+  const [docsErrors, setDocsErrors] = useState<DocsErrors>({});
 
-  /* ========================= */
-  /* STEP INDEX */
-  /* ========================= */
+  /* =========================================================
+     STEP INDEX
+  ========================================================== */
 
   const stepIndex = useMemo(
-    () =>
-      steps.findIndex(
-        (s) =>
-          s.key ===
-          activeStep,
-      ),
+    () => steps.findIndex((s) => s.key === activeStep),
     [activeStep],
   );
 
-  /* ========================= */
-  /* UNSAVED INPUT */
-  /* ========================= */
+  /* =========================================================
+     UNSAVED INPUT
+  ========================================================== */
 
-  const hasUnsavedInput =
-    useMemo(() => {
-      const hasPersonal =
-        personal.firstName.trim() ||
-        (
-          personal.middleName ??
-          ""
-        ).trim() ||
-        personal.lastName.trim() ||
-        personal.email.trim() ||
-        personal.phone.trim() ||
-        personal.birthDate.trim() ||
-        personal.gender.trim() ||
-        personal.address.trim();
+  const hasUnsavedInput = useMemo(() => {
+    const hasPersonal =
+      personal.firstName.trim() ||
+      (personal.middleName ?? "").trim() ||
+      personal.lastName.trim() ||
+      personal.email.trim() ||
+      personal.phone.trim() ||
+      personal.birthDate.trim() ||
+      personal.gender.trim() ||
+      personal.address.trim() ||
+      (personal.barangay ?? "").trim() ||
+      (personal.municipality ?? "").trim() ||
+      (personal.province ?? "").trim() ||
+      (personal.postalCode ?? "").trim();
 
-      const hasAcademic =
-        academic.applicantType.trim() ||
-        academic.course.trim() ||
-        (
-          academic.previousSchool ??
-          ""
-        ).trim();
+    const hasAcademic =
+      academic.applicantType.trim() ||
+      academic.course.trim() ||
+      (academic.previousSchool ?? "").trim();
 
-      const hasDocs =
-        !!docs.birthCert ||
-        !!docs.goodMoral ||
-        !!docs.idPhoto;
+    const hasDocs = !!docs.birthCert || !!docs.goodMoral || !!docs.idPhoto;
 
-      return Boolean(
-        hasPersonal ||
-        hasAcademic ||
-        hasDocs ||
-        agreedToTerms,
-      );
-    }, [
-      personal,
-      academic,
-      docs,
-      agreedToTerms,
-    ]);
+    return Boolean(hasPersonal || hasAcademic || hasDocs || agreedToTerms);
+  }, [personal, academic, docs, agreedToTerms]);
 
-  /* ========================= */
-  /* LIVE VALIDATION */
-  /* ========================= */
+  /* =========================================================
+     LIVE VALIDATION
+  ========================================================== */
 
   useEffect(() => {
     if (submitted.personal) {
-      setPersonalErrors(
-        validatePersonal(
-          personal,
-        ),
-      );
+      setPersonalErrors(validatePersonal(personal));
     }
-  }, [
-    personal,
-    submitted.personal,
-  ]);
+  }, [personal, submitted.personal]);
 
   useEffect(() => {
     if (submitted.academic) {
-      setAcademicErrors(
-        validateAcademic(
-          academic,
-        ),
-      );
+      setAcademicErrors(validateAcademic(academic));
     }
-  }, [
-    academic,
-    submitted.academic,
-  ]);
+  }, [academic, submitted.academic]);
 
   useEffect(() => {
     if (submitted.documents) {
-      setDocsErrors(
-        validateDocs(
-          docs,
-        ),
-      );
+      setDocsErrors(validateDocs(docs));
     }
-  }, [
-    docs,
-    submitted.documents,
-  ]);
+  }, [docs, submitted.documents]);
 
-  /* ========================= */
-  /* ALERT AUTO HIDE */
-  /* ========================= */
+  /* =========================================================
+     ALERT AUTO HIDE
+  ========================================================== */
 
   useEffect(() => {
     if (showAlert) {
-      const timer =
-        setTimeout(
-          () =>
-            setShowAlert(
-              false,
-            ),
-          3000,
-        );
+      const timer = setTimeout(() => setShowAlert(false), 3000);
 
-      return () =>
-        clearTimeout(
-          timer,
-        );
+      return () => clearTimeout(timer);
     }
   }, [showAlert]);
 
-  /* ========================= */
-  /* BEFORE UNLOAD */
-  /* ========================= */
+  /* =========================================================
+     BEFORE UNLOAD
+  ========================================================== */
 
   useEffect(() => {
-    const handleBeforeUnload =
-      (
-        e: BeforeUnloadEvent,
-      ) => {
-        if (
-          !hasUnsavedInput ||
-          isSubmitting
-        ) {
-          return;
-        }
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!hasUnsavedInput || isSubmitting) {
+        return;
+      }
 
-        e.preventDefault();
-        e.returnValue = "";
-      };
+      e.preventDefault();
+      e.returnValue = "";
+    };
 
-    window.addEventListener(
-      "beforeunload",
-      handleBeforeUnload,
-    );
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
-    return () =>
-      window.removeEventListener(
-        "beforeunload",
-        handleBeforeUnload,
-      );
-  }, [
-    hasUnsavedInput,
-    isSubmitting,
-  ]);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedInput, isSubmitting]);
 
-  const enrollmentOpen =
-    registrarSettings
-      ?.enrollmentOpen ??
-    true;
+  const enrollmentOpen = registrarSettings?.enrollmentOpen ?? true;
 
-  /* ========================= */
-  /* VALIDATE CURRENT STEP */
-  /* ========================= */
+  /* =========================================================
+     VALIDATE CURRENT STEP
+  ========================================================== */
 
   function validateCurrentStep(): boolean {
-    if (
-      activeStep ===
-      "personal"
-    ) {
+    if (activeStep === "personal") {
       setSubmitted((s) => ({
         ...s,
         personal: true,
       }));
 
-      const e =
-        validatePersonal(
-          personal,
-        );
+      const e = validatePersonal(personal);
 
       setPersonalErrors(e);
 
-      return !hasErrors(
-        e as Record<
-          string,
-          unknown
-        >,
-      );
+      return !hasErrors(e as Record<string, unknown>);
     }
 
-    if (
-      activeStep ===
-      "academic"
-    ) {
+    if (activeStep === "academic") {
       setSubmitted((s) => ({
         ...s,
         academic: true,
       }));
 
-      const e =
-        validateAcademic(
-          academic,
-        );
+      const e = validateAcademic(academic);
 
       setAcademicErrors(e);
 
-      return !hasErrors(
-        e as Record<
-          string,
-          unknown
-        >,
-      );
+      return !hasErrors(e as Record<string, unknown>);
     }
 
-    if (
-      activeStep ===
-      "documents"
-    ) {
+    if (activeStep === "documents") {
       setSubmitted((s) => ({
         ...s,
         documents: true,
       }));
 
-      const e =
-        validateDocs(
-          docs,
-        );
+      const e = validateDocs(docs);
 
       setDocsErrors(e);
 
-      return !hasErrors(
-        e as Record<
-          string,
-          unknown
-        >,
-      );
+      return !hasErrors(e as Record<string, unknown>);
     }
 
     return true;
   }
 
-  /* ========================= */
-  /* NEXT */
-  /* ========================= */
+  /* =========================================================
+     NEXT
+  ========================================================== */
 
   function goNext() {
-    const ok =
-      validateCurrentStep();
+    const ok = validateCurrentStep();
 
     if (!ok) return;
 
-    const next =
-      steps[
-        stepIndex + 1
-      ]?.key;
+    const next = steps[stepIndex + 1]?.key;
 
     if (next) {
       setActiveStep(next);
     }
   }
 
-  /* ========================= */
-  /* PREVIOUS */
-  /* ========================= */
+  /* =========================================================
+     PREVIOUS
+  ========================================================== */
 
   function goPrev() {
-    const prev =
-      steps[
-        stepIndex - 1
-      ]?.key;
+    const prev = steps[stepIndex - 1]?.key;
 
     if (prev) {
       setActiveStep(prev);
     }
   }
 
-  /* ========================= */
-  /* BACK */
-  /* ========================= */
+  /* =========================================================
+     BACK
+  ========================================================== */
 
   function handleBackAttempt() {
-    if (
-      hasUnsavedInput &&
-      !isSubmitting
-    ) {
-      setShowLeaveConfirm(
-        true,
-      );
+    if (hasUnsavedInput && !isSubmitting) {
+      setShowLeaveConfirm(true);
 
       return;
     }
@@ -823,31 +618,23 @@ export default function StudentPreRegistrationPage() {
   }
 
   function handleCancelLeave() {
-    setShowLeaveConfirm(
-      false,
-    );
+    setShowLeaveConfirm(false);
   }
 
   function handleConfirmLeave() {
-    setShowLeaveConfirm(
-      false,
-    );
+    setShowLeaveConfirm(false);
 
     navigate("/");
   }
 
-  /* ========================= */
-  /* SUBMIT */
-  /* ========================= */
+  /* =========================================================
+     SUBMIT
+  ========================================================== */
 
   async function handleSubmit() {
     if (isSubmitting) {
       return;
     }
-
-    /* IMPORTANT:
-       User MUST agree first.
-    */
 
     if (!agreedToTerms) {
       setAlertMessage(
@@ -870,71 +657,27 @@ export default function StudentPreRegistrationPage() {
 
     setShowAlert(false);
 
-    const pe =
-      validatePersonal(
-        personal,
-      );
+    const pe = validatePersonal(personal);
 
-    const ae =
-      validateAcademic(
-        academic,
-      );
+    const ae = validateAcademic(academic);
 
-    const de =
-      validateDocs(
-        docs,
-      );
+    const de = validateDocs(docs);
 
     setPersonalErrors(pe);
     setAcademicErrors(ae);
     setDocsErrors(de);
 
     if (
-      hasErrors(
-        pe as Record<
-          string,
-          unknown
-        >,
-      ) ||
-      hasErrors(
-        ae as Record<
-          string,
-          unknown
-        >,
-      ) ||
-      hasErrors(
-        de as Record<
-          string,
-          unknown
-        >,
-      )
+      hasErrors(pe as Record<string, unknown>) ||
+      hasErrors(ae as Record<string, unknown>) ||
+      hasErrors(de as Record<string, unknown>)
     ) {
-      if (
-        hasErrors(
-          pe as Record<
-            string,
-            unknown
-          >,
-        )
-      ) {
-        setActiveStep(
-          "personal",
-        );
-      } else if (
-        hasErrors(
-          ae as Record<
-            string,
-            unknown
-          >,
-        )
-      ) {
-        setActiveStep(
-          "academic",
-        );
+      if (hasErrors(pe as Record<string, unknown>)) {
+        setActiveStep("personal");
+      } else if (hasErrors(ae as Record<string, unknown>)) {
+        setActiveStep("academic");
       } else {
-        setActiveStep(
-          "documents",
-        );
+        setActiveStep("documents");
       }
 
       setIsSubmitting(false);
@@ -943,598 +686,337 @@ export default function StudentPreRegistrationPage() {
     }
 
     try {
-      const formData =
-        new FormData();
+      const formData = new FormData();
 
       formData.append(
         "data",
         JSON.stringify({
           personal,
           academic,
-          termsAccepted:
-            agreedToTerms,
-          termsAcceptedAt:
-            new Date().toISOString(),
+          termsAccepted: agreedToTerms,
+          termsAcceptedAt: new Date().toISOString(),
         }),
       );
 
       if (docs.birthCert) {
-        formData.append(
-          "birthCert",
-          docs.birthCert,
-        );
+        formData.append("birthCert", docs.birthCert);
       }
 
       if (docs.goodMoral) {
-        formData.append(
-          "goodMoral",
-          docs.goodMoral,
-        );
+        formData.append("goodMoral", docs.goodMoral);
       }
 
       if (docs.idPhoto) {
-        formData.append(
-          "idPhoto",
-          docs.idPhoto,
-        );
+        formData.append("idPhoto", docs.idPhoto);
       }
 
-      const response =
-        await fetch(
-          "http://localhost:5000/api/preregistrations",
-          {
-            method: "POST",
-            body: formData,
-          },
-        );
+      const response = await fetch(
+        "http://localhost:5000/api/preregistrations",
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
 
-      if (
-        response.status ===
-        403
-      ) {
-        const body =
-          await response
-            .json()
-            .catch(
-              () => null,
-            );
+      if (response.status === 403) {
+        const body = await response.json().catch(() => null);
 
-        setAlertMessage(
-          body?.message ||
-            "Registration is not open.",
-        );
+        setAlertMessage(body?.message || "Registration is not open.");
 
-        setAlertType(
-          "error",
-        );
-
+        setAlertType("error");
         setShowAlert(true);
 
         return;
       }
 
-      if (
-        response.status ===
-        409
-      ) {
-        const body =
-          await response
-            .json()
-            .catch(
-              () => null,
-            );
+      if (response.status === 409) {
+        const body = await response.json().catch(() => null);
 
-        setAlertMessage(
-          body?.message ||
-            "Duplicate application found.",
-        );
+        setAlertMessage(body?.message || "Duplicate application found.");
 
-        setAlertType(
-          "error",
-        );
-
+        setAlertType("error");
         setShowAlert(true);
 
         return;
       }
 
       if (!response.ok) {
-        const body =
-          await response
-            .json()
-            .catch(
-              () => null,
-            );
+        const body = await response.json().catch(() => null);
 
-        throw new Error(
-          body?.message ||
-            "Submission failed",
-        );
+        throw new Error(body?.message || "Submission failed");
       }
 
-      setAlertMessage(
-        "Application submitted successfully!",
-      );
+      setAlertMessage("Application submitted successfully!");
 
-      setAlertType(
-        "success",
-      );
-
+      setAlertType("success");
       setShowAlert(true);
 
-      setTimeout(
-        () => navigate("/"),
-        2500,
-      );
+      setTimeout(() => navigate("/"), 2500);
     } catch (err: any) {
       setAlertMessage(
-        err?.message ||
-          "Something went wrong. Please try again.",
+        err?.message || "Something went wrong. Please try again.",
       );
 
-      setAlertType(
-        "error",
-      );
-
+      setAlertType("error");
       setShowAlert(true);
     } finally {
-      setIsSubmitting(
-        false,
-      );
+      setIsSubmitting(false);
     }
   }
 
-  /* ========================= */
-  /* STEP CHANGE */
-  /* ========================= */
+  /* =========================================================
+     STEP CHANGE
+  ========================================================== */
 
-  function handleStepChange(
-    nextKey: StepKey,
-  ) {
-    const nextIndex =
-      steps.findIndex(
-        (s) =>
-          s.key ===
-          nextKey,
-      );
+  function handleStepChange(nextKey: StepKey) {
+    const nextIndex = steps.findIndex((s) => s.key === nextKey);
 
-    if (
-      nextIndex <=
-      stepIndex
-    ) {
-      setActiveStep(
-        nextKey,
-      );
+    if (nextIndex <= stepIndex) {
+      setActiveStep(nextKey);
 
       return;
     }
 
-    const ok =
-      validateCurrentStep();
+    const ok = validateCurrentStep();
 
     if (!ok) return;
 
-    setActiveStep(
-      nextKey,
-    );
+    setActiveStep(nextKey);
   }
 
-  /* ========================= */
-  /* RENDER */
-  /* ========================= */
+  /* =========================================================
+     RENDER
+  ========================================================== */
 
   return (
     <>
       <AuthAlert
-        message={
-          alertMessage
-        }
+        message={alertMessage}
         type={alertType}
-        visible={
-          showAlert
-        }
+        visible={showAlert}
         loading={false}
       />
 
       <div className="prereg-shell">
-
         <PreRegNavbar />
 
         <div className="container prereg-back-wrap">
-
           <button
             type="button"
             className="prereg-back-btn d-inline-flex align-items-center gap-2"
-            onClick={
-              handleBackAttempt
-            }
+            onClick={handleBackAttempt}
           >
             <ArrowLeft size={18} />
-            <span>
-              Back
-            </span>
-          </button>
 
+            <span>Back</span>
+          </button>
         </div>
 
         <div className="container prereg-page">
-
           <div className="text-center prereg-hero">
+            <h1 className="fw-bold prereg-title">Student Pre-Registration</h1>
 
-            <h1 className="fw-bold prereg-title">
-              Student Pre-Registration
-            </h1>
-
-            {settingsLoading
-              ? null
-              : enrollmentOpen
-                ? (
-                    <p className="text-muted mb-0">
-                      Complete the
-                      form below to
-                      submit your
-                      enrollment
-                      application
-                    </p>
-                  )
-                : null}
-
+            {settingsLoading ? null : enrollmentOpen ? (
+              <p className="text-muted mb-0">
+                Complete the form below to submit your enrollment application
+              </p>
+            ) : null}
           </div>
 
           <div className="card prereg-card">
-
             <div className="card-body prereg-card-body">
-
               {settingsLoading ? (
-
                 <div className="text-center py-5">
-
                   <div
                     className="spinner-border text-primary mb-3"
                     role="status"
                   />
 
                   <p className="mb-0 text-muted">
-                    Loading
-                    registration
-                    settings...
+                    Loading registration settings...
                   </p>
-
                 </div>
-
               ) : !enrollmentOpen ? (
-
                 <div className="prereg-closed-state">
+                  <Info size={52} className="mb-3 text-info" />
 
-                  <Info
-                    size={52}
-                    className="mb-3 text-info"
-                  />
-
-                  <h3 className="fw-bold mb-2">
-                    Registration is
-                    not open
-                  </h3>
+                  <h3 className="fw-bold mb-2">Registration is not open</h3>
 
                   <p className="text-muted mb-1">
-                    Pre-registration
-                    is currently
-                    closed by the
-                    registrar.
+                    Pre-registration is currently closed by the registrar.
                   </p>
 
-                  {(
-                    registrarSettings?.academicYear ||
-                    registrarSettings?.semester
-                  ) && (
+                  {(registrarSettings?.academicYear ||
+                    registrarSettings?.semester) && (
                     <p className="text-muted mb-0">
-
                       Current term:{" "}
-
                       <strong>
-                        {
-                          registrarSettings?.academicYear
-                        }{" "}
-                        -{" "}
-                        {
-                          registrarSettings?.semester
-                        }
+                        {registrarSettings?.academicYear} -{" "}
+                        {registrarSettings?.semester}
                       </strong>
-
                     </p>
                   )}
-
                 </div>
-
               ) : (
-
                 <>
-
                   <div className="d-flex justify-content-center prereg-stepper-wrap">
-
                     <Stepper
-                      steps={
-                        steps
-                      }
-                      active={
-                        activeStep
-                      }
-                      onChange={
-                        handleStepChange
-                      }
+                      steps={steps}
+                      active={activeStep}
+                      onChange={handleStepChange}
                     />
-
                   </div>
 
-                  {activeStep ===
-                    "personal" && (
+                  {activeStep === "personal" && (
                     <StepPersonal
-                      value={
-                        personal
-                      }
-                      onChange={
-                        setPersonal
-                      }
-                      submitted={
-                        submitted.personal
-                      }
-                      errors={
-                        personalErrors
-                      }
+                      value={personal}
+                      onChange={setPersonal}
+                      submitted={submitted.personal}
+                      errors={personalErrors}
                     />
                   )}
 
-                  {activeStep ===
-                    "academic" && (
+                  {activeStep === "academic" && (
                     <StepAcademic
-                      value={
-                        academic
-                      }
-                      onChange={
-                        setAcademic
-                      }
-                      submitted={
-                        submitted.academic
-                      }
-                      errors={
-                        academicErrors
-                      }
-                      courseOptions={
-                        courseOptions
-                      }
-                      coursesLoading={
-                        coursesLoading
-                      }
+                      value={academic}
+                      onChange={setAcademic}
+                      submitted={submitted.academic}
+                      errors={academicErrors}
+                      courseOptions={courseOptions}
+                      coursesLoading={coursesLoading}
                     />
                   )}
 
-                  {activeStep ===
-                    "documents" && (
+                  {activeStep === "documents" && (
                     <StepDocuments
                       value={docs}
-                      onChange={
-                        setDocs
-                      }
-                      submitted={
-                        submitted.documents
-                      }
-                      errors={
-                        docsErrors
-                      }
+                      onChange={setDocs}
+                      submitted={submitted.documents}
+                      errors={docsErrors}
                     />
                   )}
 
-                  {activeStep ===
-                    "review" && (
+                  {activeStep === "review" && (
                     <StepReview
-                      personal={
-                        personal
-                      }
-                      academic={
-                        academic
-                      }
+                      personal={personal}
+                      academic={academic}
                       docs={docs}
-                      agreedToTerms={
-                        agreedToTerms
-                      }
-                      onTermsChange={
-                        setAgreedToTerms
-                      }
+                      agreedToTerms={agreedToTerms}
+                      onTermsChange={setAgreedToTerms}
                     />
                   )}
-
-                  {/* ========================= */}
-                  {/* FOOTER */}
-                  {/* ========================= */}
 
                   <div className="prereg-footer">
-
                     <div className="prereg-footer-left">
-
                       {stepIndex > 0 && (
                         <button
                           type="button"
                           className="btn btn-outline-secondary prereg-btn d-inline-flex align-items-center gap-2"
-                          onClick={
-                            goPrev
-                          }
+                          onClick={goPrev}
                         >
-                          <ArrowLeft
-                            size={16}
-                          />
+                          <ArrowLeft size={16} />
 
-                          <span>
-                            Previous
-                          </span>
+                          <span>Previous</span>
                         </button>
                       )}
-
                     </div>
 
                     <div className="prereg-footer-right">
-
-                      {activeStep !==
-                      "review" ? (
-
+                      {activeStep !== "review" ? (
                         <button
                           type="button"
                           className="btn btn-primary prereg-btn d-inline-flex align-items-center gap-2"
-                          onClick={
-                            goNext
-                          }
+                          onClick={goNext}
                         >
-                          <span>
-                            Next
-                          </span>
+                          <span>Next</span>
 
-                          <ArrowRight
-                            size={16}
-                          />
+                          <ArrowRight size={16} />
                         </button>
-
                       ) : (
-
                         <div className="d-flex flex-column align-items-end gap-2">
-
-                          {/* Terms warning */}
-
                           {!agreedToTerms && (
                             <small className="text-danger text-end prereg-submit-warning">
-                              You must agree
-                              to the Terms
-                              and Conditions
-                              before
+                              You must agree to the Terms and Conditions before
                               submitting.
                             </small>
                           )}
 
                           <button
                             type="button"
-                            disabled={
-                              isSubmitting ||
-                              !agreedToTerms
-                            }
+                            disabled={isSubmitting || !agreedToTerms}
                             className="btn btn-primary prereg-btn d-inline-flex align-items-center gap-2"
-                            onClick={
-                              handleSubmit
-                            }
+                            onClick={handleSubmit}
                             title={
                               !agreedToTerms
                                 ? "Please agree to the Terms and Conditions first."
                                 : "Submit Application"
                             }
                           >
-
-                            <CheckCircle2
-                              size={16}
-                            />
+                            <CheckCircle2 size={16} />
 
                             <span>
                               {isSubmitting
                                 ? "Submitting..."
                                 : "Submit Application"}
                             </span>
-
                           </button>
-
                         </div>
-
                       )}
-
                     </div>
-
                   </div>
-
                 </>
-
               )}
-
             </div>
-
           </div>
-
         </div>
-
       </div>
 
-      {/* ========================= */}
-      {/* LEAVE CONFIRMATION */}
-      {/* ========================= */}
-
       {showLeaveConfirm && (
-
         <div
           className="prereg-confirm-backdrop"
-          onMouseDown={(
-            e,
-          ) => {
-            if (
-              e.target ===
-              e.currentTarget
-            ) {
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
               handleCancelLeave();
             }
           }}
         >
-
           <div
             className="prereg-confirm-modal"
             role="dialog"
             aria-modal="true"
             aria-label="Unsaved changes"
-            onMouseDown={(
-              e,
-            ) =>
-              e.stopPropagation()
-            }
+            onMouseDown={(e) => e.stopPropagation()}
           >
-
             <div className="prereg-confirm-header">
-
-              <h5 className="mb-0 fw-bold">
-                Go back?
-              </h5>
+              <h5 className="mb-0 fw-bold">Go back?</h5>
 
               <button
                 type="button"
                 className="app-icon-btn app-icon-btn-sm"
-                onClick={
-                  handleCancelLeave
-                }
+                onClick={handleCancelLeave}
                 aria-label="Close"
                 title="Close"
               >
                 <X size={18} />
               </button>
-
             </div>
 
             <div className="prereg-confirm-body">
-
               <div className="prereg-confirm-icon">
                 <Info size={22} />
               </div>
 
               <p className="text-muted text-center mb-0">
-                You have unsaved
-                input in the
-                pre-registration
-                form. If you go
-                back now, your
-                entered information
-                will be lost.
+                You have unsaved input in the pre-registration form. If you go
+                back now, your entered information will be lost.
               </p>
-
             </div>
 
             <div className="prereg-confirm-footer">
-
               <button
                 type="button"
                 className="btn btn-light border"
-                onClick={
-                  handleCancelLeave
-                }
+                onClick={handleCancelLeave}
               >
                 Stay
               </button>
@@ -1542,21 +1024,14 @@ export default function StudentPreRegistrationPage() {
               <button
                 type="button"
                 className="btn btn-danger"
-                onClick={
-                  handleConfirmLeave
-                }
+                onClick={handleConfirmLeave}
               >
                 Go Back
               </button>
-
             </div>
-
           </div>
-
         </div>
-
       )}
-
     </>
   );
 }

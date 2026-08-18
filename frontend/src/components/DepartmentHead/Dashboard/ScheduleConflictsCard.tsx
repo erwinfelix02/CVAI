@@ -1,4 +1,5 @@
 // ✅ src/components/DepartmentHead/Dashboard/ScheduleConflictsCard.tsx
+
 import type { LucideIcon } from "lucide-react";
 
 export type ConflictRow = {
@@ -7,6 +8,15 @@ export type ConflictRow = {
   details: string;
 };
 
+interface ScheduleConflictsCardProps {
+  title: string;
+  badgeLabel: string;
+  badgeTone?: "warning" | "danger" | "info";
+  icon: LucideIcon;
+  rows: ConflictRow[];
+  actionLabel: string;
+}
+
 export default function ScheduleConflictsCard({
   title,
   badgeLabel,
@@ -14,49 +24,100 @@ export default function ScheduleConflictsCard({
   icon: Icon,
   rows,
   actionLabel,
-}: {
-  title: string;
-  badgeLabel: string;
-  badgeTone?: "warning" | "danger" | "info";
-  icon: LucideIcon;
-  rows: ConflictRow[];
-  actionLabel: string;
-}) {
+}: ScheduleConflictsCardProps) {
+  /* =========================================================
+     BADGE STYLE
+     ========================================================= */
+
   const badgeClass =
     badgeTone === "danger"
-      ? "text-bg-danger-subtle border border-danger-subtle"
+      ? "conflict-badge conflict-badge-danger"
       : badgeTone === "info"
-      ? "text-bg-info-subtle border border-info-subtle"
-      : "text-bg-warning-subtle border border-warning-subtle";
+      ? "conflict-badge conflict-badge-info"
+      : "conflict-badge conflict-badge-warning";
 
   return (
     <div className="card shadow-sm rounded-4 h-100">
       <div className="card-body p-4">
-        <div className="d-flex align-items-center justify-content-between mb-3">
-          <div className="d-flex align-items-center gap-2">
-            <Icon size={18} />
-            <h5 className="fw-bold mb-0">{title}</h5>
+
+        {/* ===================================================
+            HEADER
+            =================================================== */}
+
+        <div className="d-flex align-items-center justify-content-between mb-3 gap-3">
+
+          <div className="d-flex align-items-center gap-2 min-width-0">
+            <Icon
+              size={18}
+              strokeWidth={2}
+              className="flex-shrink-0"
+            />
+
+            <h5 className="fw-bold mb-0 text-truncate">
+              {title}
+            </h5>
           </div>
-          <span className={`badge rounded-pill ${badgeClass}`}>{badgeLabel}</span>
+
+          {/* =================================================
+              ISSUE PILL
+              ================================================= */}
+
+          <span className={badgeClass}>
+            {badgeLabel}
+          </span>
         </div>
 
+        {/* ===================================================
+            CONFLICT LIST
+            =================================================== */}
+
         <div className="d-flex flex-column gap-3">
+
           {rows.map((r, idx) => (
             <div
-              key={idx}
-              className="rounded-4 border border-warning-subtle bg-warning-subtle bg-opacity-25 p-3"
+              key={`${r.room}-${idx}`}
+              className="
+                rounded-4
+                border
+                border-warning-subtle
+                bg-warning-subtle
+                bg-opacity-25
+                p-3
+              "
             >
-              <div className="d-flex align-items-center justify-content-between">
-                <div className="fw-semibold">{r.room}</div>
-                <div className="text-muted small">{r.time}</div>
+              {/* Room + Time */}
+
+              <div className="d-flex align-items-center justify-content-between gap-3">
+
+                <div className="fw-semibold text-dark">
+                  {r.room}
+                </div>
+
+                <div className="text-muted small text-nowrap">
+                  {r.time}
+                </div>
+
               </div>
-              <div className="text-muted mt-1">{r.details}</div>
+
+              {/* Details */}
+
+              <div className="text-muted mt-1">
+                {r.details}
+              </div>
             </div>
           ))}
 
-          <button className="btn btn-light border rounded-3 mt-1">
+          {/* =================================================
+              ACTION BUTTON
+              ================================================= */}
+
+          <button
+            type="button"
+            className="btn btn-light border rounded-3 mt-1"
+          >
             {actionLabel}
           </button>
+
         </div>
       </div>
     </div>

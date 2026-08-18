@@ -60,6 +60,11 @@ import UsersPage from "./pages/SuperAdmin/UsersPage";
 import DepartmentHeadLayoutPage from "./pages/DepartmentHead/DepartmentHeadLayoutPage";
 import DepartmentHeadDashboard from "./pages/DepartmentHead/DepartmentHeadDashboard";
 import ScheduleManagementPage from "./pages/DepartmentHead/ScheduleManagementPage";
+import DepartmentHeadFaculty from "./pages/DepartmentHead/DepartmentHeadFaculty";
+import DepartmentHeadSubjects from "./pages/DepartmentHead/DepartmentHeadSubjects";
+import DepartmentHeadRooms from "./pages/DepartmentHead/DepartmentHeadRooms";
+import DepartmentHeadSettings from "./pages/DepartmentHead/DepartmentHeadSettings";
+import DepartmentHeadHelpSupport from "./pages/DepartmentHead/DepartmentHeadHelpSupport";
 
 export default function App() {
   return (
@@ -178,6 +183,11 @@ export default function App() {
       >
         <Route index element={<DepartmentHeadDashboard />} />
         <Route path="schedules" element={<ScheduleManagementPage />} />
+        <Route path="faculty" element={<DepartmentHeadFaculty />} />
+        <Route path="subjects" element={<DepartmentHeadSubjects />} />
+        <Route path="rooms" element={<DepartmentHeadRooms />} />
+        <Route path="settings" element={<DepartmentHeadSettings />} />
+        <Route path="help" element={<DepartmentHeadHelpSupport />} />
       </Route>
     </Routes>
   );
