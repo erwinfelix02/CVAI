@@ -88,3 +88,42 @@
     gap: 6px;
   }
 }
+/* Guarantees full viewport coverage without clipping */
+.modal-blur-backdrop-fixed {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  z-index: 9999 !important;
+}
+
+/* Full Viewport Backdrop Overlay */
+.modal-blur-backdrop-fixed {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  z-index: 2000 !important; /* Higher than Bootstrap's 1050/1080 */
+}
+
+/* Glassmorphism Card Style */
+.modal-blur-card {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Cursor helper */
+.pointer {
+  cursor: pointer;
+}

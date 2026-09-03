@@ -3,9 +3,11 @@ import AttendanceHeader from "../../components/Faculty/Attendance/AttendanceHead
 import AttendanceFilters from "../../components/Faculty/Attendance/AttendanceFilters";
 import AttendanceStats from "../../components/Faculty/Attendance/AttendanceStats";
 import AttendanceList from "../../components/Faculty/Attendance/AttendanceList";
+import AttendanceModal from "../../components/Faculty/Attendance/AttendanceModal";
+import type { ModalStudent } from "../../components/Faculty/Attendance/AttendanceModal";
 import "../../styles/faculty-attendance.css";
 
-export type AttendanceStatus = "present" | "absent" | "pending";
+export type AttendanceStatus = "present" | "absent" | "pending" | "late";
 
 export type StudentItem = {
   id: string;
@@ -29,10 +31,11 @@ const initialStudents: StudentItem[] = [
 ];
 
 export default function AttendanceTrackingPage() {
-  const [subject, setSubject] = useState(subjects[0].value);
-  const [date, setDate] = useState("2026-01-23");
+  const [subject, setSubject] = useState("");
+  const [date, setDate] = useState("");
   const [query, setQuery] = useState("");
   const [students, setStudents] = useState<StudentItem[]>(initialStudents);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -59,17 +62,27 @@ export default function AttendanceTrackingPage() {
     );
   }
 
-  function handleNewRecord() {
-    alert("New Record (hook this to your modal)");
+  function handleOpenModal() {
+    setIsModalOpen(true);
   }
 
   function handleExport() {
-    alert("Export (hook this to CSV/PDF)");
+    alert("Exporting attendance records...");
   }
 
-  function handleSave() {
-    console.log("Saving attendance:", { subject, date, students });
-    alert("Saved! (check console)");
+  function handleSaveFromModal(
+    newSubject: string,
+    newDate: string,
+    updatedRecords: ModalStudent[]
+  ) {
+    setSubject(newSubject);
+    setDate(newDate);
+    setStudents(updatedRecords);
+    console.log("Saved attendance record:", {
+      subject: newSubject,
+      date: newDate,
+      students: updatedRecords,
+    });
   }
 
   return (
@@ -77,9 +90,8 @@ export default function AttendanceTrackingPage() {
       <AttendanceHeader
         title="Attendance Tracking"
         subtitle="Record and manage student attendance"
-        onNewRecord={handleNewRecord}
+        onNewRecord={handleOpenModal}
         onExport={handleExport}
-        onSave={handleSave}
       />
 
       <AttendanceFilters
@@ -111,6 +123,17 @@ export default function AttendanceTrackingPage() {
         students={filtered}
         onSetPresent={(id) => setStatus(id, "present")}
         onSetAbsent={(id) => setStatus(id, "absent")}
+      />
+
+      {/* Record Attendance Modal */}
+      <AttendanceModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        subjects={subjects}
+        initialSubject={subject}
+        initialDate={date}
+        studentsList={students as ModalStudent[]}
+        onSave={handleSaveFromModal}
       />
     </div>
   );

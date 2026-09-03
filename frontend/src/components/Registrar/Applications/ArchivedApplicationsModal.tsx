@@ -1,6 +1,6 @@
-import { RotateCcw, Trash2, X, Users } from "lucide-react";
+import { RotateCcw, Trash2, X, Users, Settings } from "lucide-react";
 import type { ApplicationRow } from "./types";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 type Props = {
   open: boolean;
@@ -20,6 +20,39 @@ export default function ArchivedApplicationsModal({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Retention days state
+  const [retentionDays, setRetentionDays] = useState<number>(30);
+  const [isUpdatingDays, setIsUpdatingDays] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    // Fetch current retention setting
+    fetch("http://localhost:5000/api/preregistrations/settings/retention")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.archiveRetentionDays) setRetentionDays(data.archiveRetentionDays);
+      })
+      .catch(console.error);
+  }, [open]);
+
+  const handleUpdateRetention = async (newDays: number) => {
+    try {
+      setIsUpdatingDays(true);
+      const res = await fetch("http://localhost:5000/api/preregistrations/settings/retention", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ archiveRetentionDays: newDays }),
+      });
+      if (res.ok) {
+        setRetentionDays(newDays);
+      }
+    } catch (err) {
+      console.error("Failed to update retention days", err);
+    } finally {
+      setIsUpdatingDays(false);
+    }
+  };
 
   const selectedCount = selectedIds.size;
   const allSelected = items.length > 0 && selectedCount === items.length;
@@ -67,10 +100,31 @@ export default function ArchivedApplicationsModal({
       <div className="modal fade show d-block archived-modal-overlay">
         <div className="modal-dialog modal-xl modal-dialog-centered">
           <div className="modal-content border-0 shadow archived-modal-card">
-            <div className="modal-header archived-modal-header">
+            <div className="modal-header archived-modal-header d-flex align-items-center justify-content-between">
               <h5 className="modal-title fw-bold">
                 Archived Applications ({items.length})
               </h5>
+
+              {/* RETENTION SETTING INPUT */}
+              <div className="d-flex align-items-center gap-2 me-3 ms-auto">
+                <Settings size={16} className="text-muted" />
+                <label className="small text-muted mb-0 fw-semibold">
+                  Auto-delete after:
+                </label>
+                <select
+                  className="form-select form-select-sm"
+                  style={{ width: "110px" }}
+                  value={retentionDays}
+                  disabled={isUpdatingDays}
+                  onChange={(e) => handleUpdateRetention(Number(e.target.value))}
+                >
+                  <option value={7}>7 Days</option>
+                  <option value={15}>15 Days</option>
+                  <option value={30}>30 Days</option>
+                  <option value={60}>60 Days</option>
+                  <option value={90}>90 Days</option>
+                </select>
+              </div>
 
               <button
                 type="button"

@@ -1,3 +1,5 @@
+import { CheckCircle2 } from "lucide-react";
+
 export default function ClassRow({
   time,
   code,
@@ -13,17 +15,20 @@ export default function ClassRow({
 }) {
   return (
     <div className={`faculty-class-row ${status}`}>
-      <div className="time">{time}</div>
+      <div className="faculty-class-time">{time}</div>
 
-      <div className="flex-grow-1">
-        <div className="title">
-          <span className="code">{code}</span> - {title}
+      <div className="flex-grow-1 min-w-0">
+        <div className="faculty-class-title text-truncate">
+          <span className="faculty-class-code">{code}</span>
+          <span className="faculty-class-sep"> - </span>
+          <span className="faculty-class-name">{title}</span>
         </div>
-        <div className="meta">{meta}</div>
+        <div className="faculty-class-meta text-truncate">{meta}</div>
       </div>
 
-      <span className={`status-pill ${status}`}>
-        {status === "completed" ? "completed" : status === "ongoing" ? "ongoing" : "upcoming"}
+      <span className={`faculty-status-pill ${status}`}>
+        {status === "completed" && <CheckCircle2 size={13} className="me-1" />}
+        {status}
       </span>
     </div>
   );

@@ -1,13 +1,11 @@
 import React, { useMemo } from "react";
-import { Search, Mail, Users, Archive } from "lucide-react";
+import { Search, Mail, Users } from "lucide-react";
 
 import EnrolledStudentsList from "./EnrolledStudentsList";
 import type { EnrollmentItem } from "./types";
 
 export type EnrolledStudentsCardProps = {
   enrolledCount: number;
-  archivedCount: number;
-  onOpenArchived: () => void;
 
   enrolledQuery: string;
   setEnrolledQuery: React.Dispatch<React.SetStateAction<string>>;
@@ -23,14 +21,10 @@ export type EnrolledStudentsCardProps = {
 
   onSendCredentials: () => void;
   onSendCredentialsOne: (enrollmentId: string) => void;
-  onArchiveOne: (enrollmentId: string) => void;
-  onDeleteOne: (enrollmentId: string) => void;
 };
 
 export default function EnrolledStudentsCard({
   enrolledCount,
-  archivedCount,
-  onOpenArchived,
   enrolledQuery,
   setEnrolledQuery,
   loading,
@@ -41,8 +35,6 @@ export default function EnrolledStudentsCard({
   onClearAll,
   onSendCredentials,
   onSendCredentialsOne,
-  onArchiveOne,
-  onDeleteOne,
 }: EnrolledStudentsCardProps) {
   const selectableIds = useMemo(
     () => items.filter((x) => !x.credentialsSent).map((x) => x._id),
@@ -63,15 +55,6 @@ export default function EnrolledStudentsCard({
             <h5 className="fw-bold mb-0">
               Enrolled Students ({enrolledCount})
             </h5>
-
-            <button
-              type="button"
-              className="registrar-pill archived"
-              onClick={onOpenArchived}
-            >
-              <Archive size={16} />
-              <span className="ms-2">{archivedCount} Archived</span>
-            </button>
           </div>
 
           <div className="enrolled-head-actions">
@@ -123,16 +106,13 @@ export default function EnrolledStudentsCard({
               selectedIds={selectedIds}
               onToggleSelect={onToggleSelect}
               onSendCredentialsOne={onSendCredentialsOne}
-              onArchiveOne={onArchiveOne}
-              onDeleteOne={onDeleteOne}
             />
           ) : (
             <div className="users-empty-state">
               <div className="users-empty-icon">📭</div>
               <h5 className="fw-semibold mb-1">No enrolled students found</h5>
               <p className="text-muted mb-0">
-                Try adjusting your search or check back after enrollment
-                updates.
+                Try adjusting your search or check back after enrollment updates.
               </p>
             </div>
           )}

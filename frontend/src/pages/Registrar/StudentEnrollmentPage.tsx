@@ -8,7 +8,6 @@ import EnrollmentEvaluationModal from "../../components/Registrar/Enrollment/Enr
 import { getRegistrarByRole } from "../../api/userService";
 import EnrolledStudentsCard from "../../components/Registrar/Enrollment/EnrolledStudentsCard";
 import SendCredentialsModal from "../../components/Registrar/Enrollment/SendCredentialsModal";
-import ArchivedEnrolledStudentsModal from "../../components/Registrar/Enrollment/ArchivedEnrolledStudentsModal";
 import AuthAlert from "../../components/Authentication/AuthAlert";
 
 import type { StudentItem } from "../../components/Registrar/Enrollment/studentTypes";
@@ -36,12 +35,7 @@ export default function StudentEnrollmentPage() {
   const [enrolledLoading, setEnrolledLoading] = useState(true);
 
   const [enrollments, setEnrollments] = useState<EnrollmentItem[]>([]);
-  const [enrolledStudents, setEnrolledStudents] = useState<EnrollmentItem[]>(
-    [],
-  );
-  const [archivedStudents, setArchivedStudents] = useState<EnrollmentItem[]>(
-    [],
-  );
+  const [enrolledStudents, setEnrolledStudents] = useState<EnrollmentItem[]>([]);
 
   const [stats, setStats] = useState<{
     pending: number;
@@ -65,8 +59,6 @@ export default function StudentEnrollmentPage() {
   const [credLoading, setCredLoading] = useState(false);
 
   const [credEnrollmentIds, setCredEnrollmentIds] = useState<string[]>([]);
-
-  const [archivedModalOpen, setArchivedModalOpen] = useState(false);
 
   const [registrarAccount, setRegistrarAccount] =
     useState<RegistrarAccount | null>(null);
@@ -204,11 +196,11 @@ export default function StudentEnrollmentPage() {
       const data = await res.json();
 
       const list: EnrollmentItem[] = Array.isArray(data) ? data : [];
-      setEnrolledStudents(list);
+      // Filter out students who already had credentials sent
+      const pendingCredentials = list.filter((x) => !x.credentialsSent);
+      setEnrolledStudents(pendingCredentials);
 
-      const ids = new Set(
-        list.filter((x) => !x.credentialsSent).map((x) => x._id),
-      );
+      const ids = new Set(pendingCredentials.map((x) => x._id));
       setSelectedEnrolledIds((prev) => prev.filter((id) => ids.has(id)));
     } catch (e) {
       console.error("Failed to load enrolled students", e);
@@ -220,22 +212,6 @@ export default function StudentEnrollmentPage() {
     }
   };
 
-  const loadArchived = async () => {
-    try {
-      const url = new URL("http://localhost:5000/api/enrollments");
-      url.searchParams.set("status", "Archived");
-
-      const res = await fetch(url.toString());
-      const data = await res.json();
-
-      setArchivedStudents(Array.isArray(data) ? data : []);
-    } catch (e) {
-      console.error("Failed to load archived enrolled students", e);
-      setArchivedStudents([]);
-      showAlert("Failed to load archived enrolled students.", "error");
-    }
-  };
-
   useEffect(() => {
     fetchStats();
     fetchRegistrarSettingsSemester();
@@ -243,7 +219,6 @@ export default function StudentEnrollmentPage() {
     loadSections();
     loadPending(query);
     loadEnrolled(enrolledQuery);
-    loadArchived();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -323,7 +298,6 @@ export default function StudentEnrollmentPage() {
       await Promise.all([
         loadPending(query),
         loadEnrolled(enrolledQuery),
-        loadArchived(),
         loadSections(),
         fetchStats(),
       ]);
@@ -434,23 +408,14 @@ export default function StudentEnrollmentPage() {
       throw new Error(data?.message || "Failed to send credentials.");
     }
 
-    const sentStudentIds: string[] = Array.isArray(data?.sentStudentIds)
-      ? data.sentStudentIds
-      : [];
+    // Automatically remove students whose credentials were sent from the enrolled list
+    setEnrolledStudents((prev) =>
+      prev.filter((enr) => !credEnrollmentIds.includes(enr._id)),
+    );
 
-    if (sentStudentIds.length > 0) {
-      setEnrolledStudents((prev) =>
-        prev.map((enr) =>
-          credEnrollmentIds.includes(enr._id)
-            ? { ...enr, credentialsSent: true }
-            : enr,
-        ),
-      );
-
-      setSelectedEnrolledIds((prev) =>
-        prev.filter((id) => !credEnrollmentIds.includes(id)),
-      );
-    }
+    setSelectedEnrolledIds((prev) =>
+      prev.filter((id) => !credEnrollmentIds.includes(id)),
+    );
 
     await loadEnrolled(enrolledQuery);
 
@@ -461,149 +426,6 @@ export default function StudentEnrollmentPage() {
     showAlert(`Credentials sent to ${sent} student(s).`, "success");
 
     return data;
-  };
-
-  const handleArchiveEnrolled = async (enrollmentId: string) => {
-    try {
-      const res = await fetch(
-        `http://localhost:5000/api/enrollments/${enrollmentId}/archive`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ updatedBy: registrarEmail }),
-        },
-      );
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(data?.message || "Failed to archive enrolled student.");
-      }
-
-      await Promise.all([
-        loadEnrolled(enrolledQuery),
-        loadArchived(),
-        fetchStats(),
-      ]);
-      showAlert("Enrolled student archived successfully.", "success");
-    } catch (e: any) {
-      console.error(e);
-      showAlert(e?.message || "Failed to archive enrolled student.", "error");
-    }
-  };
-
-  const handleDeleteEnrolledOne = async (enrollmentId: string) => {
-    try {
-      const res = await fetch(
-        `http://localhost:5000/api/enrollments/${enrollmentId}`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ updatedBy: registrarEmail }),
-        },
-      );
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(data?.message || "Failed to delete enrolled student.");
-      }
-
-      await Promise.all([loadEnrolled(enrolledQuery), fetchStats()]);
-      showAlert("Enrolled student deleted successfully.", "success");
-    } catch (e: any) {
-      console.error(e);
-      showAlert(e?.message || "Failed to delete enrolled student.", "error");
-    }
-  };
-
-  const handleUnarchiveEnrolled = async (enrollmentId: string) => {
-    try {
-      const res = await fetch(
-        `http://localhost:5000/api/enrollments/${enrollmentId}/unarchive`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ updatedBy: registrarEmail }),
-        },
-      );
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(
-          data?.message || "Failed to unarchive enrolled student.",
-        );
-      }
-
-      await Promise.all([
-        loadEnrolled(enrolledQuery),
-        loadArchived(),
-        fetchStats(),
-      ]);
-      showAlert("Enrolled student unarchived successfully.", "success");
-    } catch (e: any) {
-      console.error(e);
-      showAlert(e?.message || "Failed to unarchive enrolled student.", "error");
-    }
-  };
-
-  const handleDeleteArchivedOne = async (enrollmentId: string) => {
-    try {
-      const res = await fetch(
-        `http://localhost:5000/api/enrollments/${enrollmentId}`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ updatedBy: registrarEmail }),
-        },
-      );
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(
-          data?.message || "Failed to delete archived enrolled student.",
-        );
-      }
-
-      await Promise.all([loadArchived(), fetchStats()]);
-      showAlert("Archived enrolled student deleted successfully.", "success");
-    } catch (e: any) {
-      console.error(e);
-      showAlert(
-        e?.message || "Failed to delete archived enrolled student.",
-        "error",
-      );
-    }
-  };
-
-  const handleDeleteArchivedSelected = async (ids: string[]) => {
-    try {
-      const res = await fetch(
-        "http://localhost:5000/api/enrollments/bulk-delete",
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ids, updatedBy: registrarEmail }),
-        },
-      );
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(data?.message || "Failed to delete archived students.");
-      }
-
-      await Promise.all([loadArchived(), fetchStats()]);
-      showAlert(
-        `${data?.deletedCount ?? ids.length} archived student(s) deleted successfully.`,
-        "success",
-      );
-    } catch (e: any) {
-      console.error(e);
-      showAlert(e?.message || "Failed to delete archived students.", "error");
-    }
   };
 
   return (
@@ -654,8 +476,6 @@ export default function StudentEnrollmentPage() {
 
         <EnrolledStudentsCard
           enrolledCount={enrolledCount}
-          archivedCount={archivedStudents.length}
-          onOpenArchived={() => setArchivedModalOpen(true)}
           enrolledQuery={enrolledQuery}
           setEnrolledQuery={setEnrolledQuery}
           loading={enrolledLoading || credLoading}
@@ -666,17 +486,6 @@ export default function StudentEnrollmentPage() {
           onClearAll={clearAllEnrolled}
           onSendCredentials={openCredentialsForSelected}
           onSendCredentialsOne={openCredentialsForOne}
-          onArchiveOne={handleArchiveEnrolled}
-          onDeleteOne={handleDeleteEnrolledOne}
-        />
-
-        <ArchivedEnrolledStudentsModal
-          open={archivedModalOpen}
-          onClose={() => setArchivedModalOpen(false)}
-          items={archivedStudents}
-          onUnarchive={handleUnarchiveEnrolled}
-          onDeleteOne={handleDeleteArchivedOne}
-          onDeleteSelected={handleDeleteArchivedSelected}
         />
 
         <SendCredentialsModal

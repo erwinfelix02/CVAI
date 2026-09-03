@@ -23,20 +23,6 @@ const submissions = [
     course: "CS 301",
     time: "1 hour ago",
   },
-  {
-    initials: "AR",
-    name: "Ana Reyes",
-    item: "Lab Report 3",
-    course: "CS 301",
-    time: "1 hour ago",
-  },
-  {
-    initials: "AR",
-    name: "Ana Reyes",
-    item: "Lab Report 3",
-    course: "CS 301",
-    time: "1 hour ago",
-  },
 ];
 
 export default function RecentSubmissions() {
@@ -44,16 +30,15 @@ export default function RecentSubmissions() {
     <div className="card shadow-sm faculty-card">
       <div className="card-body p-3 p-md-4">
         <div className="d-flex align-items-center gap-2 mb-3">
-          <span className="section-icon purple">
+          <span className="faculty-section-icon purple">
             <Bell size={18} />
           </span>
-          <h5 className="mb-0 fw-bold">Recent Student Submissions</h5>
+          <h5 className="mb-0">Recent Student Submissions</h5>
         </div>
 
-        {/* ✅ Scrollable submissions list */}
         <div className="faculty-submission-list">
-          {submissions.map((s) => (
-            <SubmissionRow key={`${s.name}-${s.item}`} {...s} />
+          {submissions.map((s, index) => (
+            <SubmissionRow key={`${s.name}-${index}`} {...s} />
           ))}
         </div>
       </div>

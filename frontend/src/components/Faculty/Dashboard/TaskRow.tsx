@@ -9,10 +9,10 @@ export default function TaskRow({
 }) {
   return (
     <div className="faculty-task-row">
-      <span className={`dot ${tone}`} />
-      <div className="flex-grow-1">
-        <div className="fw-semibold">{title}</div>
-        <div className="text-muted small">{date}</div>
+      <span className={`faculty-task-dot ${tone}`} />
+      <div className="flex-grow-1 min-w-0 ms-2">
+        <div className="faculty-task-title text-truncate">{title}</div>
+        <div className="faculty-task-date">{date}</div>
       </div>
     </div>
   );

@@ -1,198 +1,143 @@
+import { useEffect, useState } from "react";
 import FacultyScheduleHeader from "../../components/Faculty/Schedule/FacultyScheduleHeader";
 import FacultyScheduleGrid from "../../components/Faculty/Schedule/FacultyScheduleGrid";
 import FacultyScheduleStats from "../../components/Faculty/Schedule/FacultyScheduleStats";
+import { transformApiScheduleToGrid } from "../../utils/scheduleTransform";
+import { CalendarX } from "lucide-react";
 import "../../styles/faculty-schedule.css";
 
 export type ScheduleItem = {
   id: string;
-  start: string; // "8:00"
-  end: string; // "9:00"
+  start: string;
+  end: string;
   meridiem: "AM" | "PM";
-  code: string; // "CS 101"
-  title: string; // "Intro to Programming"
-  locationLabel: string; // "Lab 1" / "Room 401"
+  code: string;
+  title: string;
+  locationLabel: string;
   students: number;
   tone: "blue" | "purple" | "green" | "orange";
 };
 
 export type DaySchedule = {
-  key: string; // "monday"
-  label: string; // "Monday"
+  key: string;
+  label: string;
   isToday?: boolean;
   items: ScheduleItem[];
 };
 
-const scheduleData: DaySchedule[] = [
-  {
-    key: "monday",
-    label: "Monday",
-    items: [
-      {
-        id: "m1",
-        start: "8:00",
-        end: "9:00",
-        meridiem: "AM",
-        code: "CS 101",
-        title: "Intro to Programming",
-        locationLabel: "Lab 1",
-        students: 35,
-        tone: "blue",
-      },
-      {
-        id: "m2",
-        start: "1:00",
-        end: "2:00",
-        meridiem: "PM",
-        code: "CS 301",
-        title: "Algorithm Analysis",
-        locationLabel: "Room 401",
-        students: 28,
-        tone: "green",
-      },
-    ],
-  },
-  {
-    key: "tuesday",
-    label: "Tuesday",
-    items: [
-      {
-        id: "t1",
-        start: "10:00",
-        end: "11:30",
-        meridiem: "AM",
-        code: "CS 201",
-        title: "Data Structures",
-        locationLabel: "Room 302",
-        students: 42,
-        tone: "purple",
-      },
-      {
-        id: "t2",
-        start: "3:00",
-        end: "4:30",
-        meridiem: "PM",
-        code: "CS 401",
-        title: "Software Engineering",
-        locationLabel: "Lab 2",
-        students: 19,
-        tone: "orange",
-      },
-    ],
-  },
-  {
-    key: "wednesday",
-    label: "Wednesday",
-    items: [
-      {
-        id: "w1",
-        start: "8:00",
-        end: "9:00",
-        meridiem: "AM",
-        code: "CS 101",
-        title: "Intro to Programming",
-        locationLabel: "Lab 1",
-        students: 35,
-        tone: "blue",
-      },
-      {
-        id: "w2",
-        start: "1:00",
-        end: "2:00",
-        meridiem: "PM",
-        code: "CS 301",
-        title: "Algorithm Analysis",
-        locationLabel: "Room 401",
-        students: 28,
-        tone: "green",
-      },
-    ],
-  },
-  {
-    key: "thursday",
-    label: "Thursday",
-    items: [
-      {
-        id: "th1",
-        start: "10:00",
-        end: "11:30",
-        meridiem: "AM",
-        code: "CS 201",
-        title: "Data Structures",
-        locationLabel: "Room 302",
-        students: 42,
-        tone: "purple",
-      },
-      {
-        id: "th2",
-        start: "3:00",
-        end: "4:30",
-        meridiem: "PM",
-        code: "CS 401",
-        title: "Software Engineering",
-        locationLabel: "Lab 2",
-        students: 19,
-        tone: "orange",
-      },
-    ],
-  },
-  {
-    key: "friday",
-    label: "Friday",
-    isToday: true,
-    items: [
-      {
-        id: "f1",
-        start: "8:00",
-        end: "9:00",
-        meridiem: "AM",
-        code: "CS 101",
-        title: "Intro to Programming",
-        locationLabel: "Lab 1",
-        students: 35,
-        tone: "blue",
-      },
-      {
-        id: "f2",
-        start: "1:00",
-        end: "2:00",
-        meridiem: "PM",
-        code: "CS 301",
-        title: "Algorithm Analysis",
-        locationLabel: "Room 401",
-        students: 28,
-        tone: "green",
-      },
-    ],
-  },
-];
-
 export default function TeachingSchedulePage() {
-  // quick stats derived
-  const courses = 4;
-  const hoursWeek = 18;
-  const totalStudents = 124;
-  const roomsUsed = 4;
+  const [scheduleData, setScheduleData] = useState<DaySchedule[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const userDepartment = storedUser?.department || "";
+  const facultyName = storedUser?.name || "";
+
+  useEffect(() => {
+    const fetchAssignedSchedule = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("token");
+
+        const query = new URLSearchParams({
+          department: userDepartment,
+          faculty: facultyName,
+        }).toString();
+
+        const response = await fetch(`/api/schedules?${query}`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to load schedule data.");
+        }
+
+        const data = await response.json();
+        const formattedDays = transformApiScheduleToGrid(data);
+        setScheduleData(formattedDays);
+      } catch (err: any) {
+        console.error("Schedule fetch error:", err);
+        setError(err.message || "Error loading schedule.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAssignedSchedule();
+  }, [userDepartment, facultyName]);
+
+  const totalClassesCount = scheduleData.reduce((acc, day) => acc + day.items.length, 0);
+
+  const uniqueCourses = new Set(
+    scheduleData.flatMap((d) => d.items.map((it) => it.code))
+  ).size;
+
+  const totalHours = scheduleData.reduce(
+    (sum, day) => sum + day.items.length * 1.5,
+    0
+  );
+
+  const totalStudents = scheduleData.reduce(
+    (sum, day) => sum + day.items.reduce((s, it) => s + it.students, 0),
+    0
+  );
+
+  const roomsUsed = new Set(
+    scheduleData.flatMap((d) => d.items.map((it) => it.locationLabel))
+  ).size;
+
+  if (loading) {
+    return (
+      <div className="container-fluid py-5 text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading schedule...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container-fluid py-4">
+        <div className="alert alert-danger">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="container-fluid py-4 faculty-schedule-page">
       <FacultyScheduleHeader
         title="Teaching Schedule"
-        subtitle="Your weekly class schedule"
-        pillText="2nd Semester, AY 2024-2025"
+        subtitle={`Schedule for ${facultyName || "Faculty Member"}`}
+        pillText={`${userDepartment || "General"} Department`}
       />
-        {/* ✅ ADD THIS WRAPPER */}
-      <div className="faculty-schedule-stats-wrap">
+
+      <div className="faculty-schedule-stats-wrap mb-4">
         <FacultyScheduleStats
           items={[
-            { label: "Courses", value: courses, tone: "blue" },
-            { label: "Hours/Week", value: hoursWeek, tone: "purple" },
+            { label: "Courses", value: uniqueCourses, tone: "blue" },
+            { label: "Hours/Week", value: totalHours, tone: "purple" },
             { label: "Total Students", value: totalStudents, tone: "green" },
             { label: "Rooms Used", value: roomsUsed, tone: "orange" },
           ]}
         />
       </div>
 
-      <FacultyScheduleGrid days={scheduleData} />
+      {totalClassesCount === 0 ? (
+        <div className="card shadow-sm border-0 rounded-4 p-5 text-center">
+          <CalendarX size={48} className="text-muted mx-auto mb-3 opacity-50" />
+          <h5 className="fw-bold text-dark">No Teaching Schedule Assigned</h5>
+          <p className="text-muted mb-0">
+            There are currently no active class schedules assigned to your account for this semester.
+          </p>
+        </div>
+      ) : (
+        <FacultyScheduleGrid days={scheduleData} />
+      )}
     </div>
   );
 }

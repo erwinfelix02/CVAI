@@ -1,3 +1,5 @@
+// src/models/User.js
+
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import {
@@ -224,6 +226,19 @@ const UserSchema = new mongoose.Schema(
       index: true,
       sparse: true,
       select: false,
+    },
+
+    /* =========================================================
+       DEPARTMENT PREFERENCES (MAX UNITS & SEMESTER)
+       ========================================================= */
+    maxUnits: {
+      type: String,
+      default: "21 units",
+    },
+
+    semester: {
+      type: String,
+      default: "1st Semester",
     },
 
     notes: encryptedField("notes"),

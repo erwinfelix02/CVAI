@@ -832,3 +832,330 @@
     width: 100%;
   }
 }
+
+/* =========================================================
+   ADD SUBJECT MODAL STYLES
+   ========================================================= */
+
+.add-subject-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.add-subject-modal-container {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 580px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Header */
+.add-subject-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px 12px 28px;
+}
+
+.add-subject-modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0b172a;
+  margin: 0;
+}
+
+.add-subject-modal-close {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.add-subject-modal-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Form Body */
+.add-subject-modal-body {
+  padding: 12px 28px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.add-subject-row {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+}
+
+.flex-1 { flex: 1; }
+.flex-2 { flex: 2; }
+.flex-3 { flex: 3; }
+
+.add-subject-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.add-subject-field label {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1e293b;
+  margin: 0;
+}
+
+.add-subject-field input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.add-subject-field input::placeholder {
+  color: #94a3b8;
+}
+
+.add-subject-field input:focus {
+  border-color: #0e5c7e;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(14, 92, 126, 0.12);
+}
+
+/* Custom Select Dropdown Styling */
+.select-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.select-input-wrapper select {
+  width: 100%;
+  height: 48px;
+  padding: 0 40px 0 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-size: 15px;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select-input-wrapper select:focus {
+  border-color: #0e5c7e;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(14, 92, 126, 0.12);
+}
+
+.select-input-wrapper select:invalid,
+.select-input-wrapper select option[value=""] {
+  color: #94a3b8;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+}
+
+/* Footer Actions */
+.add-subject-modal-footer {
+  padding: 0 28px 24px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-cancel {
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 500;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.btn-submit {
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 10px;
+  border: none;
+  background: #084d6b;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-submit:hover {
+  background: #05364c;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Responsive Styles */
+@media (max-width: 576px) {
+  .add-subject-row {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .add-subject-modal-header,
+  .add-subject-modal-body,
+  .add-subject-modal-footer {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .add-subject-modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .btn-cancel,
+  .btn-submit {
+    width: 100%;
+  }
+}
+/* Centered Alert Backdrop & Card */
+.subject-centered-alert-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999; /* Higher than any modal backdrop */
+  backdrop-filter: blur(2px);
+  animation: fadeInSubjectAlert 0.2s ease-out;
+}
+
+.subject-centered-alert-card {
+  background: #ffffff;
+  padding: 1.75rem 2.25rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  min-width: 280px;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: scaleUpSubjectAlert 0.2s ease-out;
+}
+
+@keyframes fadeInSubjectAlert {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleUpSubjectAlert {
+  from {
+    transform: scale(0.9);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.subject-centered-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.subject-centered-confirm-box {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  animation: confirmPopIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes confirmPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

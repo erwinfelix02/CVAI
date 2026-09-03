@@ -69,8 +69,7 @@
 
   box-sizing: border-box;
 
-  box-shadow:
-    0 1px 2px rgba(15, 41, 66, 0.04);
+  box-shadow: 0 1px 2px rgba(15, 41, 66, 0.04);
 }
 
 /* =========================================================
@@ -258,8 +257,7 @@
 
   background-color: #ffffff;
 
-  box-shadow:
-    0 0 0 3px rgba(18, 96, 128, 0.08) !important;
+  box-shadow: 0 0 0 3px rgba(18, 96, 128, 0.08) !important;
 }
 
 .settings-input-disabled {
@@ -289,11 +287,6 @@
   width: 100%;
   height: 50px;
 
-  /*
-    Bootstrap/native select arrow.
-    No custom arrow is added.
-  */
-
   border: 1px solid #d7e0e7;
   border-radius: 11px;
 
@@ -315,12 +308,11 @@
 
   background-color: #ffffff;
 
-  box-shadow:
-    0 0 0 3px rgba(18, 96, 128, 0.08) !important;
+  box-shadow: 0 0 0 3px rgba(18, 96, 128, 0.08) !important;
 }
 
 /* =========================================================
-   SAVE ACTION
+   SAVE / CANCEL ACTIONS
    ========================================================= */
 
 .settings-actions {
@@ -356,18 +348,58 @@
     transform 0.15s ease;
 }
 
-.settings-save-btn:hover {
+.settings-save-btn:hover:not(:disabled) {
   background: #084f6d;
   color: #ffffff;
 }
 
-.settings-save-btn:active {
+.settings-save-btn:active:not(:disabled) {
   transform: translateY(1px);
 }
 
 .settings-save-btn:focus-visible {
   outline: 3px solid rgba(13, 95, 130, 0.25);
   outline-offset: 2px;
+}
+
+.settings-save-btn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.settings-cancel-btn {
+  min-height: 46px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 10px 22px;
+
+  border: 1px solid #d7e0e7;
+  border-radius: 11px;
+
+  background: #ffffff;
+  color: #526d87;
+
+  font-size: 16px;
+  font-weight: 500;
+
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.settings-cancel-btn:hover:not(:disabled) {
+  background: #f8fafb;
+  border-color: #c5d1dc;
+  color: #102b46;
+}
+
+.settings-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* =========================================================
@@ -398,8 +430,6 @@
     padding: 16px;
   }
 
-  /* Header */
-
   .settings-page-header {
     margin-bottom: 20px !important;
   }
@@ -412,19 +442,14 @@
     font-size: 14px;
   }
 
-  /* Cards */
-
   .settings-content {
     gap: 16px;
   }
 
   .settings-card {
     padding: 20px;
-
     border-radius: 12px;
   }
-
-  /* Card Header */
 
   .settings-card-header {
     margin-bottom: 22px;
@@ -438,8 +463,6 @@
     font-size: 14px;
   }
 
-  /* Profile */
-
   .profile-identity {
     gap: 14px;
   }
@@ -447,9 +470,7 @@
   .profile-avatar {
     width: 58px;
     height: 58px;
-
     flex-basis: 58px;
-
     font-size: 17px;
   }
 
@@ -465,37 +486,29 @@
     margin: 18px 0 20px;
   }
 
-  /* Form */
-
   .settings-label {
     font-size: 15px;
-
     margin-bottom: 8px;
   }
 
   .settings-input,
   .settings-select {
     height: 46px;
-
     font-size: 15px;
   }
-
-  /* Preferences */
 
   .preferences-fields {
     gap: 20px;
   }
 
-  /* Save */
-
   .settings-actions {
     justify-content: stretch;
-
     padding-top: 16px;
   }
 
-  .settings-save-btn {
-    width: 100%;
+  .settings-save-btn,
+  .settings-cancel-btn {
+    flex: 1;
   }
 }
 
@@ -512,20 +525,15 @@
     padding: 17px;
   }
 
-  /* Profile */
-
   .profile-identity {
     align-items: flex-start;
-
     gap: 12px;
   }
 
   .profile-avatar {
     width: 52px;
     height: 52px;
-
     flex-basis: 52px;
-
     font-size: 16px;
   }
 
@@ -537,8 +545,6 @@
     font-size: 13px;
   }
 
-  /* Card Header */
-
   .settings-card-header h2 {
     font-size: 21px;
   }
@@ -547,12 +553,9 @@
     font-size: 13px;
   }
 
-  /* Form */
-
   .settings-input,
   .settings-select {
     height: 44px;
-
     font-size: 14px;
   }
 
@@ -560,11 +563,63 @@
     font-size: 14px;
   }
 
-  /* Button */
-
-  .settings-save-btn {
+  .settings-save-btn,
+  .settings-cancel-btn {
     min-height: 44px;
-
     font-size: 14px;
+  }
+}
+/* =========================================================
+   CENTER OVERLAY LOADING SPINNER
+   ========================================================= */
+
+.settings-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 41, 66, 0.4);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeInOverlay 0.2s ease-out forwards;
+}
+
+.settings-loading-modal {
+  background: #ffffff;
+  padding: 32px 40px;
+  border-radius: 18px;
+  box-shadow: 0 20px 40px rgba(15, 41, 66, 0.18);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-width: 260px;
+  animation: scaleInModal 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleInModal {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
   }
 }

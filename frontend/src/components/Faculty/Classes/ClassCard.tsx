@@ -16,14 +16,14 @@ export default function ClassCard({
   onMaterials?: () => void;
   onGrades?: () => void;
 }) {
-  const capacityPct = Math.round((item.students / item.capacity) * 100);
+  const capacityPct = item.capacity > 0
+    ? Math.round((item.students / item.capacity) * 100)
+    : 0;
 
   return (
     <div className={`card shadow-sm faculty-class-card ${accentClass(item.accent)}`}>
       <div className="card-body faculty-class-body">
-
-
-        {/* top row: code pill + assigned badge */}
+        {/* Top row: code pill + assigned badge */}
         <div className="d-flex justify-content-between align-items-start mb-2">
           <span className="badge rounded-pill text-dark bg-white border px-3 py-2 class-code-pill">
             {item.code}
@@ -36,11 +36,11 @@ export default function ClassCard({
           )}
         </div>
 
-        {/* title */}
+        {/* Title */}
         <h5 className="fw-bold mb-1 class-title">{item.title}</h5>
         <div className="text-muted mb-3">{item.section}</div>
 
-        {/* info rows */}
+        {/* Info rows */}
         <div className="row g-2 class-meta">
           <div className="col-12 col-sm-6 d-flex align-items-center gap-2">
             <Clock size={16} className="text-muted" />
@@ -66,17 +66,23 @@ export default function ClassCard({
           </div>
         </div>
 
-        {/* progress */}
+        {/* Progress */}
         <div className="d-flex justify-content-between align-items-center mt-3 mb-2">
           <span className="text-muted">Course Progress</span>
           <span className="fw-semibold">{item.progress}%</span>
         </div>
 
-        <div className="progress class-progress" role="progressbar" aria-valuenow={item.progress} aria-valuemin={0} aria-valuemax={100}>
+        <div
+          className="progress class-progress"
+          role="progressbar"
+          aria-valuenow={item.progress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
           <div className="progress-bar" style={{ width: `${item.progress}%` }} />
         </div>
 
-        {/* actions - responsive */}
+        {/* Actions */}
         <div className="row g-2 mt-3">
           <div className="col-12 col-sm-4">
             <button

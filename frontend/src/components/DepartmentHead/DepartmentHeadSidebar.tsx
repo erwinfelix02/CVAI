@@ -23,7 +23,7 @@ import {
   LogOut,
 } from "lucide-react";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -32,39 +32,6 @@ interface SidebarProps {
   setMobileOpen?: (open: boolean) => void;
   isMobile?: boolean;
 }
-
-/* =========================================================
-   MAIN NAVIGATION
-   ========================================================= */
-
-const nav = [
-  {
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    path: "/dept-head",
-  },
-  {
-    label: "Faculty",
-    icon: Users,
-    path: "/dept-head/faculty",
-    badge: 24,
-  },
-  {
-    label: "Subjects",
-    icon: BookOpen,
-    path: "/dept-head/subjects",
-  },
-  {
-    label: "Schedules",
-    icon: CalendarDays,
-    path: "/dept-head/schedules",
-  },
-  {
-    label: "Rooms",
-    icon: DoorOpen,
-    path: "/dept-head/rooms",
-  },
-];
 
 /* =========================================================
    BOTTOM NAVIGATION
@@ -94,17 +61,87 @@ export default function DepartmentHeadSidebar({
   const navigate = useNavigate();
 
   /* =========================================================
+     DYNAMIC FACULTY COUNT STATE & FETCHING
+     ========================================================= */
+
+  const [facultyCount, setFacultyCount] = useState<number | null>(null);
+
+  // Get department from logged-in user in localStorage
+  const userDepartment = useMemo(() => {
+    try {
+      const userJson = localStorage.getItem("user");
+      const currentUser = userJson ? JSON.parse(userJson) : null;
+      return currentUser?.department || "";
+    } catch {
+      return "";
+    }
+  }, []);
+
+  const fetchFacultyCount = useCallback(async () => {
+    try {
+      const queryParam = userDepartment
+        ? `?department=${encodeURIComponent(userDepartment)}`
+        : "";
+
+      const res = await fetch(`/api/users/faculty${queryParam}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setFacultyCount(data.length);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch faculty count for sidebar:", err);
+    }
+  }, [userDepartment]);
+
+  useEffect(() => {
+    fetchFacultyCount();
+  }, [fetchFacultyCount]);
+
+  /* =========================================================
+     MAIN NAVIGATION WITH DYNAMIC BADGE
+     ========================================================= */
+
+  const nav = useMemo(
+    () => [
+      {
+        label: "Dashboard",
+        icon: LayoutDashboard,
+        path: "/dept-head",
+      },
+      {
+        label: "Faculty",
+        icon: Users,
+        path: "/dept-head/faculty",
+        badge: facultyCount !== null ? facultyCount : undefined,
+      },
+      {
+        label: "Subjects",
+        icon: BookOpen,
+        path: "/dept-head/subjects",
+      },
+      {
+        label: "Schedules",
+        icon: CalendarDays,
+        path: "/dept-head/schedules",
+      },
+      {
+        label: "Rooms",
+        icon: DoorOpen,
+        path: "/dept-head/rooms",
+      },
+    ],
+    [facultyCount]
+  );
+
+  /* =========================================================
      LOGOUT STATE
      ========================================================= */
 
-  const [showLogoutConfirm, setShowLogoutConfirm] =
-    useState(false);
-
-  const [isLoggingOut, setIsLoggingOut] =
-    useState(false);
-
-  const [logoutCountdown, setLogoutCountdown] =
-    useState(3);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutCountdown, setLogoutCountdown] = useState(3);
 
   /* =========================================================
      ACTIVE NAVIGATION
@@ -145,10 +182,6 @@ export default function DepartmentHeadSidebar({
       return;
     }
 
-    /* -----------------------------------------------
-       Countdown finished
-       ----------------------------------------------- */
-
     if (logoutCountdown <= 0) {
       // Remove authentication data
       localStorage.removeItem("token");
@@ -169,10 +202,6 @@ export default function DepartmentHeadSidebar({
 
       return;
     }
-
-    /* -----------------------------------------------
-       Countdown timer
-       ----------------------------------------------- */
 
     const timer = setTimeout(() => {
       setLogoutCountdown((previous) => previous - 1);
@@ -215,12 +244,9 @@ export default function DepartmentHeadSidebar({
             ================================================= */}
 
         <div className="dept-sidebar-header">
-
           {/* Brand */}
-
           {(!collapsed || isMobile) && (
             <div className="brand-container">
-
               <span className="brand-icon">
                 <GraduationCap size={20} />
               </span>
@@ -234,14 +260,10 @@ export default function DepartmentHeadSidebar({
                   Department Head
                 </span>
               </div>
-
             </div>
           )}
 
-          {/* =================================================
-              DESKTOP COLLAPSE BUTTON
-              ================================================= */}
-
+          {/* DESKTOP COLLAPSE BUTTON */}
           {!isMobile && toggleCollapsed && (
             <button
               type="button"
@@ -261,19 +283,14 @@ export default function DepartmentHeadSidebar({
             </button>
           )}
 
-          {/* =================================================
-              MOBILE CLOSE BUTTON
-              ================================================= */}
-
+          {/* MOBILE CLOSE BUTTON */}
           {isMobile &&
             mobileOpen &&
             setMobileOpen && (
               <button
                 type="button"
                 className="btn p-0 d-flex align-items-center justify-content-center dept-icon-btn"
-                onClick={() =>
-                  setMobileOpen(false)
-                }
+                onClick={() => setMobileOpen(false)}
                 aria-label="Close menu"
               >
                 <X size={20} />
@@ -286,7 +303,6 @@ export default function DepartmentHeadSidebar({
             ================================================= */}
 
         <nav className="dept-sidebar-nav">
-
           {nav.map(
             ({
               label,
@@ -308,34 +324,26 @@ export default function DepartmentHeadSidebar({
                       active ? "active" : ""
                     }`}
                   >
-
                     <div className="nav-label">
-
                       <Icon size={18} />
 
-                      {(!collapsed ||
-                        isMobile) && (
+                      {(!collapsed || isMobile) && (
                         <span>{label}</span>
                       )}
-
                     </div>
 
-                    {/* Faculty Badge */}
-
-                    {(!collapsed ||
-                      isMobile) &&
-                      badge != null && (
+                    {/* Dynamic Faculty Badge */}
+                    {(!collapsed || isMobile) &&
+                      badge !== undefined && (
                         <span className="badge dept-badge">
                           {badge}
                         </span>
                       )}
-
                   </div>
                 </Link>
               );
             }
           )}
-
         </nav>
 
         {/* =================================================
@@ -343,11 +351,9 @@ export default function DepartmentHeadSidebar({
             ================================================= */}
 
         <div className="dept-sidebar-bottom">
-
           <div className="sidebar-separator" />
 
           {/* Settings / Help */}
-
           {bottomNav.map(
             ({
               label,
@@ -368,35 +374,25 @@ export default function DepartmentHeadSidebar({
                       active ? "active" : ""
                     }`}
                   >
-
                     <div className="nav-label">
-
                       <Icon size={18} />
 
-                      {(!collapsed ||
-                        isMobile) && (
+                      {(!collapsed || isMobile) && (
                         <span>{label}</span>
                       )}
-
                     </div>
-
                   </div>
                 </Link>
               );
             }
           )}
 
-          {/* =================================================
-              LOG OUT
-              ================================================= */}
-
+          {/* LOG OUT */}
           <div
             className="nav-item nav-item-danger"
             role="button"
             tabIndex={0}
-            onClick={() =>
-              setShowLogoutConfirm(true)
-            }
+            onClick={() => setShowLogoutConfirm(true)}
             onKeyDown={(event) => {
               if (
                 event.key === "Enter" ||
@@ -408,25 +404,17 @@ export default function DepartmentHeadSidebar({
             }}
             aria-label="Log out"
           >
-
             <div className="nav-label">
-
               <LogOut size={18} />
 
-              {(!collapsed ||
-                isMobile) && (
+              {(!collapsed || isMobile) && (
                 <span>Log Out</span>
               )}
-
             </div>
-
           </div>
         </div>
 
-        {/* =================================================
-            LOGOUT CONFIRMATION MODAL
-            ================================================= */}
-
+        {/* LOGOUT CONFIRMATION MODAL */}
         {showLogoutConfirm && (
           <div
             className="logout-overlay"
@@ -435,7 +423,6 @@ export default function DepartmentHeadSidebar({
             aria-labelledby="dept-logout-title"
           >
             <div className="logout-modal">
-
               <h6 id="dept-logout-title">
                 Confirm Log Out
               </h6>
@@ -445,20 +432,13 @@ export default function DepartmentHeadSidebar({
               </p>
 
               <div className="d-flex gap-2 justify-content-end">
-
-                {/* Cancel */}
-
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  onClick={() =>
-                    setShowLogoutConfirm(false)
-                  }
+                  onClick={() => setShowLogoutConfirm(false)}
                 >
                   Cancel
                 </button>
-
-                {/* Confirm */}
 
                 <button
                   type="button"
@@ -467,17 +447,13 @@ export default function DepartmentHeadSidebar({
                 >
                   Log Out
                 </button>
-
               </div>
             </div>
           </div>
         )}
       </aside>
 
-      {/* =====================================================
-          LOGGING OUT OVERLAY
-          ===================================================== */}
-
+      {/* LOGGING OUT OVERLAY */}
       {isLoggingOut && (
         <div
           className="logging-out-overlay"
@@ -485,7 +461,6 @@ export default function DepartmentHeadSidebar({
           aria-live="polite"
         >
           <div className="logging-out-box">
-
             <div
               className="logging-spinner"
               aria-hidden="true"
@@ -503,7 +478,6 @@ export default function DepartmentHeadSidebar({
                 ? "s"
                 : ""}
             </p>
-
           </div>
         </div>
       )}

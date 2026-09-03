@@ -11,13 +11,45 @@ import {
   getPortalStatuses,
   reserveFacultyId,
   reserveUserId,
+  getMyProfile,
+  updateMyPhone,
+  updateMyDepartmentPreferences,
+  getFacultyByDepartment,
 } from "../controllers/userController.js";
+
 import {
   authMiddleware,
   authorizeRoles,
 } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
+
+/* =========================================================
+   CURRENT SIGNED-IN USER
+   IMPORTANT: /me routes MUST be placed BEFORE /:id routes
+   ========================================================= */
+
+router.get("/me", getMyProfile);
+router.patch("/me/phone", updateMyPhone);
+router.get("/faculty", getFacultyByDepartment);
+router.patch("/me/preferences", updateMyDepartmentPreferences);
+/* =========================================================
+   RESERVATIONS & UTILITIES
+   ========================================================= */
+
+router.get("/reserve-faculty-id", reserveFacultyId);
+router.get("/reserve-user-id", reserveUserId);
+
+router.get(
+  "/portal-statuses",
+  authMiddleware,
+  authorizeRoles("Super Admin"),
+  getPortalStatuses
+);
+
+/* =========================================================
+   SPECIFIC USER LISTS & ROLES
+   ========================================================= */
 
 router.get(
   "/students",
@@ -27,14 +59,15 @@ router.get(
 );
 
 router.get(
-  "/portal-statuses",
+  "/role/registrar",
   authMiddleware,
-  authorizeRoles("Super Admin"),
-  getPortalStatuses
+  authorizeRoles("Registrar", "Super Admin"),
+  getRegistrarByRole
 );
 
-router.get("/reserve-faculty-id", reserveFacultyId);
-router.get("/reserve-user-id", reserveUserId);
+/* =========================================================
+   GENERAL USER MANAGEMENT (CRUD)
+   ========================================================= */
 
 router.get(
   "/",
@@ -55,13 +88,6 @@ router.post(
   authMiddleware,
   authorizeRoles("Registrar", "Super Admin"),
   sendCredentials
-);
-
-router.get(
-  "/role/registrar",
-  authMiddleware,
-  authorizeRoles("Registrar", "Super Admin"),
-  getRegistrarByRole
 );
 
 router.get(

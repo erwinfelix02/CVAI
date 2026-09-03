@@ -37,6 +37,7 @@
   place-items: center;
   background: #eef3f6;
   color: #0d5173;
+  flex-shrink: 0;
 }
 
 .dept-code {
@@ -70,7 +71,7 @@
   min-width: 0;
 }
 
-/* ✅ Actions: always aligned + same sizing */
+/* Actions styling */
 .dept-actions {
   display: flex;
   align-items: center;
@@ -78,11 +79,10 @@
   gap: 10px;
 }
 
-/* base shared btn sizing */
 .dept-btn {
-  height: 44px;              /* ✅ same height */
-  padding: 0 16px;           /* ✅ consistent padding */
-  border-radius: 12px;       /* ✅ matches screenshot */
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -91,18 +91,236 @@
   white-space: nowrap;
 }
 
-/* edit button */
 .dept-btn-edit {
-  min-width: 110px;          /* ✅ gives same look as screenshot */
+  min-width: 110px;
 }
 
-/* icon-only delete button */
 .dept-btn-icon {
-  width: 44px;               /* ✅ perfect square */
-  padding: 0;                /* ✅ remove extra padding */
+  width: 44px;
+  padding: 0;
 }
 
-/* ✅ responsive tweaks */
+/* =========================================================
+   SCHEDULE MODAL STYLES (Custom Backdrop & Animation)
+   ========================================================= */
+
+.schedule-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.schedule-modal-container {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 580px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Header */
+.schedule-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px 12px 28px;
+}
+
+.schedule-modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0b172a;
+  margin: 0;
+}
+
+.schedule-modal-close {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.schedule-modal-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Form Body */
+.schedule-modal-body {
+  padding: 12px 28px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.schedule-row {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+}
+
+.flex-1 { flex: 1; }
+.flex-2 { flex: 2; }
+.flex-3 { flex: 3; }
+
+.schedule-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-field label {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1e293b;
+  margin: 0;
+}
+
+.schedule-field input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.schedule-field input::placeholder {
+  color: #94a3b8;
+}
+
+.schedule-field input:focus {
+  border-color: #0e5c7e;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(14, 92, 126, 0.12);
+}
+
+/* Custom Select Dropdown Styling */
+.select-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.select-input-wrapper select {
+  width: 100%;
+  height: 48px;
+  padding: 0 40px 0 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-size: 15px;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select-input-wrapper select:focus {
+  border-color: #0e5c7e;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(14, 92, 126, 0.12);
+}
+
+.select-input-wrapper select:invalid,
+.select-input-wrapper select option[value=""] {
+  color: #94a3b8;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+}
+
+/* Footer Actions */
+.schedule-modal-footer {
+  padding: 0 28px 24px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-cancel {
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 500;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.btn-submit {
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 10px;
+  border: none;
+  background: #084d6b;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-submit:hover {
+  background: #05364c;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Responsive Overrides */
 @media (max-width: 576px) {
   .dept-schedule-icon {
     width: 48px;
@@ -114,18 +332,134 @@
     font-size: 18px;
   }
 
-  /* On mobile: full width actions, aligned right */
   .dept-actions {
     width: 100%;
     justify-content: flex-end;
   }
 
-  /* Optional: make Edit also icon-only on very small screens */
   .dept-btn-edit {
     min-width: 44px;
     padding: 0;
   }
+
   .dept-btn-edit span {
     display: none !important;
+  }
+
+  .schedule-row {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .schedule-modal-header,
+  .schedule-modal-body,
+  .schedule-modal-footer {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .schedule-modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .btn-cancel,
+  .btn-submit {
+    width: 100%;
+  }
+}
+
+/* ✅ Centered Overlay Backdrop for Delete Confirmation & Loading */
+.schedule-centered-alert-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 1060;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: scheduleFadeIn 0.2s ease-out forwards;
+}
+
+/* ✅ Centered Alert/Confirmation Card */
+.schedule-centered-alert-card {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  overflow: hidden;
+  animation: schedulePopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ✅ Delete Icon Wrapper Circle */
+.schedule-delete-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  background-color: #fee2e2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Animations */
+@keyframes scheduleFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes schedulePopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.schedule-centered-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.schedule-centered-confirm-box {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  animation: modalPopIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }

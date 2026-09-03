@@ -1,6 +1,6 @@
-/* =========================
-   FACULTY DASHBOARD (Matches screenshot + responsive)
-========================= */
+/* =========================================================
+   1. FACULTY DASHBOARD HEADER
+   ========================================================= */
 
 .faculty-dashboard-header {
   display: flex;
@@ -8,14 +8,21 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 14px;
+  margin-bottom: 24px;
 }
 
 .faculty-title {
-  font-size: clamp(1.35rem, 1.05rem + 1.1vw, 2.1rem);
-  font-weight: 900;
+  font-size: clamp(1.4rem, 1.1rem + 1.2vw, 2.1rem);
+  font-weight: 800;
   line-height: 1.15;
-  color: #0f172a;
+  color: #0f172a !important;
+  letter-spacing: -0.02em;
+}
+
+.faculty-subtitle {
+  color: #94a3b8 !important;
+  font-size: 15px;
+  font-weight: 500;
 }
 
 .faculty-academic-year {
@@ -23,413 +30,424 @@
   min-width: 220px;
 }
 
-.faculty-academic-year .label {
+.faculty-ay-label {
   display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #94a3b8 !important;
+}
+
+.faculty-ay-value {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a !important;
+  margin-top: 2px;
+}
+
+/* =========================================================
+   2. BASE CARD STYLES
+   ========================================================= */
+
+.faculty-card {
+  border-radius: 20px;
+  border: 1px solid #f1f5f9;
+  background: #ffffff !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  display: block !important;
+}
+
+.faculty-section-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: #eff6ff !important;
+  color: #3b82f6 !important;
+  flex-shrink: 0;
+}
+
+.faculty-section-icon.warn {
+  background: #fffbeb !important;
+  color: #f59e0b !important;
+}
+
+.faculty-section-icon.purple {
+  background: #f5f3ff !important;
+  color: #8b5cf6 !important;
+}
+
+.faculty-card h5 {
+  color: #0f172a !important;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* =========================================================
+   3. STAT CARDS (FORCED WHITE TEXT OVERRIDES)
+   ========================================================= */
+
+div.faculty-stat-card {
+  border-radius: 16px;
+  padding: 22px 20px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  position: relative;
+  height: 100%;
+  color: #ffffff !important;
+}
+
+div.faculty-stat-card,
+div.faculty-stat-card *,
+div.faculty-stat-card div,
+div.faculty-stat-card span,
+div.faculty-stat-card p,
+div.faculty-stat-card .faculty-stat-value,
+div.faculty-stat-card .faculty-stat-label,
+div.faculty-stat-card .faculty-stat-sub {
+  color: #ffffff !important;
+}
+
+.faculty-stat-value {
+  font-size: clamp(1.8rem, 1.4rem + 1.2vw, 2.4rem);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.faculty-stat-label {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.95;
+}
+
+.faculty-stat-sub {
+  margin-top: 14px;
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+div.faculty-stat-card .faculty-stat-icon-bubble {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+  backdrop-filter: blur(4px);
+  flex-shrink: 0;
+}
+
+div.faculty-stat-card .faculty-stat-icon-bubble svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none;
+}
+
+div.faculty-stat-card.tone-blue {
+  background: linear-gradient(135deg, #0091ff 0%, #00b8d4 100%) !important;
+}
+
+div.faculty-stat-card.tone-purple {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%) !important;
+}
+
+div.faculty-stat-card.tone-orange {
+  background: linear-gradient(135deg, #ff9100 0%, #f57c00 100%) !important;
+}
+
+div.faculty-stat-card.tone-green {
+  background: linear-gradient(135deg, #00bfa5 0%, #00acc1 100%) !important;
+}
+
+div.faculty-stat-card::after {
+  content: "";
+  position: absolute;
+  right: -20px;
+  bottom: -20px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+/* =========================================================
+   4. LIST CONTAINERS (VISIBLE CLEAN SCROLLBAR)
+   ========================================================= */
+
+.faculty-class-list,
+.faculty-task-list,
+.faculty-submission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-height: 270px; /* Fits ~3 items comfortably */
+  overflow-y: scroll !important; /* Forces scrollbar capability */
+  overflow-x: hidden;
+  padding-right: 6px; /* Space so content doesn't hit scrollbar */
+  scrollbar-width: thin; /* Thin scrollbar for Firefox */
+  scrollbar-color: #cbd5e1 #f1f5f9; /* Firefox scrollbar colors */
+}
+
+/* Custom Visible Scrollbar for Chrome, Safari, Edge */
+.faculty-class-list::-webkit-scrollbar,
+.faculty-task-list::-webkit-scrollbar,
+.faculty-submission-list::-webkit-scrollbar {
+  width: 6px !important;
+  display: block !important;
+}
+
+.faculty-class-list::-webkit-scrollbar-track,
+.faculty-task-list::-webkit-scrollbar-track,
+.faculty-submission-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.faculty-class-list::-webkit-scrollbar-thumb,
+.faculty-task-list::-webkit-scrollbar-thumb,
+.faculty-submission-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.faculty-class-list::-webkit-scrollbar-thumb:hover,
+.faculty-task-list::-webkit-scrollbar-thumb:hover,
+.faculty-submission-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* =========================================================
+   5. ITEM ROWS (FIXED HEIGHT PER ROW)
+   ========================================================= */
+
+.faculty-class-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  border-radius: 14px;
+  background: #f8fafc !important;
+  border: 1px solid #f1f5f9;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.faculty-class-row.ongoing {
+  background: #ebf5ff !important;
+  border: 1.5px solid #0091ff !important;
+  box-shadow: 0 4px 12px rgba(0, 145, 255, 0.08);
+}
+
+.faculty-class-time {
+  font-weight: 700;
+  color: #64748b !important;
+  font-size: 14px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: 80px;
+}
+
+.faculty-class-row.ongoing .faculty-class-time {
+  color: #0f172a !important;
+  font-weight: 800;
+}
+
+.faculty-class-title {
+  font-size: 15px;
+}
+
+.faculty-class-code {
+  color: #64748b !important;
+  font-weight: 600;
+}
+
+.faculty-class-row.ongoing .faculty-class-code {
+  color: #0f172a !important;
+  font-weight: 700;
+}
+
+.faculty-class-sep {
+  color: #94a3b8 !important;
+}
+
+.faculty-class-name {
+  color: #64748b !important;
+  font-weight: 500;
+}
+
+.faculty-class-row.ongoing .faculty-class-name {
+  color: #0f172a !important;
+  font-weight: 700;
+}
+
+.faculty-class-meta {
+  margin-top: 3px;
+  font-size: 13px;
+  color: #94a3b8 !important;
+}
+
+/* Status Badges */
+.faculty-status-pill {
+  margin-left: auto;
+  padding: 6px 14px;
+  border-radius: 20px;
   font-size: 12px;
   font-weight: 700;
-  color: #64748b;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
 }
 
-.faculty-academic-year .value {
-  display: block;
-  font-size: 18px;
-  font-weight: 900;
-  color: #0f172a;
+.faculty-status-pill.completed {
+  background: #94a3b8 !important;
+  color: #ffffff !important;
 }
 
-/* stack on small screens */
+.faculty-status-pill.ongoing {
+  background: #00b894 !important;
+  color: #ffffff !important;
+}
+
+.faculty-status-pill.upcoming {
+  background: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+/* =========================================================
+   6. PENDING TASKS
+   ========================================================= */
+
+.faculty-task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #ffffff !important;
+  border: 1px solid #f1f5f9;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.faculty-task-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.faculty-task-dot.danger { background: #ef4444 !important; }
+.faculty-task-dot.warning { background: #f59e0b !important; }
+.faculty-task-dot.success { background: #10b981 !important; }
+
+.faculty-task-title {
+  font-weight: 600;
+  color: #1e293b !important;
+  font-size: 14px;
+}
+
+.faculty-task-date {
+  font-size: 12px;
+  color: #94a3b8 !important;
+  margin-top: 2px;
+}
+
+/* =========================================================
+   7. RECENT SUBMISSIONS
+   ========================================================= */
+
+.faculty-submission-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: #ffffff !important;
+  border: 1px solid #f1f5f9;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.faculty-submission-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 13px;
+  background: #1e293b !important;
+  color: #ffffff !important;
+  flex-shrink: 0;
+}
+
+.faculty-submission-name {
+  font-weight: 700;
+  color: #0f172a !important;
+  font-size: 14px;
+}
+
+.faculty-submission-item {
+  font-size: 12px;
+  color: #64748b !important;
+}
+
+.faculty-course-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155 !important;
+}
+
+.faculty-submission-time {
+  font-size: 12px;
+  color: #94a3b8 !important;
+  margin-top: 2px;
+}
+
+/* =========================================================
+   8. RESPONSIVE BREAKPOINTS
+   ========================================================= */
+
 @media (max-width: 575.98px) {
   .faculty-academic-year {
     text-align: left;
     width: 100%;
     min-width: 0;
   }
-}
 
-/* =========================
-   Base card look (like screenshot)
-========================= */
-.faculty-card {
-  border-radius: 18px;
-  border: 1px solid #eef2f7;
-  background: #fff;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-}
-
-/* section icon pill */
-.section-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  background: #eef2ff;
-  color: #4f46e5;
-  flex-shrink: 0;
-}
-
-.section-icon.warn {
-  background: #fff7ed;
-  color: #f59e0b;
-}
-
-.section-icon.purple {
-  background: #f5f3ff;
-  color: #7c3aed;
-}
-
-/* =========================
-   STATS CARDS (colored gradients like screenshot)
-========================= */
-.faculty-stat-card {
-  border-radius: 18px;
-  padding: 18px;
-  color: #fff;
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.10);
-  overflow: hidden;
-  position: relative;
-  height: 100%;
-}
-
-.faculty-stat-card .value {
-  font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.2rem);
-  font-weight: 900;
-  line-height: 1.05;
-}
-
-.faculty-stat-card .label {
-  margin-top: 2px;
-  font-size: 14px;
-  font-weight: 700;
-  opacity: 0.95;
-}
-
-.faculty-stat-card .sub {
-  margin-top: 8px;
-  font-size: 12px;
-  opacity: 0.9;
-}
-
-/* icon bubble on right */
-.faculty-stat-card .icon-bubble {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
-  background: rgba(255, 255, 255, 0.18);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-  flex-shrink: 0;
-}
-
-/* subtle big circle highlight */
-.faculty-stat-card::after {
-  content: "";
-  position: absolute;
-  right: -30px;
-  top: -30px;
-  width: 140px;
-  height: 140px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-}
-
-/* tones */
-.faculty-stat-card.tone-blue {
-  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
-}
-.faculty-stat-card.tone-purple {
-  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
-}
-.faculty-stat-card.tone-orange {
-  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
-}
-.faculty-stat-card.tone-green {
-  background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
-}
-
-/* =========================
-   TODAY CLASSES row (responsive + no overflow)
-========================= */
-.faculty-class-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px;
-  border-radius: 14px;
-  background: #fff;
-  border: 1px solid #e8eef6;
-  min-width: 0;
-}
-
-.faculty-class-row .time {
-  font-weight: 900;
-  color: #0f172a;
-  font-size: 14px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  width: 86px; /* gives that aligned-time look */
-}
-
-.faculty-class-row .title {
-  font-weight: 900;
-  color: #0f172a;
-  font-size: 15px;
-  line-height: 1.15;
-  word-break: break-word;
-}
-
-.faculty-class-row .title .code {
-  color: #2563eb;
-}
-
-.faculty-class-row .meta {
-  margin-top: 4px;
-  font-size: 13px;
-  color: #64748b;
-  word-break: break-word;
-}
-
-/* status pill */
-.status-pill {
-  margin-left: auto;
-  padding: 7px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 900;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-/* exact pill colors like screenshot */
-.status-pill.completed {
-  background: #e5e7eb;
-  color: #475569;
-}
-.status-pill.ongoing {
-  background: #10b981;
-  color: #fff;
-}
-.status-pill.upcoming {
-  background: #e2e8f0;
-  color: #334155;
-}
-
-/* row highlight states */
-.faculty-class-row.completed {
-  background: #f8fafc;
-  border-color: #eef2f7;
-}
-.faculty-class-row.ongoing {
-  background: #eef6f7;            /* soft teal tint */
-  border-color: #9fb8c7;          /* border like your screenshot */
-  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.06);
-}
-.faculty-class-row.upcoming {
-  background: #ffffff;
-}
-
-/* mobile stacking */
-@media (max-width: 575.98px) {
-  .faculty-class-row {
+  .faculty-class-row,
+  .faculty-submission-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
   }
 
-  .faculty-class-row .time {
+  .faculty-class-time {
     width: auto;
   }
 
-  .status-pill {
+  .faculty-status-pill {
     margin-left: 0;
   }
-}
-
-/* =========================
-   PENDING TASKS (like screenshot)
-========================= */
-.faculty-task-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 14px;
-  background: #fff;
-  border: 1px solid #e8eef6;
-}
-
-.faculty-task-row .dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  margin-top: 6px;
-  flex-shrink: 0;
-}
-
-.faculty-task-row .dot.danger { background: #ef4444; }
-.faculty-task-row .dot.warning { background: #f59e0b; }
-.faculty-task-row .dot.success { background: #22c55e; }
-
-/* =========================
-   RECENT SUBMISSIONS (like screenshot)
-========================= */
-.faculty-submission-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px;
-  border-radius: 14px;
-  background: #fff;
-  border: 1px solid #e8eef6;
-  min-width: 0;
-}
-
-.faculty-submission-row .avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  font-weight: 900;
-  background: #1f5166; /* close to your screenshot avatar tone */
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.faculty-submission-row .right {
-  margin-left: auto;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.course-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #ffffff;
-  border: 1px solid #e8eef6;
-  font-size: 12px;
-  font-weight: 900;
-  color: #0f172a;
-}
-
-/* mobile: make right side drop under */
-@media (max-width: 575.98px) {
-  .faculty-submission-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .faculty-submission-row .right {
-    margin-left: 0;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    text-align: left;
-  }
-}
-/* ✅ Force consistent icon column alignment */
-.faculty-sidebar .nav-label svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-
-  /* ✅ reserve same space for every icon */
-  display: block;
-}
-
-/* ✅ make nav-label use a fixed icon slot */
-.faculty-sidebar .nav-label {
-  display: grid;
-  grid-template-columns: 22px 1fr; /* icon column + text column */
-  align-items: center;
-  column-gap: 10px;
-}
-
-/* when collapsed, keep icon centered */
-.faculty-sidebar.collapsed .nav-label {
-  grid-template-columns: 22px;
-  justify-content: center;
-}
-.faculty-sidebar .nav-item {
-  padding: 0.5rem;
-  border-radius: 0.25rem;
-}
-.faculty-sidebar .badge {
-  flex-shrink: 0;
-}
-
-.faculty-class-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-
-  /* ✅ responsive max height */
-  max-height: min(380px, 60vh);
-  overflow-y: auto;
-
-  scrollbar-gutter: stable;
-  -webkit-overflow-scrolling: touch; /* ✅ mobile smooth scroll */
-}
-
-/* Small phones */
-@media (max-width: 575.98px) {
-  .faculty-class-list {
-    max-height: 45vh;
-  }
-}
-.faculty-task-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-
-  max-height: min(320px, 50vh);
-  overflow-y: auto;
-
-  scrollbar-gutter: stable;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Small phones */
-@media (max-width: 575.98px) {
-  .faculty-task-list {
-    max-height: 40vh;
-  }
-}
-/* =========================
-   Scrollable Recent Submissions
-========================= */
-
-.faculty-submission-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-
-  max-height: min(420px, 65vh); /* ✅ desktop + mobile safe */
-  overflow-y: auto;
-
-  scrollbar-gutter: stable;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
-
-/* smaller phones */
-@media (max-width: 575.98px) {
-  .faculty-submission-list {
-    max-height: 45vh;
-  }
-}
-/* Force all text inside colored stat cards to be white */
-.faculty-stat-card,
-.faculty-stat-card * {
-  color: #fff !important;
-}
-
-/* if you want subtext slightly softer */
-.faculty-stat-card .sub {
-  opacity: 0.9;
 }

@@ -51,6 +51,99 @@ function normalizePHPhone(phone) {
   return String(phone || "").trim();
 }
 
+// ── RETENTION SETTINGS ENDPOINTS ──────────────────────────────
+
+// GET retention settings
+router.get("/settings/retention", async (req, res) => {
+  try {
+    let settings = await RegistrarSettings.findOne();
+    if (!settings) {
+      settings = await RegistrarSettings.create({ archiveRetentionDays: 30 });
+    }
+    res.json({ archiveRetentionDays: settings.archiveRetentionDays });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// UPDATE retention settings
+router.patch("/settings/retention", async (req, res) => {
+  try {
+    const { archiveRetentionDays } = req.body;
+    const days = parseInt(archiveRetentionDays, 10);
+
+    if (isNaN(days) || days < 1) {
+      return res.status(400).json({ message: "Retention days must be at least 1." });
+    }
+
+    const settings = await RegistrarSettings.findOneAndUpdate(
+      {},
+      { archiveRetentionDays: days },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      message: "Archive retention days updated successfully",
+      archiveRetentionDays: settings.archiveRetentionDays,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ── STATIC METRIC ENDPOINTS ───────────────────────────────────
+
+router.get("/pending-count", async (req, res) => {
+  try {
+    const count = await Preregistration.countDocuments({ status: "Pending" });
+    res.json({ count });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/recent", async (req, res) => {
+  try {
+    const applications = await Preregistration.find()
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    res.json(applications);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ── COLLECTION ENDPOINTS ──────────────────────────────────────
+
+// GET all active + archived preregistrations
+router.get("/", async (req, res) => {
+  try {
+    const active = await Preregistration.find().sort({ createdAt: -1 });
+    const archived = await ArchivedPreregistration.find().sort({
+      createdAt: -1,
+    });
+
+    const combined = [
+      ...active.map((doc) => doc.toObject()),
+      ...archived.map((doc) => ({
+        ...doc.toObject(),
+        status: "Archived",
+      })),
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json(combined);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// POST submit new preregistration
 router.post(
   "/",
   upload.fields([
@@ -81,19 +174,13 @@ router.post(
       const gender = String(data?.personal?.gender || "").trim();
       const address = String(data?.personal?.address || "").trim();
       const barangay = String(data?.personal?.barangay || "").trim();
-
       const municipality = String(data?.personal?.municipality || "").trim();
-
       const province = String(data?.personal?.province || "").trim();
-
       const postalCode = String(data?.personal?.postalCode || "").trim();
-
       const provinceCode = String(data?.personal?.provinceCode || "").trim();
-
       const municipalityCode = String(
         data?.personal?.municipalityCode || "",
       ).trim();
-
       const barangayCode = String(data?.personal?.barangayCode || "").trim();
       const applicantType = String(data?.academic?.applicantType || "").trim();
       const course = String(data?.academic?.course || "").trim();
@@ -156,12 +243,10 @@ router.post(
           birthDate,
           gender,
           address,
-
           barangay,
           municipality,
           province,
           postalCode,
-
           provinceCode,
           municipalityCode,
           barangayCode,
@@ -276,56 +361,12 @@ router.post(
   },
 );
 
-// GET all active + archived preregistrations
-router.get("/", async (req, res) => {
-  try {
-    const active = await Preregistration.find().sort({ createdAt: -1 });
-    const archived = await ArchivedPreregistration.find().sort({
-      createdAt: -1,
-    });
-
-    const combined = [
-      ...active.map((doc) => doc.toObject()),
-      ...archived.map((doc) => ({
-        ...doc.toObject(),
-        status: "Archived",
-      })),
-    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    res.json(combined);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-router.get("/pending-count", async (req, res) => {
-  try {
-    const count = await Preregistration.countDocuments({ status: "Pending" });
-    res.json({ count });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-router.get("/recent", async (req, res) => {
-  try {
-    const applications = await Preregistration.find()
-      .sort({ createdAt: -1 })
-      .limit(5);
-
-    res.json(applications);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+// ── PARAMETERIZED ID ENDPOINTS ────────────────────────────────
 
 // Approve or Reject active application
 router.patch("/:id/status", async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, rejectionReason } = req.body;
 
     if (!["Approved", "Rejected"].includes(status)) {
       return res.status(400).json({ message: "Invalid status value" });
@@ -337,11 +378,13 @@ router.patch("/:id/status", async (req, res) => {
             status,
             approvedAt: new Date(),
             rejectedAt: null,
+            rejectionReason: null, // Clear reason if re-approved
           }
         : {
             status,
             rejectedAt: new Date(),
             approvedAt: null,
+            rejectionReason: rejectionReason || "Not specified",
           };
 
     const updated = await Preregistration.findOneAndUpdate(
@@ -401,11 +444,22 @@ router.patch("/:id/status", async (req, res) => {
                   </p>
                   `
                   : `
-                  <p style="margin:15px 0 0; font-size:14px; color:#991b1b;">
+                  <p style="margin:15px 0 0; font-size:14px; color:#991b1b; font-weight:bold;">
                     We regret to inform you that your application was not approved.
                   </p>
+                  
+                  <!-- REJECTION REASON CARD -->
+                  <div style="margin: 20px 0; padding: 15px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; text-align: left;">
+                    <p style="margin: 0 0 5px; font-size: 12px; font-weight: bold; color: #991b1b; text-transform: uppercase; letter-spacing: 0.5px;">
+                      Reason for Rejection:
+                    </p>
+                    <p style="margin: 0; font-size: 14px; color: #7f1d1d; line-height: 1.4;">
+                      ${updated.rejectionReason}
+                    </p>
+                  </div>
+
                   <p style="margin:5px 0 0; font-size:13px; color:#555;">
-                    You may contact the admissions office for further details.
+                    If you believe this is an error or need clarification, you may contact the admissions office.
                   </p>
                   `
               }
@@ -530,6 +584,8 @@ router.delete("/:id", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+// ── ERROR HANDLING MIDDLEWARE ─────────────────────────────────
 
 router.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {

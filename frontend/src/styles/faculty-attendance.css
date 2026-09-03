@@ -254,3 +254,90 @@
 .att-search-group:focus-within .att-search-input {
   border-color: rgba(11, 74, 111, 0.35);
 }
+/* Custom Attendance Modal Colors */
+.bg-emerald {
+  background-color: #10b981 !important;
+}
+
+.bg-emerald-subtle {
+  background-color: #d1fae5 !important;
+}
+
+.bg-emerald-light {
+  background-color: #ecfdf5 !important;
+}
+
+.text-emerald {
+  color: #047857 !important;
+}
+
+.border-emerald {
+  border-color: #a7f3d0 !important;
+}
+
+.border-emerald-subtle {
+  border-color: #a7f3d0 !important;
+}
+
+/* Rose / Absent Colors */
+.bg-rose {
+  background-color: #f43f5e !important;
+}
+
+.bg-rose-subtle {
+  background-color: #ffe4e6 !important;
+}
+
+.bg-rose-light {
+  background-color: #fff1f2 !important;
+}
+
+.text-rose {
+  color: #be123c !important;
+}
+
+.border-rose {
+  border-color: #fecdd3 !important;
+}
+
+.border-rose-subtle {
+  border-color: #fecdd3 !important;
+}
+
+/* Amber / Late Colors */
+.bg-amber {
+  background-color: #f59e0b !important;
+}
+
+.bg-amber-subtle {
+  background-color: #fef3c7 !important;
+}
+
+.bg-amber-light {
+  background-color: #fffbeb !important;
+}
+
+.text-amber {
+  color: #b45309 !important;
+}
+
+.border-amber {
+  border-color: #fde68a !important;
+}
+
+.border-amber-subtle {
+  border-color: #fde68a !important;
+}
+
+/* Modal Overlay Utility */
+.modal-blur-backdrop-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}

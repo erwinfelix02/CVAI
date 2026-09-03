@@ -969,3 +969,12 @@
   cursor: not-allowed;
   box-shadow: none;
 }
+/* Checkmark icon for reviewed tabs */
+.tab-check-icon {
+  color: #198754;
+  vertical-align: middle;
+}
+
+.tab-container button.tab-viewed {
+  position: relative;
+}

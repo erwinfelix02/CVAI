@@ -5,7 +5,12 @@ export type MaterialItem = {
   title: string;
   sizeLabel: string;
   date: string;
-  course: string;      // e.g. "CS 101"
+  course: string;
   downloads: number;
   type: MaterialType;
+  description?: string;
+  filePath?: string;
+  facultyId?: string;
+  uploadedBy?: string;
+  department?: string;
 };

@@ -14,12 +14,14 @@ type Profile = {
 type ProfileCardProps = {
   profile: Profile;
   isEditing: boolean;
+  saving?: boolean;
   onChange: (field: keyof Profile, value: string) => void;
 };
 
 export default function ProfileCard({
   profile,
   isEditing,
+  saving = false,
   onChange,
 }: ProfileCardProps) {
   return (
@@ -39,9 +41,7 @@ export default function ProfileCard({
           </div>
 
           <div>
-            <h5 className="fw-bold mb-1">
-              Profile Information
-            </h5>
+            <h5 className="fw-bold mb-1">Profile Information</h5>
 
             <p className="text-muted mb-0 small">
               Manage your personal information
@@ -53,9 +53,7 @@ export default function ProfileCard({
         <div className="row g-3">
           {/* Full Name - READ ONLY */}
           <div className="col-12 col-md-6">
-            <label className="form-label fw-semibold">
-              Full Name
-            </label>
+            <label className="form-label fw-semibold">Full Name</label>
 
             <input
               type="text"
@@ -68,9 +66,7 @@ export default function ProfileCard({
 
           {/* Email - READ ONLY */}
           <div className="col-12 col-md-6">
-            <label className="form-label fw-semibold">
-              Email Address
-            </label>
+            <label className="form-label fw-semibold">Email Address</label>
 
             <input
               type="email"
@@ -83,27 +79,38 @@ export default function ProfileCard({
 
           {/* Phone Number - ONLY EDITABLE FIELD */}
           <div className="col-12 col-md-6">
-            <label className="form-label fw-semibold">
-              Phone Number
-            </label>
+            <label className="form-label fw-semibold">Phone Number</label>
 
             <input
-              type="text"
+              type="tel"
               className="form-control"
-              value={profile.phone}
-              disabled={!isEditing}
-              onChange={(e) =>
-                onChange("phone", e.target.value)
-              }
-              placeholder="+63 917 555 0142"
+              value={profile.phone || "+639"}
+              disabled={!isEditing || saving}
+              maxLength={13}
+              onChange={(e) => {
+                // Strip all non-digit characters
+                const digitsOnly = e.target.value.replace(/\D/g, "");
+
+                // Ensure it always starts with 639
+                let rest = digitsOnly;
+                if (rest.startsWith("639")) {
+                  rest = rest.slice(3);
+                } else if (rest.startsWith("63")) {
+                  rest = rest.slice(2);
+                } else if (rest.startsWith("6")) {
+                  rest = rest.slice(1);
+                }
+
+                // Append up to 9 remaining digits
+                const cleaned = "+639" + rest.slice(0, 9);
+                onChange("phone", cleaned);
+              }}
             />
           </div>
 
           {/* Department - READ ONLY */}
           <div className="col-12 col-md-6">
-            <label className="form-label fw-semibold">
-              Department
-            </label>
+            <label className="form-label fw-semibold">Department</label>
 
             <input
               type="text"
@@ -116,9 +123,7 @@ export default function ProfileCard({
 
           {/* Role - READ ONLY */}
           <div className="col-12 col-md-6">
-            <label className="form-label fw-semibold">
-              Role
-            </label>
+            <label className="form-label fw-semibold">Role</label>
 
             <div className="input-group">
               <span className="input-group-text">

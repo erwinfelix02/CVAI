@@ -21,12 +21,16 @@ export default function AttendanceFilters({
     <div className="card att-filters-card mb-3">
       <div className="card-body">
         <div className="row g-3 align-items-center att-filters-row">
+          {/* Subject / Course Filter */}
           <div className="col-12 col-lg-4">
             <select
               className="form-select att-input"
               value={subject}
               onChange={(e) => onSubjectChange(e.target.value)}
             >
+              <option value="" disabled>
+                Select Course...
+              </option>
               {subjects.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
@@ -35,6 +39,7 @@ export default function AttendanceFilters({
             </select>
           </div>
 
+          {/* Date Filter */}
           <div className="col-12 col-lg-3">
             <input
               type="date"
@@ -44,6 +49,7 @@ export default function AttendanceFilters({
             />
           </div>
 
+          {/* Search Filter */}
           <div className="col-12 col-lg-5">
             <div className="input-group att-search-group">
               <span className="input-group-text att-search-icon">

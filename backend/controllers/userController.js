@@ -671,3 +671,194 @@ export const getPortalStatuses = async (_req, res) => {
     });
   }
 };
+
+
+export const getMyProfile = async (req, res) => {
+  try {
+    const { email, id } = req.query;
+    let user = null;
+
+    if (id) {
+      user = await User.findById(id).select(
+        "firstName middleName lastName idNumber email phone gender role status department maxUnits semester"
+      );
+    } else if (email) {
+      user = await User.findOne({ email }).select(
+        "firstName middleName lastName idNumber email phone gender role status department maxUnits semester"
+      );
+    } else {
+      user = await User.findOne({ role: "Dept Head", status: "active" }).select(
+        "firstName middleName lastName idNumber email phone gender role status department maxUnits semester"
+      );
+
+      if (!user) {
+        user = await User.findOne({ status: "active" }).select(
+          "firstName middleName lastName idNumber email phone gender role status department maxUnits semester"
+        );
+      }
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "User account not found." });
+    }
+
+    const responseData = user.toObject({ getters: true });
+    return res.status(200).json({
+      id: user._id.toString(),
+      ...responseData,
+    });
+  } catch (err) {
+    console.error("getMyProfile error:", err);
+    return res.status(500).json({ message: "Failed to fetch profile." });
+  }
+};
+
+export const updateMyPhone = async (req, res) => {
+  try {
+    const { email, phone } = req.body;
+
+    if (phone === undefined) {
+      return res.status(400).json({
+        message: "Phone number is required.",
+      });
+    }
+
+    let cleanPhone = String(phone).trim().replace(/\s+/g, "");
+
+    // 09175550142 -> +639175550142
+    if (/^09\d{9}$/.test(cleanPhone)) {
+      cleanPhone = "+63" + cleanPhone.slice(1);
+    }
+
+    // 639175550142 -> +639175550142
+    if (/^639\d{9}$/.test(cleanPhone)) {
+      cleanPhone = "+" + cleanPhone;
+    }
+
+    if (!/^\+639\d{9}$/.test(cleanPhone)) {
+      return res.status(400).json({
+        message: "Phone must be in format +639XXXXXXXXX.",
+      });
+    }
+
+    let user = null;
+
+    if (email) {
+      user = await User.findOne({ email });
+    }
+
+    if (!user) {
+      user = await User.findOne({ role: "Dept Head", status: "active" });
+    }
+
+    if (!user) {
+      user = await User.findOne({ status: "active" });
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User account not found.",
+      });
+    }
+
+    user.phone = cleanPhone;
+    await user.save();
+
+    return res.status(200).json({
+      message: "Phone number updated successfully.",
+      user,
+    });
+  } catch (err) {
+    console.error("updateMyPhone error:", err);
+
+    return res.status(500).json({
+      message: err.message || "Failed to update phone number.",
+    });
+  }
+};
+
+// Add this to src/controllers/userController.js
+
+export const getFacultyByDepartment = async (req, res) => {
+  try {
+    const { department } = req.query;
+
+    if (!department) {
+      return res.status(400).json({
+        message: "Department query parameter is required.",
+      });
+    }
+
+    // Query active faculty members belonging to the department
+    const facultyList = await User.find({
+      role: "Faculty",
+      department: department,
+      status: "active",
+    }).select("firstName middleName lastName idNumber email department");
+
+    // Format full names for display in the frontend dropdown
+    const formattedFaculty = facultyList.map((f) => {
+      const fullName = `${f.firstName} ${
+        f.middleName ? f.middleName + " " : ""
+      }${f.lastName}`.trim();
+
+      return {
+        _id: f._id,
+        idNumber: f.idNumber,
+        name: fullName,
+        email: f.email,
+      };
+    });
+
+    return res.status(200).json(formattedFaculty);
+  } catch (err) {
+    console.error("getFacultyByDepartment error:", err);
+    return res.status(500).json({
+      message: err.message || "Failed to fetch faculty members.",
+    });
+  }
+};
+// =========================================================
+// UPDATE DEPARTMENT PREFERENCES (MAX UNITS & SEMESTER)
+// =========================================================
+
+export const updateMyDepartmentPreferences = async (req, res) => {
+  try {
+    const { email, maxUnits, semester } = req.body;
+
+    let user = null;
+    if (email) {
+      user = await User.findOne({ email });
+    }
+
+    if (!user) {
+      user = await User.findOne({ role: "Dept Head", status: "active" });
+    }
+
+    if (!user) {
+      user = await User.findOne({ status: "active" });
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User account not found.",
+      });
+    }
+
+    // Save maxUnits and semester on user document
+    if (maxUnits !== undefined) user.maxUnits = String(maxUnits).trim();
+    if (semester !== undefined) user.semester = String(semester).trim();
+
+    await user.save();
+
+    return res.status(200).json({
+      message: "Department preferences updated successfully.",
+      user,
+    });
+  } catch (err) {
+    console.error("updateMyDepartmentPreferences error:", err);
+    return res.status(500).json({
+      message: err.message || "Failed to update department preferences.",
+    });
+  }
+};

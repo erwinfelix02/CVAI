@@ -119,6 +119,7 @@ const preregSchema = new mongoose.Schema(
       default: "Pending",
     },
 
+    rejectionReason: encryptedField("rejectionReason"), // ✅ Root encrypted field
     approvedAt: { type: Date, default: null },
     rejectedAt: { type: Date, default: null },
     scheduleSentAt: { type: Date, default: null },
@@ -162,6 +163,7 @@ preregSchema.pre("save", function () {
     "academic.applicantType",
     "academic.course",
     "academic.previousSchool",
+    "rejectionReason",
   ];
 
   ensureEncryptedNested(this, encryptedPaths);
@@ -264,6 +266,7 @@ function applyEncryptedUpdate(update) {
     "academic.applicantType": "academic.applicantType",
     "academic.course": "academic.course",
     "academic.previousSchool": "academic.previousSchool",
+    rejectionReason: "rejectionReason",
   };
 
   for (const [path, fieldName] of Object.entries(encryptMap)) {

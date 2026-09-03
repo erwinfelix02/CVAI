@@ -14,6 +14,9 @@ const registrarSettingsSchema = new mongoose.Schema(
     emailNotifications: { type: Boolean, default: true },
     smsNotifications: { type: Boolean, default: false },
 
+    // ── Archive Auto-Deletion Setting ───────────────────────────
+    archiveRetentionDays: { type: Number, default: 30, min: 1 }, // 👈 ADD THIS FIELD
+
     updatedBy: { type: String, default: "system" }, // optional (who updated)
   },
   { timestamps: true },

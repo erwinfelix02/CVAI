@@ -9,5 +9,5 @@ export type ClassItem = {
   capacity: number;
   progress: number; // percent
   accent: "blue" | "purple" | "green" | "orange";
-  assigned?: boolean; // ✅ add this
+  assigned?: boolean;
 };

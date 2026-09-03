@@ -25,7 +25,7 @@
   place-items: center;
 }
 
-/* tones */
+/* Tones */
 .faculty-mat-stat-icon.tone-blue {
   background: rgba(59, 130, 246, 0.12);
   color: #2563eb;
@@ -116,4 +116,148 @@
   border-radius: 12px;
   display: grid;
   place-items: center;
+}
+
+/* =========================
+   UPLOAD MATERIAL MODAL
+========================= */
+
+.modal-blur-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fadeInBlur 0.25s ease-out forwards;
+}
+
+.modal-blur-card {
+  background: #ffffff;
+  animation: scaleUpModal 0.25s ease-out forwards;
+}
+
+/* Drop Zone Styles */
+.upload-drop-zone {
+  border: 2px dashed rgba(34, 197, 94, 0.5);
+  border-radius: 1rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  background-color: rgba(248, 250, 252, 0.8);
+  margin-bottom: 1.5rem;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+
+.upload-drop-zone:hover {
+  background-color: rgba(240, 253, 244, 0.8);
+  border-color: #22c55e;
+}
+
+.upload-icon-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 0.75rem;
+}
+
+.header-icon-square {
+  width: 44px;
+  height: 44px;
+  border-radius: 0.5rem;
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Custom Select Control - Removes native dropdown arrows completely */
+.custom-select-control {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: none !important; /* Removes Bootstrap background chevron */
+  padding-right: 2.5rem !important;
+}
+
+.custom-select-control::-ms-expand {
+  display: none; /* Hides default arrow in older MS browsers */
+}
+
+/* Submit Button Override */
+.btn-upload-submit {
+  background-color: #52c41a;
+  border-color: #52c41a;
+  color: #ffffff;
+}
+
+.btn-upload-submit:hover,
+.btn-upload-submit:focus {
+  background-color: #45b114;
+  border-color: #45b114;
+  color: #ffffff;
+}
+
+/* Animations */
+@keyframes fadeInBlur {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+@keyframes scaleUpModal {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+
+  .modal-body {
+    padding: 1rem !important;
+  }
+
+  .upload-drop-zone {
+    padding: 1.5rem 0.75rem !important;
+  }
+}
+.hover-bg-light:hover {
+  background-color: #f8f9fa;
+}
+/* Blurred Backdrop Styling for All Modals */
+.modal-blur-backdrop,
+.position-fixed[style*="rgba"] {
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Optional: Subtle Glassmorphism Card Styling */
+.modal-blur-card,
+.modal-content {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
 }
