@@ -16,9 +16,10 @@ export default function ClassCard({
   onMaterials?: () => void;
   onGrades?: () => void;
 }) {
-  const capacityPct = item.capacity > 0
-    ? Math.round((item.students / item.capacity) * 100)
-    : 0;
+  const capacityPct =
+    item.capacity > 0
+      ? Math.round((item.students / item.capacity) * 100)
+      : 0;
 
   return (
     <div className={`card shadow-sm faculty-class-card ${accentClass(item.accent)}`}>

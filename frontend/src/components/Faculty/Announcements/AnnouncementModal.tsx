@@ -14,7 +14,7 @@ import type { Announcement } from "./types";
 interface AnnouncementModalProps {
   isOpen: boolean;
   onClose: () => void;
-  courses: string[];
+  courses?: string[];
   announcementToEdit?: Announcement | null;
   onSaveSuccess: (announcement: Announcement) => void;
 }
@@ -22,17 +22,21 @@ interface AnnouncementModalProps {
 export default function AnnouncementModal({
   isOpen,
   onClose,
-  courses,
+  courses: fallbackCourses = [],
   announcementToEdit,
   onSaveSuccess,
 }: AnnouncementModalProps) {
   const [title, setTitle] = useState("");
   const [course, setCourse] = useState("");
-  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+  const [priority, setPriority] = useState<"low" | "medium" | "high" | "">("");
   const [message, setMessage] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
   const [sendPush, setSendPush] = useState(true);
   const [sendEmail, setSendEmail] = useState(false);
+
+  // Dynamic Course List fetched from Schedule
+  const [facultyCourses, setFacultyCourses] = useState<string[]>([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -43,12 +47,76 @@ export default function AnnouncementModal({
 
   const isEditMode = Boolean(announcementToEdit);
 
+  /* =========================================================
+     FETCH FACULTY SCHEDULES TO DYNAMICALLY POPULATE COURSES
+     ========================================================= */
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchFacultySchedules = async () => {
+      setIsLoadingCourses(true);
+      try {
+        const userJson = localStorage.getItem("user");
+        const token = localStorage.getItem("token");
+        const user = userJson ? JSON.parse(userJson) : null;
+
+        const facultyName =
+          user?.name ||
+          (user?.firstName && user?.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : user?.lastName
+            ? `Prof. ${user.lastName}`
+            : "");
+
+        const params = new URLSearchParams();
+        if (facultyName) params.append("faculty", facultyName);
+        if (user?.department) params.append("department", user.department);
+
+        const res = await fetch(`/api/schedules?${params.toString()}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const schedules = await res.json();
+
+          const uniqueCourses: string[] = Array.from(
+            new Set(
+              schedules
+                .map((s: any) => s.code || s.title)
+                .filter((code: any) => Boolean(code))
+            )
+          );
+
+          setFacultyCourses(uniqueCourses);
+        } else {
+          setFacultyCourses([]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch faculty course schedules:", err);
+        setFacultyCourses([]);
+      } finally {
+        setIsLoadingCourses(false);
+      }
+    };
+
+    fetchFacultySchedules();
+  }, [isOpen]);
+
+  const availableCourses = useMemo(() => {
+    if (facultyCourses.length > 0) {
+      return facultyCourses;
+    }
+    return fallbackCourses.filter((c) => c !== "All Courses");
+  }, [facultyCourses, fallbackCourses]);
+
   useEffect(() => {
     if (isOpen) {
       if (announcementToEdit) {
         setTitle(announcementToEdit.title || "");
         setCourse(announcementToEdit.course || "");
-        setPriority(announcementToEdit.priority || "medium");
+        setPriority(announcementToEdit.priority || "");
         setMessage(announcementToEdit.message || "");
         setScheduledDate("");
       } else {
@@ -64,7 +132,7 @@ export default function AnnouncementModal({
       return (
         title !== (announcementToEdit.title || "") ||
         course !== (announcementToEdit.course || "") ||
-        priority !== (announcementToEdit.priority || "medium") ||
+        priority !== (announcementToEdit.priority || "") ||
         message !== (announcementToEdit.message || "") ||
         scheduledDate !== ""
       );
@@ -72,6 +140,7 @@ export default function AnnouncementModal({
     return (
       title.trim() !== "" ||
       course.trim() !== "" ||
+      priority !== "" ||
       message.trim() !== "" ||
       scheduledDate !== ""
     );
@@ -107,8 +176,8 @@ export default function AnnouncementModal({
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!title.trim() || !course || !message.trim()) {
-      setErrorMessage("Please fill in all required fields.");
+    if (!title.trim() || !course || !priority || !message.trim()) {
+      setErrorMessage("Please fill in all required fields including Priority Level.");
       return;
     }
 
@@ -121,6 +190,7 @@ export default function AnnouncementModal({
 
     try {
       const userJson = localStorage.getItem("user");
+      const token = localStorage.getItem("token");
       const user = userJson ? JSON.parse(userJson) : null;
 
       const payload = {
@@ -132,7 +202,11 @@ export default function AnnouncementModal({
         sendPush,
         sendEmail,
         facultyId: user?.id || user?._id || "",
-        author: user?.name || "Faculty Member",
+        author:
+          user?.name ||
+          (user?.firstName && user?.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : "Faculty Member"),
         department: user?.department || "General",
       };
 
@@ -143,14 +217,20 @@ export default function AnnouncementModal({
 
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || `Failed to ${isEditMode ? "update" : "create"} announcement.`);
+        throw new Error(
+          data.message ||
+            `Failed to ${isEditMode ? "update" : "create"} announcement.`
+        );
       }
 
       onSaveSuccess(data.announcement || data);
@@ -166,7 +246,7 @@ export default function AnnouncementModal({
   const handleResetForm = () => {
     setTitle("");
     setCourse("");
-    setPriority("medium");
+    setPriority("");
     setMessage("");
     setScheduledDate("");
     setSendPush(true);
@@ -190,6 +270,8 @@ export default function AnnouncementModal({
         return "bg-warning text-dark";
       case "low":
         return "bg-info text-dark";
+      default:
+        return "bg-secondary text-white";
     }
   };
 
@@ -274,26 +356,28 @@ export default function AnnouncementModal({
                     <select
                       className="form-select form-select-lg rounded-3 border fs-6 shadow-none"
                       value={course}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isLoadingCourses}
                       onChange={(e) => setCourse(e.target.value)}
                       required
                     >
                       <option value="" disabled>
-                        Select course
+                        {isLoadingCourses
+                          ? "Loading assigned courses..."
+                          : availableCourses.length === 0
+                          ? "No assigned courses found"
+                          : "Select assigned course"}
                       </option>
-                      {courses
-                        .filter((c) => c !== "All Courses")
-                        .map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
+                      {availableCourses.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   <div className="col-12 col-md-6">
                     <label className="form-label fw-semibold text-dark small">
-                      Priority Level
+                      Priority Level <span className="text-danger">*</span>
                     </label>
                     <div className="position-relative">
                       <select
@@ -301,7 +385,11 @@ export default function AnnouncementModal({
                         value={priority}
                         disabled={isSubmitting}
                         onChange={(e) => setPriority(e.target.value as any)}
+                        required
                       >
+                        <option value="" disabled>
+                          Select priority level
+                        </option>
                         <option value="low">Low Priority</option>
                         <option value="medium">Medium Priority</option>
                         <option value="high">High Priority</option>
@@ -314,8 +402,10 @@ export default function AnnouncementModal({
                 <div className="p-3 bg-light rounded-3 d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                   <div className="d-flex align-items-center gap-2">
                     <span className="text-muted small fw-medium">Priority:</span>
-                    <span className={`badge rounded-pill px-3 py-1 text-capitalize fw-semibold ${priorityBadgeColor()}`}>
-                      {priority}
+                    <span
+                      className={`badge rounded-pill px-3 py-1 text-capitalize fw-semibold ${priorityBadgeColor()}`}
+                    >
+                      {priority || "Not Selected"}
                     </span>
                   </div>
                   <div className="text-muted small fw-medium">
@@ -344,7 +434,10 @@ export default function AnnouncementModal({
                     onChange={(e) => setMessage(e.target.value)}
                     required
                   />
-                  <div className="text-end text-muted small mt-1" style={{ fontSize: "0.8rem" }}>
+                  <div
+                    className="text-end text-muted small mt-1"
+                    style={{ fontSize: "0.8rem" }}
+                  >
                     {message.length} / 1000 characters
                   </div>
                 </div>
@@ -427,7 +520,10 @@ export default function AnnouncementModal({
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 size={18} className="spinner-border spinner-border-sm" />
+                      <Loader2
+                        size={18}
+                        className="spinner-border spinner-border-sm"
+                      />
                       {isEditMode ? "Saving..." : "Publishing..."}
                     </>
                   ) : (
@@ -442,8 +538,6 @@ export default function AnnouncementModal({
           </div>
         </div>
       </div>
-
-      {/* ==================== INDEPENDENT ROOT OVERLAYS ==================== */}
 
       {/* UNSAVED EXIT CONFIRMATION OVERLAY */}
       {showExitConfirm && (

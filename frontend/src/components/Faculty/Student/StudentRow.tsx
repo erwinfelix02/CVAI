@@ -1,15 +1,14 @@
-import { Eye, MoreHorizontal } from "lucide-react";
+import { Eye, Mail } from "lucide-react";
 import type { Student } from "./types";
 
-export default function StudentRow({
-  initials,
-  name,
-  id,
-  section,
-  gpa,
-  attendance,
-  status,
-}: Student) {
+type StudentRowProps = Student & {
+  onView: (student: Student) => void;
+  onEmail: (student: Student) => void;
+};
+
+export default function StudentRow(props: StudentRowProps) {
+  const { initials, name, id, section, gpa, attendance, status, onView, onEmail } = props;
+
   return (
     <div className="student-row">
       {/* LEFT */}
@@ -44,8 +43,20 @@ export default function StudentRow({
 
       {/* RIGHT */}
       <div className="student-actions">
-        <Eye size={18} />
-        <MoreHorizontal size={18} />
+        <button
+          className="btn btn-link p-0 text-secondary border-0"
+          onClick={() => onView(props)}
+          title="View Student"
+        >
+          <Eye size={18} />
+        </button>
+        <button
+          className="btn btn-link p-0 text-secondary border-0"
+          onClick={() => onEmail(props)}
+          title="Email Student"
+        >
+          <Mail size={18} />
+        </button>
       </div>
     </div>
   );

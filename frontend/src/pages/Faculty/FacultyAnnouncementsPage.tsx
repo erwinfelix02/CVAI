@@ -10,7 +10,8 @@ import "../../styles/faculty-announcements.css";
 export default function FacultyAnnouncementsPage() {
   const [items, setItems] = useState<Announcement[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
+  const [editingAnnouncement, setEditingAnnouncement] =
+    useState<Announcement | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +65,9 @@ export default function FacultyAnnouncementsPage() {
   // Dynamically extract available courses or fall back to defaults
   const availableCourses = useMemo(() => {
     const unique = Array.from(new Set(items.map((i) => i.course)));
-    return unique.length > 0 ? ["All Courses", ...unique] : ["All Courses", "CS 101", "CS 301", "CS 401", "CS 501"];
+    return unique.length > 0
+      ? ["All Courses", ...unique]
+      : ["All Courses", "CS 101", "CS 301", "CS 401", "CS 501"];
   }, [items]);
 
   const handleOpenCreateModal = () => {
@@ -119,7 +122,8 @@ export default function FacultyAnnouncementsPage() {
         <div>
           <h3 className="fw-bold mb-1">Announcements</h3>
           <p className="text-muted mb-0">
-            Create and manage class announcements for {user?.department || "your department"}
+            Create and manage class announcements for{" "}
+            {user?.department || "your department"}
           </p>
         </div>
 
@@ -140,12 +144,20 @@ export default function FacultyAnnouncementsPage() {
       {isLoading ? (
         <div className="card border-0 shadow-sm rounded-4 p-5 text-center text-muted my-4">
           <div className="d-flex align-items-center justify-content-center gap-2">
-            <Loader2 className="spinner-border spinner-border-sm text-primary" size={22} />
-            <span className="fw-medium">Loading department announcements...</span>
+            <Loader2
+              className="spinner-border spinner-border-sm text-primary"
+              size={22}
+            />
+            <span className="fw-medium">
+              Loading department announcements...
+            </span>
           </div>
         </div>
       ) : error ? (
-        <div className="alert alert-danger d-flex align-items-center gap-2" role="alert">
+        <div
+          className="alert alert-danger d-flex align-items-center gap-2"
+          role="alert"
+        >
           <AlertCircle size={18} />
           <div>{error}</div>
         </div>
@@ -190,7 +202,8 @@ export default function FacultyAnnouncementsPage() {
             </div>
             <h5 className="fw-bold text-dark mb-1">Delete Announcement?</h5>
             <p className="text-muted small mb-4">
-              Are you sure you want to remove this announcement? Students will no longer see it.
+              Are you sure you want to remove this announcement? Students will
+              no longer see it.
             </p>
             <div className="d-flex gap-2">
               <button
@@ -209,7 +222,10 @@ export default function FacultyAnnouncementsPage() {
               >
                 {isDeleting ? (
                   <>
-                    <Loader2 size={16} className="spinner-border spinner-border-sm" />
+                    <Loader2
+                      size={16}
+                      className="spinner-border spinner-border-sm"
+                    />
                     Deleting...
                   </>
                 ) : (

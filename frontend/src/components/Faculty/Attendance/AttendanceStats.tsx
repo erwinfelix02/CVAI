@@ -45,7 +45,7 @@ export default function AttendanceStats({
       <StatCard label="Total" value={total} tone="blue" icon={Users} />
       <StatCard label="Present" value={present} tone="green" icon={CheckCircle2} />
       <StatCard label="Absent" value={absent} tone="red" icon={XCircle} />
-      <StatCard label="Pending" value={pending} tone="orange" icon={Clock} />
+      <StatCard label="Pending / Late" value={pending} tone="orange" icon={Clock} />
     </div>
   );
 }

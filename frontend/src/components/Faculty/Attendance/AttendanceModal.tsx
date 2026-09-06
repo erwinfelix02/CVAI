@@ -7,6 +7,7 @@ import {
   XCircle,
   Clock,
   Check,
+  UserX,
 } from "lucide-react";
 
 export type ModalAttendanceStatus = "present" | "late" | "absent";
@@ -18,13 +19,20 @@ export type ModalStudent = {
   status: ModalAttendanceStatus;
 };
 
+export type StudentItem = {
+  id: string;
+  name: string;
+  studentNo: string;
+  status: "present" | "absent" | "late" | "pending";
+};
+
 interface AttendanceModalProps {
   isOpen: boolean;
   onClose: () => void;
   subjects: { value: string; label: string }[];
   initialSubject: string;
   initialDate: string;
-  studentsList: ModalStudent[];
+  courseRosters: Record<string, StudentItem[]>;
   onSave: (subject: string, date: string, records: ModalStudent[]) => void;
 }
 
@@ -34,7 +42,7 @@ export default function AttendanceModal({
   subjects,
   initialSubject,
   initialDate,
-  studentsList,
+  courseRosters,
   onSave,
 }: AttendanceModalProps) {
   const [selectedSubject, setSelectedSubject] = useState(initialSubject || "");
@@ -44,12 +52,21 @@ export default function AttendanceModal({
 
   useEffect(() => {
     if (isOpen) {
-      setSelectedSubject(initialSubject || "");
-      setSelectedDate(initialDate || "");
+      const activeCourse = selectedSubject || initialSubject || (subjects[0]?.value ?? "");
+      setSelectedSubject(activeCourse);
+      setSelectedDate(initialDate || new Date().toISOString().split("T")[0]);
       setSearchQuery("");
-      setRecords(JSON.parse(JSON.stringify(studentsList)));
+
+      const roster = courseRosters[activeCourse] || [];
+      setRecords(JSON.parse(JSON.stringify(roster)));
     }
-  }, [isOpen, initialSubject, initialDate, studentsList]);
+  }, [isOpen, selectedSubject, initialSubject, initialDate, courseRosters, subjects]);
+
+  const handleSubjectChange = (newSubject: string) => {
+    setSelectedSubject(newSubject);
+    const roster = courseRosters[newSubject] || [];
+    setRecords(JSON.parse(JSON.stringify(roster)));
+  };
 
   const filteredStudents = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -95,6 +112,10 @@ export default function AttendanceModal({
   const handleSaveAndSubmit = () => {
     if (!selectedSubject) {
       alert("Please select a course before saving.");
+      return;
+    }
+    if (records.length === 0) {
+      alert("Cannot save an empty attendance record.");
       return;
     }
     onSave(selectedSubject, selectedDate, records);
@@ -145,12 +166,12 @@ export default function AttendanceModal({
             <div className="row g-3 mb-3">
               <div className="col-12 col-md-6">
                 <label className="form-label fw-semibold text-dark small">
-                  Course <span className="text-danger">*</span>
+                  Assigned Course <span className="text-danger">*</span>
                 </label>
                 <select
                   className="form-select form-select-lg rounded-3 border fs-6 shadow-none"
                   value={selectedSubject}
-                  onChange={(e) => setSelectedSubject(e.target.value)}
+                  onChange={(e) => handleSubjectChange(e.target.value)}
                 >
                   <option value="" disabled>
                     Select Course...
@@ -176,9 +197,8 @@ export default function AttendanceModal({
               </div>
             </div>
 
-            {/* Quick Actions & Badges Card - Single Line Layout */}
+            {/* Actions Bar */}
             <div className="p-3 bg-light rounded-4 d-flex align-items-center justify-content-between gap-2 mb-3 border overflow-x-auto">
-              {/* Status Counters */}
               <div className="d-flex align-items-center gap-2 flex-shrink-0">
                 <span className="badge rounded-pill bg-emerald-subtle text-emerald border border-emerald px-3 py-2 fs-6 fw-semibold d-inline-flex align-items-center gap-1 text-nowrap">
                   <CheckCircle2 size={16} />
@@ -196,12 +216,12 @@ export default function AttendanceModal({
                 </span>
               </div>
 
-              {/* Bulk Toggle Buttons */}
               <div className="d-flex align-items-center gap-2 flex-shrink-0">
                 <button
                   type="button"
                   className="btn btn-white bg-white border rounded-3 px-3 py-2 fw-semibold text-dark d-inline-flex align-items-center gap-2 text-nowrap shadow-sm"
                   onClick={handleAllPresent}
+                  disabled={records.length === 0}
                 >
                   <CheckCircle2 size={18} className="text-success" />
                   All Present
@@ -211,6 +231,7 @@ export default function AttendanceModal({
                   type="button"
                   className="btn btn-white bg-white border rounded-3 px-3 py-2 fw-semibold text-dark d-inline-flex align-items-center gap-2 text-nowrap shadow-sm"
                   onClick={handleAllAbsent}
+                  disabled={records.length === 0}
                 >
                   <XCircle size={18} className="text-danger" />
                   All Absent
@@ -230,6 +251,7 @@ export default function AttendanceModal({
                 placeholder="Search students..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                disabled={records.length === 0}
               />
             </div>
 
@@ -238,9 +260,17 @@ export default function AttendanceModal({
               className="d-flex flex-column gap-2 overflow-auto pe-1"
               style={{ maxHeight: "360px" }}
             >
-              {filteredStudents.length === 0 ? (
+              {records.length === 0 ? (
+                <div className="text-center py-5 bg-light rounded-4 border">
+                  <UserX size={42} className="text-muted mb-2 opacity-50" />
+                  <h6 className="fw-semibold text-dark mb-1">No Students Found</h6>
+                  <p className="text-muted small mb-0">
+                    No student roster exists for course <strong>{selectedSubject}</strong>.
+                  </p>
+                </div>
+              ) : filteredStudents.length === 0 ? (
                 <div className="text-center py-4 text-muted">
-                  No students found matching your search.
+                  No students found matching your search term.
                 </div>
               ) : (
                 filteredStudents.map((s) => {
@@ -261,7 +291,6 @@ export default function AttendanceModal({
                           : "bg-white"
                       }`}
                     >
-                      {/* Student Info */}
                       <div className="d-flex align-items-center gap-3 min-w-0">
                         <div
                           className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
@@ -281,9 +310,7 @@ export default function AttendanceModal({
                         </div>
                       </div>
 
-                      {/* Status Button Toggle Group */}
                       <div className="d-flex align-items-center gap-1 flex-shrink-0">
-                        {/* Present Button */}
                         <button
                           type="button"
                           className={`btn p-2 rounded-3 border-0 d-flex align-items-center justify-content-center ${
@@ -298,7 +325,6 @@ export default function AttendanceModal({
                           <CheckCircle2 size={20} />
                         </button>
 
-                        {/* Late Button */}
                         <button
                           type="button"
                           className={`btn p-2 rounded-3 border-0 d-flex align-items-center justify-content-center ${
@@ -313,7 +339,6 @@ export default function AttendanceModal({
                           <Clock size={20} />
                         </button>
 
-                        {/* Absent Button */}
                         <button
                           type="button"
                           className={`btn p-2 rounded-3 border-0 d-flex align-items-center justify-content-center ${
@@ -348,6 +373,7 @@ export default function AttendanceModal({
               type="button"
               className="btn btn-success rounded-3 px-4 py-2 fw-medium d-inline-flex align-items-center gap-2"
               onClick={handleSaveAndSubmit}
+              disabled={records.length === 0}
             >
               <Check size={18} />
               Save Attendance Record

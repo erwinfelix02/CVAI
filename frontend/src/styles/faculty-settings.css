@@ -1,10 +1,15 @@
 /* =========================
    FACULTY - SETTINGS
 ========================= */
+.faculty-settings {
+  background: #f6f8fb;
+  padding-top: 0 !important;
+}
 
 .faculty-settings .faculty-settings-card {
   border-radius: 18px;
   border: 1px solid rgba(15, 23, 42, 0.08);
+  
 }
 
 /* tabs */

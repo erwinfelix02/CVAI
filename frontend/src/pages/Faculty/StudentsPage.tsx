@@ -1,12 +1,14 @@
 import { useState } from "react";
 import StatsCards from "../../components/Faculty/Student/StatsCards";
 import StudentList from "../../components/Faculty/Student/StudentList";
+import ExportStudentModal from "../../components/Faculty/Student/ExportStudentModal";
 import { Download, UserPlus, Search, Filter } from "lucide-react";
 import "../../styles/faculty-students.css";
 
 export default function StudentsPage() {
   const [sectionFilter, setSectionFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   return (
     <div className="container-fluid faculty-students-page">
@@ -20,10 +22,16 @@ export default function StudentsPage() {
         </div>
 
         <div className="d-flex gap-2">
-          <button className="btn btn-outline-secondary d-flex align-items-center gap-2">
+          {/* WHITE BACKGROUND EXPORT BUTTON */}
+          <button
+            type="button"
+            className="btn btn-export-white d-flex align-items-center gap-2"
+            onClick={() => setIsExportModalOpen(true)}
+          >
             <Download size={16} />
             Export
           </button>
+
           <button className="btn btn-success d-flex align-items-center gap-2">
             <UserPlus size={16} />
             Add Student
@@ -78,6 +86,13 @@ export default function StudentsPage() {
 
       {/* LIST */}
       <StudentList search={search} sectionFilter={sectionFilter} />
+
+      {/* EXPORT STUDENT MODAL */}
+      <ExportStudentModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        sectionFilter={sectionFilter}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 .faculty-att-page {
   background: #f6f8fb;
+  padding-top: 0 !important;
 }
 
 /* header buttons */
@@ -340,4 +341,108 @@
   height: 100vh;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+}
+.att-list-card {
+  border-radius: 0.5rem;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.att-pill {
+  background-color: #eef2ff;
+  color: #4f46e5;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 50rem;
+}
+
+.att-stat-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 0.5rem;
+}
+
+.tone-blue { background-color: #e0f2fe; color: #0284c7; }
+.tone-green { background-color: #dcfce7; color: #16a34a; }
+.tone-red { background-color: #fee2e2; color: #dc2626; }
+.tone-orange { background-color: #ffedd5; color: #ea580c; }
+
+.tone-text-blue { color: #0284c7; font-weight: 700; font-size: 1.25rem; }
+.tone-text-green { color: #16a34a; font-weight: 700; font-size: 1.25rem; }
+.tone-text-red { color: #dc2626; font-weight: 700; font-size: 1.25rem; }
+.tone-text-orange { color: #ea580c; font-weight: 700; font-size: 1.25rem; }
+
+/* Color Palette Matching the UI */
+.bg-emerald-light {
+  background-color: #ecfdf5 !important;
+}
+
+.border-emerald-subtle {
+  border-color: #a7f3d0 !important;
+}
+
+.btn-emerald {
+  background-color: #10b981 !important;
+  color: #ffffff !important;
+}
+
+.btn-emerald:hover {
+  background-color: #059669 !important;
+}
+
+.bg-rose-light {
+  background-color: #fef2f2 !important;
+}
+
+.border-rose-subtle {
+  border-color: #fecaca !important;
+}
+
+.btn-rose {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+.btn-rose:hover {
+  background-color: #dc2626 !important;
+}
+/* Selected File Format Card (Blue Theme) */
+.format-card-selected {
+  border: 2px solid #0d5c75 !important;
+  background-color: rgba(13, 92, 117, 0.08) !important;
+  color: #0d5c75 !important;
+}
+
+/* Custom Dropdown Trigger Box */
+.custom-export-select {
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+/* Dropdown Options Popup */
+.custom-export-dropdown {
+  z-index: 1070;
+  top: 100%;
+  left: 0;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Selected Highlight State (Blue background matching initial design) */
+.custom-export-option.selected-highlight {
+  background-color: #0d5c75 !important;
+  color: #ffffff !important;
+  font-weight: 500;
+}
+
+/* Hover state for unselected options */
+.custom-export-option.hover-option:hover {
+  background-color: #f1f5f9;
+}
+
+.cursor-pointer {
+  cursor: pointer;
 }

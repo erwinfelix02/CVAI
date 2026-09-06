@@ -20,8 +20,7 @@ export default function FacultyDayColumn({ day }: { day: DaySchedule }) {
             ))}
           </div>
         ) : (
-          /* Centered Empty State Container */
-          <div className="faculty-empty-day flex-grow-1 my-auto">
+          <div className="faculty-empty-day flex-grow-1 my-auto d-flex flex-column align-items-center justify-content-center text-center py-4">
             <CalendarX size={24} className="text-muted mb-2 opacity-50" />
             <div className="text-muted small fw-medium">No classes scheduled</div>
           </div>

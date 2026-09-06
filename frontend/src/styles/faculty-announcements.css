@@ -1,6 +1,7 @@
 /* Page background similar to screenshot */
 .faculty-announcements-page {
   background: #f6f7fb;
+   padding-top: 0 !important;
 }
 
 /* Small stat icons (colored rounded squares) */

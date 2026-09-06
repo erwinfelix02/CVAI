@@ -60,6 +60,7 @@ export default function FacultySidebar({
      ========================================================= */
 
   const [studentCount, setStudentCount] = useState<number | null>(null);
+  const [announcementCount, setAnnouncementCount] = useState<number | null>(null);
 
   // Get current user / faculty info from localStorage
   const user = useMemo(() => {
@@ -71,6 +72,7 @@ export default function FacultySidebar({
     }
   }, []);
 
+  // Fetch student count
   const fetchStudentCount = useCallback(async () => {
     try {
       const queryParam = user?.id ? `?facultyId=${encodeURIComponent(user.id)}` : "";
@@ -86,9 +88,32 @@ export default function FacultySidebar({
     }
   }, [user?.id]);
 
+  // Fetch announcements count dynamically from backend
+  const fetchAnnouncementCount = useCallback(async () => {
+    try {
+      const facultyId = user?.id || user?._id || "";
+      const department = user?.department || "";
+
+      const queryParams = new URLSearchParams();
+      if (facultyId) queryParams.append("facultyId", facultyId);
+      if (department) queryParams.append("department", department);
+
+      const res = await fetch(`/api/announcements?${queryParams.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setAnnouncementCount(data.length);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch announcement count for sidebar:", err);
+    }
+  }, [user]);
+
   useEffect(() => {
     fetchStudentCount();
-  }, [fetchStudentCount]);
+    fetchAnnouncementCount();
+  }, [fetchStudentCount, fetchAnnouncementCount]);
 
   /* =========================================================
      MAIN NAVIGATION WITH BADGES
@@ -132,7 +157,7 @@ export default function FacultySidebar({
         label: "Announcements",
         icon: Bell,
         path: "/faculty/announcements",
-        badge: 2,
+        badge: announcementCount !== null ? announcementCount : 0,
       },
       {
         label: "Course Materials",
@@ -140,7 +165,7 @@ export default function FacultySidebar({
         path: "/faculty/materials",
       },
     ],
-    [studentCount]
+    [studentCount, announcementCount]
   );
 
   /* =========================================================

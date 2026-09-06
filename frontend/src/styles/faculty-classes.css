@@ -3,7 +3,7 @@
 ========================= */
 
 .faculty-classes-scope {
-  padding-top: 8px;
+  padding-top: 0 !important;
   padding-bottom: 16px;
 }
 

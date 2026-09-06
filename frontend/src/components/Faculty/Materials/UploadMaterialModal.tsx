@@ -26,7 +26,7 @@ interface UploadMaterialModalProps {
 export default function UploadMaterialModal({
   isOpen,
   onClose,
-  courses,
+  courses: fallbackCourses,
   materialToEdit,
   onUploadSuccess,
   onEditSuccess,
@@ -39,6 +39,10 @@ export default function UploadMaterialModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Dynamic Course List State
+  const [facultyCourses, setFacultyCourses] = useState<string[]>([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(false);
+
   // UI Confirmation Overlay States
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
@@ -46,7 +50,68 @@ export default function UploadMaterialModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isEditMode = Boolean(materialToEdit);
 
-  // Populate form fields when editing or opening
+  /* =========================================================
+     FETCH ASSIGNED SCHEDULE COURSES FOR SIGNED-IN FACULTY
+     ========================================================= */
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchFacultySchedules = async () => {
+      setIsLoadingCourses(true);
+      try {
+        const userJson = localStorage.getItem("user");
+        const token = localStorage.getItem("token");
+        const user = userJson ? JSON.parse(userJson) : null;
+
+        const facultyName =
+          user?.name ||
+          (user?.firstName && user?.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : user?.lastName
+            ? `Prof. ${user.lastName}`
+            : "");
+
+        const params = new URLSearchParams();
+        if (facultyName) params.append("faculty", facultyName);
+        if (user?.department) params.append("department", user.department);
+
+        const res = await fetch(`/api/schedules?${params.toString()}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const schedules = await res.json();
+          const uniqueCourses: string[] = Array.from(
+            new Set(
+              schedules
+                .map((s: any) => s.code || s.title)
+                .filter((code: any) => Boolean(code))
+            )
+          );
+          setFacultyCourses(uniqueCourses);
+        } else {
+          setFacultyCourses([]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch faculty courses:", err);
+        setFacultyCourses([]);
+      } finally {
+        setIsLoadingCourses(false);
+      }
+    };
+
+    fetchFacultySchedules();
+  }, [isOpen]);
+
+  const availableCourses = useMemo(() => {
+    if (facultyCourses.length > 0) {
+      return facultyCourses;
+    }
+    return fallbackCourses.filter((c) => c !== "All Courses");
+  }, [facultyCourses, fallbackCourses]);
+
   useEffect(() => {
     if (isOpen) {
       if (materialToEdit) {
@@ -63,7 +128,6 @@ export default function UploadMaterialModal({
     }
   }, [isOpen, materialToEdit]);
 
-  // Check if any field has been modified by the user
   const isDirty = useMemo(() => {
     if (selectedFile !== null) return true;
 
@@ -82,7 +146,6 @@ export default function UploadMaterialModal({
     );
   }, [selectedFile, title, course, description, materialToEdit]);
 
-  // Guarded close handler checking for unsaved changes
   const handleAttemptClose = () => {
     if (isSubmitting) return;
 
@@ -93,7 +156,6 @@ export default function UploadMaterialModal({
     }
   };
 
-  // Close modal on Escape key press with confirmation check
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen && !isSubmitting) {
@@ -110,8 +172,6 @@ export default function UploadMaterialModal({
   }, [isOpen, isSubmitting, isDirty, showExitConfirm, showSubmitConfirm]);
 
   if (!isOpen) return null;
-
-  const availableCourses = courses.filter((c) => c !== "All Courses");
 
   const detectFileType = (file: File): MaterialType => {
     const extension = file.name.split(".").pop()?.toLowerCase() || "";
@@ -400,7 +460,7 @@ export default function UploadMaterialModal({
                 />
               </div>
 
-              {/* Course & Auto-Detected Type Display */}
+              {/* Course Dropdown */}
               <div className="row g-3 mb-3">
                 <div className="col-12 col-md-6">
                   <label className="form-label fw-semibold text-dark small">
@@ -410,12 +470,16 @@ export default function UploadMaterialModal({
                     <select
                       className="form-select form-select-lg rounded-3 border shadow-none fs-6 custom-select-control"
                       value={course}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isLoadingCourses}
                       onChange={(e) => setCourse(e.target.value)}
                       required
                     >
                       <option value="" disabled>
-                        Select course
+                        {isLoadingCourses
+                          ? "Loading assigned courses..."
+                          : availableCourses.length === 0
+                          ? "No assigned courses found"
+                          : "Select assigned course"}
                       </option>
                       {availableCourses.map((c) => (
                         <option key={c} value={c}>
@@ -496,7 +560,7 @@ export default function UploadMaterialModal({
         </div>
       </div>
 
-      {/* ==================== FULL VIEWPORT OVERLAY: UNSAVED EXIT CONFIRMATION ==================== */}
+      {/* Unsaved Changes Confirmation Overlay */}
       {showExitConfirm && (
         <div
           className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3"
@@ -541,7 +605,7 @@ export default function UploadMaterialModal({
         </div>
       )}
 
-      {/* ==================== FULL VIEWPORT OVERLAY: SUBMIT CONFIRMATION ==================== */}
+      {/* Upload Confirmation Overlay */}
       {showSubmitConfirm && (
         <div
           className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3"

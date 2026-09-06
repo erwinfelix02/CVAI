@@ -6,4 +6,7 @@ export type Student = {
   gpa: number;
   attendance: number;
   status: "good" | "warning";
+  course?: string;
+  email?: string;
+  phone?: string;
 };

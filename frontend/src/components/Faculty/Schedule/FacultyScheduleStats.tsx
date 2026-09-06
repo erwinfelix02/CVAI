@@ -19,7 +19,7 @@ export default function FacultyScheduleStats({ items }: { items: StatItem[] }) {
           <div className="col-12 col-md-6 col-xl-3" key={s.label}>
             <div className="card faculty-stat-card">
               <div className="card-body d-flex align-items-center gap-3">
-               <div className={`faculty-stat-icon stat-tone-${s.tone}`}>
+                <div className={`faculty-stat-icon stat-tone-${s.tone}`}>
                   <Icon size={20} />
                 </div>
 

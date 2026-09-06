@@ -35,6 +35,9 @@ export default function CourseMaterialsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Dynamic Faculty Assigned Courses State
+  const [assignedCourses, setAssignedCourses] = useState<string[]>([]);
+
   // Custom Share Link & Delete Modal States
   const [sharingLink, setSharingLink] = useState<{ id: string; title: string; url: string } | null>(null);
   const [hasCopiedLink, setHasCopiedLink] = useState(false);
@@ -50,6 +53,49 @@ export default function CourseMaterialsPage() {
     }
   }, []);
 
+  /* =========================================================
+     FETCH FACULTY ASSIGNED SCHEDULED COURSES
+     ========================================================= */
+  const fetchFacultyCourses = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const facultyName =
+        user?.name ||
+        (user?.firstName && user?.lastName
+          ? `${user.firstName} ${user.lastName}`
+          : user?.lastName
+          ? `Prof. ${user.lastName}`
+          : "");
+
+      const params = new URLSearchParams();
+      if (facultyName) params.append("faculty", facultyName);
+      if (user?.department) params.append("department", user.department);
+
+      const res = await fetch(`/api/schedules?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const schedules = await res.json();
+        const uniqueCourses: string[] = Array.from(
+          new Set(
+            schedules
+              .map((s: any) => s.code || s.title)
+              .filter((code: any) => Boolean(code))
+          )
+        );
+        setAssignedCourses(uniqueCourses);
+      }
+    } catch (err) {
+      console.error("Failed to fetch assigned schedule courses:", err);
+    }
+  }, [user]);
+
+  /* =========================================================
+     FETCH FACULTY MATERIALS
+     ========================================================= */
   const fetchMaterials = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -79,12 +125,15 @@ export default function CourseMaterialsPage() {
 
   useEffect(() => {
     fetchMaterials();
-  }, [fetchMaterials]);
+    fetchFacultyCourses();
+  }, [fetchMaterials, fetchFacultyCourses]);
 
+  // Combine schedule courses with courses present in uploaded materials
   const courses = useMemo(() => {
-    const unique = Array.from(new Set(materialsList.map((m) => m.course)));
-    return ["All Courses", ...unique];
-  }, [materialsList]);
+    const materialCourses = materialsList.map((m) => m.course);
+    const combined = Array.from(new Set([...assignedCourses, ...materialCourses]));
+    return ["All Courses", ...combined.filter(Boolean)];
+  }, [assignedCourses, materialsList]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -131,7 +180,6 @@ export default function CourseMaterialsPage() {
     setIsModalOpen(true);
   };
 
-  // Trigger centered UI Share Link Modal
   const handleShareLink = (item: MaterialItem) => {
     const url = `${window.location.origin}/materials/${item.id}`;
     setSharingLink({ id: item.id, title: item.title, url });
@@ -231,12 +279,12 @@ export default function CourseMaterialsPage() {
           setEditingMaterial(null);
         }}
         materialToEdit={editingMaterial}
-        courses={courses.length > 1 ? courses : ["All Courses", "CS 101", "CS 201", "CS 301"]}
+        courses={courses}
         onUploadSuccess={handleUploadSuccess}
         onEditSuccess={handleEditSuccess}
       />
 
-      {/* ==================== CENTERED VIEW DETAILS MODAL ==================== */}
+      {/* View Details Modal */}
       {viewingMaterial && (
         <div
           className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3 modal-blur-backdrop"
@@ -355,7 +403,7 @@ export default function CourseMaterialsPage() {
         </div>
       )}
 
-      {/* ==================== CENTERED SHARE LINK MODAL ==================== */}
+      {/* Share Link Modal */}
       {sharingLink && (
         <div
           className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3 modal-blur-backdrop"
@@ -382,7 +430,6 @@ export default function CourseMaterialsPage() {
               Copy the direct URL below to share <strong>{sharingLink.title}</strong> with students.
             </p>
 
-            {/* Link Copy Box */}
             <div className="input-group mb-3">
               <input
                 type="text"
@@ -420,7 +467,7 @@ export default function CourseMaterialsPage() {
         </div>
       )}
 
-      {/* ==================== CENTERED DELETE CONFIRMATION MODAL ==================== */}
+      {/* Delete Confirmation Modal */}
       {deletingMaterialId && (
         <div
           className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3 modal-blur-backdrop"

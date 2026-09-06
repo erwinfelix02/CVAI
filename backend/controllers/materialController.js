@@ -2,6 +2,7 @@ import path from "path";
 import fs from "fs";
 import multer from "multer";
 import Material from "../models/Material.js";
+import Schedule from "../models/Schedule.js";
 
 // Ensure uploads folder exists
 const uploadDir = path.join(process.cwd(), "uploads", "materials");
@@ -32,19 +33,22 @@ export const getMaterials = async (req, res) => {
     const { course, department, facultyId } = req.query;
     const filter = {};
 
-    // Filter by Faculty Member if provided
+    // Dynamic Faculty Filter
     if (facultyId) {
       filter.facultyId = facultyId;
     }
 
-    // Filter by Department if provided
+    // Dynamic Department Filter
     if (department) {
       filter.department = { $regex: new RegExp(`^${department}$`, "i") };
     }
 
-    // Filter by specific course selection
+    // Filter by Course/Subject Code or Title
     if (course && course !== "All Courses") {
-      filter.course = course;
+      filter.$or = [
+        { course: course.trim() },
+        { course: { $regex: new RegExp(`^${course.trim()}$`, "i") } },
+      ];
     }
 
     const materials = await Material.find(filter).sort({ createdAt: -1 });
@@ -153,6 +157,7 @@ export const incrementDownloadCount = async (req, res) => {
     return res.status(500).json({ message: "Failed to update download count." });
   }
 };
+
 // PUT /api/materials/:id
 export const updateMaterial = async (req, res) => {
   try {
@@ -169,9 +174,7 @@ export const updateMaterial = async (req, res) => {
     if (type) material.type = type;
     if (description !== undefined) material.description = description.trim();
 
-    // If user uploaded a new replacement file
     if (req.file) {
-      // Optional: Remove old file from disk
       if (material.filePath) {
         const oldPath = path.join(process.cwd(), material.filePath);
         if (fs.existsSync(oldPath)) {
