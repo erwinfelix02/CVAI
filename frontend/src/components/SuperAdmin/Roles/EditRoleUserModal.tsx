@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { X, Phone, Mail, Hash } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { X, Phone, Mail, Hash, AlertTriangle } from "lucide-react";
 import type { UserItem } from "./types";
 
 type Props = {
@@ -19,19 +19,50 @@ export default function EditRoleUserModal({
   const [phone, setPhone] = useState("");
 
   const [confirmSave, setConfirmSave] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
+  // Initialize input state when modal opens or target user changes
   useEffect(() => {
     if (!open || !user) return;
 
     setEmail(user.email || "");
     setPhone(user.phone || "");
+    setConfirmSave(false);
+    setConfirmDiscard(false);
   }, [open, user]);
 
+  // Check if form state differs from original user data
+  const hasUnsavedChanges = useMemo(() => {
+    if (!user) return false;
+    const initialEmail = user.email || "";
+    const initialPhone = user.phone || "";
+
+    return email.trim() !== initialEmail || phone.trim() !== initialPhone;
+  }, [email, phone, user]);
+
+  // Request close: show discard prompt if edited, otherwise close directly
+  const handleRequestClose = () => {
+    if (hasUnsavedChanges) {
+      setConfirmDiscard(true);
+    } else {
+      onClose();
+    }
+  };
+
+  // Intercept keyboard Escape key based on active modal layer
   useEffect(() => {
     if (!open) return;
 
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (confirmSave) {
+          setConfirmSave(false);
+        } else if (confirmDiscard) {
+          setConfirmDiscard(false);
+        } else {
+          handleRequestClose();
+        }
+      }
     };
 
     window.addEventListener("keydown", handleEsc);
@@ -41,13 +72,17 @@ export default function EditRoleUserModal({
       window.removeEventListener("keydown", handleEsc);
       document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [open, confirmSave, confirmDiscard, hasUnsavedChanges]);
 
   if (!open || !user) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setConfirmSave(true);
+    if (hasUnsavedChanges) {
+      setConfirmSave(true);
+    } else {
+      onClose();
+    }
   };
 
   const confirmSubmit = () => {
@@ -61,12 +96,18 @@ export default function EditRoleUserModal({
 
   return (
     <>
-      <div className="rbac-backdrop" onMouseDown={onClose}>
+      {/* MAIN EDIT MODAL */}
+      <div className="rbac-backdrop" onMouseDown={handleRequestClose}>
         <div
           className="rbac-modal rbac-modal-wide"
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <button className="rbac-x" onClick={onClose} aria-label="Close">
+          <button
+            className="rbac-x"
+            onClick={handleRequestClose}
+            aria-label="Close"
+            type="button"
+          >
             <X size={18} />
           </button>
 
@@ -122,7 +163,7 @@ export default function EditRoleUserModal({
               <button
                 type="button"
                 className="btn btn-light rbac-btn"
-                onClick={onClose}
+                onClick={handleRequestClose}
               >
                 Cancel
               </button>
@@ -137,8 +178,16 @@ export default function EditRoleUserModal({
 
       {/* CONFIRM SAVE POPUP */}
       {confirmSave && (
-        <div className="rbac-backdrop">
-          <div className="rbac-modal" style={{ maxWidth: 420 }}>
+        <div
+          className="rbac-backdrop"
+          style={{ zIndex: 1060 }}
+          onMouseDown={() => setConfirmSave(false)}
+        >
+          <div
+            className="rbac-modal rbac-modal-dialog"
+            style={{ maxWidth: 420 }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             <div className="fw-bold mb-2">Confirm Update</div>
 
             <div className="text-muted mb-3">
@@ -147,14 +196,64 @@ export default function EditRoleUserModal({
 
             <div className="d-flex justify-content-end gap-2">
               <button
+                type="button"
                 className="btn btn-light"
                 onClick={() => setConfirmSave(false)}
               >
                 Cancel
               </button>
 
-              <button className="btn btn-primary" onClick={confirmSubmit}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={confirmSubmit}
+              >
                 Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DISCARD CHANGES EXIT POPUP */}
+      {confirmDiscard && (
+        <div
+          className="rbac-backdrop"
+          style={{ zIndex: 1060 }}
+          onMouseDown={() => setConfirmDiscard(false)}
+        >
+          <div
+            className="rbac-modal rbac-modal-dialog"
+            style={{ maxWidth: 420 }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="d-flex align-items-center gap-2 mb-2">
+              <AlertTriangle className="text-warning" size={20} />
+              <div className="fw-bold">Discard changes?</div>
+            </div>
+
+            <div className="text-muted mb-3">
+              You have unsaved changes to this user's contact details. Are you sure you want to exit without saving?
+            </div>
+
+            <div className="d-flex justify-content-end gap-2">
+              <button
+                type="button"
+                className="btn btn-light"
+                onClick={() => setConfirmDiscard(false)}
+              >
+                Keep Editing
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => {
+                  setConfirmDiscard(false);
+                  onClose();
+                }}
+              >
+                Discard & Close
               </button>
             </div>
           </div>

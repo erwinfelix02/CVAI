@@ -33,17 +33,9 @@ export const getMaterials = async (req, res) => {
     const { course, department, facultyId } = req.query;
     const filter = {};
 
-    // Dynamic Faculty Filter
-    if (facultyId) {
-      filter.facultyId = facultyId;
-    }
+    if (facultyId) filter.facultyId = facultyId;
+    if (department) filter.department = { $regex: new RegExp(`^${department}$`, "i") };
 
-    // Dynamic Department Filter
-    if (department) {
-      filter.department = { $regex: new RegExp(`^${department}$`, "i") };
-    }
-
-    // Filter by Course/Subject Code or Title
     if (course && course !== "All Courses") {
       filter.$or = [
         { course: course.trim() },
@@ -90,7 +82,6 @@ export const createMaterial = async (req, res) => {
       return res.status(400).json({ message: "Faculty ID and Department details are required." });
     }
 
-    // Format file size label
     const bytes = req.file.size;
     let sizeLabel = `${bytes} B`;
     if (bytes >= 1024 * 1024) {
@@ -137,7 +128,37 @@ export const createMaterial = async (req, res) => {
   }
 };
 
-// PATCH /api/materials/:id/download
+// GET or GET /api/materials/:id/download — Direct file download and increment count
+export const downloadMaterial = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const material = await Material.findByIdAndUpdate(
+      id,
+      { $inc: { downloads: 1 } },
+      { new: true }
+    );
+
+    if (!material) {
+      return res.status(404).json({ message: "Material not found." });
+    }
+
+    // Resolve absolute path to file on disk
+    const absolutePath = path.join(process.cwd(), material.filePath);
+
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ message: "Physical file not found on server." });
+    }
+
+    // Set correct MIME type / disposition or send file directly
+    return res.download(absolutePath, `${material.title}${path.extname(material.filePath)}`);
+  } catch (err) {
+    console.error("downloadMaterial error:", err);
+    return res.status(500).json({ message: "Failed to process download." });
+  }
+};
+
+// PATCH /api/materials/:id/download — Increment count only (if client handles direct URL opening)
 export const incrementDownloadCount = async (req, res) => {
   try {
     const { id } = req.params;
@@ -216,5 +237,35 @@ export const updateMaterial = async (req, res) => {
   } catch (err) {
     console.error("updateMaterial error:", err);
     return res.status(500).json({ message: "Failed to update material." });
+  }
+};
+
+// DELETE /api/materials/:id
+export const deleteMaterial = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const material = await Material.findById(id);
+    if (!material) {
+      return res.status(404).json({ message: "Material not found." });
+    }
+
+    if (material.filePath) {
+      const fullPath = path.join(process.cwd(), material.filePath);
+      if (fs.existsSync(fullPath)) {
+        try {
+          fs.unlinkSync(fullPath);
+        } catch (fsErr) {
+          console.error("Error removing material file from disk:", fsErr);
+        }
+      }
+    }
+
+    await Material.findByIdAndDelete(id);
+
+    return res.status(200).json({ message: "Material deleted successfully.", id });
+  } catch (err) {
+    console.error("deleteMaterial error:", err);
+    return res.status(500).json({ message: "Failed to delete material." });
   }
 };

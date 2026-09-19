@@ -5,7 +5,7 @@ import type { ClassItem } from "../../components/Faculty/Classes/types";
 import { CalendarDays, Loader2, AlertCircle } from "lucide-react";
 import "../../styles/faculty-classes.css";
 
-const ACCENTS: ClassItem["accent"][] = ["blue", "purple", "green", "orange"];``
+const ACCENTS: ClassItem["accent"][] = ["blue", "purple", "green", "orange"];
 
 export default function AssignedClassesPage() {
   const [classes, setClasses] = useState<ClassItem[]>([]);
@@ -37,22 +37,40 @@ export default function AssignedClassesPage() {
     setError(null);
 
     try {
+      const token = localStorage.getItem("token");
       const facultyName =
         user?.name || `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
+      const facultyId = user?.id || user?._id || "";
       const department = user?.department || "";
 
       const queryParams = new URLSearchParams();
       if (facultyName) queryParams.append("faculty", facultyName);
       if (department) queryParams.append("department", department);
 
-      const [settingsRes, schedulesRes, roomsRes] = await Promise.all([
+      // Fetches registrar settings, schedules, rooms, students, and section capacities in parallel
+      const [settingsRes, schedulesRes, roomsRes, studentsRes, sectionsRes] = await Promise.all([
         fetch("/api/registrar-settings").catch((err) => {
           console.error("Registrar settings fetch failed:", err);
           return null;
         }),
         fetch(`/api/schedules?${queryParams.toString()}`),
         fetch(
-          `/api/rooms${department ? `?department=${encodeURIComponent(department)}` : ""}`,
+          `/api/rooms${department ? `?department=${encodeURIComponent(department)}` : ""}`
+        ).catch(() => null),
+        fetch(
+          `/api/students?${new URLSearchParams({
+            ...(facultyId ? { facultyId } : {}),
+            ...(facultyName ? { facultyName } : {}),
+          }).toString()}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          }
+        ).catch(() => null),
+        fetch(
+          `/api/sections${department ? `?department=${encodeURIComponent(department)}` : ""}`
         ).catch(() => null),
       ]);
 
@@ -61,9 +79,6 @@ export default function AssignedClassesPage() {
         setCurrentSemester(settingsData?.semester || "1st Semester");
         setAcademicYear(settingsData?.academicYear || "2024-2025");
       } else {
-        console.warn(
-          "Could not retrieve registrar settings, applying fallback.",
-        );
         setCurrentSemester("1st Semester");
         setAcademicYear("2024-2025");
       }
@@ -74,35 +89,74 @@ export default function AssignedClassesPage() {
 
       const schedulesData = await schedulesRes.json();
       const roomsData = roomsRes && roomsRes.ok ? await roomsRes.json() : [];
+      const studentsData = studentsRes && studentsRes.ok ? await studentsRes.json() : [];
+      const sectionsData = sectionsRes && sectionsRes.ok ? await sectionsRes.json() : [];
 
+      const allStudentsList = Array.isArray(studentsData)
+        ? studentsData
+        : studentsData.students || [];
+
+      // Map room capacities
       const roomCapacityMap = new Map<string, number>();
       if (Array.isArray(roomsData)) {
         roomsData.forEach((room: any) => {
           if (room.name) {
             roomCapacityMap.set(
               room.name.trim().toLowerCase(),
-              room.seats || 40,
+              room.seats || 40
             );
           }
         });
       }
 
+      // Map section capacities from Section model
+      const sectionCapacityMap = new Map<string, number>();
+      if (Array.isArray(sectionsData)) {
+        sectionsData.forEach((sec: any) => {
+          if (sec.code) {
+            sectionCapacityMap.set(
+              sec.code.trim().toLowerCase(),
+              Number(sec.capacity) || 40
+            );
+          }
+        });
+      }
+
+      // Count students per section belonging to this faculty
+      const sectionStudentCountMap = new Map<string, number>();
+      allStudentsList.forEach((st: any) => {
+        const sec = String(st.section || st.classSection || "").trim();
+        if (sec) {
+          sectionStudentCountMap.set(sec, (sectionStudentCountMap.get(sec) || 0) + 1);
+        }
+      });
+
       const formattedClasses: ClassItem[] = (
         Array.isArray(schedulesData) ? schedulesData : []
       ).map((sch: any, idx: number) => {
-        const roomCapacity =
-          roomCapacityMap.get(sch.room?.trim().toLowerCase()) || 40;
-        const enrolledStudents = sch.students ?? 0;
+        const sectionName = sch.section || "Section A";
+        const normalizedSection = sectionName.trim().toLowerCase();
+
+        // Capacity precedence: Section Model Capacity -> Room Capacity -> Schedule Capacity -> Fallback 40
+        const matchedCapacity =
+          sectionCapacityMap.get(normalizedSection) ||
+          roomCapacityMap.get(sch.room?.trim().toLowerCase()) ||
+          sch.sectionCapacity ||
+          sch.capacity ||
+          40;
+
+        const enrolledStudents =
+          sectionStudentCountMap.get(sectionName.trim()) ?? (sch.students ?? 0);
 
         return {
           id: sch._id || `class-${idx}`,
           code: sch.code || "N/A",
           title: sch.title || "Untitled Course",
-          section: sch.section || "Section A",
+          section: sectionName,
           schedule: `${sch.days || ""} ${sch.time || ""}`.trim() || "TBA",
           room: sch.room || "TBA",
           students: enrolledStudents,
-          capacity: roomCapacity,
+          capacity: matchedCapacity,
           progress: sch.progress ?? 0,
           accent: ACCENTS[idx % ACCENTS.length],
           assigned: true,
@@ -124,7 +178,7 @@ export default function AssignedClassesPage() {
 
   const handleOpenModal = (
     classItem: ClassItem,
-    tab: "students" | "materials" | "grades",
+    tab: "students" | "materials" | "grades"
   ) => {
     setSelectedClass(classItem);
     setActiveModalTab(tab);
@@ -134,12 +188,18 @@ export default function AssignedClassesPage() {
     setSelectedClass(null);
   };
 
+  const handleStudentCountUpdate = useCallback((classId: string, count: number) => {
+    setClasses((prev) =>
+      prev.map((c) => (c.id === classId ? { ...c, students: count } : c))
+    );
+  }, []);
+
   // Dynamic Statistics
   const stats = useMemo(() => {
     const assignedCourses = classes.length;
     const totalStudents = classes.reduce((sum, c) => sum + c.students, 0);
     const rooms = new Set(
-      classes.map((c) => c.room).filter((r) => r && r !== "TBA"),
+      classes.map((c) => c.room).filter((r) => r && r !== "TBA")
     ).size;
     const hoursPerWeek = classes.length * 3;
 
@@ -272,6 +332,7 @@ export default function AssignedClassesPage() {
           item={selectedClass}
           initialTab={activeModalTab}
           onClose={handleCloseModal}
+          onStudentCountUpdate={handleStudentCountUpdate}
         />
       )}
     </div>

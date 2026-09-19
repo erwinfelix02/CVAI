@@ -106,20 +106,13 @@ const preregSchema = new mongoose.Schema(
       select: false,
     },
 
-    applicantIdentityHash: {
-      type: String,
-      index: true,
-      sparse: true,
-      select: false,
-    },
-
     status: {
       type: String,
       enum: ["Pending", "Approved", "Rejected"],
       default: "Pending",
     },
 
-    rejectionReason: encryptedField("rejectionReason"), // ✅ Root encrypted field
+    rejectionReason: encryptedField("rejectionReason"),
     approvedAt: { type: Date, default: null },
     rejectedAt: { type: Date, default: null },
     scheduleSentAt: { type: Date, default: null },
@@ -135,11 +128,6 @@ const preregSchema = new mongoose.Schema(
       versionKey: false,
     },
   },
-);
-
-preregSchema.index(
-  { applicantIdentityHash: 1 },
-  { unique: true, sparse: true },
 );
 
 preregSchema.pre("save", function () {
@@ -170,26 +158,9 @@ preregSchema.pre("save", function () {
 
   const email = getPlainNested(this, "personal.email");
   const phone = getPlainNested(this, "personal.phone");
-  const firstName = getPlainNested(this, "personal.firstName");
-  const lastName = getPlainNested(this, "personal.lastName");
-  const birthDate = getPlainNested(this, "personal.birthDate");
 
   this.emailHash = hashLookup("personal.email", email);
   this.phoneHash = hashLookup("personal.phone", phone);
-
-  const identityBase = [
-    String(firstName || "")
-      .trim()
-      .toLowerCase(),
-    String(lastName || "")
-      .trim()
-      .toLowerCase(),
-    String(birthDate || "").trim(),
-  ].join("|");
-
-  this.applicantIdentityHash = identityBase.includes("||")
-    ? undefined
-    : hashLookup("applicantIdentity", identityBase);
 });
 
 function rewriteLookupFilter(filter) {
@@ -215,32 +186,6 @@ function rewriteLookupFilter(filter) {
   ) {
     filter.phoneHash = hashLookup("personal.phone", filter["personal.phone"]);
     delete filter["personal.phone"];
-  }
-
-  const hasIdentityFields =
-    "personal.firstName" in filter &&
-    "personal.lastName" in filter &&
-    "personal.birthDate" in filter &&
-    !isOperatorObject(filter["personal.firstName"]) &&
-    !isOperatorObject(filter["personal.lastName"]) &&
-    !isOperatorObject(filter["personal.birthDate"]);
-
-  if (hasIdentityFields) {
-    const base = [
-      String(filter["personal.firstName"] || "")
-        .trim()
-        .toLowerCase(),
-      String(filter["personal.lastName"] || "")
-        .trim()
-        .toLowerCase(),
-      String(filter["personal.birthDate"] || "").trim(),
-    ].join("|");
-
-    filter.applicantIdentityHash = hashLookup("applicantIdentity", base);
-
-    delete filter["personal.firstName"];
-    delete filter["personal.lastName"];
-    delete filter["personal.birthDate"];
   }
 }
 
@@ -285,45 +230,12 @@ function applyEncryptedUpdate(update) {
       ? decrypt(target["personal.phone"])
       : undefined;
 
-  const plainFirstName =
-    target["personal.firstName"] !== undefined
-      ? decrypt(target["personal.firstName"])
-      : undefined;
-
-  const plainLastName =
-    target["personal.lastName"] !== undefined
-      ? decrypt(target["personal.lastName"])
-      : undefined;
-
-  const plainBirthDate =
-    target["personal.birthDate"] !== undefined
-      ? decrypt(target["personal.birthDate"])
-      : undefined;
-
   if (plainEmail !== undefined) {
     target.emailHash = hashLookup("personal.email", plainEmail);
   }
 
   if (plainPhone !== undefined) {
     target.phoneHash = hashLookup("personal.phone", plainPhone);
-  }
-
-  if (
-    plainFirstName !== undefined &&
-    plainLastName !== undefined &&
-    plainBirthDate !== undefined
-  ) {
-    const base = [
-      String(plainFirstName || "")
-        .trim()
-        .toLowerCase(),
-      String(plainLastName || "")
-        .trim()
-        .toLowerCase(),
-      String(plainBirthDate || "").trim(),
-    ].join("|");
-
-    target.applicantIdentityHash = hashLookup("applicantIdentity", base);
   }
 
   if (update.$set) update.$set = target;

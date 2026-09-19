@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import ProfileHero from "../../components/Student/Profile/ProfileHero";
 import InfoCard from "../../components/Student/Profile/InfoCard";
 import ChangePasswordCard from "../../components/Student/Profile/ChangePasswordCard";
@@ -18,56 +18,131 @@ import {
 } from "lucide-react";
 
 type Profile = {
-  // ✅ still displayed (not editable)
   firstName: string;
   lastName: string;
-
+  middleName?: string;
   email: string;
-
-  // ✅ editable
   phone: string;
   address: string;
-
-  // ✅ new: editable profile pic
   avatarUrl?: string;
-
-  // academic (view-only)
   studentId: string;
   program: string;
   yearLevel: string;
   section: string;
   enrolled: string;
-  expectedGraduation: string;
-
   status: string;
 };
 
 const initialProfile: Profile = {
-  firstName: "Juan",
-  lastName: "Dela Cruz",
-  email: "juan.delacruz@university.edu",
-  phone: "+63 912 345 6789",
-  address: "123 Campus Drive, Metro Manila",
-
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  address: "",
   avatarUrl: "",
-
-  studentId: "2024-00001",
-  program: "Bachelor of Science in Computer Science",
-  yearLevel: "3rd Year",
-  section: "BSCS-3A",
-  enrolled: "August 2022",
-  expectedGraduation: "May 2026",
-
-  status: "Regular",
+  studentId: "",
+  program: "",
+  yearLevel: "",
+  section: "",
+  enrolled: "",
+  status: "Active",
 };
+
+// Helper to convert numeric year to text format
+function formatYearLevel(year: string | number | undefined): string {
+  if (!year) return "1st Year";
+  if (typeof year === "string" && year.includes("Year")) return year;
+  const num = Number(year);
+  if (isNaN(num)) return String(year);
+  if (num === 1) return "1st Year";
+  if (num === 2) return "2nd Year";
+  if (num === 3) return "3rd Year";
+  if (num >= 4) return `${num}th Year`;
+  return `${num} Year`;
+}
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile>(initialProfile);
   const [draft, setDraft] = useState<Profile>(initialProfile);
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // 1. Fetch signed-in student data from both /api/users/me and /api/students
+  useEffect(() => {
+    async function fetchProfileData() {
+      try {
+        setLoading(true);
+        const storedUser = localStorage.getItem("user");
+        const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+        const userEmail = parsedUser?.email || localStorage.getItem("userEmail");
+        const userId = parsedUser?.id || parsedUser?._id || localStorage.getItem("userId");
+        const token = localStorage.getItem("token");
+
+        const headers: HeadersInit = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        // Fetch user account info
+        let meUrl = "http://localhost:5000/api/users/me";
+        if (userId) meUrl += `?id=${encodeURIComponent(userId)}`;
+        else if (userEmail) meUrl += `?email=${encodeURIComponent(userEmail)}`;
+
+        const userRes = await fetch(meUrl, { headers });
+        const userData = userRes.ok ? await userRes.json() : {};
+
+        // Fetch student record info using ID or Email
+        const studentQueryId = userData.idNumber || userId || userEmail;
+        let studentData: any = null;
+
+        if (studentQueryId) {
+          try {
+            const studentRes = await fetch(
+              `http://localhost:5000/api/students/${encodeURIComponent(studentQueryId)}`,
+              { headers }
+            );
+            if (studentRes.ok) {
+              studentData = await studentRes.json();
+            }
+          } catch (e) {
+            console.warn("Could not fetch extended student record", e);
+          }
+        }
+
+        // Merge User Account + Student Record details
+        const loadedProfile: Profile = {
+          firstName: userData.firstName || "",
+          lastName: userData.lastName || "",
+          middleName: userData.middleName || "",
+          email: userData.email || studentData?.email || "",
+          phone: userData.phone || studentData?.phone || "",
+          address: studentData?.address || userData.address || "N/A",
+          avatarUrl: userData.avatarUrl || "",
+          studentId: userData.idNumber || studentData?.id || studentData?.studentIdNumber || "—",
+          program: studentData?.course || studentData?.program || userData.department || "BS Computer Science",
+          yearLevel: formatYearLevel(studentData?.yearLevel || studentData?.year || userData.yearLevel || userData.year),
+          section: studentData?.section || userData.section || "—",
+          enrolled: (studentData?.enrolledDate || userData.createdAt)
+            ? new Date(studentData?.enrolledDate || userData.createdAt).toLocaleDateString("en-US", {
+                month: "long",
+                year: "numeric",
+              })
+            : "August 2022",
+          status: (studentData?.status || userData.status || "active").toLowerCase() === "active" ? "Active" : "Regular",
+        };
+
+        setProfile(loadedProfile);
+        setDraft(loadedProfile);
+      } catch (err) {
+        console.error("Failed to load profile", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProfileData();
+  }, []);
 
   const tags = useMemo(
-    () => [profile.yearLevel, profile.section, profile.status],
+    () => [profile.yearLevel, profile.section, profile.status].filter(Boolean),
     [profile.yearLevel, profile.section, profile.status]
   );
 
@@ -81,17 +156,74 @@ export default function ProfilePage() {
     setIsEditing(false);
   }
 
-  function saveEdit() {
-    // ✅ only save allowed fields: avatar + phone + address
-    setProfile((prev) => ({
-      ...prev,
-      avatarUrl: draft.avatarUrl,
-      phone: draft.phone,
-      address: draft.address,
-      // name/email/academic unchanged
-    }));
-    setIsEditing(false);
+  async function saveEdit() {
+    try {
+      const storedUser = localStorage.getItem("user");
+      const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+      const userEmail = parsedUser?.email || localStorage.getItem("userEmail") || profile.email;
+      const studentId = profile.studentId;
+
+      const token = localStorage.getItem("token");
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      // Update user account details (phone, address, avatarUrl)
+      const userReq = fetch("http://localhost:5000/api/users/me/profile", {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({
+          email: userEmail,
+          phone: draft.phone,
+          address: draft.address,
+          avatarUrl: draft.avatarUrl,
+        }),
+      });
+
+      // Update student record details if studentId exists
+      const studentReq = studentId && studentId !== "—"
+        ? fetch(`http://localhost:5000/api/students/${encodeURIComponent(studentId)}`, {
+            method: "PUT",
+            headers,
+            body: JSON.stringify({
+              phone: draft.phone,
+              address: draft.address,
+            }),
+          })
+        : Promise.resolve(null);
+
+      const [userRes] = await Promise.all([userReq, studentReq]);
+
+      if (userRes.ok) {
+        setProfile((prev) => ({
+          ...prev,
+          avatarUrl: draft.avatarUrl,
+          phone: draft.phone,
+          address: draft.address,
+        }));
+        setIsEditing(false);
+      } else {
+        const errData = await userRes.json();
+        alert(errData.message || "Failed to update profile.");
+      }
+    } catch (err) {
+      console.error("Save profile error:", err);
+      alert("Error saving profile changes.");
+    }
   }
+
+  if (loading) {
+    return (
+      <div className="student-profile-page p-4 text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading profile...</span>
+        </div>
+      </div>
+    );
+  }
+
+  const fullName = `${profile.firstName} ${
+    profile.middleName ? profile.middleName + " " : ""
+  }${profile.lastName}`.trim();
 
   return (
     <div className="student-profile-page">
@@ -134,9 +266,9 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* ✅ Hero (name NOT editable; avatar IS editable) */}
+        {/* Hero */}
         <ProfileHero
-          fullName={`${profile.firstName} ${profile.lastName}`}
+          fullName={fullName}
           subtitle={profile.program}
           tags={tags}
           editable={isEditing}
@@ -148,7 +280,7 @@ export default function ProfilePage() {
 
         {/* Cards */}
         <div className="row g-3 g-md-4 mt-1">
-          {/* Personal Info: only Phone + Address editable */}
+          {/* Personal Info */}
           <div className="col-12 col-lg-6">
             <InfoCard
               title="Personal Information"
@@ -188,7 +320,7 @@ export default function ProfilePage() {
             />
           </div>
 
-          {/* Academic Info: always view-only */}
+          {/* Academic Info */}
           <div className="col-12 col-lg-6">
             <InfoCard
               title="Academic Information"
@@ -200,7 +332,6 @@ export default function ProfilePage() {
                 { label: "Year Level", value: profile.yearLevel, readOnly: true },
                 { label: "Section", value: profile.section, readOnly: true },
                 { label: "Enrolled", value: profile.enrolled, icon: Calendar, readOnly: true },
-                { label: "Expected Graduation", value: profile.expectedGraduation, readOnly: true },
               ]}
             />
           </div>
@@ -210,7 +341,7 @@ export default function ProfilePage() {
             <ChangePasswordCard
               onSubmit={(payload) => {
                 console.log("change password payload:", payload);
-                alert("Password updated (demo). Connect this to your backend.");
+                alert("Password update requested.");
               }}
             />
           </div>

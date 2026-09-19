@@ -35,30 +35,37 @@ export default function RecentAttendance({ rows }: { rows: RecentAttendanceRow[]
           <h4 className="fw-bold mb-0">Recent Attendance</h4>
         </div>
 
-        <div className="table-responsive">
-          <table className="table align-middle mb-0">
-            <thead>
-              <tr className="text-muted">
-                <th style={{ minWidth: 150 }}>Date</th>
-                <th style={{ minWidth: 220 }}>Subject</th>
-                <th style={{ minWidth: 140 }}>Time In</th>
-                <th className="text-end" style={{ minWidth: 160 }}>Status</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {rows.map((r, idx) => (
-                <tr key={`${r.date}-${r.subject}-${idx}`}>
-                  <td className="fw-semibold">{r.date}</td>
-                  <td>{r.subject}</td>
-                  <td>{r.timeIn}</td>
-                  <td className="text-end">{statusBadge(r.status)}</td>
+        {rows.length === 0 ? (
+          <div className="text-center py-4 text-muted">
+            <p className="mb-0 small">No attendance records found for your account.</p>
+          </div>
+        ) : (
+          <div className="table-responsive">
+            <table className="table align-middle mb-0">
+              <thead>
+                <tr className="text-muted">
+                  <th style={{ minWidth: 150 }}>Date</th>
+                  <th style={{ minWidth: 220 }}>Subject</th>
+                  <th style={{ minWidth: 140 }}>Time In</th>
+                  <th className="text-end" style={{ minWidth: 160 }}>
+                    Status
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
 
+              <tbody>
+                {rows.map((r, idx) => (
+                  <tr key={`${r.date}-${r.subject}-${idx}`}>
+                    <td className="fw-semibold">{r.date}</td>
+                    <td>{r.subject}</td>
+                    <td>{r.timeIn}</td>
+                    <td className="text-end">{statusBadge(r.status)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

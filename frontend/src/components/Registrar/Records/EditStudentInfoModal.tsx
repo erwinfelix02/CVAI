@@ -11,6 +11,7 @@ import {
   UserRound,
   Building2,
   TriangleAlert,
+  AlertTriangle,
 } from "lucide-react";
 
 type StudentDetails = {
@@ -74,6 +75,12 @@ type Props = {
 
 type TabKey = "overview" | "academic";
 
+const backdropBlurStyle: React.CSSProperties = {
+  backgroundColor: "rgba(15, 23, 42, 0.45)",
+  backdropFilter: "blur(4px)",
+  WebkitBackdropFilter: "blur(4px)",
+};
+
 function getInitials(name?: string, fallback?: string) {
   if (fallback?.trim()) return fallback;
 
@@ -113,7 +120,8 @@ export default function EditStudentInfoModal({
   loading = false,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
 
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -135,27 +143,10 @@ export default function EditStudentInfoModal({
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || loading) return;
-
-      if (confirmOpen) {
-        setConfirmOpen(false);
-        return;
-      }
-
-      onClose();
-    };
-
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose, loading, confirmOpen]);
-
-  useEffect(() => {
     if (open) {
       setActiveTab("overview");
-      setConfirmOpen(false);
+      setConfirmSaveOpen(false);
+      setConfirmDiscardOpen(false);
     }
   }, [open]);
 
@@ -207,18 +198,76 @@ export default function EditStudentInfoModal({
     }
   }, [selectedCourse, departmentOptions]);
 
+  // Determine if any input field has unsaved changes (email excluded as it's read-only)
+  const isDirty = useMemo(() => {
+    if (!student) return false;
+
+    return (
+      phone.trim() !== (student.phone || "").trim() ||
+      guardian.trim() !== (student.guardian || "").trim() ||
+      guardianPhone.trim() !== (student.guardianPhone || "").trim() ||
+      birthdate !== toInputDate(student.birthdate) ||
+      course !== (student.course || "") ||
+      year !== (student.year || 1) ||
+      department !== (student.department || "")
+    );
+  }, [
+    phone,
+    guardian,
+    guardianPhone,
+    birthdate,
+    course,
+    year,
+    department,
+    student,
+  ]);
+
+  // Handle attempt to close modal
+  const handleAttemptClose = () => {
+    if (loading) return;
+
+    if (isDirty) {
+      setConfirmDiscardOpen(true);
+    } else {
+      onClose();
+    }
+  };
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || loading) return;
+
+      if (confirmSaveOpen) {
+        setConfirmSaveOpen(false);
+        return;
+      }
+
+      if (confirmDiscardOpen) {
+        setConfirmDiscardOpen(false);
+        return;
+      }
+
+      handleAttemptClose();
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, loading, confirmSaveOpen, confirmDiscardOpen, isDirty]);
+
   if (!open || !student) return null;
 
   const enrolledDate = student.enrolledDate || "—";
   const gpa = student.gpa || "—";
 
-  const handleOpenConfirm = () => {
-    setConfirmOpen(true);
+  const handleOpenConfirmSave = () => {
+    setConfirmSaveOpen(true);
   };
 
-  const handleCloseConfirm = () => {
+  const handleCloseConfirmSave = () => {
     if (loading) return;
-    setConfirmOpen(false);
+    setConfirmSaveOpen(false);
   };
 
   const handleConfirmSave = async () => {
@@ -232,14 +281,27 @@ export default function EditStudentInfoModal({
       year,
       department,
     });
-    setConfirmOpen(false);
+    setConfirmSaveOpen(false);
+  };
+
+  const confirmDiscardChanges = () => {
+    setConfirmDiscardOpen(false);
+    onClose();
   };
 
   return createPortal(
     <div
       className="app-modal-backdrop"
+      style={backdropBlurStyle}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget && !loading && !confirmOpen) onClose();
+        if (
+          e.target === e.currentTarget &&
+          !loading &&
+          !confirmSaveOpen &&
+          !confirmDiscardOpen
+        ) {
+          handleAttemptClose();
+        }
       }}
     >
       <div
@@ -253,7 +315,7 @@ export default function EditStudentInfoModal({
             <button
               type="button"
               className="app-icon-btn app-icon-btn-sm"
-              onClick={onClose}
+              onClick={handleAttemptClose}
               disabled={loading}
               aria-label="Close"
               title="Close"
@@ -318,8 +380,9 @@ export default function EditStudentInfoModal({
                     type="email"
                     className="form-control"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
+                    disabled={true}
+                    readOnly
+                    title="Email cannot be changed"
                   />
                 </div>
 
@@ -477,7 +540,7 @@ export default function EditStudentInfoModal({
           <button
             type="button"
             className="btn btn-light border"
-            onClick={onClose}
+            onClick={handleAttemptClose}
             disabled={loading}
           >
             Cancel
@@ -486,18 +549,20 @@ export default function EditStudentInfoModal({
           <button
             type="button"
             className="btn btn-primary"
-            onClick={handleOpenConfirm}
-            disabled={loading}
+            onClick={handleOpenConfirmSave}
+            disabled={loading || !isDirty}
           >
             Save Changes
           </button>
         </div>
 
-        {confirmOpen && (
+        {/* CONFIRM SAVE MODAL */}
+        {confirmSaveOpen && (
           <div
             className="registrar-confirm-backdrop"
+            style={backdropBlurStyle}
             onMouseDown={(e) => {
-              if (e.target === e.currentTarget) handleCloseConfirm();
+              if (e.target === e.currentTarget) handleCloseConfirmSave();
             }}
           >
             <div
@@ -510,7 +575,7 @@ export default function EditStudentInfoModal({
                 <button
                   type="button"
                   className="app-icon-btn app-icon-btn-sm"
-                  onClick={handleCloseConfirm}
+                  onClick={handleCloseConfirmSave}
                   disabled={loading}
                   aria-label="Close"
                   title="Close"
@@ -533,7 +598,7 @@ export default function EditStudentInfoModal({
                 <button
                   type="button"
                   className="btn btn-light border"
-                  onClick={handleCloseConfirm}
+                  onClick={handleCloseConfirmSave}
                   disabled={loading}
                 >
                   Cancel
@@ -546,6 +611,69 @@ export default function EditStudentInfoModal({
                   disabled={loading}
                 >
                   {loading ? "Saving..." : "Yes, Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CONFIRM DISCARD / EXIT MODAL */}
+        {confirmDiscardOpen && (
+          <div
+            className="registrar-confirm-backdrop"
+            style={backdropBlurStyle}
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget && !loading) {
+                setConfirmDiscardOpen(false);
+              }
+            }}
+          >
+            <div
+              className="registrar-confirm-modal"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="registrar-confirm-header">
+                <div className="registrar-confirm-title">Discard Changes?</div>
+
+                <button
+                  type="button"
+                  className="app-icon-btn app-icon-btn-sm"
+                  onClick={() => setConfirmDiscardOpen(false)}
+                  disabled={loading}
+                  aria-label="Close"
+                  title="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="registrar-confirm-body">
+                <div className="registrar-confirm-icon bg-warning-subtle text-warning">
+                  <AlertTriangle size={22} />
+                </div>
+
+                <p className="text-muted text-center mb-0">
+                  You have unsaved changes in student details. Closing now will discard your changes.
+                </p>
+              </div>
+
+              <div className="registrar-confirm-actions">
+                <button
+                  type="button"
+                  className="btn btn-light border"
+                  onClick={() => setConfirmDiscardOpen(false)}
+                  disabled={loading}
+                >
+                  Keep Editing
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={confirmDiscardChanges}
+                  disabled={loading}
+                >
+                  Discard & Exit
                 </button>
               </div>
             </div>

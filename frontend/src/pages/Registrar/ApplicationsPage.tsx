@@ -31,6 +31,12 @@ export default function ApplicationsPage() {
   const [selectedApp, setSelectedApp] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
+  // Group selection IDs strictly for Approved / Rejected applications
+  const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(
+    new Set<string>(),
+  );
+
+  // Selected approved IDs specifically for Send Schedule
   const [selectedApprovedIds, setSelectedApprovedIds] = useState<Set<string>>(
     new Set<string>(),
   );
@@ -172,6 +178,18 @@ export default function ApplicationsPage() {
 
   const selectedApprovedCount = selectedStudents.length;
 
+  const toggleGroupSelect = (id: string) => {
+    const row = mappedApplications.find((a) => a.id === id);
+    if (!row || (row.status !== "Approved" && row.status !== "Rejected")) return;
+
+    setSelectedGroupIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const toggleApproved = (id: string) => {
     const row = mappedApplications.find((a) => a.id === id);
     if (row?.scheduleSent) return;
@@ -185,6 +203,7 @@ export default function ApplicationsPage() {
   };
 
   const deselectAllApproved = () => setSelectedApprovedIds(new Set<string>());
+  const deselectAllGroup = () => setSelectedGroupIds(new Set<string>());
 
   const openScheduleModal = () => setScheduleOpen(true);
 
@@ -309,10 +328,65 @@ export default function ApplicationsPage() {
         return next;
       });
 
+      setSelectedGroupIds((prev) => {
+        const next = new Set(prev);
+        next.delete(String(registrationId));
+        return next;
+      });
+
       showAlert("Application archived successfully.", "success");
     } catch (err: any) {
       console.error(err);
       showAlert(err.message || "Failed to archive application", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleBulkArchive = async (registrationIds: string[]) => {
+    try {
+      setIsSubmitting(true);
+
+      const results = await Promise.all(
+        registrationIds.map(async (registrationId) => {
+          const res = await fetch(
+            `http://localhost:5000/api/preregistrations/${registrationId}/archive`,
+            { method: "POST" },
+          );
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(
+              err.message || `Failed to archive application ${registrationId}`,
+            );
+          }
+          return registrationId;
+        }),
+      );
+
+      setApplications((prev: any[]) =>
+        prev.map((app: any) =>
+          results.includes(String(app.registrationId))
+            ? { ...app, status: "Archived" }
+            : app,
+        ),
+      );
+
+      setSelectedGroupIds((prev) => {
+        const next = new Set(prev);
+        results.forEach((id) => next.delete(id));
+        return next;
+      });
+
+      showAlert(
+        `Archived ${results.length} application${
+          results.length > 1 ? "s" : ""
+        } successfully.`,
+        "success",
+      );
+    } catch (err: any) {
+      console.error(err);
+      showAlert(err.message || "Failed to archive applications", "error");
+      throw err;
     } finally {
       setIsSubmitting(false);
     }
@@ -395,6 +469,12 @@ export default function ApplicationsPage() {
         return next;
       });
 
+      setSelectedGroupIds((prev) => {
+        const next = new Set(prev);
+        next.delete(String(registrationId));
+        return next;
+      });
+
       showAlert("Application deleted successfully.", "success");
     } catch (err: any) {
       console.error(err);
@@ -439,8 +519,14 @@ export default function ApplicationsPage() {
         prev && results.includes(String(prev.registrationId)) ? null : prev,
       );
 
+      setSelectedGroupIds((prev) => {
+        const next = new Set(prev);
+        results.forEach((id) => next.delete(id));
+        return next;
+      });
+
       showAlert(
-        `Permanently deleted ${results.length} archived application${
+        `Permanently deleted ${results.length} application${
           results.length > 1 ? "s" : ""
         }.`,
         "success",
@@ -448,7 +534,7 @@ export default function ApplicationsPage() {
     } catch (err: any) {
       console.error(err);
       showAlert(
-        err.message || "Failed to delete archived applications",
+        err.message || "Failed to delete applications",
         "error",
       );
       throw err;
@@ -501,13 +587,19 @@ export default function ApplicationsPage() {
                 : `${status} Applications (${filtered.length})`
             }
             items={filtered}
+            selectedGroupIds={selectedGroupIds}
+            setSelectedGroupIds={setSelectedGroupIds}
+            onToggleGroupSelect={toggleGroupSelect}
+            onDeselectAllGroup={deselectAllGroup}
             selectedApprovedIds={selectedApprovedIds}
             onToggleApproved={toggleApproved}
             onDeselectAllApproved={deselectAllApproved}
             onSendSchedule={openScheduleModal}
             onArchive={handleArchive}
+            onBulkArchive={handleBulkArchive}
             onUnarchive={handleUnarchive}
             onDelete={handleDelete}
+            onBulkDelete={handleDeleteArchived}
             onReview={(id) => {
               const found = applications.find(
                 (a) => String(a.registrationId) === id,

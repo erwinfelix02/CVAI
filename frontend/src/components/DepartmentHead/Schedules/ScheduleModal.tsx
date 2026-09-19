@@ -2,28 +2,25 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, X, AlertCircle } from "lucide-react";
+import { ChevronDown, X, AlertCircle, Lock } from "lucide-react";
 import type { ScheduleRow } from "./types";
 
 export interface SubjectOption {
   _id?: string;
   code: string;
   name: string;
-  program?: string;
+  program?: string | any;
+  year?: string | number;
+  department?: string;
 }
 
 export interface SectionOption {
   _id?: string;
   code: string;
-  program?: string;
-  yearLevel?: string;
+  program?: string | any;
+  yearLevel?: string | number;
   room?: string;
-}
-
-export interface RoomOption {
-  _id?: string;
-  name: string;
-  building?: string;
+  department?: string;
 }
 
 export interface FacultyOption {
@@ -42,11 +39,9 @@ type Props = {
   editingRow: ScheduleRow | null;
   subjects?: SubjectOption[];
   sections?: SectionOption[];
-  rooms?: RoomOption[];
   facultyList?: FacultyOption[];
   isLoadingSubjects?: boolean;
   isLoadingSections?: boolean;
-  isLoadingRooms?: boolean;
   isLoadingFaculty?: boolean;
 };
 
@@ -74,6 +69,103 @@ const DEFAULT_FORM_STATE: ScheduleFormSnapshot = {
   endTime: "",
 };
 
+const safeString = (val: any): string => {
+  if (!val) return "";
+  if (typeof val === "string") return val;
+  if (typeof val === "number") return String(val);
+  if (typeof val === "object") {
+    return val.code || val.name || val.program || val.title || "";
+  }
+  return String(val);
+};
+
+const normalizeProgramTokens = (val: any) => {
+  const str = safeString(val).toLowerCase().trim();
+  if (!str) return { raw: "", tokens: "", acronyms: new Set<string>() };
+
+  let clean = str.replace(/\([^)]*\)/g, "").trim();
+
+  clean = clean
+    .replace(/managment/g, "management")
+    .replace(/\b(system|curriculum|track|major|program)\b/g, "")
+    .trim();
+
+  const acronyms = new Set<string>();
+
+  if (clean.includes("-")) {
+    const parts = clean.split("-");
+    const prefix = parts[0].trim().replace(/[^a-z0-9]/g, "");
+    if (prefix) acronyms.add(prefix);
+    clean = parts.slice(1).join(" ").trim();
+  }
+
+  const words = clean
+    .replace(/[^a-z0-9\s]/g, "")
+    .split(/\s+/)
+    .filter((w) => w && !["bachelor", "bs", "science", "of", "in", "and", "or", "the"].includes(w));
+
+  const tokens = words.join("");
+
+  if (words.length > 0) {
+    const firstLetters = words.map((w) => w[0]).join("");
+    acronyms.add(firstLetters);
+    acronyms.add(`bs${firstLetters}`);
+
+    if (tokens.includes("hospitality")) {
+      acronyms.add("htm");
+      acronyms.add("bshm");
+      acronyms.add("hm");
+    }
+    if (tokens.includes("tourism")) {
+      acronyms.add("tm");
+      acronyms.add("bstm");
+    }
+  }
+
+  const raw = clean.replace(/[^a-z0-9]/g, "");
+  if (raw.length <= 6) acronyms.add(raw);
+
+  return { raw, tokens, acronyms };
+};
+
+const isProgramMatch = (subjectProg?: any, sectionProg?: any): boolean => {
+  if (!subjectProg || !sectionProg) return true;
+
+  const p1 = normalizeProgramTokens(subjectProg);
+  const p2 = normalizeProgramTokens(sectionProg);
+
+  if (!p1.raw || !p2.raw) return true;
+
+  for (const ac1 of p1.acronyms) {
+    if (p2.acronyms.has(ac1)) return true;
+  }
+
+  if (
+    p1.tokens &&
+    p2.tokens &&
+    (p1.tokens === p2.tokens || p1.tokens.includes(p2.tokens) || p2.tokens.includes(p1.tokens))
+  ) {
+    return true;
+  }
+
+  return p1.raw.includes(p2.raw) || p2.raw.includes(p1.raw);
+};
+
+const extractYearDigit = (val?: any): string => {
+  const s = safeString(val);
+  if (!s) return "";
+  const match = s.match(/\d+/);
+  return match ? match[0] : "";
+};
+
+const isYearMatch = (subjectYear?: any, sectionYear?: any): boolean => {
+  const y1 = extractYearDigit(subjectYear);
+  const y2 = extractYearDigit(sectionYear);
+
+  if (!y1 || !y2) return true;
+  return y1 === y2;
+};
+
 export default function ScheduleModal({
   isOpen,
   onClose,
@@ -81,11 +173,9 @@ export default function ScheduleModal({
   editingRow,
   subjects = [],
   sections = [],
-  rooms = [],
   facultyList = [],
   isLoadingSubjects = false,
   isLoadingSections = false,
-  isLoadingRooms = false,
   isLoadingFaculty = false,
 }: Props) {
   const [code, setCode] = useState("");
@@ -97,17 +187,28 @@ export default function ScheduleModal({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
 
-  /* =========================================================
-     INITIAL SNAPSHOT & CONFIRMATION DIALOG STATES
-     ========================================================= */
   const [initialSnapshot, setInitialSnapshot] = useState<ScheduleFormSnapshot>(DEFAULT_FORM_STATE);
-
   const [confirmExitOpen, setConfirmExitOpen] = useState(false);
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
 
-  /* =========================================================
-     FILTER FACULTY BY DEPARTMENT & ACTIVE STATUS
-     ========================================================= */
+  const selectedSubjectObj = useMemo(() => {
+    if (!code) return null;
+    return subjects.find((s) => s.code === code) || null;
+  }, [code, subjects]);
+
+  const filteredSections = useMemo(() => {
+    if (!selectedSubjectObj) return [];
+
+    const subjProg = selectedSubjectObj.program;
+    const subjYear = selectedSubjectObj.year;
+
+    return sections.filter((sec) => {
+      const matchProg = isProgramMatch(subjProg, sec.program);
+      const matchYear = isYearMatch(subjYear, sec.yearLevel);
+      return matchProg && matchYear;
+    });
+  }, [sections, selectedSubjectObj]);
+
   const filteredFacultyList = useMemo(() => {
     const userJson = localStorage.getItem("user");
     const currentUser = userJson ? JSON.parse(userJson) : null;
@@ -130,9 +231,6 @@ export default function ScheduleModal({
     });
   }, [facultyList]);
 
-  /* =========================================================
-     INITIALIZE / POPULATE FORM STATE & SNAPSHOT
-     ========================================================= */
   useEffect(() => {
     if (isOpen) {
       let snapshot: ScheduleFormSnapshot;
@@ -187,9 +285,27 @@ export default function ScheduleModal({
     }
   }, [editingRow, isOpen]);
 
-  /* =========================================================
-     COMPUTE DIRTY STATUS
-     ========================================================= */
+  const handleSubjectChange = (newCode: string) => {
+    setCode(newCode);
+    setSection("");
+    setRoom("");
+  };
+
+  const handleSectionChange = (selectedSectionCode: string) => {
+    setSection(selectedSectionCode);
+
+    // Look up the matching section across all sections to get its assigned room
+    const matchedSec = sections.find(
+      (s) => s.code === selectedSectionCode || s._id === selectedSectionCode
+    );
+
+    if (matchedSec && matchedSec.room && matchedSec.room.trim() !== "") {
+      setRoom(matchedSec.room);
+    } else {
+      setRoom("Unassigned");
+    }
+  };
+
   const isDirty = useMemo(() => {
     const currentSnapshot: ScheduleFormSnapshot = {
       code,
@@ -206,22 +322,11 @@ export default function ScheduleModal({
 
   if (!isOpen) return null;
 
-  /* =========================================================
-     EXIT GUARD HANDLER
-     ========================================================= */
   const handleSafeClose = () => {
     if (isDirty) {
       setConfirmExitOpen(true);
     } else {
       onClose();
-    }
-  };
-
-  const handleSectionChange = (selectedSectionCode: string) => {
-    setSection(selectedSectionCode);
-    const matchedSec = sections.find((s) => s.code === selectedSectionCode);
-    if (matchedSec?.room && !room) {
-      setRoom(matchedSec.room);
     }
   };
 
@@ -231,9 +336,6 @@ export default function ScheduleModal({
     );
   };
 
-  /* =========================================================
-     SUBMIT / SAVE GUARD HANDLER
-     ========================================================= */
   const handleSubmitAttempt = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -281,7 +383,7 @@ export default function ScheduleModal({
         ? matchedSubject.name
         : editingRow?.title || "Subject",
       faculty: faculty || "Unassigned",
-      room,
+      room: room || "Unassigned",
       section,
       days: formattedDays as any,
       time: `${startTime}-${endTime}`,
@@ -298,7 +400,6 @@ export default function ScheduleModal({
 
   return createPortal(
     <>
-      {/* MAIN FORM MODAL */}
       <div className="schedule-modal-backdrop" onClick={handleSafeClose}>
         <div
           className="schedule-modal-container"
@@ -326,7 +427,7 @@ export default function ScheduleModal({
                 <div className="select-input-wrapper">
                   <select
                     value={code}
-                    onChange={(e) => setCode(e.target.value)}
+                    onChange={(e) => handleSubjectChange(e.target.value)}
                     required
                     disabled={isLoadingSubjects}
                   >
@@ -337,7 +438,7 @@ export default function ScheduleModal({
                     </option>
                     {subjects.map((s) => (
                       <option key={s._id || s.code} value={s.code}>
-                        {s.code} - {s.name} {s.program ? `(${s.program})` : ""}
+                        {s.code} - {s.name} {s.program ? `(${safeString(s.program)})` : ""} {s.year ? `[Year ${safeString(s.year)}]` : ""}
                       </option>
                     ))}
                   </select>
@@ -345,7 +446,7 @@ export default function ScheduleModal({
                 </div>
               </div>
 
-              {/* Dynamic Faculty Dropdown */}
+              {/* Faculty Dropdown */}
               <div className="schedule-field">
                 <label>Faculty</label>
                 <div className="select-input-wrapper">
@@ -375,30 +476,8 @@ export default function ScheduleModal({
                 </div>
               </div>
 
-              {/* Room, Section & Status Row */}
+              {/* Section, Room & Status Row */}
               <div className="schedule-row">
-                <div className="schedule-field flex-1">
-                  <label>Room</label>
-                  <div className="select-input-wrapper">
-                    <select
-                      value={room}
-                      onChange={(e) => setRoom(e.target.value)}
-                      required
-                      disabled={isLoadingRooms}
-                    >
-                      <option value="" disabled>
-                        {isLoadingRooms ? "Loading rooms..." : "Select room"}
-                      </option>
-                      {rooms.map((r) => (
-                        <option key={r._id || r.name} value={r.name}>
-                          {r.name} {r.building ? `(${r.building})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={18} className="select-arrow" />
-                  </div>
-                </div>
-
                 <div className="schedule-field flex-1">
                   <label>Section</label>
                   <div className="select-input-wrapper">
@@ -406,20 +485,49 @@ export default function ScheduleModal({
                       value={section}
                       onChange={(e) => handleSectionChange(e.target.value)}
                       required
-                      disabled={isLoadingSections}
+                      disabled={isLoadingSections || !code}
                     >
                       <option value="" disabled>
                         {isLoadingSections
                           ? "Loading sections..."
+                          : !code
+                          ? "Select subject first"
+                          : filteredSections.length === 0
+                          ? `No sections found for ${safeString(selectedSubjectObj?.program) || "Program"} Year ${safeString(selectedSubjectObj?.year) || "N/A"}`
                           : "Select section"}
                       </option>
-                      {sections.map((sec) => (
+                      {filteredSections.map((sec) => (
                         <option key={sec._id || sec.code} value={sec.code}>
-                          {sec.code} {sec.program ? `(${sec.program})` : ""}
+                          {sec.code} {sec.program ? `(${safeString(sec.program)})` : ""} {sec.yearLevel ? `[Year ${safeString(sec.yearLevel)}]` : ""}
                         </option>
                       ))}
                     </select>
                     <ChevronDown size={18} className="select-arrow" />
+                  </div>
+                </div>
+
+                {/* Read-Only Room Field */}
+                <div className="schedule-field flex-1">
+                  <label className="d-flex align-items-center justify-content-between">
+                    <span>Room</span>
+                    <small className="text-muted d-inline-flex align-items-center gap-1">
+                      <Lock size={12} /> Auto-assigned
+                    </small>
+                  </label>
+                  <div className="input-wrapper">
+                    <input
+                      type="text"
+                      value={room}
+                      placeholder={
+                        !section
+                          ? "Select section first"
+                          : room || "No room assigned to section"
+                      }
+                      readOnly
+                      disabled
+                      className="bg-light text-secondary border-secondary-subtle"
+                      style={{ cursor: "not-allowed" }}
+                    />
                   </div>
                 </div>
 
@@ -505,7 +613,6 @@ export default function ScheduleModal({
         </div>
       </div>
 
-      {/* CENTERED CONFIRMATION OVERLAY FOR EXITING WITH UNSAVED CHANGES */}
       {confirmExitOpen && (
         <div className="schedule-centered-confirm-overlay">
           <div className="schedule-centered-confirm-box">
@@ -539,7 +646,6 @@ export default function ScheduleModal({
         </div>
       )}
 
-      {/* CENTERED CONFIRMATION OVERLAY FOR SAVING CHANGES */}
       {confirmSaveOpen && (
         <div className="schedule-centered-confirm-overlay">
           <div className="schedule-centered-confirm-box">

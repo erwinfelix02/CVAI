@@ -1,5 +1,5 @@
-import { Save, TriangleAlert, X, Pencil, Ban } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Save, TriangleAlert, X, Pencil, Ban, AlertTriangle } from "lucide-react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import AuthAlert from "../../Authentication/AuthAlert";
 
 type SecuritySettingsDTO = {
@@ -8,38 +8,33 @@ type SecuritySettingsDTO = {
   requireEmailVerification: boolean;
 };
 
-/* ================= TOKEN HELPER ================= */
-function getToken(): string | null {
-  const session = localStorage.getItem("sessionToken");
-  if (session && session !== "null" && session !== "undefined") return session;
+type SecuritySettingsProps = {
+  onDirtyChange?: (dirty: boolean) => void;
+};
 
-  const raw = localStorage.getItem("token");
-  if (raw && raw !== "null" && raw !== "undefined") return raw;
+/* ================= CLEAN TOKEN GETTER ================= */
+function getToken(): string | null {
+  const token = localStorage.getItem("token") || localStorage.getItem("sessionToken");
+  if (token && token !== "null" && token !== "undefined") return token;
 
   const authRaw = localStorage.getItem("auth") || localStorage.getItem("user");
   if (authRaw) {
     try {
       const parsed = JSON.parse(authRaw);
-      return (
-        parsed?.token ||
-        parsed?.accessToken ||
-        parsed?.data?.token ||
-        parsed?.user?.token ||
-        null
-      );
+      return parsed?.token || parsed?.accessToken || parsed?.data?.token || null;
     } catch {
       return null;
     }
   }
-
   return null;
 }
 
 /* ================= COMPONENT ================= */
-export default function SecuritySettings() {
+export default function SecuritySettings({ onDirtyChange }: SecuritySettingsProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -47,13 +42,11 @@ export default function SecuritySettings() {
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [showAlert, setShowAlert] = useState(false);
 
-  const [requireEmailVerification, setRequireEmailVerification] =
-    useState(true);
+  const [requireEmailVerification, setRequireEmailVerification] = useState(true);
   const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState(30);
   const [maxLoginAttempts, setMaxLoginAttempts] = useState(5);
 
-  const [originalSettings, setOriginalSettings] =
-    useState<SecuritySettingsDTO | null>(null);
+  const [originalSettings, setOriginalSettings] = useState<SecuritySettingsDTO | null>(null);
 
   const show = (msg: string, type: "success" | "error") => {
     setShowAlert(false);
@@ -67,63 +60,89 @@ export default function SecuritySettings() {
     setTimeout(() => setShowAlert(false), 3000);
   };
 
-  /* ================= LOAD SETTINGS ================= */
-  useEffect(() => {
-    const load = async () => {
-      setError(null);
+  // Check if form values differ from initial settings
+  const isUnchanged = useMemo(() => {
+    if (!originalSettings) return true;
+    return (
+      requireEmailVerification === originalSettings.requireEmailVerification &&
+      sessionTimeoutMinutes === originalSettings.sessionTimeoutMinutes &&
+      maxLoginAttempts === originalSettings.maxLoginAttempts
+    );
+  }, [
+    requireEmailVerification,
+    sessionTimeoutMinutes,
+    maxLoginAttempts,
+    originalSettings,
+  ]);
 
-      const token = getToken();
-      if (!token) {
-        setError("No session token found. Please sign in again.");
-        setLoading(false);
+  // Notify parent component (SettingsPage) when unsaved changes exist
+  useEffect(() => {
+    onDirtyChange?.(isEditing && !isUnchanged);
+  }, [isEditing, isUnchanged, onDirtyChange]);
+
+  /* ================= LOAD SETTINGS ================= */
+  const loadSettings = useCallback(async () => {
+    setError(null);
+    setLoading(true);
+
+    const token = getToken();
+    if (!token) {
+      setError("No session token found. Please sign in again.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/security-settings", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (res.status === 401) {
+        setError("Session expired. Please sign in again.");
         return;
       }
 
-      try {
-        const res = await fetch("/api/security-settings", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (res.status === 401) {
-          setError("Session expired. Please sign in again.");
-          return;
-        }
-
-        if (!res.ok) {
-          throw new Error(`Failed to load security settings (${res.status})`);
-        }
-
-        const s: SecuritySettingsDTO = await res.json();
-
-        const loadedSettings = {
-          requireEmailVerification: !!s.requireEmailVerification,
-          sessionTimeoutMinutes: Number(s.sessionTimeoutMinutes ?? 30),
-          maxLoginAttempts: Number(s.maxLoginAttempts ?? 5),
-        };
-
-        setRequireEmailVerification(loadedSettings.requireEmailVerification);
-        setSessionTimeoutMinutes(loadedSettings.sessionTimeoutMinutes);
-        setMaxLoginAttempts(loadedSettings.maxLoginAttempts);
-        setOriginalSettings(loadedSettings);
-      } catch (e) {
-        console.error(e);
-        setError("Failed to load security settings.");
-      } finally {
-        setLoading(false);
+      if (!res.ok) {
+        throw new Error(`Failed to load security settings (${res.status})`);
       }
-    };
 
-    load();
+      const s: SecuritySettingsDTO = await res.json();
+
+      const loadedSettings = {
+        requireEmailVerification: !!s.requireEmailVerification,
+        sessionTimeoutMinutes: Number(s.sessionTimeoutMinutes ?? 30),
+        maxLoginAttempts: Number(s.maxLoginAttempts ?? 5),
+      };
+
+      setRequireEmailVerification(loadedSettings.requireEmailVerification);
+      setSessionTimeoutMinutes(loadedSettings.sessionTimeoutMinutes);
+      setMaxLoginAttempts(loadedSettings.maxLoginAttempts);
+      setOriginalSettings(loadedSettings);
+    } catch (e) {
+      console.error(e);
+      setError("Failed to load security settings.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  // Keyboard Escape listener for open modals
+  useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !saving) {
-        setConfirmOpen(false);
+        if (confirmSaveOpen) setConfirmSaveOpen(false);
+        if (confirmDiscardOpen) setConfirmDiscardOpen(false);
       }
     };
 
-    if (confirmOpen) {
+    if (confirmSaveOpen || confirmDiscardOpen) {
       document.body.style.overflow = "hidden";
       window.addEventListener("keydown", handleEscape);
     }
@@ -132,7 +151,7 @@ export default function SecuritySettings() {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleEscape);
     };
-  }, [confirmOpen, saving]);
+  }, [confirmSaveOpen, confirmDiscardOpen, saving]);
 
   /* ================= SAVE SETTINGS ================= */
   const save = async () => {
@@ -143,6 +162,7 @@ export default function SecuritySettings() {
     if (!token) {
       setError("No session token found. Please sign in again.");
       setSaving(false);
+      setConfirmSaveOpen(false);
       return;
     }
 
@@ -162,6 +182,7 @@ export default function SecuritySettings() {
 
       if (res.status === 401) {
         setError("Session expired. Please sign in again.");
+        setConfirmSaveOpen(false);
         setSaving(false);
         return;
       }
@@ -177,9 +198,7 @@ export default function SecuritySettings() {
       };
 
       setOriginalSettings(updatedSettings);
-      localStorage.setItem("lastActivity", Date.now().toString());
-
-      setConfirmOpen(false);
+      setConfirmSaveOpen(false);
       setIsEditing(false);
       show("Security settings saved!", "success");
     } catch (e) {
@@ -192,26 +211,40 @@ export default function SecuritySettings() {
   };
 
   const handleAskSave = () => {
-    setConfirmOpen(true);
+    if (isUnchanged) {
+      show("No changes made to save.", "error");
+      return;
+    }
+    setConfirmSaveOpen(true);
   };
 
   const handleCloseConfirm = () => {
     if (saving) return;
-    setConfirmOpen(false);
+    setConfirmSaveOpen(false);
   };
 
   const handleEdit = () => {
     setIsEditing(true);
   };
 
-  const handleCancelEdit = () => {
-    if (!originalSettings) return;
+  const handleCancelClick = () => {
+    if (saving) return;
 
-    setRequireEmailVerification(originalSettings.requireEmailVerification);
-    setSessionTimeoutMinutes(originalSettings.sessionTimeoutMinutes);
-    setMaxLoginAttempts(originalSettings.maxLoginAttempts);
+    if (!isUnchanged) {
+      setConfirmDiscardOpen(true);
+    } else {
+      setIsEditing(false);
+    }
+  };
+
+  const confirmDiscardChanges = () => {
+    if (originalSettings) {
+      setRequireEmailVerification(originalSettings.requireEmailVerification);
+      setSessionTimeoutMinutes(originalSettings.sessionTimeoutMinutes);
+      setMaxLoginAttempts(originalSettings.maxLoginAttempts);
+    }
     setIsEditing(false);
-    setConfirmOpen(false);
+    setConfirmDiscardOpen(false);
   };
 
   /* ================= RENDER ================= */
@@ -304,7 +337,7 @@ export default function SecuritySettings() {
                     <button
                       className="btn btn-primary superadmin-settings-savebtn"
                       onClick={handleAskSave}
-                      disabled={saving}
+                      disabled={saving || isUnchanged}
                     >
                       <Save size={18} className="me-2" />
                       {saving ? "Saving..." : "Save Changes"}
@@ -312,7 +345,7 @@ export default function SecuritySettings() {
 
                     <button
                       className="btn btn-light border"
-                      onClick={handleCancelEdit}
+                      onClick={handleCancelClick}
                       disabled={saving}
                     >
                       <Ban size={18} className="me-2" />
@@ -326,13 +359,15 @@ export default function SecuritySettings() {
         </div>
       </div>
 
-      {confirmOpen && (
+      {/* SAVE CONFIRMATION MODAL */}
+      {confirmSaveOpen && (
         <div
           className="superadmin-settings-confirm-backdrop"
           onClick={handleCloseConfirm}
         >
           <div
             className="superadmin-settings-confirm-modal"
+            style={{ maxWidth: 420 }}
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -354,7 +389,7 @@ export default function SecuritySettings() {
               Are you sure you want to save the changes to security settings?
             </p>
 
-            <div className="superadmin-settings-confirm-actions">
+            <div className="superadmin-settings-confirm-actions mt-3">
               <button
                 type="button"
                 className="btn btn-light border"
@@ -372,6 +407,59 @@ export default function SecuritySettings() {
               >
                 <Save size={16} />
                 {saving ? "Saving..." : "Yes, Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DISCARD / EXIT CONFIRMATION MODAL */}
+      {confirmDiscardOpen && (
+        <div
+          className="superadmin-settings-confirm-backdrop"
+          onClick={() => !saving && setConfirmDiscardOpen(false)}
+        >
+          <div
+            className="superadmin-settings-confirm-modal"
+            style={{ maxWidth: 420 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="superadmin-settings-confirm-close"
+              onClick={() => setConfirmDiscardOpen(false)}
+              disabled={saving}
+            >
+              <X size={18} />
+            </button>
+
+            <div className="superadmin-settings-confirm-icon bg-warning-subtle text-warning">
+              <AlertTriangle size={22} />
+            </div>
+
+            <h5 className="fw-bold mb-2 text-center">Discard changes?</h5>
+
+            <p className="text-muted text-center mb-0">
+              You have unsaved edits in security settings. Canceling now will discard your changes.
+            </p>
+
+            <div className="superadmin-settings-confirm-actions mt-3">
+              <button
+                type="button"
+                className="btn btn-light border"
+                onClick={() => setConfirmDiscardOpen(false)}
+                disabled={saving}
+              >
+                Keep Editing
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={confirmDiscardChanges}
+                disabled={saving}
+              >
+                Discard & Exit
               </button>
             </div>
           </div>

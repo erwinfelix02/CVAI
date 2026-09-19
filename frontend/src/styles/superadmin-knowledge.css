@@ -597,3 +597,17 @@
   width: 40px;
   height: 40px;
 }
+/* Compact Dialog Styling for Confirmation Overlay */
+.kb-modal-card-dialog {
+  max-width: 420px !important;
+  width: 100% !important;
+  margin: auto;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  animation: modalScaleIn 0.15s ease-out;
+}
+
+.kb-modal-overlay {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}

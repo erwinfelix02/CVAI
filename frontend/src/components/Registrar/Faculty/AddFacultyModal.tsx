@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import AddUserReviewModal from "../../shared/AddUserReviewModal";
 import {
   User,
@@ -9,6 +10,7 @@ import {
   Building2,
   ShieldCheck,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import { getActiveDepartments } from "../../../api/departmentService";
 
@@ -85,6 +87,12 @@ const EMPTY_FORM: FacultyForm = {
   gender: "",
   department: "",
   notes: "",
+};
+
+const backdropBlurStyle: React.CSSProperties = {
+  backgroundColor: "rgba(15, 23, 42, 0.45)",
+  backdropFilter: "blur(4px)",
+  WebkitBackdropFilter: "blur(4px)",
 };
 
 export default function AddFacultyModal({
@@ -227,7 +235,6 @@ export default function AddFacultyModal({
       form.firstName !== initialForm.firstName ||
       form.middleName !== initialForm.middleName ||
       form.lastName !== initialForm.lastName ||
-      form.idNumber !== initialForm.idNumber ||
       form.email !== initialForm.email ||
       form.phone !== initialForm.phone ||
       form.gender !== initialForm.gender ||
@@ -429,13 +436,14 @@ export default function AddFacultyModal({
 
   const idFieldError = submitted ? validateField("idNumber") : "";
 
-  return (
+  const modalContent = (
     <>
       {!showReview && (
         <div
           className="users-modal-backdrop"
+          style={{ ...backdropBlurStyle, zIndex: 1050 }}
           onMouseDown={(e) => {
-            if (e.target === e.currentTarget && !isLoading) {
+            if (e.target === e.currentTarget && !isLoading && !discardOpen) {
               requestClose();
             }
           }}
@@ -782,70 +790,56 @@ export default function AddFacultyModal({
                 Review
               </button>
             </div>
+          </div>
+        </div>
+      )}
 
-            {discardOpen ? (
-              <div
-                className="users-modal-backdrop"
-                role="dialog"
-                aria-modal="true"
-                onMouseDown={(e) => {
-                  if (e.target === e.currentTarget && !isLoading) {
-                    setDiscardOpen(false);
-                  }
-                }}
+      {/* DISCARD / EXIT CONFIRMATION OVERLAY */}
+      {discardOpen && (
+        <div
+          className="users-confirm-backdrop position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+          style={{ ...backdropBlurStyle, zIndex: 2010 }}
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !isLoading) {
+              setDiscardOpen(false);
+            }
+          }}
+        >
+          <div
+            className="users-confirm-modal bg-white rounded-3 shadow p-4"
+            style={{ maxWidth: "420px", width: "90%" }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="d-flex align-items-center gap-2 mb-2">
+              <AlertTriangle size={20} className="text-danger" />
+              <h5 className="mb-0 fw-bold text-dark">Discard Changes?</h5>
+            </div>
+
+            <p className="text-muted mb-4 small">
+              You have unsaved input in this form. Closing this modal will discard your entries.
+            </p>
+
+            <div className="d-flex justify-content-end gap-2">
+              <button
+                type="button"
+                className="btn btn-light"
+                onClick={() => setDiscardOpen(false)}
+                disabled={isLoading}
               >
-                <div
-                  className="users-modal users-modal-compact"
-                  onMouseDown={(e) => e.stopPropagation()}
-                >
-                  <div className="users-modal-header">
-                    <div>
-                      <h3 className="users-modal-title">Discard changes?</h3>
-                      <p className="users-modal-subtitle">
-                        You have unsaved input in this form.
-                      </p>
-                    </div>
+                Keep Editing
+              </button>
 
-                    <button
-                      type="button"
-                      className="users-modal-close app-icon-btn app-icon-btn-sm"
-                      onClick={() => setDiscardOpen(false)}
-                      aria-label="Close"
-                      title="Close"
-                      disabled={isLoading}
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-
-                  <div className="users-modal-body">
-                    <p className="mb-0 text-muted">
-                      Closing this modal will discard your changes.
-                    </p>
-                  </div>
-
-                  <div className="users-modal-footer">
-                    <button
-                      type="button"
-                      className="btn btn-light"
-                      onClick={() => setDiscardOpen(false)}
-                      disabled={isLoading}
-                    >
-                      Keep Editing
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      onClick={forceClose}
-                      disabled={isLoading}
-                    >
-                      Discard & Close
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : null}
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={forceClose}
+                disabled={isLoading}
+              >
+                Discard & Exit
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -863,4 +857,6 @@ export default function AddFacultyModal({
       />
     </>
   );
+
+  return createPortal(modalContent, document.body);
 }

@@ -1,31 +1,190 @@
 // ✅ src/controllers/scheduleController.js
 
 import Schedule from "../models/Schedule.js";
+import Student from "../models/Student.js";
+import {
+  getTodayAbbr,
+  calculateScheduleStatus,
+} from "../utils/scheduleHelpers.js";
 
+/**
+ * Extract target faculty query filter from JWT token (req.user) or query string
+ */
+const getFacultyFilter = (req) => {
+  const queryFaculty = req.query.faculty?.trim();
+  const authName = req.user?.name?.trim();
+  const authId = req.user?._id || req.user?.id;
 
-// GET schedules filtered by Department AND Signed-In Faculty
+  if (authId) {
+    return {
+      $or: [
+        { "createdBy.userId": authId },
+        {
+          faculty: { $regex: new RegExp(`^${authName || queryFaculty}$`, "i") },
+        },
+      ],
+    };
+  }
+
+  const targetName = authName || queryFaculty;
+  if (targetName) {
+    return { faculty: { $regex: new RegExp(`^${targetName}$`, "i") } };
+  }
+
+  return null;
+};
+
+// GET schedules filtered by Department AND/OR Signed-In Faculty (with dynamic student counts)
 export const getSchedules = async (req, res) => {
   try {
-    const { department, faculty } = req.query;
+    const { department } = req.query;
     const filter = {};
 
-    // 1. Filter by Department (query param or auth user context)
+    // 1. Filter by Department
     const targetDepartment = department || req.user?.department;
     if (targetDepartment) {
-      filter.department = { $regex: new RegExp(`^${targetDepartment.trim()}$`, "i") };
+      filter.department = {
+        $regex: new RegExp(`^${targetDepartment.trim()}$`, "i"),
+      };
     }
 
-    // 2. Filter by Faculty Name/ID (query param or auth user context)
-    const targetFaculty = faculty || req.user?.name;
-    if (targetFaculty) {
-      filter.faculty = { $regex: new RegExp(`^${targetFaculty.trim()}$`, "i") };
+    // 2. Filter by Faculty account context
+    const facultyFilter = getFacultyFilter(req);
+    if (facultyFilter) {
+      Object.assign(filter, facultyFilter);
     }
 
     const schedules = await Schedule.find(filter).sort({ createdAt: -1 });
-    return res.status(200).json(schedules);
+
+    // 3. Dynamically count enrolled students per schedule/section from Student collection
+    const schedulesWithStudentCounts = await Promise.all(
+      schedules.map(async (sch) => {
+        const schObj = sch.toObject();
+
+        const sectionName = String(sch.section || "").trim();
+        const courseCode = String(sch.code || "").trim();
+
+        const escapedCode = courseCode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const courseRegex = new RegExp(
+          `^${escapedCode.replace(/\s+/g, "\\s*")}$`,
+          "i",
+        );
+
+        const matchConditions = [];
+
+        if (sectionName) {
+          matchConditions.push({
+            section: { $regex: new RegExp(`^${sectionName}$`, "i") },
+          });
+          matchConditions.push({
+            classSection: { $regex: new RegExp(`^${sectionName}$`, "i") },
+          });
+        }
+
+        if (courseCode) {
+          matchConditions.push({ "enrolledCourses.code": courseRegex });
+          matchConditions.push({ "courses.code": courseRegex });
+          matchConditions.push({ course: courseRegex });
+          matchConditions.push({ enrolledSubjects: courseRegex });
+        }
+
+        let studentCount = 0;
+        if (matchConditions.length > 0) {
+          studentCount = await Student.countDocuments({
+            status: { $regex: /^active$/i },
+            $or: matchConditions,
+          });
+        }
+
+        return {
+          ...schObj,
+          students: studentCount,
+        };
+      }),
+    );
+
+    return res.status(200).json(schedulesWithStudentCounts);
   } catch (err) {
     console.error("getSchedules error:", err);
     return res.status(500).json({ message: "Failed to fetch schedules." });
+  }
+};
+
+// GET today's schedules specifically assigned to the signed-in faculty
+export const getTodaySchedules = async (req, res) => {
+  try {
+    const facultyFilter = getFacultyFilter(req);
+
+    if (!facultyFilter) {
+      return res
+        .status(400)
+        .json({ message: "Faculty identity could not be resolved." });
+    }
+
+    const todayAbbr = getTodayAbbr();
+
+    const queryFilter = {
+      status: "Active",
+      days: { $regex: new RegExp(todayAbbr, "i") },
+      ...facultyFilter,
+    };
+
+    const schedules = await Schedule.find(queryFilter);
+
+    const formattedSchedules = schedules.map((sch) => ({
+      id: sch._id,
+      time: sch.time,
+      code: sch.code,
+      title: sch.title,
+      meta: `${sch.room} • ${sch.section}`,
+      status: calculateScheduleStatus(sch.time),
+    }));
+
+    return res.status(200).json(formattedSchedules);
+  } catch (err) {
+    console.error("getTodaySchedules error:", err);
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch today's schedule." });
+  }
+};
+
+// GET dashboard metrics for the assigned faculty
+export const getFacultyDashboardStats = async (req, res) => {
+  try {
+    const facultyFilter = getFacultyFilter(req);
+
+    if (!facultyFilter) {
+      return res
+        .status(400)
+        .json({ message: "Faculty identity could not be resolved." });
+    }
+
+    const todayAbbr = getTodayAbbr();
+
+    const todaySchedules = await Schedule.find({
+      status: "Active",
+      days: { $regex: new RegExp(todayAbbr, "i") },
+      ...facultyFilter,
+    });
+
+    const completedCount = todaySchedules.filter(
+      (sch) => calculateScheduleStatus(sch.time) === "completed",
+    ).length;
+
+    const totalAssignedClasses = await Schedule.countDocuments({
+      status: "Active",
+      ...facultyFilter,
+    });
+
+    return res.status(200).json({
+      totalAssignedClasses,
+      classesTodayCount: todaySchedules.length,
+      classesCompletedCount: completedCount,
+    });
+  } catch (err) {
+    console.error("getFacultyDashboardStats error:", err);
+    return res.status(500).json({ message: "Failed to fetch faculty stats." });
   }
 };
 
@@ -41,7 +200,6 @@ export const getScheduleConflicts = async (req, res) => {
 
     const schedules = await Schedule.find(filter);
 
-    // Group schedules by Room + Days + Time
     const conflictMap = new Map();
 
     schedules.forEach((sch) => {
@@ -64,7 +222,7 @@ export const getScheduleConflicts = async (req, res) => {
       if (matchedSchedules.length > 1) {
         const first = matchedSchedules[0];
         const subjectCodes = Array.from(
-          new Set(matchedSchedules.map((s) => s.code))
+          new Set(matchedSchedules.map((s) => s.code)),
         ).join(" & ");
 
         conflicts.push({
@@ -80,7 +238,9 @@ export const getScheduleConflicts = async (req, res) => {
     return res.status(200).json(conflicts);
   } catch (err) {
     console.error("getScheduleConflicts error:", err);
-    return res.status(500).json({ message: "Failed to fetch schedule conflicts." });
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch schedule conflicts." });
   }
 };
 
@@ -90,7 +250,9 @@ export const resolveScheduleConflicts = async (req, res) => {
     const { resolutions } = req.body;
 
     if (!Array.isArray(resolutions) || resolutions.length === 0) {
-      return res.status(400).json({ message: "No resolution parameters provided." });
+      return res
+        .status(400)
+        .json({ message: "No resolution parameters provided." });
     }
 
     const updatePromises = resolutions.map(async (resItem) => {
@@ -98,19 +260,16 @@ export const resolveScheduleConflicts = async (req, res) => {
 
       if (!scheduleId || !resolutionType || !targetValue) return null;
 
-      // Skip unassigned or invalid types
       if (resolutionType === "Unassigned / Pending") return null;
 
-      // Case 1: Room Relocation
       if (resolutionType === "Move to another room") {
         return Schedule.findByIdAndUpdate(
           scheduleId,
           { room: targetValue.trim() },
-          { new: true }
+          { new: true },
         );
       }
 
-      // Case 2: Time Slot Adjustment
       if (resolutionType === "Move to another time slot") {
         const cleanTarget = targetValue.trim();
         const spaceIndex = cleanTarget.indexOf(" ");
@@ -126,7 +285,7 @@ export const resolveScheduleConflicts = async (req, res) => {
         return Schedule.findByIdAndUpdate(
           scheduleId,
           { days: newDays, time: newTime },
-          { new: true }
+          { new: true },
         );
       }
 
@@ -135,18 +294,32 @@ export const resolveScheduleConflicts = async (req, res) => {
 
     await Promise.all(updatePromises);
 
-    return res.status(200).json({ message: "Conflicts resolved successfully." });
+    return res
+      .status(200)
+      .json({ message: "Conflicts resolved successfully." });
   } catch (err) {
     console.error("resolveScheduleConflicts error:", err);
-    return res.status(500).json({ message: err.message || "Failed to resolve conflicts." });
+    return res
+      .status(500)
+      .json({ message: err.message || "Failed to resolve conflicts." });
   }
 };
 
 // CREATE a new schedule
 export const createSchedule = async (req, res) => {
   try {
-    const { code, title, faculty, room, section, days, time, status, department, createdBy } =
-      req.body;
+    const {
+      code,
+      title,
+      faculty,
+      room,
+      section,
+      days,
+      time,
+      status,
+      department,
+      createdBy,
+    } = req.body;
 
     if (!code || !title || !faculty || !room || !section || !days || !time) {
       return res.status(400).json({ message: "All fields are required." });
@@ -181,9 +354,13 @@ export const createSchedule = async (req, res) => {
   } catch (err) {
     console.error("createSchedule error:", err);
     if (err.name === "ValidationError") {
-      return res.status(400).json({ message: err.message || "Invalid schedule data submitted." });
+      return res
+        .status(400)
+        .json({ message: err.message || "Invalid schedule data submitted." });
     }
-    return res.status(500).json({ message: err.message || "Failed to create schedule." });
+    return res
+      .status(500)
+      .json({ message: err.message || "Failed to create schedule." });
   }
 };
 
@@ -206,7 +383,9 @@ export const updateSchedule = async (req, res) => {
     });
   } catch (err) {
     console.error("updateSchedule error:", err);
-    return res.status(500).json({ message: err.message || "Failed to update schedule." });
+    return res
+      .status(500)
+      .json({ message: err.message || "Failed to update schedule." });
   }
 };
 
@@ -223,6 +402,70 @@ export const deleteSchedule = async (req, res) => {
     return res.status(200).json({ message: "Schedule deleted successfully." });
   } catch (err) {
     console.error("deleteSchedule error:", err);
-    return res.status(500).json({ message: err.message || "Failed to delete schedule." });
+    return res
+      .status(500)
+      .json({ message: err.message || "Failed to delete schedule." });
+  }
+};
+
+export const getStudentSchedules = async (req, res) => {
+  try {
+    console.log("=== [DEBUG] GET /api/schedules/student Query Params ===");
+    console.log(req.query);
+
+    const { section, enrolledSubjects } = req.query;
+
+    const matchConditions = [];
+
+    // 1. Match Enrolled Subjects by Course Code or Course Title
+    if (enrolledSubjects) {
+      const raw = Array.isArray(enrolledSubjects)
+        ? enrolledSubjects
+        : String(enrolledSubjects).split(",");
+
+      const cleanCodes = raw
+        .map((s) => String(s).split("-")[0].trim().split(" ")[0].trim())
+        .filter((s) => s && s !== "—" && s !== "N/A");
+
+      cleanCodes.forEach((code) => {
+        const escapedCode = code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        matchConditions.push({ code: { $regex: `^${escapedCode}$`, $options: "i" } });
+        matchConditions.push({ code: { $regex: escapedCode,$options: "i" } });
+        matchConditions.push({ title: { $regex: escapedCode,$options: "i" } });
+      });
+
+      console.log("👉 Applied Subject Filters:", cleanCodes);
+    }
+
+    // 2. Match Section ONLY if no enrolled subjects were supplied
+    if (matchConditions.length === 0 && section && typeof section === "string") {
+      const cleanSec = section.trim();
+      if (cleanSec !== "" && cleanSec !== "—" && cleanSec !== "N/A") {
+        const escapedSec = cleanSec.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        matchConditions.push({ section: { $regex: `^${escapedSec}$`, $options: "i" } });
+      }
+    }
+
+    if (matchConditions.length === 0) {
+      console.log("⚠️ No specific subjects or section provided. Returning empty array.");
+      return res.status(200).json([]);
+    }
+
+    const filter = {
+      status: "Active",
+      $or: matchConditions,
+    };
+
+    console.log("👉 Executing MongoDB Filter:", JSON.stringify(filter, null, 2));
+
+    const schedules = await Schedule.find(filter).sort({ time: 1 });
+
+    console.log(`✅ MongoDB returned ${schedules.length} enrolled schedule(s).`);
+    console.log("====================================================");
+
+    return res.status(200).json(schedules);
+  } catch (err) {
+    console.error("❌ [ERROR] getStudentSchedules error:", err);
+    return res.status(500).json({ message: "Failed to fetch student schedule." });
   }
 };

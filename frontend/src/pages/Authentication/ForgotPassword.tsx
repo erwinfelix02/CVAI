@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { FaKey, FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import axios from "axios";
 import { API_BASE_URL } from "../../config";
 import PreRegNavbar from "../../components/PreReg/PreRegNavbar";
@@ -33,6 +33,7 @@ export default function ForgotPassword() {
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState("");
 
   const [resendTimer, setResendTimer] = useState(0);
 
@@ -95,6 +96,7 @@ export default function ForgotPassword() {
 
       try {
         setLoading(true);
+        setLoadingText("Sending reset code...");
 
         await axios.post(`${API_BASE_URL}/auth/request-reset`, { email });
 
@@ -112,6 +114,7 @@ export default function ForgotPassword() {
         setAnimateAlert(true);
       } finally {
         setLoading(false);
+        setLoadingText("");
       }
 
       return;
@@ -127,6 +130,7 @@ export default function ForgotPassword() {
 
       try {
         setLoading(true);
+        setLoadingText("Verifying code...");
 
         const fullCode = code.join("");
 
@@ -149,6 +153,7 @@ export default function ForgotPassword() {
         setAnimateAlert(true);
       } finally {
         setLoading(false);
+        setLoadingText("");
       }
 
       return;
@@ -157,11 +162,8 @@ export default function ForgotPassword() {
     if (step === 3) {
       try {
         setLoading(true);
+        setLoadingText("Saving new password...");
         setAnimateAlert(false);
-
-        setAlertMessage("Updating password...");
-        setAlertType("success");
-        setAnimateAlert(true);
 
         await axios.post(`${API_BASE_URL}/auth/update-password`, {
           email,
@@ -170,6 +172,7 @@ export default function ForgotPassword() {
 
         setTimeout(() => {
           setLoading(false);
+          setLoadingText("");
           setAnimateAlert(false);
 
           setTimeout(() => {
@@ -186,6 +189,7 @@ export default function ForgotPassword() {
         }, 800);
       } catch (err: any) {
         setLoading(false);
+        setLoadingText("");
         setAnimateAlert(false);
 
         setTimeout(() => {
@@ -206,10 +210,11 @@ export default function ForgotPassword() {
   };
 
   const handleResend = async () => {
-    if (resendTimer > 0) return;
+    if (resendTimer > 0 || loading) return;
 
     try {
       setLoading(true);
+      setLoadingText("Resending code...");
 
       await axios.post(`${API_BASE_URL}/auth/request-reset`, {
         email,
@@ -227,6 +232,7 @@ export default function ForgotPassword() {
       setAnimateAlert(true);
     } finally {
       setLoading(false);
+      setLoadingText("");
     }
   };
 
@@ -273,12 +279,41 @@ export default function ForgotPassword() {
       />
 
       <AuthLayout>
-        <div className="auth-page-wrap">
+        <div className="auth-page-wrap position-relative">
+          {/* Centered Dark & Blurred Full-Screen Loading Overlay */}
+          {loading && (
+            <div
+              className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3 modal-blur-backdrop"
+              style={{
+                backgroundColor: "rgba(15, 23, 42, 0.65)",
+                backdropFilter: "blur(4px)",
+                zIndex: 1080,
+              }}
+            >
+              <div
+                className="bg-white rounded-4 p-4 shadow-lg text-center d-flex flex-column align-items-center justify-content-center"
+                style={{ maxWidth: 320, width: "100%" }}
+              >
+                <div
+                  className="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 text-primary mb-3"
+                  style={{ width: 56, height: 56 }}
+                >
+                  <Loader2 size={28} className="spinner-border border-0" />
+                </div>
+                <h6 className="fw-bold text-dark mb-1">Please Wait</h6>
+                <p className="text-muted small mb-0">
+                  {loadingText || "Processing your request..."}
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="auth-back-row">
             <button
               type="button"
               className="auth-back-btn d-inline-flex align-items-center gap-2"
               onClick={() => navigate(-1)}
+              disabled={loading}
             >
               <ArrowLeft size={18} />
               <span>Back</span>
@@ -335,14 +370,18 @@ export default function ForgotPassword() {
               >
                 <div className="auth-stepper compact">
                   <div
-                    className={`auth-step ${step === 1 ? "active" : step > 1 ? "completed" : ""}`}
+                    className={`auth-step ${
+                      step === 1 ? "active" : step > 1 ? "completed" : ""
+                    }`}
                   >
                     <FaEnvelope />
                     <span>Email</span>
                   </div>
                   <div className="auth-step-line" />
                   <div
-                    className={`auth-step ${step === 2 ? "active" : step > 2 ? "completed" : ""}`}
+                    className={`auth-step ${
+                      step === 2 ? "active" : step > 2 ? "completed" : ""
+                    }`}
                   >
                     <FaKey />
                     <span>Verify</span>
@@ -359,9 +398,12 @@ export default function ForgotPassword() {
                     <div className="outlined-field">
                       <input
                         type="email"
-                        className={`outlined-input ${errors.email ? "input-error" : ""}`}
+                        className={`outlined-input ${
+                          errors.email ? "input-error" : ""
+                        }`}
                         placeholder=" "
                         value={email}
+                        disabled={loading}
                         onChange={(e) => {
                           setEmail(e.target.value);
                           setErrors({ email: undefined });
@@ -384,6 +426,7 @@ export default function ForgotPassword() {
                             maxLength={1}
                             className="code-input text-center"
                             value={digit}
+                            disabled={loading}
                             onChange={(e) =>
                               handleCodeChange(e.target.value, index)
                             }
@@ -416,12 +459,14 @@ export default function ForgotPassword() {
                           className="outlined-input"
                           placeholder=" "
                           value={password}
+                          disabled={loading}
                           onChange={(e) => setPassword(e.target.value)}
                         />
                         <label>New Password</label>
                         <button
                           type="button"
                           className="password-toggle"
+                          disabled={loading}
                           onClick={() => setShowPassword((v) => !v)}
                         >
                           {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -434,12 +479,14 @@ export default function ForgotPassword() {
                           className="outlined-input"
                           placeholder=" "
                           value={confirmPassword}
+                          disabled={loading}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                         />
                         <label>Confirm Password</label>
                         <button
                           type="button"
                           className="password-toggle"
+                          disabled={loading}
                           onClick={() => setShowConfirm((v) => !v)}
                         >
                           {showConfirm ? <FaEyeSlash /> : <FaEye />}
@@ -459,6 +506,7 @@ export default function ForgotPassword() {
                         type="button"
                         className="btn-outline w-50"
                         onClick={handlePrevious}
+                        disabled={loading}
                       >
                         Previous
                       </Button>

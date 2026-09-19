@@ -1,4 +1,4 @@
-// ✅ src/components/DepartmentHead/Settings/DepartmentPreferencesCard.tsx
+// src/components/DepartmentHead/Settings/DepartmentPreferencesCard.tsx
 
 type DepartmentPreferencesCardProps = {
   maxUnits: string;
@@ -18,9 +18,7 @@ export default function DepartmentPreferencesCard({
       <div className="card-body p-4">
         {/* Header */}
         <div className="mb-4">
-          <h5 className="fw-bold mb-1">
-            Department Preferences
-          </h5>
+          <h5 className="fw-bold mb-1">Department Preferences</h5>
 
           <p className="text-muted mb-0 small">
             Configure your department settings
@@ -38,9 +36,7 @@ export default function DepartmentPreferencesCard({
               className="form-select"
               value={maxUnits}
               disabled={!isEditing || saving}
-              onChange={(e) =>
-                onMaxUnitsChange(e.target.value)
-              }
+              onChange={(e) => onMaxUnitsChange(e.target.value)}
             >
               <option value="18 units">18 units</option>
               <option value="21 units">21 units</option>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   X,
   Bell,
@@ -11,6 +11,14 @@ import {
 } from "lucide-react";
 import type { Announcement } from "./types";
 
+interface ScheduleOption {
+  id: string;
+  code: string;
+  title: string;
+  section: string;
+  displayLabel: string;
+}
+
 interface AnnouncementModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -22,36 +30,38 @@ interface AnnouncementModalProps {
 export default function AnnouncementModal({
   isOpen,
   onClose,
-  courses: fallbackCourses = [],
   announcementToEdit,
   onSaveSuccess,
 }: AnnouncementModalProps) {
   const [title, setTitle] = useState("");
-  const [course, setCourse] = useState("");
+  const [selectedScheduleKey, setSelectedScheduleKey] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high" | "">("");
   const [message, setMessage] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
   const [sendPush, setSendPush] = useState(true);
   const [sendEmail, setSendEmail] = useState(false);
 
-  // Dynamic Course List fetched from Schedule
-  const [facultyCourses, setFacultyCourses] = useState<string[]>([]);
+  const [scheduleOptions, setScheduleOptions] = useState<ScheduleOption[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(false);
+
+  const [recipientCount, setRecipientCount] = useState<number>(0);
+  const [isCalculatingRecipients, setIsCalculatingRecipients] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Custom UI Overlay States
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
   const isEditMode = Boolean(announcementToEdit);
 
   /* =========================================================
-     FETCH FACULTY SCHEDULES TO DYNAMICALLY POPULATE COURSES
+     FETCH FACULTY SCHEDULES TO DYNAMICALLY POPULATE COURSES & SECTIONS
      ========================================================= */
   useEffect(() => {
     if (!isOpen) return;
+
+    let isMounted = true;
 
     const fetchFacultySchedules = async () => {
       setIsLoadingCourses(true);
@@ -73,65 +83,149 @@ export default function AnnouncementModal({
         if (user?.department) params.append("department", user.department);
 
         const res = await fetch(`/api/schedules?${params.toString()}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (res.ok) {
+        if (res.ok && isMounted) {
           const schedules = await res.json();
 
-          const uniqueCourses: string[] = Array.from(
-            new Set(
-              schedules
-                .map((s: any) => s.code || s.title)
-                .filter((code: any) => Boolean(code))
-            )
-          );
+          const mappedOptions: ScheduleOption[] = schedules
+            .filter((s: any) => Boolean(s.code || s.title))
+            .map((s: any) => ({
+              id: String(s._id || s.id),
+              code: s.code || "",
+              title: s.title || "",
+              section: s.section || "",
+              displayLabel: `${s.code || "Subject"} - ${s.title || "Untitled"}${
+                s.section ? ` (${s.section})` : ""
+              }`,
+            }));
 
-          setFacultyCourses(uniqueCourses);
-        } else {
-          setFacultyCourses([]);
+          setScheduleOptions(mappedOptions);
+        } else if (isMounted) {
+          setScheduleOptions([]);
         }
       } catch (err) {
         console.error("Failed to fetch faculty course schedules:", err);
-        setFacultyCourses([]);
+        if (isMounted) setScheduleOptions([]);
       } finally {
-        setIsLoadingCourses(false);
+        if (isMounted) setIsLoadingCourses(false);
       }
     };
 
     fetchFacultySchedules();
+
+    return () => {
+      isMounted = false;
+    };
   }, [isOpen]);
 
-  const availableCourses = useMemo(() => {
-    if (facultyCourses.length > 0) {
-      return facultyCourses;
-    }
-    return fallbackCourses.filter((c) => c !== "All Courses");
-  }, [facultyCourses, fallbackCourses]);
+  const activeSchedule = useMemo(() => {
+    return scheduleOptions.find((opt) => opt.id === selectedScheduleKey);
+  }, [scheduleOptions, selectedScheduleKey]);
 
-  useEffect(() => {
-    if (isOpen) {
-      if (announcementToEdit) {
-        setTitle(announcementToEdit.title || "");
-        setCourse(announcementToEdit.course || "");
-        setPriority(announcementToEdit.priority || "");
-        setMessage(announcementToEdit.message || "");
-        setScheduledDate("");
-      } else {
-        handleResetForm();
-      }
-      setShowExitConfirm(false);
-      setShowSubmitConfirm(false);
+  /* =========================================================
+     FETCH RECIPIENT COUNT LIVE FROM BACKEND
+     ========================================================= */
+  const fetchRecipientCount = useCallback(async (targetCode: string, section: string) => {
+    if (!targetCode) {
+      setRecipientCount(0);
+      return;
     }
-  }, [isOpen, announcementToEdit]);
+
+    setIsCalculatingRecipients(true);
+    try {
+      const userJson = localStorage.getItem("user");
+      const token = localStorage.getItem("token");
+      const user = userJson ? JSON.parse(userJson) : null;
+
+      const params = new URLSearchParams({
+        courseCode: targetCode,
+        section: section || "",
+        department: user?.department || "General",
+      });
+
+      const res = await fetch(`/api/announcements/recipients/count?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setRecipientCount(data.count ?? 0);
+      } else {
+        setRecipientCount(0);
+      }
+    } catch (err) {
+      console.error("Failed to fetch recipient count:", err);
+      setRecipientCount(0);
+    } finally {
+      setIsCalculatingRecipients(false);
+    }
+  }, []);
+
+  /* =========================================================
+     SYNC FORM STATE IN EDIT MODE / SCHEDULE LOAD
+     ========================================================= */
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (announcementToEdit) {
+      setTitle(announcementToEdit.title || "");
+      setPriority(announcementToEdit.priority || "");
+      setMessage(announcementToEdit.message || "");
+      setScheduledDate(announcementToEdit.scheduledDate || "");
+
+      const matched = scheduleOptions.find(
+        (opt) =>
+          (announcementToEdit.subjectCode &&
+            opt.code.toLowerCase() === announcementToEdit.subjectCode.toLowerCase() &&
+            opt.section.toLowerCase() === (announcementToEdit.section || "").toLowerCase()) ||
+          opt.displayLabel === announcementToEdit.course
+      );
+
+      if (matched) {
+        setSelectedScheduleKey(matched.id);
+      } else if (
+        announcementToEdit.course === "All Courses" ||
+        announcementToEdit.subjectCode === "All Courses"
+      ) {
+        setSelectedScheduleKey("ALL");
+      } else if (scheduleOptions.length > 0) {
+        setSelectedScheduleKey(announcementToEdit.course || "");
+      }
+    } else {
+      handleResetForm();
+    }
+
+    setShowExitConfirm(false);
+    setShowSubmitConfirm(false);
+  }, [isOpen, announcementToEdit, scheduleOptions]);
+
+  /* =========================================================
+     TRIGGER RECIPIENT RE-CALCULATION WHEN TARGET SELECTION CHANGES
+     ========================================================= */
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (selectedScheduleKey === "ALL") {
+      fetchRecipientCount("All Courses", "");
+    } else if (activeSchedule) {
+      fetchRecipientCount(activeSchedule.code, activeSchedule.section);
+    } else if (announcementToEdit && selectedScheduleKey) {
+      fetchRecipientCount(
+        announcementToEdit.subjectCode || announcementToEdit.course,
+        announcementToEdit.section || ""
+      );
+    } else {
+      setRecipientCount(0);
+    }
+  }, [selectedScheduleKey, activeSchedule, isOpen, announcementToEdit, fetchRecipientCount]);
 
   const isDirty = useMemo(() => {
     if (announcementToEdit) {
       return (
         title !== (announcementToEdit.title || "") ||
-        course !== (announcementToEdit.course || "") ||
+        selectedScheduleKey !== (announcementToEdit.course || "") ||
         priority !== (announcementToEdit.priority || "") ||
         message !== (announcementToEdit.message || "") ||
         scheduledDate !== ""
@@ -139,12 +233,12 @@ export default function AnnouncementModal({
     }
     return (
       title.trim() !== "" ||
-      course.trim() !== "" ||
+      selectedScheduleKey !== "" ||
       priority !== "" ||
       message.trim() !== "" ||
       scheduledDate !== ""
     );
-  }, [title, course, priority, message, scheduledDate, announcementToEdit]);
+  }, [title, selectedScheduleKey, priority, message, scheduledDate, announcementToEdit]);
 
   const handleAttemptClose = () => {
     if (isSubmitting) return;
@@ -170,14 +264,14 @@ export default function AnnouncementModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, isSubmitting, isDirty, showExitConfirm, showSubmitConfirm]);
 
-  if (!isOpen) return null;
-
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!title.trim() || !course || !priority || !message.trim()) {
-      setErrorMessage("Please fill in all required fields including Priority Level.");
+    if (!title.trim() || !selectedScheduleKey || !priority || !message.trim()) {
+      setErrorMessage(
+        "Please fill in all required fields including Target Schedule and Priority Level."
+      );
       return;
     }
 
@@ -193,14 +287,33 @@ export default function AnnouncementModal({
       const token = localStorage.getItem("token");
       const user = userJson ? JSON.parse(userJson) : null;
 
+      const courseLabel = activeSchedule
+        ? activeSchedule.displayLabel
+        : selectedScheduleKey === "ALL"
+        ? "All Courses"
+        : selectedScheduleKey;
+
+      const subjectCode = activeSchedule
+        ? activeSchedule.code
+        : selectedScheduleKey === "ALL"
+        ? "All Courses"
+        : announcementToEdit?.subjectCode || selectedScheduleKey;
+
+      const section = activeSchedule
+        ? activeSchedule.section
+        : announcementToEdit?.section || "";
+
       const payload = {
         title: title.trim(),
-        course,
+        course: courseLabel,
+        subjectCode,
+        section,
         priority,
         message: message.trim(),
         scheduledDate,
         sendPush,
         sendEmail,
+        recipients: recipientCount,
         facultyId: user?.id || user?._id || "",
         author:
           user?.name ||
@@ -228,8 +341,7 @@ export default function AnnouncementModal({
 
       if (!res.ok) {
         throw new Error(
-          data.message ||
-            `Failed to ${isEditMode ? "update" : "create"} announcement.`
+          data.message || `Failed to ${isEditMode ? "update" : "create"} announcement.`
         );
       }
 
@@ -245,13 +357,14 @@ export default function AnnouncementModal({
 
   const handleResetForm = () => {
     setTitle("");
-    setCourse("");
+    setSelectedScheduleKey("");
     setPriority("");
     setMessage("");
     setScheduledDate("");
     setSendPush(true);
     setSendEmail(false);
     setErrorMessage(null);
+    setRecipientCount(0);
   };
 
   const handleResetAndClose = () => {
@@ -275,9 +388,10 @@ export default function AnnouncementModal({
     }
   };
 
+  if (!isOpen) return null;
+
   return (
     <>
-      {/* Main Modal Wrapper */}
       <div
         className="modal fade show d-block position-fixed top-0 start-0 w-100 h-100 modal-blur-backdrop-fixed"
         tabIndex={-1}
@@ -290,11 +404,10 @@ export default function AnnouncementModal({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden modal-blur-card">
-            {/* Header */}
             <div className="modal-header border-0 pb-0 pt-4 px-4 d-flex align-items-center justify-content-between">
               <div className="d-flex align-items-center gap-3">
                 <div
-                  className="d-inline-flex align-items-center justify-content-center rounded-3 bg-success bg-opacity-10 text-success p-2"
+                  className="d-inline-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10 text-primary p-2"
                   style={{ width: 44, height: 44 }}
                 >
                   <Bell size={22} />
@@ -304,9 +417,7 @@ export default function AnnouncementModal({
                     {isEditMode ? "Edit Announcement" : "New Announcement"}
                   </h5>
                   <p className="text-muted small mb-0">
-                    {isEditMode
-                      ? "Update class announcement details"
-                      : "Post an update or notification to your course students"}
+                    Post updates targeting specific subjects, sections, or classes
                   </p>
                 </div>
               </div>
@@ -322,7 +433,6 @@ export default function AnnouncementModal({
               </button>
             </div>
 
-            {/* Form */}
             <form onSubmit={handleFormSubmit}>
               <div className="modal-body p-3 p-md-4">
                 {errorMessage && (
@@ -331,7 +441,6 @@ export default function AnnouncementModal({
                   </div>
                 )}
 
-                {/* Announcement Title */}
                 <div className="mb-3">
                   <label className="form-label fw-semibold text-dark small">
                     Announcement Title <span className="text-danger">*</span>
@@ -347,29 +456,29 @@ export default function AnnouncementModal({
                   />
                 </div>
 
-                {/* Target Course & Priority Level */}
                 <div className="row g-3 mb-3">
                   <div className="col-12 col-md-6">
                     <label className="form-label fw-semibold text-dark small">
-                      Target Course <span className="text-danger">*</span>
+                      Target Course / Class Section <span className="text-danger">*</span>
                     </label>
                     <select
                       className="form-select form-select-lg rounded-3 border fs-6 shadow-none"
-                      value={course}
+                      value={selectedScheduleKey}
                       disabled={isSubmitting || isLoadingCourses}
-                      onChange={(e) => setCourse(e.target.value)}
+                      onChange={(e) => setSelectedScheduleKey(e.target.value)}
                       required
                     >
                       <option value="" disabled>
                         {isLoadingCourses
-                          ? "Loading assigned courses..."
-                          : availableCourses.length === 0
-                          ? "No assigned courses found"
-                          : "Select assigned course"}
+                          ? "Loading assigned schedule..."
+                          : scheduleOptions.length === 0
+                          ? "No active schedule entries found"
+                          : "Select assigned course / section"}
                       </option>
-                      {availableCourses.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
+                      <option value="ALL">All Enrolled Department Students</option>
+                      {scheduleOptions.map((opt) => (
+                        <option key={opt.id} value={opt.id}>
+                          {opt.displayLabel}
                         </option>
                       ))}
                     </select>
@@ -398,7 +507,6 @@ export default function AnnouncementModal({
                   </div>
                 </div>
 
-                {/* Dynamic Summary Bar */}
                 <div className="p-3 bg-light rounded-3 d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                   <div className="d-flex align-items-center gap-2">
                     <span className="text-muted small fw-medium">Priority:</span>
@@ -408,18 +516,35 @@ export default function AnnouncementModal({
                       {priority || "Not Selected"}
                     </span>
                   </div>
-                  <div className="text-muted small fw-medium">
-                    {course ? (
-                      <span className="text-dark">
-                        Targeting <strong>{course}</strong>
-                      </span>
+
+                  <div className="d-flex align-items-center gap-2 text-muted small fw-medium">
+                    {selectedScheduleKey ? (
+                      <>
+                        <Users size={16} className="text-primary" />
+                        <span className="text-dark">
+                          Targeting{" "}
+                          <strong>
+                            {activeSchedule
+                              ? activeSchedule.displayLabel
+                              : selectedScheduleKey === "ALL"
+                              ? "All Enrolled Students"
+                              : selectedScheduleKey}
+                          </strong>
+                        </span>
+                        <span className="badge bg-primary bg-opacity-10 text-primary ms-1 px-2 py-1">
+                          {isCalculatingRecipients ? (
+                            <Loader2 size={12} className="spinner-border spinner-border-sm" />
+                          ) : (
+                            `${recipientCount} Student${recipientCount === 1 ? "" : "s"}`
+                          )}
+                        </span>
+                      </>
                     ) : (
-                      "Select a course"
+                      "Select a course or class section"
                     )}
                   </div>
                 </div>
 
-                {/* Announcement Content */}
                 <div className="mb-3">
                   <label className="form-label fw-semibold text-dark small">
                     Announcement Content <span className="text-danger">*</span>
@@ -434,15 +559,11 @@ export default function AnnouncementModal({
                     onChange={(e) => setMessage(e.target.value)}
                     required
                   />
-                  <div
-                    className="text-end text-muted small mt-1"
-                    style={{ fontSize: "0.8rem" }}
-                  >
+                  <div className="text-end text-muted small mt-1" style={{ fontSize: "0.8rem" }}>
                     {message.length} / 1000 characters
                   </div>
                 </div>
 
-                {/* Schedule for Later */}
                 <div className="mb-3">
                   <label className="form-label fw-semibold text-dark small d-flex align-items-center gap-1">
                     <Calendar size={16} className="text-muted" />
@@ -460,7 +581,6 @@ export default function AnnouncementModal({
                   </div>
                 </div>
 
-                {/* Notification Options Box */}
                 <div className="p-3 bg-light bg-opacity-75 rounded-3 border mb-2">
                   <div className="fw-semibold text-dark mb-3 d-flex align-items-center gap-2 small">
                     <Users size={18} className="text-primary" />
@@ -480,7 +600,7 @@ export default function AnnouncementModal({
                         readOnly
                       />
                       <label className="form-check-label text-dark small pointer mb-0">
-                        Send push notification to students
+                        Send push notification to students ({recipientCount} enrolled)
                       </label>
                     </div>
 
@@ -503,7 +623,6 @@ export default function AnnouncementModal({
                 </div>
               </div>
 
-              {/* Footer Buttons */}
               <div className="modal-footer border-0 px-4 pb-4 pt-0 d-flex justify-content-end gap-2">
                 <button
                   type="button"
@@ -516,14 +635,11 @@ export default function AnnouncementModal({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="btn btn-success rounded-3 px-4 py-2 fw-medium d-inline-flex align-items-center gap-2"
+                  className="btn btn-primary rounded-3 px-4 py-2 fw-medium d-inline-flex align-items-center gap-2"
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2
-                        size={18}
-                        className="spinner-border spinner-border-sm"
-                      />
+                      <Loader2 size={18} className="spinner-border spinner-border-sm" />
                       {isEditMode ? "Saving..." : "Publishing..."}
                     </>
                   ) : (
@@ -539,16 +655,12 @@ export default function AnnouncementModal({
         </div>
       </div>
 
-      {/* UNSAVED EXIT CONFIRMATION OVERLAY */}
       {showExitConfirm && (
         <div
           className="modal-blur-backdrop-fixed d-flex align-items-center justify-content-center p-3"
           onClick={(e) => e.stopPropagation()}
         >
-          <div
-            className="bg-white rounded-4 p-4 shadow-lg text-center"
-            style={{ maxWidth: 380, width: "100%" }}
-          >
+          <div className="bg-white rounded-4 p-4 shadow-lg text-center" style={{ maxWidth: 380, width: "100%" }}>
             <div
               className="d-inline-flex align-items-center justify-content-center rounded-circle bg-warning bg-opacity-10 text-warning mb-3"
               style={{ width: 56, height: 56 }}
@@ -579,18 +691,14 @@ export default function AnnouncementModal({
         </div>
       )}
 
-      {/* SUBMIT CONFIRMATION OVERLAY */}
       {showSubmitConfirm && (
         <div
           className="modal-blur-backdrop-fixed d-flex align-items-center justify-content-center p-3"
           onClick={(e) => e.stopPropagation()}
         >
-          <div
-            className="bg-white rounded-4 p-4 shadow-lg text-center"
-            style={{ maxWidth: 380, width: "100%" }}
-          >
+          <div className="bg-white rounded-4 p-4 shadow-lg text-center" style={{ maxWidth: 380, width: "100%" }}>
             <div
-              className="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10 text-success mb-3"
+              className="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 text-primary mb-3"
               style={{ width: 56, height: 56 }}
             >
               <CheckCircle2 size={28} />
@@ -601,7 +709,9 @@ export default function AnnouncementModal({
             <p className="text-muted small mb-4">
               {isEditMode
                 ? "Are you sure you want to update this announcement?"
-                : `Ready to notify students in ${course}?`}
+                : `Ready to notify ${recipientCount} student${recipientCount === 1 ? "" : "s"} in ${
+                    activeSchedule ? activeSchedule.displayLabel : selectedScheduleKey
+                  }?`}
             </p>
             <div className="d-flex gap-2">
               <button
@@ -613,7 +723,7 @@ export default function AnnouncementModal({
               </button>
               <button
                 type="button"
-                className="btn btn-success w-50 py-2 rounded-3 fw-medium"
+                className="btn btn-primary w-50 py-2 rounded-3 fw-medium"
                 onClick={handleConfirmSubmit}
               >
                 Confirm

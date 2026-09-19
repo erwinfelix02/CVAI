@@ -1,6 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Mail, User, IdCard, Phone, GraduationCap, AlertTriangle } from "lucide-react";
+import {
+  X,
+  Mail,
+  User,
+  IdCard,
+  Phone,
+  GraduationCap,
+  AlertTriangle,
+} from "lucide-react";
 import type { StudentItem } from "./studentTypes";
 
 type Props = {
@@ -14,60 +22,97 @@ type Props = {
   }) => Promise<void> | void;
 };
 
+const DEFAULT_SUBJECT = "Your CampusHub Account Credentials";
+const DEFAULT_MESSAGE =
+  "Hello! Your student portal account has been created. Please use the credentials provided to log in.";
+
+const backdropBlurStyle: React.CSSProperties = {
+  backgroundColor: "rgba(15, 23, 42, 0.45)",
+  backdropFilter: "blur(4px)",
+  WebkitBackdropFilter: "blur(4px)",
+};
+
 export default function SendCredentialsModal({
   open,
   onClose,
   students,
   onSend,
 }: Props) {
-  const [subject, setSubject] = useState("Your CampusHub Account Credentials");
-  const [message, setMessage] = useState(
-    "Hello! Your student portal account has been created. Please use the credentials provided to log in.",
-  );
+  const [subject, setSubject] = useState(DEFAULT_SUBJECT);
+  const [message, setMessage] = useState(DEFAULT_MESSAGE);
   const [sending, setSending] = useState(false);
 
-  // ✅ confirmation popup state
+  // Confirmation state
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Exit confirmation state
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
 
   const studentIds = useMemo(() => students.map((s) => s._id), [students]);
   const count = students.length;
 
-  // reset + lock scroll
+  // Check if form was edited
+  const isDirty = useMemo(() => {
+    return subject !== DEFAULT_SUBJECT || message !== DEFAULT_MESSAGE;
+  }, [subject, message]);
+
+  // Reset values when modal opens
   useEffect(() => {
     if (!open) return;
 
-    setSubject("Your CampusHub Account Credentials");
-    setMessage(
-      "Hello! Your student portal account has been created. Please use the credentials provided to log in.",
-    );
-
-    // ✅ close confirm if modal re-opens
+    setSubject(DEFAULT_SUBJECT);
+    setMessage(DEFAULT_MESSAGE);
     setConfirmOpen(false);
+    setExitConfirmOpen(false);
 
-    const prev = document.body.style.overflow;
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prevOverflow;
     };
   }, [open]);
 
-  // ESC to close (if confirm popup is open, close popup first)
+  // Attempt close with check for dirty form
+  const handleAttemptClose = () => {
+    if (sending) return;
+
+    if (isDirty) {
+      setExitConfirmOpen(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleConfirmExit = () => {
+    setExitConfirmOpen(false);
+    setConfirmOpen(false);
+    onClose();
+  };
+
+  // Keyboard navigation & ESC key
   useEffect(() => {
     if (!open) return;
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (confirmOpen) setConfirmOpen(false);
-        else onClose();
+        if (sending) return;
+
+        if (exitConfirmOpen) {
+          setExitConfirmOpen(false);
+        } else if (confirmOpen) {
+          setConfirmOpen(false);
+        } else {
+          handleAttemptClose();
+        }
       }
     };
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose, confirmOpen]);
+  }, [open, confirmOpen, exitConfirmOpen, sending, isDirty]);
 
   if (!open) return null;
 
-  // ✅ original send logic extracted
   const doSend = async () => {
     if (studentIds.length === 0) return;
     try {
@@ -83,26 +128,36 @@ export default function SendCredentialsModal({
     }
   };
 
-  // ✅ now Send button opens popup instead of sending immediately
   const handleSend = () => {
     if (studentIds.length === 0) return;
     setConfirmOpen(true);
   };
 
-  const modal = (
+  const modalContent = (
     <>
+      {/* MAIN SEND MODAL BACKDROP (Base zIndex: 10000) */}
       <div
         className="modal-backdrop-custom"
+        style={{ ...backdropBlurStyle, zIndex: 10000 }}
         role="dialog"
         aria-modal="true"
         aria-label="Send Account Credentials"
         onMouseDown={(e) => {
-          // click outside closes (but not while confirm popup is open)
-          if (e.target === e.currentTarget && !confirmOpen && !sending) onClose();
+          if (
+            e.target === e.currentTarget &&
+            !confirmOpen &&
+            !exitConfirmOpen &&
+            !sending
+          ) {
+            handleAttemptClose();
+          }
         }}
       >
-        <div className="modal-card-custom" onMouseDown={(e) => e.stopPropagation()}>
-          {/* header */}
+        <div
+          className="modal-card-custom"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
           <div className="modal-head-custom">
             <div className="d-flex align-items-center gap-2">
               <Mail size={20} />
@@ -110,10 +165,9 @@ export default function SendCredentialsModal({
             </div>
 
             <button
+              type="button"
               className="modal-x-btn"
-              onClick={() => {
-                if (!sending) onClose();
-              }}
+              onClick={handleAttemptClose}
               aria-label="Close"
               disabled={sending}
             >
@@ -121,13 +175,14 @@ export default function SendCredentialsModal({
             </button>
           </div>
 
-          {/* body (scrollable) */}
+          {/* Body */}
           <div className="modal-body-custom">
             <p className="text-muted mb-3">
-              Send account credentials to <b>{count}</b> selected student{count > 1 ? "s" : ""}.
+              Send account credentials to <b>{count}</b> selected student
+              {count > 1 ? "s" : ""}.
             </p>
 
-            {/* list */}
+            {/* Student List */}
             <div className="selected-students-box">
               {students.map((s) => (
                 <div key={s._id} className="selected-student-row">
@@ -140,19 +195,26 @@ export default function SendCredentialsModal({
               ))}
             </div>
 
-            {/* details if 1 */}
+            {/* Single Student Detail */}
             {students.length === 1 ? (
               <div className="mt-3">
                 <h6 className="fw-bold mb-2">Student Information</h6>
-
                 <div className="info-grid">
-                  <InfoItem icon={<User size={16} />} label="Full Name" value={students[0].fullName} />
+                  <InfoItem
+                    icon={<User size={16} />}
+                    label="Full Name"
+                    value={students[0].fullName}
+                  />
                   <InfoItem
                     icon={<IdCard size={16} />}
                     label="Student ID"
                     value={students[0].studentIdNumber}
                   />
-                  <InfoItem icon={<Phone size={16} />} label="Phone" value={students[0].phone || "—"} />
+                  <InfoItem
+                    icon={<Phone size={16} />}
+                    label="Phone"
+                    value={students[0].phone || "—"}
+                  />
                   <InfoItem
                     icon={<GraduationCap size={16} />}
                     label="Program / Year"
@@ -169,69 +231,84 @@ export default function SendCredentialsModal({
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="Email subject..."
+                disabled={sending}
               />
             </div>
 
             <div className="mt-3">
-              <label className="form-label fw-semibold">Additional Message (optional)</label>
+              <label className="form-label fw-semibold">
+                Additional Message (optional)
+              </label>
               <textarea
                 className="form-control"
                 rows={4}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Add instructions for the student..."
+                disabled={sending}
               />
             </div>
           </div>
 
-          {/* footer */}
+          {/* Footer */}
           <div className="modal-foot-custom">
             <button
+              type="button"
               className="btn btn-light"
-              onClick={() => {
-                if (!sending) onClose();
-              }}
+              onClick={handleAttemptClose}
               disabled={sending}
             >
               Cancel
             </button>
 
             <button
+              type="button"
               className="btn-teal"
               onClick={handleSend}
               disabled={sending || studentIds.length === 0}
             >
               <Mail size={18} />
-              {sending ? "Sending..." : `Send Credentials to ${count} Student${count > 1 ? "s" : ""}`}
+              {sending
+                ? "Sending..."
+                : `Send Credentials to ${count} Student${count > 1 ? "s" : ""}`}
             </button>
           </div>
         </div>
       </div>
 
-      {/* ✅ CONFIRMATION POPUP */}
-      {confirmOpen ? (
+      {/* CONFIRMATION POPUP (Elevated zIndex: 10050 to sit cleanly on top) */}
+      {confirmOpen && (
         <div
           className="confirm-backdrop"
+          style={{ ...backdropBlurStyle, zIndex: 10050 }}
           role="dialog"
           aria-modal="true"
           aria-label="Confirm Send Credentials"
           onMouseDown={(e) => {
-            // click outside confirmation closes it (optional)
-            if (e.target === e.currentTarget && !sending) setConfirmOpen(false);
+            if (e.target === e.currentTarget && !sending) {
+              setConfirmOpen(false);
+            }
           }}
         >
-          <div className="confirm-card" onMouseDown={(e) => e.stopPropagation()}>
+          <div
+            className="confirm-card"
+            style={{ zIndex: 10051 }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             <div className="d-flex align-items-center gap-2 mb-2">
-              <AlertTriangle size={20} />
+              <AlertTriangle size={20} className="text-warning" />
               <h6 className="mb-0 fw-bold">Confirm Send</h6>
             </div>
 
             <p className="text-muted mb-3">
-              Are you sure you want to send credentials to <b>{count}</b> student{count > 1 ? "s" : ""}?
+              Are you sure you want to send credentials to <b>{count}</b>{" "}
+              student
+              {count > 1 ? "s" : ""}?
             </p>
 
             <div className="d-flex justify-content-end gap-2">
               <button
+                type="button"
                 className="btn btn-light"
                 onClick={() => setConfirmOpen(false)}
                 disabled={sending}
@@ -239,18 +316,74 @@ export default function SendCredentialsModal({
                 Cancel
               </button>
 
-              <button className="btn btn-danger" onClick={doSend} disabled={sending}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={doSend}
+                disabled={sending}
+              >
                 {sending ? "Sending..." : "Yes, Send"}
               </button>
             </div>
           </div>
         </div>
-      ) : null}
+      )}
+
+      {/* EXIT CONFIRMATION MODAL (Elevated zIndex: 10060) */}
+      {exitConfirmOpen && (
+        <div
+          className="confirm-backdrop"
+          style={{ ...backdropBlurStyle, zIndex: 10060 }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Cancel Sending"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !sending) {
+              setExitConfirmOpen(false);
+            }
+          }}
+        >
+          <div
+            className="confirm-card"
+            style={{ zIndex: 10061 }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="d-flex align-items-center gap-2 mb-2">
+              <AlertTriangle size={20} className="text-danger" />
+              <h6 className="mb-0 fw-bold">Discard Changes?</h6>
+            </div>
+
+            <p className="text-muted mb-3">
+              Are you sure you want to exit? Your custom subject and message
+              will be lost.
+            </p>
+
+            <div className="d-flex justify-content-end gap-2">
+              <button
+                type="button"
+                className="btn btn-light"
+                onClick={() => setExitConfirmOpen(false)}
+                disabled={sending}
+              >
+                Continue Editing
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={handleConfirmExit}
+                disabled={sending}
+              >
+                Discard & Exit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 
-  // ✅ IMPORTANT: Portal fixes sidebar/backdrop z-index issues
-  return createPortal(modal, document.body);
+  return createPortal(modalContent, document.body);
 }
 
 function InfoItem({

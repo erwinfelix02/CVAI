@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
-import { Folder, HelpCircle, MessageSquareText, Users, X } from "lucide-react";
+import { Folder, HelpCircle, MessageSquareText, Users, X, AlertTriangle } from "lucide-react";
 import AuthAlert from "../../Authentication/AuthAlert";
 
 const ROLES = [
@@ -492,9 +492,11 @@ export default function AddFaqModal({
           )}
         </div>
 
+        {/* COMPACT DISCARD CHANGES MODAL */}
         {discardOpen ? (
           <div
             className="kb-modal-overlay"
+            style={{ zIndex: 1060 }}
             role="dialog"
             aria-modal="true"
             onClick={(e) => {
@@ -503,9 +505,15 @@ export default function AddFaqModal({
               }
             }}
           >
-            <div className="kb-modal-card" onClick={(e) => e.stopPropagation()}>
-              <div className="kb-modal-header">
-                <h5>Discard changes?</h5>
+            <div
+              className="kb-modal-card kb-modal-card-dialog"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="kb-modal-header d-flex align-items-center justify-content-between">
+                <div className="d-flex align-items-center gap-2">
+                  <AlertTriangle className="text-warning" size={20} />
+                  <h5 className="mb-0">Discard changes?</h5>
+                </div>
                 <button
                   type="button"
                   className="kb-close-btn app-icon-btn app-icon-btn-sm"
@@ -518,7 +526,7 @@ export default function AddFaqModal({
                 </button>
               </div>
 
-              <div className="kb-modal-body">
+              <div className="kb-modal-body py-2">
                 <p className="mb-0 text-muted">
                   You have unsaved changes in this FAQ. Closing now will discard
                   them.

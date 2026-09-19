@@ -309,9 +309,11 @@ export const heartbeat = async (req, res) => {
   }
 };
 
+// src/controllers/authController.js
+
 export const updatePassword = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, currentPassword, password } = req.body;
     const ip = getClientIp(req);
 
     if (!email || !password) {
@@ -320,13 +322,13 @@ export const updatePassword = async (req, res) => {
         user: email || "unknown",
         role: "unknown",
         type: "Auth",
-        details: "Email and password are required",
+        details: "Email and new password are required",
         ip,
         status: "warning",
       });
 
       return res.status(400).json({
-        message: "Email and password are required",
+        message: "Email and new password are required",
       });
     }
 
@@ -364,7 +366,27 @@ export const updatePassword = async (req, res) => {
       });
     }
 
-    if (!user.isTemporaryPassword) {
+    // 1. SETTINGS CHANGE (User provided Current Password)
+    if (currentPassword) {
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        addLog({
+          action: "Password Update Failed",
+          user: user.email,
+          role: user.role || "unknown",
+          type: "Security",
+          details: "Incorrect current password",
+          ip,
+          status: "warning",
+        });
+
+        return res.status(400).json({
+          message: "Current password is incorrect.",
+        });
+      }
+    } 
+    // 2. FORGOT PASSWORD / RESET FLOW
+    else if (!user.isTemporaryPassword) {
       if (
         !user.resetCode ||
         !user.resetCodeExpires ||
@@ -386,6 +408,7 @@ export const updatePassword = async (req, res) => {
       }
     }
 
+    // 3. Save new password
     user.password = password;
     user.isTemporaryPassword = false;
     user.loginAttempts = 0;

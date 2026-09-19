@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { X, Check } from "lucide-react";
 import type { RoleCardItem } from "./types";
 import { PERMISSIONS } from "./permissions";
@@ -13,10 +14,32 @@ export default function RoleDetailsModal({
 }) {
   const Icon = role.icon;
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="rbac-backdrop">
-      <div className="rbac-modal">
-        <button className="rbac-x" onClick={onClose} aria-label="Close">
+    <div
+      className="rbac-backdrop"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="rbac-modal"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <button
+          className="rbac-x"
+          onClick={onClose}
+          aria-label="Close"
+          type="button"
+        >
           <X size={18} />
         </button>
 
@@ -44,16 +67,24 @@ export default function RoleDetailsModal({
               <span className="rbac-check">
                 <Check size={16} />
               </span>
-             <span>{PERMISSIONS[k]?.label ?? k}</span>
+              <span>{PERMISSIONS[k]?.label ?? k}</span>
             </div>
           ))}
         </div>
 
         <div className="rbac-actions">
-          <button className="btn btn-light rbac-btn" onClick={onClose}>
+          <button
+            type="button"
+            className="btn btn-light rbac-btn"
+            onClick={onClose}
+          >
             Close
           </button>
-          <button className="btn btn-primary rbac-btn" onClick={onEdit}>
+          <button
+            type="button"
+            className="btn btn-primary rbac-btn"
+            onClick={onEdit}
+          >
             Edit Permissions
           </button>
         </div>

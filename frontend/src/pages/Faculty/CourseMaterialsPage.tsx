@@ -179,13 +179,7 @@ export default function CourseMaterialsPage() {
     setEditingMaterial(item);
     setIsModalOpen(true);
   };
-
-  const handleShareLink = (item: MaterialItem) => {
-    const url = `${window.location.origin}/materials/${item.id}`;
-    setSharingLink({ id: item.id, title: item.title, url });
-    setHasCopiedLink(false);
-  };
-
+  
   const handleCopyShareLink = () => {
     if (!sharingLink) return;
     navigator.clipboard.writeText(sharingLink.url);
@@ -230,7 +224,7 @@ export default function CourseMaterialsPage() {
 
         <button
           type="button"
-          className="btn btn-success d-inline-flex align-items-center gap-2 px-3"
+          className="btn btn-primary d-inline-flex align-items-center gap-2 px-3"
           onClick={handleOpenUploadModal}
         >
           <Upload size={18} />
@@ -266,7 +260,6 @@ export default function CourseMaterialsPage() {
           totalCount={materialsList.length}
           onViewDetails={handleViewDetails}
           onEdit={handleEdit}
-          onShareLink={handleShareLink}
           onDelete={handleDeleteTrigger}
         />
       )}
@@ -439,9 +432,7 @@ export default function CourseMaterialsPage() {
               />
               <button
                 type="button"
-                className={`btn d-flex align-items-center gap-1 px-3 fw-medium transition-all ${
-                  hasCopiedLink ? "btn-success" : "btn-primary"
-                }`}
+                className="btn btn-primary d-flex align-items-center gap-1 px-3 fw-medium transition-all"
                 onClick={handleCopyShareLink}
               >
                 {hasCopiedLink ? (

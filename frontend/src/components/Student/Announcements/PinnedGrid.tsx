@@ -1,4 +1,4 @@
-import type { Announcement } from "../../../pages/Student/AnnouncementsPage";
+import type { Announcement } from "./types";
 import AnnouncementCard from "./AnnouncementCard";
 
 export default function PinnedGrid({ items }: { items: Announcement[] }) {

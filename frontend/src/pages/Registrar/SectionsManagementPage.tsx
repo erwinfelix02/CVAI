@@ -6,6 +6,7 @@ import SectionStatsRow from "../../components/Registrar/Sections/SectionStatsRow
 import SectionsToolbar from "../../components/Registrar/Sections/SectionsToolbar";
 import SectionsGrid from "../../components/Registrar/Sections/SectionsGrid";
 import AddSectionModal from "../../components/Registrar/Sections/AddSectionModal";
+import ViewStudentsModal from "../../components/Registrar/Sections/ViewStudentsModal";
 
 import type { SectionItem } from "../../components/Registrar/Sections/types";
 
@@ -25,7 +26,7 @@ type CourseOption = {
   code: string;
   name: string;
   yearLevels: number;
-   status: "Active" | "Inactive";
+  status: "Active" | "Inactive";
 };
 
 const SETTINGS_URL = "http://localhost:5000/api/registrar/settings";
@@ -37,10 +38,11 @@ export default function SectionsManagementPage() {
   const [openAdd, setOpenAdd] = useState(false);
   const [editing, setEditing] = useState<SectionItem | null>(null);
 
+  const [viewingStudentsSection, setViewingStudentsSection] = useState<SectionItem | null>(null);
+
   const [sections, setSections] = useState<SectionItem[]>([]);
   const [courses, setCourses] = useState<CourseOption[]>([]);
 
-  // ✅ NEW: max capacity from registrar settings
   const [maxCapacity, setMaxCapacity] = useState<number>(45);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -63,7 +65,6 @@ export default function SectionsManagementPage() {
     return () => clearTimeout(t);
   }, [animateAlert]);
 
-  // ✅ NEW: LOAD REGISTRAR SETTINGS (max capacity)
   const loadRegistrarSettings = async () => {
     try {
       const res = await fetch(SETTINGS_URL);
@@ -80,58 +81,53 @@ export default function SectionsManagementPage() {
       console.error("Failed to fetch registrar settings", err);
     }
   };
-// ✅ LOAD COURSES
-const loadCourses = async () => {
-  try {
-    const data = await getCourses();
 
-    const mapped: CourseOption[] = (Array.isArray(data) ? data : [])
-      .map((c: any): CourseOption => {
-        const status: CourseOption["status"] =
-          c.status === "Inactive" ? "Inactive" : "Active";
+  const loadCourses = async () => {
+    try {
+      const data = await getCourses();
 
-        return {
-          id: c._id,
-          code: c.code,
-          name: c.name,
-          yearLevels: Number(c.yearLevels ?? 4),
-          status,
-        };
-      })
-      .filter((c) => c.status === "Active"); // ✅ ONLY ACTIVE COURSES
+      const mapped: CourseOption[] = (Array.isArray(data) ? data : [])
+        .map((c: any): CourseOption => {
+          const status: CourseOption["status"] =
+            c.status === "Inactive" ? "Inactive" : "Active";
 
-    setCourses(mapped);
-  } catch (err: any) {
-    console.error(err);
-    setCourses([]);
-    showAlert(err.response?.data?.message || "Failed to load courses.", "error");
-  }
-};
+          return {
+            id: c._id,
+            code: c.code,
+            name: c.name,
+            yearLevels: Number(c.yearLevels ?? 4),
+            status,
+          };
+        })
+        .filter((c) => c.status === "Active");
 
-  // ✅ LOAD SECTIONS
+      setCourses(mapped);
+    } catch (err: any) {
+      console.error(err);
+      setCourses([]);
+      showAlert(err.response?.data?.message || "Failed to load courses.", "error");
+    }
+  };
+
   const loadSections = async () => {
     try {
       const data = await getSections();
 
       const mapped: SectionItem[] = (Array.isArray(data) ? data : []).map(
-  (s: any) => ({
-    id: s._id,
-    code: s.code,
-    yearLevel: s.yearLevel,
-
-    // ✅ IMPORTANT: normalize to course name
-    program:
-      typeof s.program === "object"
-        ? s.program.name
-        : s.program,
-
-    adviser: s.adviser ?? "TBA",
-    room: s.room,
-    schedule: s.schedule,
-    enrolled: s.enrolled ?? 0,
-    capacity: s.capacity,
-  }),
-);
+        (s: any) => ({
+          id: s._id,
+          code: s.code,
+          yearLevel: s.yearLevel,
+          program:
+            typeof s.program === "object"
+              ? s.program.name
+              : s.program,
+          adviser: s.adviser && s.adviser.trim() !== "" ? s.adviser : "TBA", // Dynamically populated assigned faculty
+          room: s.room,
+          enrolled: s.enrolled ?? 0,
+          capacity: s.capacity,
+        }),
+      );
 
       setSections(mapped);
     } catch (err: any) {
@@ -144,7 +140,6 @@ const loadCourses = async () => {
     }
   };
 
-  // ✅ INITIAL LOAD (settings + courses + sections)
   useEffect(() => {
     (async () => {
       try {
@@ -154,11 +149,9 @@ const loadCourses = async () => {
         setIsLoading(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openCreate = () => {
-    // ✅ IMPORTANT: clear editing first so modal is CREATE mode
     setEditing(null);
     setOpenAdd(true);
   };
@@ -168,14 +161,12 @@ const loadCourses = async () => {
     setOpenAdd(true);
   };
 
-  // helper: clamp capacity to max
   const clampCapacity = (cap: number) => {
     const n = Number(cap);
     if (!Number.isFinite(n)) return 1;
     return Math.min(Math.max(n, 1), maxCapacity);
   };
 
-  // ✅ CREATE -> DB
   const onCreateSection = async (newItem: SectionItem) => {
     try {
       setIsLoading(true);
@@ -186,7 +177,6 @@ const loadCourses = async () => {
         program: newItem.program,
         capacity: clampCapacity(newItem.capacity),
         room: newItem.room,
-        schedule: newItem.schedule,
         adviser: newItem.adviser ?? "TBA",
         enrolled: newItem.enrolled ?? 0,
       });
@@ -203,7 +193,6 @@ const loadCourses = async () => {
     }
   };
 
-  // ✅ UPDATE -> DB
   const onUpdateSection = async (updated: SectionItem) => {
     try {
       setIsLoading(true);
@@ -214,7 +203,6 @@ const loadCourses = async () => {
         program: updated.program,
         capacity: clampCapacity(updated.capacity),
         room: updated.room,
-        schedule: updated.schedule,
         adviser: updated.adviser ?? "TBA",
         enrolled: updated.enrolled ?? 0,
       });
@@ -231,7 +219,6 @@ const loadCourses = async () => {
     }
   };
 
-  // ✅ DELETE -> DB
   const onDeleteSection = async (id: string) => {
     try {
       setIsLoading(true);
@@ -249,13 +236,13 @@ const loadCourses = async () => {
   };
 
   const onViewStudents = (item: SectionItem) => {
-    showAlert(`View students for ${item.code}`, "success");
+    setViewingStudentsSection(item);
   };
 
-const courseOptions = useMemo(() => {
-  const unique = courses.map((c) => c.name);
-  return ["All Courses", ...Array.from(new Set(unique))];
-}, [courses]);
+  const courseOptions = useMemo(() => {
+    const unique = courses.map((c) => c.name);
+    return ["All Courses", ...Array.from(new Set(unique))];
+  }, [courses]);
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -330,54 +317,59 @@ const courseOptions = useMemo(() => {
         />
 
         {isLoading ? (
-  <div className="card shadow-sm border-0">
-    <div className="card-body p-4 text-center text-muted">
-      Loading sections...
-    </div>
-  </div>
-) : filtered.length > 0 ? (
-  <SectionsGrid
-    items={filtered}
-    onDelete={onDeleteSection}
-    onEdit={openEdit}
-    onViewStudents={onViewStudents}
-  />
-) : !hasCourses ? (
-  <div className="card shadow-sm border-0">
-    <div className="card-body p-4">
-      <div className="users-empty-state">
-        <div className="users-empty-icon">📚</div>
-        <h5 className="fw-semibold mb-1">No courses available</h5>
-        <p className="text-muted mb-0">
-          Please add courses first. Sections require a course and its year levels.
-        </p>
-      </div>
-    </div>
-  </div>
-) : (
-  <div className="card shadow-sm border-0">
-    <div className="card-body p-4">
-      <div className="users-empty-state">
-        <div className="users-empty-icon">📭</div>
-        <h5 className="fw-semibold mb-1">No sections found</h5>
-        <p className="text-muted mb-0">
-          Try adjusting your search/filters or click <b>Add Section</b>.
-        </p>
-      </div>
-    </div>
-  </div>
-)}
+          <div className="card shadow-sm border-0">
+            <div className="card-body p-4 text-center text-muted">
+              Loading sections...
+            </div>
+          </div>
+        ) : filtered.length > 0 ? (
+          <SectionsGrid
+            items={filtered}
+            onDelete={onDeleteSection}
+            onEdit={openEdit}
+            onViewStudents={onViewStudents}
+          />
+        ) : !hasCourses ? (
+          <div className="card shadow-sm border-0">
+            <div className="card-body p-4">
+              <div className="users-empty-state">
+                <div className="users-empty-icon">📚</div>
+                <h5 className="fw-semibold mb-1">No courses available</h5>
+                <p className="text-muted mb-0">
+                  Please add courses first. Sections require a course and its year levels.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="card shadow-sm border-0">
+            <div className="card-body p-4">
+              <div className="users-empty-state">
+                <div className="users-empty-icon">📭</div>
+                <h5 className="fw-semibold mb-1">No sections found</h5>
+                <p className="text-muted mb-0">
+                  Try adjusting your search/filters or click <b>Add Section</b>.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
-        {/* ✅ PASS maxCapacity AND force remount by key */}
         <AddSectionModal
-          key={editing ? `edit-${editing.id}` : "create"} // ✅ fixes stale values
+          key={editing ? `edit-${editing.id}` : "create"}
           open={openAdd}
           onClose={() => setOpenAdd(false)}
           initial={editing}
           onCreate={onCreateSection}
           onUpdate={onUpdateSection}
           courses={courses}
-          maxCapacity={maxCapacity} // ✅ NEW
+          maxCapacity={maxCapacity}
+        />
+
+        <ViewStudentsModal
+          open={Boolean(viewingStudentsSection)}
+          onClose={() => setViewingStudentsSection(null)}
+          section={viewingStudentsSection}
         />
       </div>
     </>

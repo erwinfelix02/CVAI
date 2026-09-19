@@ -16,7 +16,6 @@ type Payload = {
   program: string;
   capacity: number | "";
   room: string;
-  schedule: string;
 };
 
 type Props = {
@@ -35,14 +34,6 @@ function makeId(code: string) {
 
 function normalizeCode(input: string) {
   return input.trim().toUpperCase();
-}
-
-function isLikelyTimeSchedule(v: string) {
-  const s = v.trim();
-  if (!s) return false;
-  const hasDigit = /\d/.test(s);
-  const hasTimeHint = /am|pm|:|-/.test(s.toLowerCase());
-  return hasDigit && hasTimeHint;
 }
 
 function yearLabel(n: number) {
@@ -74,7 +65,6 @@ export default function AddSectionModal({
     program: "",
     capacity: "",
     room: "",
-    schedule: "",
   });
 
   const [initialForm, setInitialForm] = useState<Payload>({
@@ -83,7 +73,6 @@ export default function AddSectionModal({
     program: "",
     capacity: "",
     room: "",
-    schedule: "",
   });
 
   const [touched, setTouched] = useState<Partial<Record<keyof Payload, boolean>>>(
@@ -134,7 +123,6 @@ export default function AddSectionModal({
             ? Math.min(initial.capacity, maxCapacity)
             : "",
         room: initial.room ?? "",
-        schedule: initial.schedule ?? "",
       };
     } else {
       nextForm = {
@@ -143,7 +131,6 @@ export default function AddSectionModal({
         program: "",
         capacity: "",
         room: "",
-        schedule: "",
       };
     }
 
@@ -172,8 +159,7 @@ export default function AddSectionModal({
       form.yearLevel !== initialForm.yearLevel ||
       form.program !== initialForm.program ||
       form.capacity !== initialForm.capacity ||
-      form.room !== initialForm.room ||
-      form.schedule !== initialForm.schedule
+      form.room !== initialForm.room
     );
   }, [form, initialForm]);
 
@@ -259,11 +245,6 @@ export default function AddSectionModal({
     if (!data.room.trim()) e.room = "Room is required.";
     else if (data.room.trim().length < 3) e.room = "Room is too short.";
 
-    if (!data.schedule.trim()) e.schedule = "Schedule is required.";
-    else if (!isLikelyTimeSchedule(data.schedule)) {
-      e.schedule = 'Enter a schedule like "MWF 8:00-9:30 AM".';
-    }
-
     if (!courseList.length) {
       e.program = "No ACTIVE courses available. Activate/add a course first.";
     }
@@ -317,7 +298,6 @@ export default function AddSectionModal({
       program: true,
       capacity: true,
       room: true,
-      schedule: true,
     });
 
     const nextErrors = validate(form);
@@ -346,7 +326,6 @@ export default function AddSectionModal({
         code,
         program: form.program,
         room: form.room.trim(),
-        schedule: form.schedule.trim(),
         capacity: cap,
       };
       (updated as any).yearLevel = form.yearLevel;
@@ -366,7 +345,6 @@ export default function AddSectionModal({
       program: form.program,
       adviser: "TBA",
       room: form.room.trim(),
-      schedule: form.schedule.trim(),
       enrolled: 0,
       capacity: cap,
     };
@@ -526,22 +504,6 @@ export default function AddSectionModal({
               />
               <div className="sec-error-slot">
                 {fieldError("room") || "\u00A0"}
-              </div>
-            </div>
-
-            <div className="sec-field sec-span-2">
-              <label className="sec-label">Schedule</label>
-              <input
-                className={`form-control sec-input ${
-                  fieldError("schedule") ? "is-invalid" : ""
-                }`}
-                placeholder="e.g., MWF 8:00-9:30 AM"
-                value={form.schedule}
-                onChange={(e) => setField("schedule", e.target.value)}
-                onBlur={() => markTouched("schedule")}
-              />
-              <div className="sec-error-slot">
-                {fieldError("schedule") || "\u00A0"}
               </div>
             </div>
           </div>

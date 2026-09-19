@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { X, AlertTriangle } from "lucide-react";
 import type { RoleCardItem, UserItem } from "./types";
 
 import RoleDetailsHeader from "./RoleDetailsHeader";
@@ -97,6 +98,18 @@ export default function RoleDetailsView({
     setConfirmAction(null);
   };
 
+  // Keyboard shortcut listener for active confirmation modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && confirmAction) {
+        setConfirmAction(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [confirmAction]);
+
   return (
     <div className="container-fluid py-3 py-md-4">
       <RoleDetailsHeader
@@ -145,49 +158,84 @@ export default function RoleDetailsView({
         }}
       />
 
-      {/* Confirmation Popup */}
+      {/* Confirmation Popup for Enable / Disable / Delete */}
       {confirmAction && (
-        <div className="rbac-backdrop">
-          <div className="rbac-modal" style={{ maxWidth: 420 }}>
-            <div className="fw-bold mb-2">
-              {confirmAction.type === "delete"
-                ? "Delete User"
-                : confirmAction.user.status === "Active"
-                ? "Disable User"
-                : "Enable User"}
-            </div>
-
-            <div className="text-muted mb-3">
-              {confirmAction.type === "delete"
-                ? `Are you sure you want to delete ${confirmAction.user.fullName}?`
-                : confirmAction.user.status === "Active"
-                ? `Are you sure you want to disable ${confirmAction.user.fullName}?`
-                : `Are you sure you want to enable ${confirmAction.user.fullName}?`}
-            </div>
-
-            <div className="d-flex justify-content-end gap-2">
+        <div
+          className="rbac-backdrop"
+          style={{ zIndex: 1060 }}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setConfirmAction(null);
+          }}
+        >
+          <div
+            className="rbac-modal rbac-modal-dialog"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="rbac-modal-header d-flex align-items-center justify-content-between mb-2">
+              <div className="d-flex align-items-center gap-2">
+                <AlertTriangle
+                  className={
+                    confirmAction.type === "delete"
+                      ? "text-danger"
+                      : confirmAction.user.status === "Active"
+                      ? "text-warning"
+                      : "text-success"
+                  }
+                  size={20}
+                />
+                <h3 className="rbac-modal-title mb-0">
+                  {confirmAction.type === "delete"
+                    ? "Delete User"
+                    : confirmAction.user.status === "Active"
+                    ? "Disable User Account"
+                    : "Enable User Account"}
+                </h3>
+              </div>
               <button
-                className="btn btn-light"
+                type="button"
+                className="rbac-x-sm"
+                onClick={() => setConfirmAction(null)}
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="rbac-modal-body py-2">
+              <p className="text-muted mb-0">
+                {confirmAction.type === "delete"
+                  ? `Are you sure you want to remove ${confirmAction.user.fullName} from ${role.name}? This action cannot be undone.`
+                  : confirmAction.user.status === "Active"
+                  ? `Are you sure you want to disable ${confirmAction.user.fullName}? They will lose access until re-enabled.`
+                  : `Are you sure you want to enable ${confirmAction.user.fullName}? They will regain active access to the portal.`}
+              </p>
+            </div>
+
+            <div className="rbac-actions mt-3 d-flex justify-content-end gap-2">
+              <button
+                type="button"
+                className="btn btn-light rbac-btn"
                 onClick={() => setConfirmAction(null)}
               >
                 Cancel
               </button>
 
               <button
-                className={`btn ${
+                type="button"
+                className={`btn rbac-btn ${
                   confirmAction.type === "delete"
                     ? "btn-danger"
                     : confirmAction.user.status === "Active"
-                    ? "btn-secondary"
+                    ? "btn-warning text-white"
                     : "btn-success"
                 }`}
                 onClick={confirmProceed}
               >
                 {confirmAction.type === "delete"
-                  ? "Delete"
+                  ? "Delete User"
                   : confirmAction.user.status === "Active"
-                  ? "Disable"
-                  : "Enable"}
+                  ? "Disable User"
+                  : "Enable User"}
               </button>
             </div>
           </div>

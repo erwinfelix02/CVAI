@@ -31,6 +31,9 @@ import materialRoutes from "./routes/materialRoutes.js";
 import scheduleRoutes from "./routes/scheduleRoutes.js";
 import { initArchiveCleanupTask } from "./utils/archiveCleanup.js";
 import announcementsRouter from "./routes/announcements.js";
+import attendanceRoutes from "./routes/attendance.js";
+import verificationRoutes from "./routes/verificationRoutes.js";
+
 
 const app = express();
 
@@ -97,7 +100,12 @@ const startServer = async () => {
     app.use("/api/schedules", scheduleRoutes);
     app.use("/api/logs", logRoutes);
     app.use("/api/announcements", announcementsRouter);
+    app.use("/api/attendance", attendanceRoutes);
+    app.use("/api/verification", verificationRoutes);
     
+
+app.use(express.json({ limit: "25mb" }));
+app.use(express.urlencoded({ limit: "25mb", extended: true }));
     app.listen(5000, () => {
       console.log("🚀 Server running on http://localhost:5000");
     });

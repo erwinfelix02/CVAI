@@ -45,7 +45,7 @@ export default function AttendanceList({
       <div className="card-body p-4">
         {/* Header summary info */}
         <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2 mb-4">
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center gap-2 flex-wrap">
             <CalendarDays size={20} className="text-secondary" />
             <div className="fw-bold fs-5 text-dark">
               {subjectLabel} | {dateLabel}
@@ -57,9 +57,11 @@ export default function AttendanceList({
             )}
           </div>
 
-          <span className="badge rounded-pill bg-light text-dark border px-3 py-2 fs-6 fw-semibold">
-            {presentSummary}
-          </span>
+          <div className="d-flex align-items-center gap-2">
+            <span className="badge rounded-pill bg-light text-dark border px-3 py-2 fs-6 fw-semibold">
+              {presentSummary}
+            </span>
+          </div>
         </div>
 
         {/* Student Row Cards or Clean Empty State */}

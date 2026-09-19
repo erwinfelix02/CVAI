@@ -43,6 +43,8 @@ type Props = {
   onDelete: (id: string) => void | Promise<void>;
   isApprovedSelected: boolean;
   onToggleApproved: (id: string) => void;
+  isGroupSelected: boolean;
+  onToggleGroupSelect: (id: string) => void;
   onSendSchedule: () => void;
 };
 
@@ -54,6 +56,8 @@ export default function RegistrarApplicationRow({
   onDelete,
   isApprovedSelected,
   onToggleApproved,
+  isGroupSelected,
+  onToggleGroupSelect,
   onSendSchedule,
 }: Props) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -70,7 +74,8 @@ export default function RegistrarApplicationRow({
   const isArchived = item.status === "Archived";
   const isScheduleSent = Boolean(item.scheduleSent);
 
-  const canSelect = isApproved && !isScheduleSent;
+  const canSelectSchedule = isApproved && !isScheduleSent;
+  const canGroupSelect = isApproved || isRejected;
 
   const showDeleteButton =
     !isArchived && (isRejected || (isApproved && isScheduleSent));
@@ -131,12 +136,25 @@ export default function RegistrarApplicationRow({
     <>
       <div className="registrar-app-card">
         <div className="d-flex align-items-center gap-3 min-w-0">
-          {canSelect && (
+          {/* Circular Button for Group Actions (Approved / Rejected) */}
+          {canGroupSelect && (
+            <button
+              type="button"
+              className={`registrar-check ${isGroupSelected ? "checked" : ""}`}
+              onClick={() => onToggleGroupSelect(item.id)}
+              aria-label={`Select ${item.name} for group actions`}
+              title="Select for Group Actions (Archive/Delete)"
+            />
+          )}
+
+          {/* Circular Button for Send Schedule (Approved only) */}
+          {canSelectSchedule && (
             <button
               type="button"
               className={`registrar-check ${isApprovedSelected ? "checked" : ""}`}
               onClick={() => onToggleApproved(item.id)}
-              aria-label="Select approved application"
+              aria-label={`Select ${item.name} for schedule`}
+              title="Select for Schedule Notification"
             />
           )}
 

@@ -6,9 +6,17 @@ type Props = {
   value: string;
   onChange: (value: string) => void;
   options: Option[];
+  disabled?: boolean;
 };
 
-export default function SelectField({ id, label, value, onChange, options }: Props) {
+export default function SelectField({
+  id,
+  label,
+  value,
+  onChange,
+  options,
+  disabled,
+}: Props) {
   return (
     <div className="mb-3">
       <label htmlFor={id} className="form-label rs-label">
@@ -18,6 +26,7 @@ export default function SelectField({ id, label, value, onChange, options }: Pro
         id={id}
         className="form-select rs-form-control"
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
       >
         {options.map((opt) => (

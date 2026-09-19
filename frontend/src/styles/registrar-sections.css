@@ -570,3 +570,124 @@
   padding: 16px 20px 20px;
   border-top: 1px solid #e5e7eb;
 }
+
+/* Full Viewport Overlay with high Z-Index */
+.modal-backdrop-custom {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999 !important; /* Forces it over sidebars, topbars, and navigation drawers */
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Modal Window Container */
+.view-students-modal {
+  width: 100%;
+  max-width: 650px;
+  max-height: 88vh;
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* Close Icon Button */
+.btn-close-custom {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-close-custom:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Metadata Info Area */
+.student-list-meta-box {
+  background-color: #f8fafc;
+  border: 1px solid #f1f5f9;
+}
+
+.meta-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.meta-value {
+  font-size: 0.925rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* Scrollable Student List */
+.student-cards-container {
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.student-card-item {
+  background-color: #f8fafc;
+  border: 1px solid #f1f5f9;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.student-card-item:hover {
+  border-color: #cbd5e1;
+  background-color: #ffffff;
+}
+
+/* Student Initials Avatar */
+.student-avatar {
+  width: 40px;
+  height: 40px;
+  background-color: #e2e8f0;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Mobile Devices */
+@media (max-width: 576px) {
+  .view-students-modal {
+    max-height: 92vh;
+    border-radius: 14px;
+  }
+
+  .student-cards-container {
+    max-height: calc(92vh - 180px);
+  }
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Mail, Send, AlertTriangle, CheckCircle2, HelpCircle } from "lucide-react";
+import { Mail, Send, AlertTriangle, CheckCircle2, HelpCircle, Loader2 } from "lucide-react";
 import type { Student } from "./types";
 
 type Props = {
@@ -14,12 +14,13 @@ export default function SendEmailModal({ student, onClose }: Props) {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showSendConfirm, setShowSendConfirm] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const recipientEmail = student
     ? student.email || `${student.name.toLowerCase().replace(/\s+/g, ".")}@university.edu`
     : "";
 
-  // Reset form inputs when switching templates or opening a different student
   useEffect(() => {
     if (template === "warning") {
       setSubject("Academic Performance Alert");
@@ -41,41 +42,68 @@ export default function SendEmailModal({ student, onClose }: Props) {
 
   const isDirty = subject.trim() !== "" || message.trim() !== "";
 
-  // Trigger exit confirmation if form has unsaved content
   const handleAttemptClose = () => {
-    if (isDirty && !showSuccessModal && !showSendConfirm) {
+    if (isDirty && !showSuccessModal && !showSendConfirm && !isSending) {
       setShowExitConfirm(true);
-    } else if (!showSendConfirm) {
+    } else if (!showSendConfirm && !isSending) {
       handleForceClose();
     }
   };
 
-  // Reset all local states and close the modal container
   const handleForceClose = () => {
     setTemplate("custom");
     setSubject("");
     setMessage("");
+    setErrorMessage(null);
     setShowExitConfirm(false);
     setShowSendConfirm(false);
     setShowSuccessModal(false);
+    setIsSending(false);
     onClose();
   };
 
-  // Step 1: Intercept form submission to show confirmation first
   const handlePreSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setShowSendConfirm(true);
   };
 
-  // Step 2: Final dispatch when confirmed by user
-  const handleFinalSend = () => {
+  const handleFinalSend = async () => {
     setShowSendConfirm(false);
-    console.log("Sending email to:", recipientEmail, { subject, message });
+    setIsSending(true);
+    setErrorMessage(null);
 
-    setShowSuccessModal(true);
-    setTimeout(() => {
-      handleForceClose();
-    }, 1800);
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch("/api/users/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          email: recipientEmail,
+          subject,
+          message,
+        }),
+      });
+
+      const resData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(resData.message || "Failed to send email to student.");
+      }
+
+      setShowSuccessModal(true);
+      setTimeout(() => {
+        handleForceClose();
+      }, 1800);
+    } catch (err: any) {
+      console.error("Failed to send email:", err);
+      setErrorMessage(err.message || "An unexpected error occurred while sending email.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -107,12 +135,19 @@ export default function SendEmailModal({ student, onClose }: Props) {
                 type="button"
                 className="btn-close shadow-none"
                 onClick={handleAttemptClose}
+                disabled={isSending}
                 aria-label="Close"
               />
             </div>
 
             {/* Form */}
             <form onSubmit={handlePreSubmit} className="modal-body p-4">
+              {errorMessage && (
+                <div className="alert alert-danger small mb-3 rounded-3" role="alert">
+                  {errorMessage}
+                </div>
+              )}
+
               {/* Recipient */}
               <div className="d-flex align-items-center gap-2 mb-4">
                 <span className="text-secondary small fw-medium">To</span>
@@ -130,6 +165,7 @@ export default function SendEmailModal({ student, onClose }: Props) {
                   className="form-select border-2 shadow-none py-2 px-3 rounded-3"
                   style={{ borderColor: "#0d5c75" }}
                   value={template}
+                  disabled={isSending}
                   onChange={(e) => setTemplate(e.target.value)}
                 >
                   <option value="custom">Custom message</option>
@@ -146,6 +182,7 @@ export default function SendEmailModal({ student, onClose }: Props) {
                 <input
                   type="text"
                   required
+                  disabled={isSending}
                   className="form-control bg-light border-0 py-2 px-3 rounded-3 shadow-none"
                   placeholder="Subject line"
                   value={subject}
@@ -161,6 +198,7 @@ export default function SendEmailModal({ student, onClose }: Props) {
                 <textarea
                   required
                   rows={5}
+                  disabled={isSending}
                   className="form-control bg-light border-0 p-3 rounded-3 shadow-none"
                   placeholder="Write your message..."
                   value={message}
@@ -174,16 +212,27 @@ export default function SendEmailModal({ student, onClose }: Props) {
                   type="button"
                   className="btn btn-light px-4 py-2 rounded-3 border-0 fw-medium text-dark"
                   onClick={handleAttemptClose}
+                  disabled={isSending}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
+                  disabled={isSending}
                   className="btn text-white px-4 py-2 rounded-3 d-flex align-items-center gap-2 fw-medium shadow-sm"
                   style={{ backgroundColor: "#0d5c75" }}
                 >
-                  <Send size={16} />
-                  Send Email
+                  {isSending ? (
+                    <>
+                      <Loader2 size={16} className="spinner-border spinner-border-sm me-1" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={16} />
+                      Send Email
+                    </>
+                  )}
                 </button>
               </div>
             </form>

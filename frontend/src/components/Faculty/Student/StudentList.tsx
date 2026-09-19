@@ -1,37 +1,45 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import StudentRow from "./StudentRow";
 import StudentProfileModal from "./StudentProfileModal";
 import SendEmailModal from "./SendEmailModal";
 import type { Student } from "./types";
 
-const students: Student[] = [
-  { initials: "MS", name: "Maria Santos", id: "2024-00123", section: "CS-3A", gpa: 3.85, attendance: 95, status: "good", course: "BS Computer Science", email: "maria.santos@university.edu", phone: "+63 917 123 4567" },
-  { initials: "JD", name: "Juan Dela Cruz", id: "2024-00124", section: "CS-3A", gpa: 3.42, attendance: 88, status: "good" },
-  { initials: "AR", name: "Ana Reyes", id: "2024-00125", section: "CS-3B", gpa: 3.91, attendance: 98, status: "good" },
-  { initials: "PG", name: "Pedro Garcia", id: "2024-00126", section: "CS-3A", gpa: 2.65, attendance: 72, status: "warning" },
-  { initials: "EC", name: "Elena Cruz", id: "2024-00127", section: "CS-3B", gpa: 3.58, attendance: 91, status: "good" },
-  { initials: "CM", name: "Carlos Mendoza", id: "2024-00128", section: "CS-3A", gpa: 3.12, attendance: 85, status: "good" },
-];
-
 type Props = {
   search: string;
   sectionFilter: string;
+  studentsList?: Student[];
+  isLoading?: boolean;
 };
 
-export default function StudentList({ search, sectionFilter }: Props) {
+export default function StudentList({
+  search,
+  sectionFilter,
+  studentsList = [],
+  isLoading = false,
+}: Props) {
   const [viewStudent, setViewStudent] = useState<Student | null>(null);
   const [emailStudent, setEmailStudent] = useState<Student | null>(null);
 
-  const filtered = students.filter((s) => {
-    const matchSearch =
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.id.includes(search);
+  const filtered = useMemo(() => {
+    return studentsList.filter((s: any) => {
+      // 1. Search match
+      const query = search.trim().toLowerCase();
+      const matchSearch =
+        !query ||
+        (s.name && s.name.toLowerCase().includes(query)) ||
+        (s.id && s.id.toLowerCase().includes(query));
 
-    const matchSection =
-      sectionFilter === "All" || s.section === sectionFilter;
+      // 2. Section match against visible section list
+      const studentSection = String(s.section || s.classSection || "").trim();
+      const targetFilter = String(sectionFilter || "All").trim();
 
-    return matchSearch && matchSection;
-  });
+      const matchSection =
+        targetFilter === "All" ||
+        studentSection.toLowerCase() === targetFilter.toLowerCase();
+
+      return matchSearch && matchSection;
+    });
+  }, [studentsList, search, sectionFilter]);
 
   return (
     <>
@@ -42,19 +50,27 @@ export default function StudentList({ search, sectionFilter }: Props) {
           </h5>
 
           <div className="student-list">
-            {filtered.map((student) => (
-              <StudentRow
-                key={student.id}
-                {...student}
-                onView={(studentData) => setViewStudent(studentData)}
-                onEmail={(studentData) => setEmailStudent(studentData)}
-              />
-            ))}
-
-            {filtered.length === 0 && (
-              <p className="text-muted text-center mb-0">
-                No students found
+            {isLoading ? (
+              <p className="text-muted text-center mb-0 py-4">
+                Loading students from database...
               </p>
+            ) : (
+              <>
+                {filtered.map((student, index) => (
+                  <StudentRow
+                    key={student.id || student._id || index}
+                    {...student}
+                    onView={(studentData) => setViewStudent(studentData)}
+                    onEmail={(studentData) => setEmailStudent(studentData)}
+                  />
+                ))}
+
+                {filtered.length === 0 && (
+                  <p className="text-muted text-center mb-0 py-4">
+                    No students found for this section or search criteria.
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>

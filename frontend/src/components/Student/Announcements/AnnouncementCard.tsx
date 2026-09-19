@@ -1,12 +1,11 @@
 import { Calendar, ExternalLink } from "lucide-react";
-import type { Announcement } from "../../../pages/Student/AnnouncementsPage";
-
-function toneDotClass(tone: Announcement["categoryTone"]) {
+import type { Announcement } from "./types";
+function toneDotClass(tone?: Announcement["categoryTone"]) {
   switch (tone) {
     case "danger":
       return "bg-danger";
     case "primary":
-      return "bg-warning"; // matches your screenshot for Facilities
+      return "bg-primary";
     case "success":
       return "bg-success";
     case "warning":
@@ -18,7 +17,7 @@ function toneDotClass(tone: Announcement["categoryTone"]) {
   }
 }
 
-function badgeClass(tone: Announcement["categoryTone"]) {
+function badgeClass(tone?: Announcement["categoryTone"]) {
   switch (tone) {
     case "danger":
       return "ann-badge danger";
@@ -48,16 +47,18 @@ export default function AnnouncementCard({
         {/* Title Row */}
         <div className="d-flex align-items-start justify-content-between gap-3">
           <div className="d-flex align-items-start gap-3 min-w-0">
-            <span className={`ann-dot ${toneDotClass(item.categoryTone)}`} />
+            <span className={`ann-dot mt-2 ${toneDotClass(item.categoryTone)}`} />
             <div className="min-w-0">
               <h5 className="fw-bold mb-1 text-truncate">{item.title}</h5>
               <p className="text-muted mb-0 ann-body">
-                {item.body}
+                {item.body || item.message}
               </p>
             </div>
           </div>
 
-          <span className={badgeClass(item.categoryTone)}>{item.category}</span>
+          <span className={badgeClass(item.categoryTone)}>
+            {item.category || item.subjectCode || item.course}
+          </span>
         </div>
 
         {/* Footer */}

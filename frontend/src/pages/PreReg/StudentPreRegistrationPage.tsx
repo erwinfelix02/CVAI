@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CheckCircle2, Info, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Info, X, Loader2 } from "lucide-react";
 
 import AuthAlert from "../../components/Authentication/AuthAlert";
 
@@ -25,6 +25,7 @@ export type PersonalInfo = {
   middleName?: string;
   lastName: string;
   email: string;
+  isEmailVerified?: boolean;
   phone: string;
   birthDate: string;
   gender: string;
@@ -171,7 +172,14 @@ function validatePersonal(v: PersonalInfo): PersonalErrors {
       e.birthDate = "Birth date cannot be in the future.";
     }
   }
-
+  
+   if (!v.email.trim()) {
+  e.email = "Email is required.";
+} else if (!emailRegex.test(v.email.trim())) {
+  e.email = "Enter a valid email (example@gmail.com).";
+} else if (!v.isEmailVerified) {
+  e.email = "Please verify your email address before proceeding.";
+}
   /*
    * =======================================================
    * IMPORTANT ADDRESS VALIDATION
@@ -794,10 +802,38 @@ export default function StudentPreRegistrationPage() {
         message={alertMessage}
         type={alertType}
         visible={showAlert}
-        loading={false}
+        loading={isSubmitting}
       />
 
-      <div className="prereg-shell">
+      <div className="prereg-shell position-relative">
+        {/* Full-Screen Dark & Blurred Submission Loading Overlay */}
+        {isSubmitting && (
+          <div
+            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3 modal-blur-backdrop"
+            style={{
+              backgroundColor: "rgba(15, 23, 42, 0.65)",
+              backdropFilter: "blur(4px)",
+              zIndex: 1080,
+            }}
+          >
+            <div
+              className="bg-white rounded-4 p-4 shadow-lg text-center d-flex flex-column align-items-center justify-content-center"
+              style={{ maxWidth: 340, width: "100%" }}
+            >
+              <div
+                className="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 text-primary mb-3"
+                style={{ width: 56, height: 56 }}
+              >
+                <Loader2 size={28} className="spinner-border border-0" />
+              </div>
+              <h5 className="fw-bold text-dark mb-1">Submitting Application</h5>
+              <p className="text-muted small mb-0">
+                Please wait while we upload your information and documents...
+              </p>
+            </div>
+          </div>
+        )}
+
         <PreRegNavbar />
 
         <div className="container prereg-back-wrap">
@@ -805,6 +841,7 @@ export default function StudentPreRegistrationPage() {
             type="button"
             className="prereg-back-btn d-inline-flex align-items-center gap-2"
             onClick={handleBackAttempt}
+            disabled={isSubmitting}
           >
             <ArrowLeft size={18} />
 
@@ -913,6 +950,7 @@ export default function StudentPreRegistrationPage() {
                           type="button"
                           className="btn btn-outline-secondary prereg-btn d-inline-flex align-items-center gap-2"
                           onClick={goPrev}
+                          disabled={isSubmitting}
                         >
                           <ArrowLeft size={16} />
 
@@ -927,6 +965,7 @@ export default function StudentPreRegistrationPage() {
                           type="button"
                           className="btn btn-primary prereg-btn d-inline-flex align-items-center gap-2"
                           onClick={goNext}
+                          disabled={isSubmitting}
                         >
                           <span>Next</span>
 
@@ -952,13 +991,17 @@ export default function StudentPreRegistrationPage() {
                                 : "Submit Application"
                             }
                           >
-                            <CheckCircle2 size={16} />
-
-                            <span>
-                              {isSubmitting
-                                ? "Submitting..."
-                                : "Submit Application"}
-                            </span>
+                            {isSubmitting ? (
+                              <>
+                                <Loader2 size={16} className="spinner-border spinner-border-sm" />
+                                <span>Submitting...</span>
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 size={16} />
+                                <span>Submit Application</span>
+                              </>
+                            )}
                           </button>
                         </div>
                       )}

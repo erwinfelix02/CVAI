@@ -1,6 +1,8 @@
 // src/pages/DepartmentHead/DepartmentHeadSettings.tsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { createPortal } from "react-dom";
+import { AlertTriangle, TriangleAlert, X } from "lucide-react";
 
 import ProfileCard from "../../components/DepartmentHead/Settings/ProfileCard";
 import DepartmentPreferencesCard from "../../components/DepartmentHead/Settings/DepartmentPreferencesCard";
@@ -31,6 +33,12 @@ type UserData = {
   maxUnits?: string;
 };
 
+const backdropBlurStyle: React.CSSProperties = {
+  backgroundColor: "rgba(15, 23, 42, 0.45)",
+  backdropFilter: "blur(4px)",
+  WebkitBackdropFilter: "blur(4px)",
+};
+
 export default function DepartmentHeadSettings() {
   /* =========================================================
      PROFILE & PREFERENCES STATE
@@ -51,12 +59,15 @@ export default function DepartmentHeadSettings() {
   const [originalMaxUnits, setOriginalMaxUnits] = useState("21 units");
 
   /* =========================================================
-     UI & EDITING STATES
+     UI, EDITING & CONFIRMATION STATES
      ========================================================= */
 
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
 
   /* =========================================================
      ALERT STATES
@@ -77,6 +88,17 @@ export default function DepartmentHeadSettings() {
     const t = setTimeout(() => setAnimateAlert(false), 3000);
     return () => clearTimeout(t);
   }, [alertMessage]);
+
+  /* =========================================================
+     UNSAVED CHANGES DETECTOR
+     ========================================================= */
+
+  const isDirty = useMemo(() => {
+    if (!originalProfile) return false;
+    return (
+      profile.phone !== originalProfile.phone || maxUnits !== originalMaxUnits
+    );
+  }, [profile.phone, maxUnits, originalProfile, originalMaxUnits]);
 
   /* =========================================================
      FETCH SIGNED-IN USER & PREFERENCES
@@ -113,14 +135,16 @@ export default function DepartmentHeadSettings() {
           .map((name) => name.charAt(0).toUpperCase())
           .join("");
 
-        setProfile({
+        const loadedProfile: Profile = {
           initials,
           fullName,
           email: user.email || "",
           phone: user.phone || "",
           department: user.department || "",
           role: user.role || "",
-        });
+        };
+
+        setProfile(loadedProfile);
 
         if (user.maxUnits) {
           setMaxUnits(user.maxUnits);
@@ -142,6 +166,40 @@ export default function DepartmentHeadSettings() {
   }, []);
 
   /* =========================================================
+     KEYBOARD NAVIGATION & SCROLL LOCK
+     ========================================================= */
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || saving) return;
+
+      if (exitConfirmOpen) {
+        setExitConfirmOpen(false);
+        return;
+      }
+
+      if (confirmOpen) {
+        setConfirmOpen(false);
+        return;
+      }
+
+      if (isEditing) {
+        handleAttemptCancel();
+      }
+    };
+
+    if (confirmOpen || exitConfirmOpen) {
+      document.body.style.overflow = "hidden";
+      window.addEventListener("keydown", handleEscape);
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [confirmOpen, exitConfirmOpen, isEditing, isDirty, saving]);
+
+  /* =========================================================
      EDIT & CANCEL HANDLERS
      ========================================================= */
 
@@ -151,12 +209,33 @@ export default function DepartmentHeadSettings() {
     setIsEditing(true);
   };
 
-  const handleCancel = () => {
-    if (originalProfile) {
-      setProfile(originalProfile);
+  const handleAttemptCancel = () => {
+    if (saving) return;
+
+    if (isDirty) {
+      setExitConfirmOpen(true);
+    } else {
+      if (originalProfile) setProfile(originalProfile);
+      setMaxUnits(originalMaxUnits);
+      setIsEditing(false);
     }
+  };
+
+  const handleConfirmExit = () => {
+    if (originalProfile) setProfile(originalProfile);
     setMaxUnits(originalMaxUnits);
+    setExitConfirmOpen(false);
+    setConfirmOpen(false);
     setIsEditing(false);
+  };
+
+  const handleAskSave = () => {
+    if (!isEditing) {
+      handleEdit();
+      return;
+    }
+
+    setConfirmOpen(true);
   };
 
   const handleProfileChange = (field: keyof Profile, value: string) => {
@@ -238,6 +317,7 @@ export default function DepartmentHeadSettings() {
       setOriginalProfile(null);
       setOriginalMaxUnits(maxUnits);
       setIsEditing(false);
+      setConfirmOpen(false);
 
       triggerAlert("Settings & Teaching Units updated successfully!", "success");
     } catch (err) {
@@ -276,27 +356,6 @@ export default function DepartmentHeadSettings() {
       />
 
       <div className="container-fluid py-3 py-md-4 department-settings-page position-relative">
-        {saving && (
-          <div className="settings-loading-overlay">
-            <div className="settings-loading-modal">
-              <div
-                className="spinner-border text-primary mb-3"
-                style={{
-                  width: "3.25rem",
-                  height: "3.25rem",
-                  borderWidth: "0.28em",
-                }}
-                role="status"
-              >
-                <span className="visually-hidden">Saving changes...</span>
-              </div>
-
-              <h6 className="fw-bold text-dark mb-1">Updating Settings</h6>
-              <span className="text-muted small">Please wait a moment...</span>
-            </div>
-          </div>
-        )}
-
         <div className="settings-page-header mb-4">
           <div>
             <h1 className="fw-bold mb-1">Settings</h1>
@@ -323,7 +382,7 @@ export default function DepartmentHeadSettings() {
           />
         </div>
 
-        <div className="settings-actions gap-2">
+        <div className="settings-actions gap-2 mt-4">
           {!isEditing ? (
             <button
               type="button"
@@ -337,7 +396,7 @@ export default function DepartmentHeadSettings() {
               <button
                 type="button"
                 className="btn settings-cancel-btn"
-                onClick={handleCancel}
+                onClick={handleAttemptCancel}
                 disabled={saving}
               >
                 Cancel
@@ -346,7 +405,7 @@ export default function DepartmentHeadSettings() {
               <button
                 type="button"
                 className="btn settings-save-btn"
-                onClick={handleSaveChanges}
+                onClick={handleAskSave}
                 disabled={saving}
               >
                 {saving ? "Saving..." : "Save Changes"}
@@ -355,6 +414,107 @@ export default function DepartmentHeadSettings() {
           )}
         </div>
       </div>
+
+      {/* CONFIRM SAVE MODAL */}
+      {confirmOpen &&
+        createPortal(
+          <div
+            className="registrar-settings-confirm-backdrop"
+            style={{ ...backdropBlurStyle, zIndex: 2000 }}
+            onClick={() => !saving && setConfirmOpen(false)}
+          >
+            <div
+              className="registrar-settings-confirm-modal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                className="registrar-settings-confirm-close"
+                onClick={() => setConfirmOpen(false)}
+                type="button"
+                disabled={saving}
+              >
+                <X size={18} />
+              </button>
+
+              <div className="registrar-settings-confirm-icon">
+                <TriangleAlert size={22} />
+              </div>
+
+              <h5 className="fw-bold text-center mb-1">Confirm Save</h5>
+
+              <p className="text-muted text-center mb-0">
+                Are you sure you want to save the settings changes?
+              </p>
+
+              <div className="registrar-settings-confirm-actions">
+                <button
+                  className="btn btn-light border"
+                  onClick={() => setConfirmOpen(false)}
+                  type="button"
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSaveChanges}
+                  type="button"
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Yes, Save"}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* DISCARD / EXIT CONFIRMATION MODAL */}
+      {exitConfirmOpen &&
+        createPortal(
+          <div
+            className="registrar-settings-confirm-backdrop"
+            style={{ ...backdropBlurStyle, zIndex: 2010 }}
+            onClick={() => !saving && setExitConfirmOpen(false)}
+          >
+            <div
+              className="registrar-settings-confirm-modal"
+              style={{ maxWidth: "420px", width: "90%" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="d-flex align-items-center gap-2 mb-2">
+                <AlertTriangle size={20} className="text-danger" />
+                <h5 className="fw-bold mb-0 text-dark">Discard Changes?</h5>
+              </div>
+
+              <p className="text-muted mb-4 small">
+                You have unsaved changes in settings. Exiting will revert your changes back to the saved state.
+              </p>
+
+              <div className="d-flex justify-content-end gap-2">
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  onClick={() => setExitConfirmOpen(false)}
+                  disabled={saving}
+                >
+                  Keep Editing
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleConfirmExit}
+                  disabled={saving}
+                >
+                  Discard & Exit
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

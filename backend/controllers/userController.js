@@ -332,7 +332,7 @@ export const getStudentUsers = async (req, res) => {
 
     const docs = await User.find(filter)
       .select(
-        "firstName middleName lastName idNumber email status department role",
+        "firstName middleName lastName idNumber email phone status department role year yearLevel section"
       )
       .sort({ createdAt: -1 });
 
@@ -368,14 +368,18 @@ export const getStudentUsers = async (req, res) => {
         .map((x) => x[0]?.toUpperCase())
         .join("");
 
+      const studentYear = u.year || u.yearLevel || 1;
+
       return {
         id: u.idNumber,
+        _id: u._id,
         initials,
         name: fullName,
         email: u.email,
+        phone: u.phone || "—",
         course: u.department || "—",
-        section: "—",
-        year: 0,
+        section: u.section || "—",
+        year: studentYear,
         status: u.status === "active" ? "Active" : "Dropped",
       };
     });
@@ -384,6 +388,55 @@ export const getStudentUsers = async (req, res) => {
   } catch (err) {
     console.error("getStudentUsers error:", err);
     return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* =========================================================
+   UPDATED: SEND DIRECT EMAIL WITH ATTACHMENT SUPPORT
+   ========================================================= */
+export const sendStudentEmail = async (req, res) => {
+  try {
+    const { email, subject, message, attachments = [] } = req.body;
+
+    if (!email || !subject || !message) {
+      return res.status(400).json({
+        message: "Email recipient, subject, and message content are required.",
+      });
+    }
+
+    const formattedMessage = message.replace(/\n/g, "<br>");
+    const appName = process.env.APP_NAME || "CVAI Portal";
+
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <h2 style="color: #0d5c75; margin-top: 0;">${appName} Communication</h2>
+        <div style="font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
+          ${formattedMessage}
+        </div>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #64748b; margin: 0;">
+          This is an official communication sent via ${appName}. Please do not reply directly to this automated email.
+        </p>
+      </div>
+    `;
+
+    // Format Base64 attachments safely for Nodemailer
+    const formattedAttachments = attachments.map((att) => ({
+      filename: att.filename,
+      content: Buffer.from(att.content, "base64"),
+      contentType: att.contentType,
+    }));
+
+    await sendEmail(email, subject, emailHtml, formattedAttachments);
+
+    return res.status(200).json({
+      message: "Email sent successfully with attachments.",
+    });
+  } catch (err) {
+    console.error("sendStudentEmail error:", err);
+    return res.status(500).json({
+      message: err.message || "Failed to send email.",
+    });
   }
 };
 
@@ -672,7 +725,6 @@ export const getPortalStatuses = async (_req, res) => {
   }
 };
 
-
 export const getMyProfile = async (req, res) => {
   try {
     const { email, id } = req.query;
@@ -725,12 +777,10 @@ export const updateMyPhone = async (req, res) => {
 
     let cleanPhone = String(phone).trim().replace(/\s+/g, "");
 
-    // 09175550142 -> +639175550142
     if (/^09\d{9}$/.test(cleanPhone)) {
       cleanPhone = "+63" + cleanPhone.slice(1);
     }
 
-    // 639175550142 -> +639175550142
     if (/^639\d{9}$/.test(cleanPhone)) {
       cleanPhone = "+" + cleanPhone;
     }
@@ -777,8 +827,6 @@ export const updateMyPhone = async (req, res) => {
   }
 };
 
-// Add this to src/controllers/userController.js
-
 export const getFacultyByDepartment = async (req, res) => {
   try {
     const { department } = req.query;
@@ -789,14 +837,12 @@ export const getFacultyByDepartment = async (req, res) => {
       });
     }
 
-    // Query active faculty members belonging to the department
     const facultyList = await User.find({
       role: "Faculty",
       department: department,
       status: "active",
     }).select("firstName middleName lastName idNumber email department");
 
-    // Format full names for display in the frontend dropdown
     const formattedFaculty = facultyList.map((f) => {
       const fullName = `${f.firstName} ${
         f.middleName ? f.middleName + " " : ""
@@ -818,9 +864,6 @@ export const getFacultyByDepartment = async (req, res) => {
     });
   }
 };
-// =========================================================
-// UPDATE DEPARTMENT PREFERENCES (MAX UNITS & SEMESTER)
-// =========================================================
 
 export const updateMyDepartmentPreferences = async (req, res) => {
   try {
@@ -845,7 +888,6 @@ export const updateMyDepartmentPreferences = async (req, res) => {
       });
     }
 
-    // Save maxUnits and semester on user document
     if (maxUnits !== undefined) user.maxUnits = String(maxUnits).trim();
     if (semester !== undefined) user.semester = String(semester).trim();
 
@@ -859,6 +901,108 @@ export const updateMyDepartmentPreferences = async (req, res) => {
     console.error("updateMyDepartmentPreferences error:", err);
     return res.status(500).json({
       message: err.message || "Failed to update department preferences.",
+    });
+  }
+};
+
+export const searchStudentsByName = async (req, res) => {
+  try {
+    const { q = "" } = req.query;
+    const search = String(q).trim().toLowerCase();
+
+    if (!search || search.length < 2) {
+      return res.status(200).json([]);
+    }
+
+    const docs = await User.find({ role: "Student", status: "active" })
+      .select("firstName middleName lastName idNumber email department");
+
+    const students = docs.map((doc) => doc.toObject({ getters: true }));
+
+    const filtered = students.filter((u) => {
+      const fullName = `${u.firstName || ""} ${
+        u.middleName ? u.middleName + " " : ""
+      }${u.lastName || ""}`.trim();
+
+      return (
+        fullName.toLowerCase().includes(search) ||
+        String(u.firstName || "").toLowerCase().includes(search) ||
+        String(u.lastName || "").toLowerCase().includes(search) ||
+        String(u.idNumber || "").toLowerCase().includes(search)
+      );
+    });
+
+    const results = filtered.slice(0, 10).map((u) => ({
+      idNumber: u.idNumber,
+      fullName: `${u.firstName || ""} ${
+        u.middleName ? u.middleName + " " : ""
+      }${u.lastName || ""}`.trim(),
+      email: u.email,
+      department: u.department,
+    }));
+
+    return res.status(200).json(results);
+  } catch (err) {
+    console.error("searchStudentsByName error:", err);
+    return res.status(500).json({ message: "Failed to search students." });
+  }
+};
+
+export const updateMyProfile = async (req, res) => {
+  try {
+    const { email, phone, address, avatarUrl } = req.body;
+
+    let user = null;
+    if (email) {
+      user = await User.findOne({ email });
+    }
+
+    if (!user && req.user?.id) {
+      user = await User.findById(req.user.id);
+    }
+
+    if (!user) {
+      user = await User.findOne({ status: "active" });
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "User account not found." });
+    }
+
+    if (phone !== undefined) {
+      let cleanPhone = String(phone).trim().replace(/\s+/g, "");
+      if (/^09\d{9}$/.test(cleanPhone)) {
+        cleanPhone = "+63" + cleanPhone.slice(1);
+      }
+      if (/^639\d{9}$/.test(cleanPhone)) {
+        cleanPhone = "+" + cleanPhone;
+      }
+      if (!/^\+639\d{9}$/.test(cleanPhone)) {
+        return res.status(400).json({
+          message: "Phone must be in format +639XXXXXXXXX.",
+        });
+      }
+      user.phone = cleanPhone;
+    }
+
+    if (address !== undefined) {
+      user.address = String(address).trim();
+    }
+
+    if (avatarUrl !== undefined) {
+      user.avatarUrl = avatarUrl;
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      message: "Profile updated successfully.",
+      user: user.toObject({ getters: true }),
+    });
+  } catch (err) {
+    console.error("updateMyProfile error:", err);
+    return res.status(500).json({
+      message: err.message || "Failed to update profile.",
     });
   }
 };

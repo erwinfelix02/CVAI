@@ -3,6 +3,8 @@ import multer from "multer";
 import Preregistration from "../models/Preregistration.js";
 import ArchivedPreregistration from "../models/ArchivedPreregistration.js";
 import RegistrarSettings from "../models/RegistrarSettings.js";
+import User from "../models/User.js"; // Import User model to check existing accounts
+import { otpStore } from "../controllers/verificationController.js";
 import sendEmail from "../utils/sendEmail.js";
 import contract from "../utils/blockchain.js";
 
@@ -166,6 +168,15 @@ router.post(
       const email = String(data?.personal?.email || "")
         .trim()
         .toLowerCase();
+
+      // Enforce Email OTP verification check
+      const otpRecord = otpStore.get(email);
+      if (!otpRecord || !otpRecord.verified) {
+        return res.status(400).json({
+          message: "Email address has not been verified. Please verify your email first.",
+        });
+      }
+
       const phone = normalizePHPhone(data?.personal?.phone || "");
       const firstName = String(data?.personal?.firstName || "").trim();
       const middleName = String(data?.personal?.middleName || "").trim();
@@ -188,15 +199,24 @@ router.post(
         data?.academic?.previousSchool || "",
       ).trim();
 
+      // =========================================================
+      // 🔒 DUPLICATE CHECK: Check Users, Active Prereg, & Archived Prereg
+      // =========================================================
+      
+      // 1. Check if email already exists as a registered user
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(409).json({
+          message:
+            "An active account with this email address already exists in the system. Pre-registration is not allowed.",
+        });
+      }
+
+      // 2. Check active and archived pre-registrations for duplicate email or phone
       const existingActive = await Preregistration.findOne({
         $or: [
           { "personal.email": email },
           { "personal.phone": phone },
-          {
-            "personal.firstName": firstName,
-            "personal.lastName": lastName,
-            "personal.birthDate": birthDate,
-          },
         ],
       });
 
@@ -204,18 +224,13 @@ router.post(
         $or: [
           { "personal.email": email },
           { "personal.phone": phone },
-          {
-            "personal.firstName": firstName,
-            "personal.lastName": lastName,
-            "personal.birthDate": birthDate,
-          },
         ],
       });
 
       if (existingActive || existingArchived) {
         return res.status(409).json({
           message:
-            "Duplicate application detected. This applicant already exists.",
+            "Duplicate application detected. An applicant with this email or phone number already exists.",
         });
       }
 
@@ -272,6 +287,9 @@ router.post(
       });
 
       await newApp.save();
+
+      // Clear the verified OTP record after successful save
+      otpStore.delete(email);
 
       try {
         const fullName = [firstName, middleName, lastName]
@@ -352,7 +370,7 @@ router.post(
       if (err?.code === 11000) {
         return res.status(409).json({
           message:
-            "Duplicate application detected (email/phone/applicant already exists).",
+            "Duplicate application detected (email or phone number already exists).",
         });
       }
 
@@ -378,7 +396,7 @@ router.patch("/:id/status", async (req, res) => {
             status,
             approvedAt: new Date(),
             rejectedAt: null,
-            rejectionReason: null, // Clear reason if re-approved
+            rejectionReason: null,
           }
         : {
             status,

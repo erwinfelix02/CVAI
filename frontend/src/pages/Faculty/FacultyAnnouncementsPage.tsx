@@ -10,17 +10,14 @@ import "../../styles/faculty-announcements.css";
 export default function FacultyAnnouncementsPage() {
   const [items, setItems] = useState<Announcement[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAnnouncement, setEditingAnnouncement] =
-    useState<Announcement | null>(null);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Custom Delete UI Modal State
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Get logged-in user details from LocalStorage
   const user = useMemo(() => {
     try {
       const userJson = localStorage.getItem("user");
@@ -30,7 +27,6 @@ export default function FacultyAnnouncementsPage() {
     }
   }, []);
 
-  // Fetch Announcements from Database
   const fetchAnnouncements = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -38,12 +34,23 @@ export default function FacultyAnnouncementsPage() {
     try {
       const facultyId = user?.id || user?._id || "";
       const department = user?.department || "";
+      const token = localStorage.getItem("token");
 
       const queryParams = new URLSearchParams();
-      if (facultyId) queryParams.append("facultyId", facultyId);
-      if (department) queryParams.append("department", department);
 
-      const res = await fetch(`/api/announcements?${queryParams.toString()}`);
+      // Send only facultyId so the backend hits the faculty management route branch
+      if (facultyId) {
+        queryParams.append("facultyId", facultyId);
+      } else if (department) {
+        queryParams.append("department", department);
+      }
+
+      const res = await fetch(`/api/announcements?${queryParams.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       if (!res.ok) {
         throw new Error("Failed to load announcements from server.");
       }
@@ -62,14 +69,6 @@ export default function FacultyAnnouncementsPage() {
     fetchAnnouncements();
   }, [fetchAnnouncements]);
 
-  // Dynamically extract available courses or fall back to defaults
-  const availableCourses = useMemo(() => {
-    const unique = Array.from(new Set(items.map((i) => i.course)));
-    return unique.length > 0
-      ? ["All Courses", ...unique]
-      : ["All Courses", "CS 101", "CS 301", "CS 401", "CS 501"];
-  }, [items]);
-
   const handleOpenCreateModal = () => {
     setEditingAnnouncement(null);
     setIsModalOpen(true);
@@ -84,21 +83,23 @@ export default function FacultyAnnouncementsPage() {
     setDeletingId(a.id);
   };
 
-  // Delete Announcement API Request
   const handleConfirmDelete = async () => {
     if (!deletingId) return;
     setIsDeleting(true);
 
     try {
+      const token = localStorage.getItem("token");
       const res = await fetch(`/api/announcements/${deletingId}`, {
         method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!res.ok) {
         throw new Error("Failed to delete announcement from server.");
       }
 
-      // Optimistic state removal
       setItems((prev) => prev.filter((x) => x.id !== deletingId));
     } catch (err: any) {
       console.error("Delete error:", err);
@@ -109,27 +110,23 @@ export default function FacultyAnnouncementsPage() {
     }
   };
 
-  // Triggered when Save / Edit completes successfully in AnnouncementModal
   const handleSaveSuccess = async () => {
-    // Re-fetch all entries from backend to ensure dates & virtual fields match server ground truth
     await fetchAnnouncements();
   };
 
   return (
     <div className="container-fluid py-3 py-md-4 faculty-announcements-page">
-      {/* Header */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
           <h3 className="fw-bold mb-1">Announcements</h3>
           <p className="text-muted mb-0">
-            Create and manage class announcements for{" "}
-            {user?.department || "your department"}
+            Create and manage class announcements for {user?.department || "your department"}
           </p>
         </div>
 
         <button
           type="button"
-          className="btn btn-success d-inline-flex align-items-center gap-2 px-3"
+          className="btn btn-primary d-inline-flex align-items-center gap-2 px-3"
           onClick={handleOpenCreateModal}
         >
           <Plus size={18} />
@@ -137,27 +134,17 @@ export default function FacultyAnnouncementsPage() {
         </button>
       </div>
 
-      {/* Stats Bar */}
       <AnnouncementStats items={items} />
 
-      {/* Main Content Area */}
       {isLoading ? (
         <div className="card border-0 shadow-sm rounded-4 p-5 text-center text-muted my-4">
           <div className="d-flex align-items-center justify-content-center gap-2">
-            <Loader2
-              className="spinner-border spinner-border-sm text-primary"
-              size={22}
-            />
-            <span className="fw-medium">
-              Loading department announcements...
-            </span>
+            <Loader2 className="spinner-border spinner-border-sm text-primary" size={22} />
+            <span className="fw-medium">Loading department announcements...</span>
           </div>
         </div>
       ) : error ? (
-        <div
-          className="alert alert-danger d-flex align-items-center gap-2"
-          role="alert"
-        >
+        <div className="alert alert-danger d-flex align-items-center gap-2" role="alert">
           <AlertCircle size={18} />
           <div>{error}</div>
         </div>
@@ -169,19 +156,16 @@ export default function FacultyAnnouncementsPage() {
         />
       )}
 
-      {/* Create / Edit Modal */}
       <AnnouncementModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
           setEditingAnnouncement(null);
         }}
-        courses={availableCourses}
         announcementToEdit={editingAnnouncement}
         onSaveSuccess={handleSaveSuccess}
       />
 
-      {/* ==================== CENTERED DELETE CONFIRMATION OVERLAY ==================== */}
       {deletingId && (
         <div
           className="modal-blur-backdrop-fixed d-flex align-items-center justify-content-center p-3"
@@ -202,8 +186,7 @@ export default function FacultyAnnouncementsPage() {
             </div>
             <h5 className="fw-bold text-dark mb-1">Delete Announcement?</h5>
             <p className="text-muted small mb-4">
-              Are you sure you want to remove this announcement? Students will
-              no longer see it.
+              Are you sure you want to remove this announcement? Students will no longer see it.
             </p>
             <div className="d-flex gap-2">
               <button
@@ -222,10 +205,7 @@ export default function FacultyAnnouncementsPage() {
               >
                 {isDeleting ? (
                   <>
-                    <Loader2
-                      size={16}
-                      className="spinner-border spinner-border-sm"
-                    />
+                    <Loader2 size={16} className="spinner-border spinner-border-sm" />
                     Deleting...
                   </>
                 ) : (

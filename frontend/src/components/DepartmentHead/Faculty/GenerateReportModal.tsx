@@ -1,6 +1,6 @@
 // ✅ src/components/DepartmentHead/Faculty/GenerateReportModal.tsx
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
@@ -10,6 +10,7 @@ import {
   Printer,
   Download,
   AlertCircle,
+  AlertTriangle,
 } from "lucide-react";
 import type { FacultyRow } from "./FacultyCard";
 
@@ -20,19 +21,111 @@ interface GenerateReportModalProps {
   departmentName?: string;
 }
 
+const DEFAULT_TERM = "1st Sem, A.Y. 2026-2027";
+const DEFAULT_FILTER = "All faculty";
+const DEFAULT_INCLUDE_SUBJECTS = true;
+
+const backdropBlurStyle: React.CSSProperties = {
+  backgroundColor: "rgba(15, 23, 42, 0.45)",
+  backdropFilter: "blur(4px)",
+  WebkitBackdropFilter: "blur(4px)",
+};
+
 export default function GenerateReportModal({
   isOpen,
   onClose,
   facultyList,
   departmentName = "Department",
 }: GenerateReportModalProps) {
-  const [term, setTerm] = useState("1st Sem, A.Y. 2026-2027");
-  const [includeFilter, setIncludeFilter] = useState("All faculty");
-  const [includeSubjects, setIncludeSubjects] = useState(true);
+  const [term, setTerm] = useState(DEFAULT_TERM);
+  const [includeFilter, setIncludeFilter] = useState(DEFAULT_FILTER);
+  const [includeSubjects, setIncludeSubjects] = useState(DEFAULT_INCLUDE_SUBJECTS);
+
+  // Initial State Tracking for Unsaved Changes
+  const [initialTerm, setInitialTerm] = useState(DEFAULT_TERM);
+  const [initialFilter, setInitialFilter] = useState(DEFAULT_FILTER);
+  const [initialIncludeSubjects, setInitialIncludeSubjects] = useState(DEFAULT_INCLUDE_SUBJECTS);
 
   // Confirmation Overlays State
   const [confirmPrintOpen, setConfirmPrintOpen] = useState(false);
   const [confirmExportOpen, setConfirmExportOpen] = useState(false);
+  const [confirmExitOpen, setConfirmExitOpen] = useState(false);
+
+  // Reset form state when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setTerm(DEFAULT_TERM);
+    setIncludeFilter(DEFAULT_FILTER);
+    setIncludeSubjects(DEFAULT_INCLUDE_SUBJECTS);
+
+    setInitialTerm(DEFAULT_TERM);
+    setInitialFilter(DEFAULT_FILTER);
+    setInitialIncludeSubjects(DEFAULT_INCLUDE_SUBJECTS);
+
+    setConfirmPrintOpen(false);
+    setConfirmExportOpen(false);
+    setConfirmExitOpen(false);
+  }, [isOpen]);
+
+  // Check if any selection has been changed
+  const isDirty = useMemo(() => {
+    return (
+      term !== initialTerm ||
+      includeFilter !== initialFilter ||
+      includeSubjects !== initialIncludeSubjects
+    );
+  }, [
+    term,
+    initialTerm,
+    includeFilter,
+    initialFilter,
+    includeSubjects,
+    initialIncludeSubjects,
+  ]);
+
+  // Handle Close Attempt (Shows exit confirmation if dirty)
+  const handleAttemptClose = () => {
+    if (isDirty) {
+      setConfirmExitOpen(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleConfirmExit = () => {
+    setConfirmExitOpen(false);
+    setConfirmPrintOpen(false);
+    setConfirmExportOpen(false);
+    onClose();
+  };
+
+  // Keyboard navigation & ESC key handler
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (confirmExitOpen) {
+          setConfirmExitOpen(false);
+        } else if (confirmPrintOpen) {
+          setConfirmPrintOpen(false);
+        } else if (confirmExportOpen) {
+          setConfirmExportOpen(false);
+        } else {
+          handleAttemptClose();
+        }
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, confirmExitOpen, confirmPrintOpen, confirmExportOpen, isDirty]);
 
   // Filter faculty based on dropdown selection
   const filteredFaculty = useMemo(() => {
@@ -52,7 +145,8 @@ export default function GenerateReportModal({
   const totalFacultyCount = filteredFaculty.length;
   const totalAssignedUnits = filteredFaculty.reduce((acc, f) => acc + f.currentLoad, 0);
   const totalCapacity = filteredFaculty.reduce((acc, f) => acc + f.maxLoad, 0);
-  const utilizationPercentage = totalCapacity > 0 ? Math.round((totalAssignedUnits / totalCapacity) * 100) : 0;
+  const utilizationPercentage =
+    totalCapacity > 0 ? Math.round((totalAssignedUnits / totalCapacity) * 100) : 0;
 
   if (!isOpen) return null;
 
@@ -108,7 +202,12 @@ export default function GenerateReportModal({
 
   return createPortal(
     <>
-      <div className="faculty-report-modal-backdrop" onClick={onClose}>
+      {/* MAIN REPORT MODAL */}
+      <div
+        className="faculty-report-modal-backdrop"
+        style={{ ...backdropBlurStyle, zIndex: 1050 }}
+        onClick={handleAttemptClose}
+      >
         <div
           className="faculty-report-modal-card"
           onClick={(e) => e.stopPropagation()}
@@ -121,7 +220,9 @@ export default function GenerateReportModal({
                 <FileText size={18} className="text-primary d-block d-sm-none" />
               </div>
               <div>
-                <h5 className="fw-bold mb-1 text-dark modal-title-text">Generate Faculty Load Report</h5>
+                <h5 className="fw-bold mb-1 text-dark modal-title-text">
+                  Generate Faculty Load Report
+                </h5>
                 <p className="text-muted small mb-0 d-none d-sm-block">
                   Review the teaching load summary before exporting for {departmentName}.
                 </p>
@@ -133,7 +234,7 @@ export default function GenerateReportModal({
             <button
               type="button"
               className="btn-close-modal"
-              onClick={onClose}
+              onClick={handleAttemptClose}
               aria-label="Close"
             >
               <X size={20} />
@@ -145,7 +246,9 @@ export default function GenerateReportModal({
             {/* Controls Row */}
             <div className="row g-2 g-sm-3 mb-3">
               <div className="col-12 col-sm-6">
-                <label className="form-label small fw-medium text-secondary mb-1">Term</label>
+                <label className="form-label small fw-medium text-secondary mb-1">
+                  Term
+                </label>
                 <div className="select-wrapper">
                   <select
                     className="form-select custom-report-select"
@@ -161,7 +264,9 @@ export default function GenerateReportModal({
               </div>
 
               <div className="col-12 col-sm-6">
-                <label className="form-label small fw-medium text-secondary mb-1">Include</label>
+                <label className="form-label small fw-medium text-secondary mb-1">
+                  Include
+                </label>
                 <div className="select-wrapper">
                   <select
                     className="form-select custom-report-select"
@@ -223,7 +328,9 @@ export default function GenerateReportModal({
             {/* Load Utilization Progress */}
             <div className="mb-3 mb-sm-4">
               <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="small text-secondary fw-medium">Department load utilization</span>
+                <span className="small text-secondary fw-medium">
+                  Department load utilization
+                </span>
                 <span className="small fw-bold text-dark">{utilizationPercentage}%</span>
               </div>
               <div className="progress custom-progress-bar" style={{ height: "12px" }}>
@@ -238,7 +345,7 @@ export default function GenerateReportModal({
               </div>
             </div>
 
-            {/* Faculty Table Container (Horizontal Scroll for Mobile) */}
+            {/* Faculty Table Container */}
             <div className="report-table-wrapper border rounded-4">
               <div className="table-responsive">
                 <table className="table report-table mb-0 align-middle">
@@ -257,7 +364,9 @@ export default function GenerateReportModal({
                         <tr key={f.id}>
                           <td className="fw-semibold text-dark text-nowrap">{f.name}</td>
                           <td className="text-secondary small text-nowrap">{f.position}</td>
-                          <td className="fw-medium text-dark text-nowrap">{f.currentLoad}/{f.maxLoad}</td>
+                          <td className="fw-medium text-dark text-nowrap">
+                            {f.currentLoad}/{f.maxLoad}
+                          </td>
                           {includeSubjects && (
                             <td>
                               <div className="d-flex flex-wrap gap-1 subjects-pill-container">
@@ -290,7 +399,10 @@ export default function GenerateReportModal({
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={includeSubjects ? 5 : 4} className="text-center text-muted py-4 small">
+                        <td
+                          colSpan={includeSubjects ? 5 : 4}
+                          className="text-center text-muted py-4 small"
+                        >
                           No faculty found matching the selected criteria.
                         </td>
                       </tr>
@@ -303,14 +415,26 @@ export default function GenerateReportModal({
 
           {/* Footer */}
           <div className="faculty-report-footer">
-            <button type="button" className="btn btn-light report-btn-cancel" onClick={onClose}>
+            <button
+              type="button"
+              className="btn btn-light report-btn-cancel"
+              onClick={handleAttemptClose}
+            >
               Cancel
             </button>
-            <button type="button" className="btn btn-light report-btn-print" onClick={handleRequestPrint}>
+            <button
+              type="button"
+              className="btn btn-light report-btn-print"
+              onClick={handleRequestPrint}
+            >
               <Printer size={17} />
               <span className="d-none d-sm-inline">Print</span>
             </button>
-            <button type="button" className="btn btn-primary report-btn-generate" onClick={handleRequestExport}>
+            <button
+              type="button"
+              className="btn btn-primary report-btn-generate"
+              onClick={handleRequestExport}
+            >
               <Download size={17} />
               <span>Generate Report</span>
             </button>
@@ -320,8 +444,15 @@ export default function GenerateReportModal({
 
       {/* CONFIRMATION OVERLAY FOR PRINTING */}
       {confirmPrintOpen && (
-        <div className="report-confirm-overlay">
-          <div className="report-confirm-box">
+        <div
+          className="report-confirm-overlay"
+          style={{ ...backdropBlurStyle, zIndex: 2000 }}
+          onClick={() => setConfirmPrintOpen(false)}
+        >
+          <div
+            className="report-confirm-box"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="d-flex align-items-center gap-2 mb-2 text-primary">
               <Printer size={22} />
               <h5 className="fw-bold mb-0 text-dark">Confirm Print</h5>
@@ -353,8 +484,15 @@ export default function GenerateReportModal({
 
       {/* CONFIRMATION OVERLAY FOR GENERATING CSV REPORT */}
       {confirmExportOpen && (
-        <div className="report-confirm-overlay">
-          <div className="report-confirm-box">
+        <div
+          className="report-confirm-overlay"
+          style={{ ...backdropBlurStyle, zIndex: 2000 }}
+          onClick={() => setConfirmExportOpen(false)}
+        >
+          <div
+            className="report-confirm-box"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="d-flex align-items-center gap-2 mb-2 text-primary">
               <AlertCircle size={22} />
               <h5 className="fw-bold mb-0 text-dark">Confirm Report Export</h5>
@@ -378,6 +516,45 @@ export default function GenerateReportModal({
               >
                 <Download size={15} />
                 <span>Export CSV</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EXIT CONFIRMATION OVERLAY */}
+      {confirmExitOpen && (
+        <div
+          className="report-confirm-overlay"
+          style={{ ...backdropBlurStyle, zIndex: 2010 }}
+          onClick={() => setConfirmExitOpen(false)}
+        >
+          <div
+            className="report-confirm-box"
+            style={{ maxWidth: "420px", width: "90%" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="d-flex align-items-center gap-2 mb-2 text-danger">
+              <AlertTriangle size={20} />
+              <h5 className="fw-bold mb-0 text-dark">Discard Changes?</h5>
+            </div>
+            <p className="text-muted small mb-4">
+              You have changed report options. Closing will discard your selections and revert back to default settings.
+            </p>
+            <div className="d-flex justify-content-end gap-2">
+              <button
+                type="button"
+                className="btn btn-light btn-sm px-3 fw-medium border"
+                onClick={() => setConfirmExitOpen(false)}
+              >
+                Keep Editing
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger btn-sm px-3 fw-medium"
+                onClick={handleConfirmExit}
+              >
+                Discard & Exit
               </button>
             </div>
           </div>

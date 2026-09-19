@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, X, FileSpreadsheet, TriangleAlert } from "lucide-react";
+import { createPortal } from "react-dom";
+import {
+  Download,
+  X,
+  FileSpreadsheet,
+  TriangleAlert,
+  AlertTriangle,
+} from "lucide-react";
 import {
   getStudentById,
   getStudentRecords,
@@ -75,6 +82,12 @@ type RegistrarAccount = {
 
 const API_BASE_URL = "http://localhost:5000/api";
 
+const backdropBlurStyle: React.CSSProperties = {
+  backgroundColor: "rgba(15, 23, 42, 0.45)",
+  backdropFilter: "blur(4px)",
+  WebkitBackdropFilter: "blur(4px)",
+};
+
 export default function StudentRecordsPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StudentStatus | "All">("All");
@@ -104,9 +117,10 @@ export default function StudentRecordsPage() {
 
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [exitConfirmModalOpen, setExitConfirmModalOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [selectedExportStatus, setSelectedExportStatus] =
-    useState<ExportStatus>("All");
+    useState<ExportStatus | null>(null);
 
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
@@ -201,15 +215,15 @@ export default function StudentRecordsPage() {
     }
   };
 
-const loadRegistrarAccount = async () => {
-  try {
-    const data = await getRegistrarByRole();
-    setRegistrarAccount(data || null);
-  } catch (e) {
-    console.error("Failed to load registrar account", e);
-    setRegistrarAccount(null);
-  }
-};
+  const loadRegistrarAccount = async () => {
+    try {
+      const data = await getRegistrarByRole();
+      setRegistrarAccount(data || null);
+    } catch (e) {
+      console.error("Failed to load registrar account", e);
+      setRegistrarAccount(null);
+    }
+  };
 
   useEffect(() => {
     load();
@@ -223,9 +237,24 @@ const loadRegistrarAccount = async () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, status, course, year, section]);
 
+  const handleAttemptCloseExportModal = () => {
+    if (exporting) return;
+
+    if (selectedExportStatus !== null) {
+      setExitConfirmModalOpen(true);
+    } else {
+      setExportModalOpen(false);
+    }
+  };
+
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || exporting) return;
+
+      if (exitConfirmModalOpen) {
+        setExitConfirmModalOpen(false);
+        return;
+      }
 
       if (confirmModalOpen) {
         setConfirmModalOpen(false);
@@ -233,11 +262,11 @@ const loadRegistrarAccount = async () => {
       }
 
       if (exportModalOpen) {
-        setExportModalOpen(false);
+        handleAttemptCloseExportModal();
       }
     };
 
-    if (exportModalOpen || confirmModalOpen) {
+    if (exportModalOpen || confirmModalOpen || exitConfirmModalOpen) {
       document.body.style.overflow = "hidden";
       window.addEventListener("keydown", handleEscape);
     }
@@ -246,7 +275,13 @@ const loadRegistrarAccount = async () => {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleEscape);
     };
-  }, [exportModalOpen, confirmModalOpen, exporting]);
+  }, [
+    exportModalOpen,
+    confirmModalOpen,
+    exitConfirmModalOpen,
+    exporting,
+    selectedExportStatus,
+  ]);
 
   const courses = useMemo<string[]>(() => {
     const values = rows
@@ -362,19 +397,21 @@ const loadRegistrarAccount = async () => {
     alert(`Mark as dropped for ${id}`);
   };
 
-  const handleExport = () => {
-    setSelectedExportStatus("All");
-    setConfirmModalOpen(false);
+  const handleOpenExport = () => {
+    setSelectedExportStatus(null);
     setExportModalOpen(true);
   };
 
-  const handleOpenConfirm = () => {
-    setConfirmModalOpen(true);
+  const handleConfirmExitExport = () => {
+    setExitConfirmModalOpen(false);
+    setConfirmModalOpen(false);
+    setExportModalOpen(false);
+    setSelectedExportStatus(null);
   };
 
-  const handleCloseExportModal = () => {
-    if (exporting) return;
-    setExportModalOpen(false);
+  const handleOpenConfirmExport = () => {
+    if (!selectedExportStatus) return;
+    setConfirmModalOpen(true);
   };
 
   const handleCloseConfirmModal = () => {
@@ -383,6 +420,8 @@ const loadRegistrarAccount = async () => {
   };
 
   const handleDownloadExport = async () => {
+    if (!selectedExportStatus) return;
+
     try {
       setExporting(true);
 
@@ -397,15 +436,15 @@ const loadRegistrarAccount = async () => {
         qs.set("exportStatus", selectedExportStatus);
       }
 
-     const res = await fetch(
-  `${API_BASE_URL}/students/export?${qs.toString()}`,
-  {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("sessionToken") || ""}`,
-    },
-  }
-);
+      const res = await fetch(
+        `${API_BASE_URL}/students/export?${qs.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("sessionToken") || ""}`,
+          },
+        },
+      );
 
       if (!res.ok) {
         let message = "Failed to export student records.";
@@ -436,6 +475,7 @@ const loadRegistrarAccount = async () => {
 
       setConfirmModalOpen(false);
       setExportModalOpen(false);
+      setSelectedExportStatus(null);
       showAlert(
         `Student records exported successfully (${selectedExportStatus}).`,
         "success",
@@ -463,7 +503,7 @@ const loadRegistrarAccount = async () => {
           subtitle="Manage and view all enrolled students"
           actionLabel={loading ? "Loading..." : "Export Records"}
           actionIcon={Download}
-          onAction={handleExport}
+          onAction={handleOpenExport}
         />
 
         <RecordsStats stats={stats} />
@@ -514,183 +554,262 @@ const loadRegistrarAccount = async () => {
           loading={editLoading}
         />
 
-        {exportModalOpen && (
-          <div
-            className="registrar-export-modal-backdrop"
-            onClick={handleCloseExportModal}
-          >
+        {/* 1. EXPORT OPTIONS MODAL (PORTALED TO DOCUMENT.BODY TO BLUR SIDEBAR) */}
+        {exportModalOpen &&
+          createPortal(
             <div
-              className="registrar-export-modal"
-              onClick={(e) => e.stopPropagation()}
+              className="registrar-export-modal-backdrop"
+              style={{ ...backdropBlurStyle, zIndex: 1050 }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget)
+                  handleAttemptCloseExportModal();
+              }}
             >
-              <div className="registrar-export-modal-header">
-                <div className="d-flex align-items-center gap-2">
-                  <div className="registrar-export-modal-icon">
-                    <FileSpreadsheet size={20} />
+              <div
+                className="registrar-export-modal"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="registrar-export-modal-header">
+                  <div className="d-flex align-items-center gap-2">
+                    <div className="registrar-export-modal-icon">
+                      <FileSpreadsheet size={20} />
+                    </div>
+                    <div>
+                      <h5 className="mb-1 fw-bold">Export Student Records</h5>
+                      <p className="text-muted mb-0">
+                        Choose which student records you want to export.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h5 className="mb-1 fw-bold">Export Student Records</h5>
-                    <p className="text-muted mb-0">
-                      Choose which student records you want to export.
-                    </p>
+
+                  <button
+                    type="button"
+                    className="app-icon-btn app-icon-btn-sm"
+                    onClick={handleAttemptCloseExportModal}
+                    disabled={exporting}
+                    aria-label="Close"
+                    title="Close"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="registrar-export-modal-body">
+                  <div className="registrar-export-options">
+                    <button
+                      type="button"
+                      className={`registrar-export-option ${
+                        selectedExportStatus === "All" ? "active" : ""
+                      }`}
+                      onClick={() => setSelectedExportStatus("All")}
+                      disabled={exporting}
+                    >
+                      <div className="fw-semibold">All Listed Students</div>
+                      <div className="text-muted small">
+                        Export all students currently shown in the list
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`registrar-export-option ${
+                        selectedExportStatus === "Active" ? "active" : ""
+                      }`}
+                      onClick={() => setSelectedExportStatus("Active")}
+                      disabled={exporting}
+                    >
+                      <div className="fw-semibold">Active Students</div>
+                      <div className="text-muted small">
+                        Export only active students from the current list
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`registrar-export-option ${
+                        selectedExportStatus === "Dropped" ? "active" : ""
+                      }`}
+                      onClick={() => setSelectedExportStatus("Dropped")}
+                      disabled={exporting}
+                    >
+                      <div className="fw-semibold">Dropped Students</div>
+                      <div className="text-muted small">
+                        Export only dropped students from the current list
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`registrar-export-option ${
+                        selectedExportStatus === "Graduated" ? "active" : ""
+                      }`}
+                      onClick={() => setSelectedExportStatus("Graduated")}
+                      disabled={exporting}
+                    >
+                      <div className="fw-semibold">Graduated Students</div>
+                      <div className="text-muted small">
+                        Export only graduated students from the current list
+                      </div>
+                    </button>
                   </div>
                 </div>
 
-                <button
-  type="button"
-  className="app-icon-btn app-icon-btn-sm"
-  onClick={handleCloseExportModal}
-  disabled={exporting}
-  aria-label="Close"
-  title="Close"
->
-  <X size={16} />
-</button>
-              </div>
-
-              <div className="registrar-export-modal-body">
-                <div className="registrar-export-options">
+                <div className="registrar-export-modal-footer">
                   <button
                     type="button"
-                    className={`registrar-export-option ${
-                      selectedExportStatus === "All" ? "active" : ""
-                    }`}
-                    onClick={() => setSelectedExportStatus("All")}
+                    className="btn btn-light border"
+                    onClick={handleAttemptCloseExportModal}
                     disabled={exporting}
                   >
-                    <div className="fw-semibold">All Listed Students</div>
-                    <div className="text-muted small">
-                      Export all students currently shown in the list
-                    </div>
+                    Cancel
                   </button>
 
                   <button
                     type="button"
-                    className={`registrar-export-option ${
-                      selectedExportStatus === "Active" ? "active" : ""
-                    }`}
-                    onClick={() => setSelectedExportStatus("Active")}
-                    disabled={exporting}
+                    className="btn btn-primary d-flex align-items-center gap-2"
+                    onClick={handleOpenConfirmExport}
+                    disabled={exporting || !selectedExportStatus}
                   >
-                    <div className="fw-semibold">Active Students</div>
-                    <div className="text-muted small">
-                      Export only active students from the current list
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`registrar-export-option ${
-                      selectedExportStatus === "Dropped" ? "active" : ""
-                    }`}
-                    onClick={() => setSelectedExportStatus("Dropped")}
-                    disabled={exporting}
-                  >
-                    <div className="fw-semibold">Dropped Students</div>
-                    <div className="text-muted small">
-                      Export only dropped students from the current list
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`registrar-export-option ${
-                      selectedExportStatus === "Graduated" ? "active" : ""
-                    }`}
-                    onClick={() => setSelectedExportStatus("Graduated")}
-                    disabled={exporting}
-                  >
-                    <div className="fw-semibold">Graduated Students</div>
-                    <div className="text-muted small">
-                      Export only graduated students from the current list
-                    </div>
+                    <Download size={16} />
+                    Export Records
                   </button>
                 </div>
               </div>
+            </div>,
+            document.body,
+          )}
 
-              <div className="registrar-export-modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-light border"
-                  onClick={handleCloseExportModal}
-                  disabled={exporting}
-                >
-                  Cancel
-                </button>
+        {/* 2. CONFIRM EXPORT MODAL (PORTALED TO DOCUMENT.BODY AT HIGHER Z-INDEX) */}
+        {confirmModalOpen &&
+          createPortal(
+            <div
+              className="registrar-confirm-backdrop"
+              style={{ ...backdropBlurStyle, zIndex: 2000 }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) handleCloseConfirmModal();
+              }}
+            >
+              <div
+                className="registrar-confirm-modal"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="registrar-confirm-header">
+                  <div className="registrar-confirm-title">Confirm Export</div>
 
-                <button
-                  type="button"
-                  className="btn btn-primary d-flex align-items-center gap-2"
-                  onClick={handleOpenConfirm}
-                  disabled={exporting}
-                >
-                  <Download size={16} />
-                  Export Records
-                </button>
+                  <button
+                    type="button"
+                    className="app-icon-btn app-icon-btn-sm"
+                    onClick={handleCloseConfirmModal}
+                    disabled={exporting}
+                    aria-label="Close"
+                    title="Close"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="registrar-confirm-body">
+                  <div className="registrar-confirm-icon">
+                    <TriangleAlert size={22} />
+                  </div>
+
+                  <p className="text-muted text-center mb-0">
+                    Are you sure you want to export{" "}
+                    <span className="fw-semibold">{selectedExportStatus}</span>{" "}
+                    student records as a CSV file?
+                  </p>
+                </div>
+
+                <div className="registrar-confirm-actions">
+                  <button
+                    type="button"
+                    className="btn btn-light border"
+                    onClick={handleCloseConfirmModal}
+                    disabled={exporting}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-primary d-flex align-items-center gap-2"
+                    onClick={handleDownloadExport}
+                    disabled={exporting}
+                  >
+                    <Download size={16} />
+                    {exporting ? "Exporting..." : "Yes, Export"}
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </div>,
+            document.body,
+          )}
 
-        {confirmModalOpen && (
-         <div
-  className="registrar-confirm-backdrop"
-  onClick={handleCloseConfirmModal}
->
-  <div
-    className="registrar-confirm-modal"
-    onClick={(e) => e.stopPropagation()}
-  >
-    <div className="registrar-confirm-header">
-      <div className="registrar-confirm-title">Confirm Export</div>
+        {/* 3. EXIT CONFIRMATION MODAL FOR EXPORT (PORTALED TO DOCUMENT.BODY AT HIGHEST Z-INDEX) */}
+        {exitConfirmModalOpen &&
+          createPortal(
+            <div
+              className="registrar-confirm-backdrop"
+              style={{ ...backdropBlurStyle, zIndex: 2010 }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget && !exporting) {
+                  setExitConfirmModalOpen(false);
+                }
+              }}
+            >
+              <div
+                className="registrar-confirm-modal"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="registrar-confirm-header">
+                  <div className="registrar-confirm-title">Cancel Export?</div>
 
-      <button
-        type="button"
-        className="app-icon-btn app-icon-btn-sm"
-        onClick={handleCloseConfirmModal}
-        disabled={exporting}
-        aria-label="Close"
-        title="Close"
-      >
-        <X size={16} />
-      </button>
-    </div>
+                  <button
+                    type="button"
+                    className="app-icon-btn app-icon-btn-sm"
+                    onClick={() => setExitConfirmModalOpen(false)}
+                    disabled={exporting}
+                    aria-label="Close"
+                    title="Close"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
 
-    <div className="registrar-confirm-body">
-      <div className="registrar-confirm-icon">
-        <TriangleAlert size={22} />
-      </div>
+                <div className="registrar-confirm-body">
+                  <div className="registrar-confirm-icon bg-warning-subtle text-warning">
+                    <AlertTriangle size={22} />
+                  </div>
 
-      <p className="text-muted text-center mb-0">
-        Are you sure you want to export{" "}
-        <span className="fw-semibold">{selectedExportStatus}</span>{" "}
-        student records as a CSV file?
-      </p>
-    </div>
+                  <p className="text-muted text-center mb-0">
+                    Are you sure you want to exit? Your selected export options
+                    will be cleared.
+                  </p>
+                </div>
 
-    <div className="registrar-confirm-actions">
-      <button
-        type="button"
-        className="btn btn-light border"
-        onClick={handleCloseConfirmModal}
-        disabled={exporting}
-      >
-        Cancel
-      </button>
+                <div className="registrar-confirm-actions">
+                  <button
+                    type="button"
+                    className="btn btn-light border"
+                    onClick={() => setExitConfirmModalOpen(false)}
+                    disabled={exporting}
+                  >
+                    Continue Export
+                  </button>
 
-      <button
-        type="button"
-        className="btn btn-primary d-flex align-items-center gap-2"
-        onClick={handleDownloadExport}
-        disabled={exporting}
-      >
-        <Download size={16} />
-        {exporting ? "Exporting..." : "Yes, Export"}
-      </button>
-    </div>
-  </div>
-</div>
-        )}
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={handleConfirmExitExport}
+                    disabled={exporting}
+                  >
+                    Discard & Exit
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )}
       </div>
     </>
   );

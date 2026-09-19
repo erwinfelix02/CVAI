@@ -12,9 +12,12 @@ import {
   reserveFacultyId,
   reserveUserId,
   getMyProfile,
+  updateMyProfile,
   updateMyPhone,
   updateMyDepartmentPreferences,
   getFacultyByDepartment,
+  searchStudentsByName,
+  sendStudentEmail,
 } from "../controllers/userController.js";
 
 import {
@@ -26,13 +29,16 @@ const router = express.Router();
 
 /* =========================================================
    CURRENT SIGNED-IN USER
-   IMPORTANT: /me routes MUST be placed BEFORE /:id routes
    ========================================================= */
 
 router.get("/me", getMyProfile);
+router.patch("/me/profile", updateMyProfile);
 router.patch("/me/phone", updateMyPhone);
 router.get("/faculty", getFacultyByDepartment);
 router.patch("/me/preferences", updateMyDepartmentPreferences);
+router.get("/search-students", searchStudentsByName);
+router.post("/send-email", sendStudentEmail);
+
 /* =========================================================
    RESERVATIONS & UTILITIES
    ========================================================= */
@@ -54,7 +60,7 @@ router.get(
 router.get(
   "/students",
   authMiddleware,
-  authorizeRoles("Registrar", "Super Admin"),
+  authorizeRoles("Registrar", "Super Admin", "Faculty"),
   getStudentUsers
 );
 

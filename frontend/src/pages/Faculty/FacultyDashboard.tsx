@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 
 import "../../styles/faculty-dashboard.css";
 import FacultyStatsGrid from "../../components/Faculty/Dashboard/FacultyStatsGrid";
 import TodayClasses from "../../components/Faculty/Dashboard/TodayClasses";
 import PendingTasks from "../../components/Faculty/Dashboard/PendingTasks";
-import RecentSubmissions from "../../components/Faculty/Dashboard/RecentSubmissions";
+
+const REGISTRAR_SETTINGS_API = "http://localhost:5000/api/registrar/settings";
 
 export default function FacultyDashboard() {
   /* =========================================================
@@ -21,9 +22,10 @@ export default function FacultyDashboard() {
      ========================================================= */
 
   const [facultyName, setFacultyName] = useState("Faculty Member");
-  const [academicYear, setAcademicYear] = useState("2024–2025");
-  const [semester, setSemester] = useState("2nd Semester");
+  const [academicYear, setAcademicYear] = useState("");
+  const [semester, setSemester] = useState("");
   const [greeting, setGreeting] = useState("Good Morning");
+  const [isSettingsLoading, setIsSettingsLoading] = useState(true);
 
   /* =========================================================
      TIME-BASED GREETING CALCULATOR
@@ -67,19 +69,20 @@ export default function FacultyDashboard() {
     // 1. Calculate greeting based on local time
     setGreeting(calculateGreeting());
 
+    // Retrieve tokens from storage
+    const token =
+      localStorage.getItem("sessionToken") || localStorage.getItem("token");
+
     // 2. Fetch logged-in user profile
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem("token");
         const userJson = localStorage.getItem("user");
         const storedUser = userJson ? JSON.parse(userJson) : {};
 
-        // Immediately set name from local session if available
         if (storedUser.firstName || storedUser.lastName || storedUser.name) {
           setFacultyName(formatFacultyName(storedUser));
         }
 
-        // Fetch fresh profile data for signed-in user
         const queryParams = new URLSearchParams();
         if (storedUser?.id || storedUser?._id) {
           queryParams.append("id", storedUser.id || storedUser._id);
@@ -89,7 +92,8 @@ export default function FacultyDashboard() {
 
         const res = await fetch(`/api/users/me?${queryParams.toString()}`, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
 
@@ -102,17 +106,35 @@ export default function FacultyDashboard() {
       }
     };
 
-    // 3. Fetch active Academic Year & Semester
+    // 3. Fetch active Academic Year & Semester saved by the Registrar
     const fetchSettings = async () => {
+      setIsSettingsLoading(true);
       try {
-        const res = await fetch("/api/registrar-settings");
+        const res = await fetch(REGISTRAR_SETTINGS_API, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+
         if (res.ok) {
           const data = await res.json();
-          if (data.academicYear) setAcademicYear(data.academicYear);
-          if (data.semester) setSemester(data.semester);
+          console.log("Registrar Settings Loaded in Faculty Dashboard:", data);
+
+          const payload = Array.isArray(data) ? data[0] : data;
+
+          if (payload) {
+            setAcademicYear(payload.academicYear || "2023-2024");
+            setSemester(payload.semester || "2nd Semester");
+          }
+        } else {
+          console.error("Failed to load registrar settings. HTTP Status:", res.status);
         }
       } catch (err) {
         console.error("Failed to fetch registrar settings:", err);
+      } finally {
+        setIsSettingsLoading(false);
       }
     };
 
@@ -197,7 +219,16 @@ export default function FacultyDashboard() {
           <div className="faculty-academic-year text-md-end">
             <span className="faculty-ay-label">Academic Year</span>
             <span className="faculty-ay-value">
-              {semester}, {academicYear}
+              {isSettingsLoading ? (
+                <span className="d-inline-flex align-items-center gap-1 opacity-75">
+                  <Loader2 size={14} className="spinner-border spinner-border-sm" />
+                  <span>Loading term...</span>
+                </span>
+              ) : semester || academicYear ? (
+                `${semester}${semester && academicYear ? ", " : ""}${academicYear}`
+              ) : (
+                "Not Available"
+              )}
             </span>
           </div>
         </header>
@@ -212,13 +243,6 @@ export default function FacultyDashboard() {
           </div>
           <div className="col-12 col-xl-4">
             <PendingTasks />
-          </div>
-        </div>
-
-        {/* Recent Submissions */}
-        <div className="row g-3 mt-2">
-          <div className="col-12">
-            <RecentSubmissions />
           </div>
         </div>
       </div>

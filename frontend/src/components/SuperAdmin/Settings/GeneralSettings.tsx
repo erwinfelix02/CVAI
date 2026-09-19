@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Save, TriangleAlert, X, Pencil, Ban } from "lucide-react";
+import { Save, TriangleAlert, X, Pencil, Ban, AlertTriangle } from "lucide-react";
 import AuthAlert from "../../Authentication/AuthAlert";
 import {
   getGeneralSettings,
@@ -8,6 +8,10 @@ import {
 } from "../../../api/settingsService";
 
 type FormErrors = Partial<Record<keyof GeneralSettingsDTO, string>>;
+
+type GeneralSettingsProps = {
+  onDirtyChange?: (dirty: boolean) => void;
+};
 
 const SQLI_PATTERN =
   /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|TRUNCATE|EXEC|EXECUTE)\b|--|;|\/\*|\*\/|@@|xp_)/i;
@@ -91,7 +95,7 @@ function validateForm(form: GeneralSettingsDTO): FormErrors {
   };
 }
 
-export default function GeneralSettings() {
+export default function GeneralSettings({ onDirtyChange }: GeneralSettingsProps) {
   const [form, setForm] = useState<GeneralSettingsDTO>({
     siteName: "",
     supportEmail: "",
@@ -111,7 +115,8 @@ export default function GeneralSettings() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
   const [alertMessage, setAlertMessage] = useState("");
@@ -127,6 +132,11 @@ export default function GeneralSettings() {
     () => JSON.stringify(form) === JSON.stringify(originalForm),
     [form, originalForm],
   );
+
+  // Notify parent component of unsaved changes status
+  useEffect(() => {
+    onDirtyChange?.(isEditing && !isUnchanged);
+  }, [isEditing, isUnchanged, onDirtyChange]);
 
   const show = (msg: string, type: "success" | "error") => {
     setShowAlert(false);
@@ -159,11 +169,12 @@ export default function GeneralSettings() {
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !saving) {
-        setConfirmOpen(false);
+        if (confirmSaveOpen) setConfirmSaveOpen(false);
+        if (confirmDiscardOpen) setConfirmDiscardOpen(false);
       }
     };
 
-    if (confirmOpen) {
+    if (confirmSaveOpen || confirmDiscardOpen) {
       document.body.style.overflow = "hidden";
       window.addEventListener("keydown", handleEscape);
     }
@@ -172,7 +183,7 @@ export default function GeneralSettings() {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleEscape);
     };
-  }, [confirmOpen, saving]);
+  }, [confirmSaveOpen, confirmDiscardOpen, saving]);
 
   const onChange = (k: keyof GeneralSettingsDTO, v: string) => {
     setForm((prev) => {
@@ -189,12 +200,21 @@ export default function GeneralSettings() {
     setIsEditing(true);
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelClick = () => {
     if (saving) return;
+
+    if (!isUnchanged) {
+      setConfirmDiscardOpen(true);
+    } else {
+      setIsEditing(false);
+    }
+  };
+
+  const confirmDiscardChanges = () => {
     setForm(originalForm);
     setErrors(validateForm(originalForm));
     setIsEditing(false);
-    setConfirmOpen(false);
+    setConfirmDiscardOpen(false);
   };
 
   const handleAskSave = () => {
@@ -207,12 +227,7 @@ export default function GeneralSettings() {
       return;
     }
 
-    setConfirmOpen(true);
-  };
-
-  const handleCloseConfirm = () => {
-    if (saving) return;
-    setConfirmOpen(false);
+    setConfirmSaveOpen(true);
   };
 
   const onConfirmSave = async () => {
@@ -221,7 +236,7 @@ export default function GeneralSettings() {
 
     const invalid = Object.values(nextErrors).some((msg) => Boolean(msg));
     if (invalid) {
-      setConfirmOpen(false);
+      setConfirmSaveOpen(false);
       show("Please fix the validation errors first.", "error");
       return;
     }
@@ -241,7 +256,7 @@ export default function GeneralSettings() {
       setOriginalForm(sanitizedForm);
       setForm(sanitizedForm);
       setErrors(validateForm(sanitizedForm));
-      setConfirmOpen(false);
+      setConfirmSaveOpen(false);
       setIsEditing(false);
       show("General settings saved!", "success");
     } catch (err: any) {
@@ -381,7 +396,7 @@ export default function GeneralSettings() {
 
                     <button
                       className="btn btn-light border"
-                      onClick={handleCancelEdit}
+                      onClick={handleCancelClick}
                       disabled={saving}
                     >
                       <Ban size={18} className="me-2" />
@@ -395,19 +410,21 @@ export default function GeneralSettings() {
         </div>
       </div>
 
-      {confirmOpen && (
+      {/* SAVE CONFIRMATION MODAL */}
+      {confirmSaveOpen && (
         <div
           className="superadmin-settings-confirm-backdrop"
-          onClick={handleCloseConfirm}
+          onClick={() => !saving && setConfirmSaveOpen(false)}
         >
           <div
             className="superadmin-settings-confirm-modal"
+            style={{ maxWidth: 420 }}
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               className="superadmin-settings-confirm-close"
-              onClick={handleCloseConfirm}
+              onClick={() => setConfirmSaveOpen(false)}
               disabled={saving}
             >
               <X size={18} />
@@ -423,11 +440,11 @@ export default function GeneralSettings() {
               Are you sure you want to save the changes to general settings?
             </p>
 
-            <div className="superadmin-settings-confirm-actions">
+            <div className="superadmin-settings-confirm-actions mt-3">
               <button
                 type="button"
                 className="btn btn-light border"
-                onClick={handleCloseConfirm}
+                onClick={() => setConfirmSaveOpen(false)}
                 disabled={saving}
               >
                 Cancel
@@ -441,6 +458,59 @@ export default function GeneralSettings() {
               >
                 <Save size={16} />
                 {saving ? "Saving..." : "Yes, Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DISCARD / CANCEL EDIT CONFIRMATION MODAL */}
+      {confirmDiscardOpen && (
+        <div
+          className="superadmin-settings-confirm-backdrop"
+          onClick={() => !saving && setConfirmDiscardOpen(false)}
+        >
+          <div
+            className="superadmin-settings-confirm-modal"
+            style={{ maxWidth: 420 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="superadmin-settings-confirm-close"
+              onClick={() => setConfirmDiscardOpen(false)}
+              disabled={saving}
+            >
+              <X size={18} />
+            </button>
+
+            <div className="superadmin-settings-confirm-icon bg-warning-subtle text-warning">
+              <AlertTriangle size={22} />
+            </div>
+
+            <h5 className="fw-bold mb-2 text-center">Discard changes?</h5>
+
+            <p className="text-muted text-center mb-0">
+              You have unsaved edits in general settings. Canceling now will discard your changes.
+            </p>
+
+            <div className="superadmin-settings-confirm-actions mt-3">
+              <button
+                type="button"
+                className="btn btn-light border"
+                onClick={() => setConfirmDiscardOpen(false)}
+                disabled={saving}
+              >
+                Keep Editing
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={confirmDiscardChanges}
+                disabled={saving}
+              >
+                Discard & Exit
               </button>
             </div>
           </div>

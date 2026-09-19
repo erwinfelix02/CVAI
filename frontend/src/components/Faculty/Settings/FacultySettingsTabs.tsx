@@ -1,6 +1,6 @@
-import { User, Shield, SlidersHorizontal } from "lucide-react";
+import { User, Shield } from "lucide-react";
 
-export type FacultySettingsTabKey = "account" | "security" | "preferences";
+export type FacultySettingsTabKey = "account" | "security";
 
 type Props = {
   active: FacultySettingsTabKey;
@@ -10,7 +10,6 @@ type Props = {
 const tabs: { key: FacultySettingsTabKey; label: string; icon: any }[] = [
   { key: "account", label: "Account", icon: User },
   { key: "security", label: "Security", icon: Shield },
-  { key: "preferences", label: "Preferences", icon: SlidersHorizontal },
 ];
 
 export default function FacultySettingsTabs({ active, setActive }: Props) {

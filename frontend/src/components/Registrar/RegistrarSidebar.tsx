@@ -15,7 +15,6 @@ import {
   ChevronRight,
   GraduationCap,
   X,
-  Bot,
   BookOpen,
   Building2,
 } from "lucide-react";
@@ -79,7 +78,6 @@ const nav: NavItem[] = [
   { label: "Courses", icon: BookOpen, path: "/registrar/courses" },
   { label: "Departments", icon: Building2, path: "/registrar/departments" },
   { label: "Faculty Accounts", icon: Users, path: "/registrar/faculty" },
-  { label: "AI Assistant", icon: Bot, path: "/registrar/ai-assistant", badge: "AI" },
 ];
 
 const CONTROLLED_PERM: Record<string, string> = {

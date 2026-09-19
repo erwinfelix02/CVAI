@@ -38,9 +38,13 @@ const studentSchema = new mongoose.Schema(
     yearLevel: { type: Number, required: true },
     section: { type: String, default: "", trim: true },
     department: { type: String, required: true, trim: true },
-
+    enrolledSubjects: { type: [String], default: [] },
     notes: { type: String, default: "" },
     verifiedDocs: { type: [String], default: [] },
+
+    // Added fields to track the faculty owner
+    facultyId: { type: String, default: "", index: true },
+    facultyName: { type: String, default: "" },
 
     status: {
       type: String,

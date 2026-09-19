@@ -6,6 +6,7 @@ import {
   getStudentsByEnrollmentIds,
   exportStudentRecords,
   updateStudentInfo,
+  createStudent,
 } from "../controllers/studentController.js";
 
 const router = express.Router();
@@ -16,5 +17,6 @@ router.get("/", getStudentRecords);
 router.get("/count", getStudentsCount);
 router.get("/:id", getStudentById);
 router.put("/:id", updateStudentInfo);
+router.post("/", createStudent);
 
 export default router;

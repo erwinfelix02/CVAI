@@ -1,4 +1,4 @@
-// ✅ src/components/DepartmentHead/Settings/ProfileCard.tsx
+// src/components/DepartmentHead/Settings/ProfileCard.tsx
 
 import { User } from "lucide-react";
 

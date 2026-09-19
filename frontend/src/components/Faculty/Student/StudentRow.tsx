@@ -1,5 +1,5 @@
 import { Eye, Mail } from "lucide-react";
-import type { Student } from "./types";
+import { formatYearLevel, type Student } from "./types";
 
 type StudentRowProps = Student & {
   onView: (student: Student) => void;
@@ -7,13 +7,35 @@ type StudentRowProps = Student & {
 };
 
 export default function StudentRow(props: StudentRowProps) {
-  const { initials, name, id, section, gpa, attendance, status, onView, onEmail } = props;
+  const {
+    initials,
+    name,
+    id,
+    section,
+    year,
+    gpa = 0,
+    attendance = 0,
+    status,
+    onView,
+    onEmail,
+  } = props;
+
+  const displayInitials =
+    initials ||
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((n) => n[0]?.toUpperCase())
+      .join("");
+
+  const yearLabel = formatYearLevel(year);
 
   return (
     <div className="student-row">
       {/* LEFT */}
       <div className="student-left">
-        <div className="student-avatar">{initials}</div>
+        <div className="student-avatar">{displayInitials}</div>
 
         <div>
           <div className="student-name">
@@ -21,7 +43,7 @@ export default function StudentRow(props: StudentRowProps) {
             <span className={`status-dot ${status}`} />
           </div>
           <div className="student-meta">
-            {id} • {section}
+            {id} • {yearLabel ? `${yearLabel} - ` : ""}{section || "—"}
           </div>
         </div>
       </div>
@@ -30,7 +52,7 @@ export default function StudentRow(props: StudentRowProps) {
       <div className="student-metrics d-none d-md-flex">
         <div className="metric">
           <span className={`metric-value ${gpa < 3 ? "warning" : "good"}`}>
-            {gpa.toFixed(2)}
+            {typeof gpa === "number" ? gpa.toFixed(2) : "0.00"}
           </span>
           <span className="metric-label">GPA</span>
         </div>
@@ -44,6 +66,7 @@ export default function StudentRow(props: StudentRowProps) {
       {/* RIGHT */}
       <div className="student-actions">
         <button
+          type="button"
           className="btn btn-link p-0 text-secondary border-0"
           onClick={() => onView(props)}
           title="View Student"
@@ -51,6 +74,7 @@ export default function StudentRow(props: StudentRowProps) {
           <Eye size={18} />
         </button>
         <button
+          type="button"
           className="btn btn-link p-0 text-secondary border-0"
           onClick={() => onEmail(props)}
           title="Email Student"

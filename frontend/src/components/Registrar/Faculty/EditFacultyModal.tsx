@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { X, TriangleAlert } from "lucide-react";
+import { createPortal } from "react-dom";
+import { X, TriangleAlert, AlertTriangle } from "lucide-react";
 import "../../../styles/faculty.css";
 import { getActiveDepartments } from "../../../api/departmentService";
 
@@ -31,6 +32,12 @@ type Props = {
   isSaving: boolean;
 };
 
+const backdropBlurStyle: React.CSSProperties = {
+  backgroundColor: "rgba(15, 23, 42, 0.45)",
+  backdropFilter: "blur(4px)",
+  WebkitBackdropFilter: "blur(4px)",
+};
+
 export default function EditFacultyModal({
   open,
   loading,
@@ -42,20 +49,41 @@ export default function EditFacultyModal({
   const [phone, setPhone] = useState("");
   const [department, setDepartment] = useState("");
   const [status, setStatus] = useState<"active" | "inactive">("inactive");
+
+  // Initial values to detect unsaved changes
+  const [initialPhone, setInitialPhone] = useState("");
+  const [initialDepartment, setInitialDepartment] = useState("");
+  const [initialStatus, setInitialStatus] = useState<"active" | "inactive">("inactive");
+
+  // Confirmation popups
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
 
   const [departments, setDepartments] = useState<DepartmentDB[]>([]);
   const [deptLoading, setDeptLoading] = useState(false);
   const [deptError, setDeptError] = useState("");
 
+  // Sync initial faculty data into form states
   useEffect(() => {
     if (!faculty) return;
-    setPhone(faculty.phone || "");
-    setDepartment(faculty.department || "");
-    setStatus(faculty.status || "inactive");
+
+    const currentPhone = faculty.phone || "";
+    const currentDept = faculty.department || "";
+    const currentStatus = faculty.status || "inactive";
+
+    setPhone(currentPhone);
+    setDepartment(currentDept);
+    setStatus(currentStatus);
+
+    setInitialPhone(currentPhone);
+    setInitialDepartment(currentDept);
+    setInitialStatus(currentStatus);
+
     setConfirmOpen(false);
+    setExitConfirmOpen(false);
   }, [faculty]);
 
+  // Load active departments when opened
   useEffect(() => {
     if (!open) return;
 
@@ -85,9 +113,41 @@ export default function EditFacultyModal({
     };
   }, [open]);
 
+  // Check if user changed any field
+  const isDirty = useMemo(() => {
+    return (
+      phone !== initialPhone ||
+      department !== initialDepartment ||
+      status !== initialStatus
+    );
+  }, [phone, initialPhone, department, initialDepartment, status, initialStatus]);
+
+  // Intercept close requests
+  const handleAttemptClose = () => {
+    if (isSaving) return;
+
+    if (isDirty) {
+      setExitConfirmOpen(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleConfirmExit = () => {
+    setExitConfirmOpen(false);
+    setConfirmOpen(false);
+    onClose();
+  };
+
+  // Keyboard navigation & lock body scroll
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || isSaving) return;
+
+      if (exitConfirmOpen) {
+        setExitConfirmOpen(false);
+        return;
+      }
 
       if (confirmOpen) {
         setConfirmOpen(false);
@@ -95,11 +155,11 @@ export default function EditFacultyModal({
       }
 
       if (open) {
-        onClose();
+        handleAttemptClose();
       }
     };
 
-    if (open || confirmOpen) {
+    if (open || confirmOpen || exitConfirmOpen) {
       document.body.style.overflow = "hidden";
       window.addEventListener("keydown", handleEscape);
     }
@@ -108,7 +168,7 @@ export default function EditFacultyModal({
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleEscape);
     };
-  }, [open, confirmOpen, isSaving, onClose]);
+  }, [open, confirmOpen, exitConfirmOpen, isSaving, isDirty]);
 
   const departmentOptions = useMemo(() => {
     const names = new Set(departments.map((d) => d.name));
@@ -150,9 +210,15 @@ export default function EditFacultyModal({
     setConfirmOpen(false);
   };
 
-  return (
+  const modalContent = (
     <>
-      <div className="fdm-backdrop" onClick={onClose} role="presentation">
+      {/* MAIN EDIT FACULTY MODAL BACKDROP */}
+      <div
+        className="fdm-backdrop"
+        style={{ ...backdropBlurStyle, zIndex: 1050 }}
+        onClick={handleAttemptClose}
+        role="presentation"
+      >
         <div
           className="fdm-modal"
           role="dialog"
@@ -162,7 +228,12 @@ export default function EditFacultyModal({
         >
           <div className="fdm-header">
             <h5 className="mb-0 fw-bold">Edit Faculty Account</h5>
-            <button className="fdm-close" onClick={onClose} aria-label="Close">
+            <button
+              className="fdm-close"
+              onClick={handleAttemptClose}
+              aria-label="Close"
+              disabled={isSaving}
+            >
               <X size={18} />
             </button>
           </div>
@@ -188,6 +259,7 @@ export default function EditFacultyModal({
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="Enter phone number"
+                      disabled={isSaving}
                     />
                   </div>
 
@@ -198,7 +270,7 @@ export default function EditFacultyModal({
                       className="form-select"
                       value={department}
                       onChange={(e) => setDepartment(e.target.value)}
-                      disabled={deptLoading}
+                      disabled={deptLoading || isSaving}
                     >
                       <option value="">
                         {deptLoading ? "Loading departments..." : "Select department"}
@@ -224,6 +296,7 @@ export default function EditFacultyModal({
                       onChange={(e) =>
                         setStatus(e.target.value as "active" | "inactive")
                       }
+                      disabled={isSaving}
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
@@ -236,14 +309,16 @@ export default function EditFacultyModal({
 
           <div className="fdm-footer">
             <button
+              type="button"
               className="btn btn-outline-secondary"
-              onClick={onClose}
+              onClick={handleAttemptClose}
               disabled={isSaving}
             >
               Cancel
             </button>
 
             <button
+              type="button"
               className="btn btn-primary"
               disabled={!canSave || isSaving}
               onClick={handleAskSave}
@@ -254,9 +329,11 @@ export default function EditFacultyModal({
         </div>
       </div>
 
+      {/* CONFIRM SAVE POPUP */}
       {confirmOpen && (
         <div
           className="faculty-confirm-backdrop"
+          style={{ ...backdropBlurStyle, zIndex: 2000 }}
           onClick={handleCloseConfirm}
         >
           <div
@@ -304,6 +381,52 @@ export default function EditFacultyModal({
           </div>
         </div>
       )}
+
+      {/* EXIT / DISCARD CONFIRMATION POPUP */}
+      {exitConfirmOpen && (
+        <div
+          className="faculty-confirm-backdrop"
+          style={{ ...backdropBlurStyle, zIndex: 2010 }}
+          onClick={() => !isSaving && setExitConfirmOpen(false)}
+        >
+          <div
+            className="faculty-confirm-modal"
+            style={{ maxWidth: "420px", width: "90%" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="d-flex align-items-center gap-2 mb-2">
+              <AlertTriangle size={20} className="text-danger" />
+              <h5 className="fw-bold mb-0 text-dark">Discard Changes?</h5>
+            </div>
+
+            <p className="text-muted mb-4 small">
+              You have unsaved changes in this form. Closing this modal will discard your entries.
+            </p>
+
+            <div className="d-flex justify-content-end gap-2">
+              <button
+                type="button"
+                className="btn btn-light"
+                onClick={() => setExitConfirmOpen(false)}
+                disabled={isSaving}
+              >
+                Keep Editing
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={handleConfirmExit}
+                disabled={isSaving}
+              >
+                Discard & Exit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
+
+  return createPortal(modalContent, document.body);
 }

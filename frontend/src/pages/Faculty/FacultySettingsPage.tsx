@@ -5,7 +5,6 @@ import type { FacultySettingsTabKey } from "../../components/Faculty/Settings/Fa
 
 import FacultyAccountSettings from "../../components/Faculty/Settings/FacultyAccountSettings";
 import FacultySecuritySettings from "../../components/Faculty/Settings/FacultySecuritySettings";
-import FacultyPreferencesSettings from "../../components/Faculty/Settings/FacultyPreferencesSettings";
 
 import "../../styles/faculty-settings.css";
 
@@ -18,8 +17,6 @@ export default function FacultySettingsPage() {
         return <FacultyAccountSettings />;
       case "security":
         return <FacultySecuritySettings />;
-      case "preferences":
-        return <FacultyPreferencesSettings />;
       default:
         return null;
     }

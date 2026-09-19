@@ -1,9 +1,19 @@
-import type { DaySchedule, ScheduleItem } from "../pages/Faculty/TeachingSchedulePage";
+import type {
+  DaySchedule,
+  ScheduleItem,
+} from "../pages/Faculty/TeachingSchedulePage";
 
 // Assign consistent visual tones based on subject code
 const getTone = (code: string): "blue" | "purple" | "green" | "orange" => {
-  const hash = code.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const tones: ("blue" | "purple" | "green" | "orange")[] = ["blue", "purple", "green", "orange"];
+  const hash = code
+    .split("")
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const tones: ("blue" | "purple" | "green" | "orange")[] = [
+    "blue",
+    "purple",
+    "green",
+    "orange",
+  ];
   return tones[hash % tones.length];
 };
 
@@ -19,7 +29,9 @@ export function transformApiScheduleToGrid(rawSchedules: any[]): DaySchedule[] {
   };
 
   // Highlight today's column dynamically
-  const todayKey = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+  const todayKey = new Date()
+    .toLocaleDateString("en-US", { weekday: "long" })
+    .toLowerCase();
   if (daysGrid[todayKey]) {
     daysGrid[todayKey].isToday = true;
   }
@@ -36,15 +48,22 @@ export function transformApiScheduleToGrid(rawSchedules: any[]): DaySchedule[] {
     const endMatch = endRaw.match(/(\d+:\d+)/);
     const meridiemMatch = (endRaw + " " + startRaw).match(/(AM|PM)/i);
 
+    // Ensure we preserve exact numbers (including 0) and only default if non-numeric
+    const studentCount = typeof sch.students === "number" ? sch.students : 0;
+
     const item: ScheduleItem = {
       id: sch._id || sch.id || Math.random().toString(),
       start: startMatch ? startMatch[1] : "8:00",
       end: endMatch ? endMatch[1] : "9:00",
-      meridiem: (meridiemMatch ? meridiemMatch[1].toUpperCase() : "AM") as "AM" | "PM",
+      meridiem: (meridiemMatch ? meridiemMatch[1].toUpperCase() : "AM") as
+        | "AM"
+        | "PM",
       code: sch.code || "N/A",
       title: sch.title || "Untitled Course",
-      locationLabel: sch.room || "TBA",
-      students: sch.students || 30,
+      locationLabel: sch.room
+        ? `${sch.room}${sch.section ? ` • ${sch.section}` : ""}`
+        : "TBA",
+      students: studentCount,
       tone: getTone(sch.code || "N/A"),
     };
 
@@ -55,7 +74,11 @@ export function transformApiScheduleToGrid(rawSchedules: any[]): DaySchedule[] {
 
     if (dayCode.includes("TH")) {
       daysGrid.thursday.items.push(item);
-    } else if (dayCode.includes("T") && !dayCode.includes("SAT") && !dayCode.includes("SUN")) {
+    } else if (
+      dayCode.includes("T") &&
+      !dayCode.includes("SAT") &&
+      !dayCode.includes("SUN")
+    ) {
       daysGrid.tuesday.items.push(item);
     }
 
@@ -71,7 +94,9 @@ export function transformApiScheduleToGrid(rawSchedules: any[]): DaySchedule[] {
     if (
       dayCode.includes("SAT") ||
       dayCode.includes("SATURDAY") ||
-      (dayCode.includes("S") && !dayCode.includes("SUN") && !dayCode.includes("TH"))
+      (dayCode.includes("S") &&
+        !dayCode.includes("SUN") &&
+        !dayCode.includes("TH"))
     ) {
       daysGrid.saturday.items.push(item);
     }

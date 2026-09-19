@@ -31,13 +31,15 @@ type Props = {
   }) => Promise<void> | void;
 };
 
+/* =========================================================
+   UPDATED REQUIRED DOCUMENTS
+   - Removed: Medical Certificate & Entrance Exam Results
+========================================================= */
 const requiredDocs = [
   "Form 137 / Report Card",
   "PSA Birth Certificate",
   "Certificate of Good Moral Character",
   "2x2 ID Photos (4 copies)",
-  "Medical Certificate",
-  "Entrance Exam Results",
 ];
 
 const yearOptions = ["1", "2", "3", "4", "5"];
@@ -109,10 +111,14 @@ type InitialSnapshot = {
   docsChecked: Record<string, boolean>;
 };
 
+/* =========================================================
+   UPDATED INITIAL DOCS STATE
+   - All required documents are now pre-selected (true)
+========================================================= */
 function makeEmptyDocsState() {
   const next: Record<string, boolean> = {};
   requiredDocs.forEach((d) => {
-    next[d] = false;
+    next[d] = true;
   });
   return next;
 }

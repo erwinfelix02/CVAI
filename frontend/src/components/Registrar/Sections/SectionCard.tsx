@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import {
   MoreVertical,
   BookOpen,
-  User,
+  UserCheck,
   MapPin,
-  Clock,
+  GraduationCap,
   Eye,
   Pencil,
   Trash2,
@@ -30,17 +30,16 @@ export default function SectionCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const tone = getTone(item.enrolled, item.capacity);
+  const tone = getTone(item.enrolled ?? 0, item.capacity);
   const pct =
     item.capacity === 0
       ? 0
-      : Math.min(100, Math.round((item.enrolled / item.capacity) * 100));
+      : Math.min(100, Math.round(((item.enrolled ?? 0) / item.capacity) * 100));
 
   const [open, setOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  // close kebab on outside click
   useEffect(() => {
     if (!open) return;
 
@@ -61,7 +60,6 @@ export default function SectionCard({
     };
   }, [open]);
 
-  // close delete confirm on ESC
   useEffect(() => {
     if (!confirmDelete) return;
 
@@ -90,7 +88,6 @@ export default function SectionCard({
               </div>
             </div>
 
-            {/* Kebab Menu */}
             <div className="sections-menu-wrap" ref={menuRef}>
               <button
                 className="btn btn-link p-0 sections-kebab"
@@ -144,11 +141,10 @@ export default function SectionCard({
             </div>
           </div>
 
-          {/* Stats */}
           <div className="d-flex align-items-center justify-content-between mt-3">
             <div className="text-muted">Enrolled</div>
             <span className={`sections-chip tone-${tone}`}>
-              {item.enrolled}/{item.capacity}
+              {item.enrolled ?? 0}/{item.capacity}
             </span>
           </div>
 
@@ -165,9 +161,12 @@ export default function SectionCard({
             />
           </div>
 
-          <div className="d-flex align-items-center gap-2 mt-3 sections-meta">
-            <User size={16} />
-            <span className="text-truncate">{item.adviser}</span>
+          {/* Assigned Faculty Display */}
+          <div className="d-flex align-items-center gap-2 mt-3 sections-meta" title={`Assigned Faculty: ${item.adviser}`}>
+            <UserCheck size={16} className="text-primary flex-shrink-0" />
+            <span className="text-truncate fw-medium">
+              {item.adviser ?? "TBA"}
+            </span>
           </div>
 
           <div className="d-flex align-items-center justify-content-between gap-3 mt-2 sections-meta">
@@ -177,14 +176,13 @@ export default function SectionCard({
             </div>
 
             <div className="d-flex align-items-center gap-2 flex-shrink-0">
-              <Clock size={16} />
-              <span className="text-nowrap">{item.schedule}</span>
+              <GraduationCap size={16} />
+              <span className="text-nowrap">{item.yearLevel || "N/A"}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* DELETE CONFIRM POPUP */}
       {confirmDelete && (
         <div
           className="sec-confirm-backdrop"

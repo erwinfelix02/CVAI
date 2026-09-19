@@ -2,26 +2,26 @@ import express from "express";
 import Section from "../models/Section.js";
 import Course from "../models/Course.js";
 import User from "../models/User.js";
+import Schedule from "../models/Schedule.js";
 import { addLog, getClientIp } from "../utils/logActivity.js";
 
 const router = express.Router();
 
 const getRegistrarForLog = async () => {
-  const registrar = await User.findOne({ role: "Registrar" }).select("email role");
+  const registrar = await User.findOne({ role: "Registrar" }).select(
+    "email role",
+  );
   return {
     email: registrar?.email || "unknown",
     role: registrar?.role || "Registrar",
   };
 };
 
-/** Helper to convert a department string into regex search terms and Course program matches */
 const getDepartmentProgramPatterns = async (departmentInput) => {
   if (!departmentInput) return [];
 
-  // Strips generic words like "Department" or "Dept" (e.g. "IT Department" -> "IT")
   const cleanDept = departmentInput.replace(/department|dept/gi, "").trim();
 
-  // Find all courses associated with this department in the Course model
   const matchingCourses = await Course.find({
     $or: [
       { department: new RegExp(departmentInput, "i") },
@@ -35,7 +35,6 @@ const getDepartmentProgramPatterns = async (departmentInput) => {
     new RegExp(cleanDept, "i"),
   ];
 
-  // Add all course names (e.g., "Bachelor of Science in Information Technology") and codes ("BSIT")
   matchingCourses.forEach((c) => {
     if (c.code) patterns.push(new RegExp(`^${c.code}$`, "i"));
     if (c.name) patterns.push(new RegExp(c.name, "i"));
@@ -93,34 +92,138 @@ router.post("/", async (req, res) => {
       status: "error",
     });
 
-    res.status(500).json({ message: err.message || "Failed to create section." });
+    res
+      .status(500)
+      .json({ message: err.message || "Failed to create section." });
   }
 });
 
 // READ ALL OR FILTER BY DEPARTMENT / COURSE PROGRAM
-// Endpoint: GET /api/sections?department=IT Department
+// (UPDATED: Strictly queries and matches assigned faculty from Schedule)
 router.get("/", async (req, res) => {
   try {
     const { department, program } = req.query;
     const targetDept = department || program;
 
-    let query = {};
+    let matchStage = {};
 
     if (targetDept) {
       const patterns = await getDepartmentProgramPatterns(targetDept);
-      query.$or = patterns.map((p) => ({ program: p }));
+      matchStage.$or = patterns.map((p) => ({ program: p }));
     }
 
-    const sections = await Section.find(query).sort({ createdAt: -1 });
-    res.json(sections);
+    // Single DB aggregation query that accurately matches Section.code to Schedule.section
+    const sectionsWithFaculty = await Section.aggregate([
+      { $match: matchStage },
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+          from: "schedules", // Query Schedule collection
+          let: { sectionCode: "$code" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    // Case-insensitive exact comparison ignoring leading/trailing whitespace
+                    {
+                      $eq: [
+                        { $toLower: { $trim: { input: "$section" } } },
+                        { $toLower: { $trim: { input: "$$sectionCode" } } },
+                      ],
+                    },
+                    { $eq: ["$status", "Active"] },
+                  ],
+                },
+              },
+            },
+            { $project: { faculty: 1 } },
+          ],
+          as: "matchedSchedules",
+        },
+      },
+      {
+        $addFields: {
+          // Extract faculty names, ignore invalid or empty strings
+          assignedFacultyArray: {
+            $filter: {
+              input: "$matchedSchedules.faculty",
+              as: "f",
+              cond: {
+                $and: [
+                  { $ne: ["$$f", null] },
+                  { $ne: [{ $trim: { input: "$$f" } }, ""] },
+                  { $ne: [{ $toUpper: { $trim: { input: "$$f" } } }, "TBA"] },
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          // Deduplicate assigned faculty names
+          uniqueFaculty: { $setUnion: ["$assignedFacultyArray", []] },
+        },
+      },
+      {
+        $project: {
+          code: 1,
+          yearLevel: 1,
+          program: 1,
+          capacity: 1,
+          room: 1,
+          enrolled: 1,
+          createdAt: 1,
+          // Build string of matched faculty, falling back to original adviser or TBA
+          adviser: {
+            $cond: [
+              { $gt: [{ $size: "$uniqueFaculty" }, 0] },
+              {
+                $reduce: {
+                  input: "$uniqueFaculty",
+                  initialValue: "",
+                  in: {
+                    $cond: [
+                      { $eq: ["$$value", ""] },
+                      "$$this",
+                      { $concat: ["$$value", ", ", "$$this"] },
+                    ],
+                  },
+                },
+              },
+              {
+                $cond: [
+                  {
+                    $and: [
+                      { $ne: ["$adviser", null] },
+                      { $ne: [{ $trim: { input: "$adviser" } }, ""] },
+                      {
+                        $ne: [
+                          { $toUpper: { $trim: { input: "$adviser" } } },
+                          "TBA",
+                        ],
+                      },
+                    ],
+                  },
+                  "$adviser",
+                  "TBA",
+                ],
+              },
+            ],
+          },
+        },
+      },
+    ]);
+
+    res.json(sectionsWithFaculty);
   } catch (err) {
-    console.error("Error fetching sections:", err);
+    console.error("Error fetching sections with assigned faculty:", err);
     res.status(500).json({ message: "Failed to load sections." });
   }
 });
 
-// GET ROOMS DERIVED FROM SECTIONS BASED ON DEPARTMENT & COURSE LOOKUP
-// Endpoint: GET /api/sections/rooms?department=IT Department
+// GET ROOMS DERIVED FROM SECTIONS
 router.get("/rooms", async (req, res) => {
   try {
     const { department, program } = req.query;
@@ -133,7 +236,6 @@ router.get("/rooms", async (req, res) => {
       matchQuery.$or = patterns.map((p) => ({ program: p }));
     }
 
-    // Aggregates rooms assigned to sections matching courses of the department
     const roomsFromSections = await Section.aggregate([
       { $match: matchQuery },
       {
@@ -150,7 +252,9 @@ router.get("/rooms", async (req, res) => {
           name: "$_id",
           building: { $literal: "Main Building" },
           type: { $literal: "Lecture" },
-          seats: { $cond: [{ $gt: ["$totalCapacity", 0] }, "$totalCapacity", 40] },
+          seats: {
+            $cond: [{ $gt: ["$totalCapacity", 0] }, "$totalCapacity", 40],
+          },
           classes: 1,
           utilization: {
             $cond: [
@@ -160,7 +264,13 @@ router.get("/rooms", async (req, res) => {
                   100,
                   {
                     $round: [
-                      { $multiply: [{ $divide: ["$totalEnrolled", "$totalCapacity"] }, 100] },
+                      {
+                        $multiply: [
+                          { $divide: ["$totalEnrolled", "$totalCapacity"] },
+                          100,
+                        ],
+                      },
+                      100,
                     ],
                   },
                 ],
@@ -251,7 +361,9 @@ router.put("/:id", async (req, res) => {
       status: "error",
     });
 
-    res.status(500).json({ message: err.message || "Failed to update section." });
+    res
+      .status(500)
+      .json({ message: err.message || "Failed to update section." });
   }
 });
 

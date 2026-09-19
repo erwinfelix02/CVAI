@@ -1,8 +1,7 @@
 // src/pages/DepartmentHead/DepartmentHeadRooms.tsx
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Loader2, AlertCircle } from "lucide-react";
-
+import { Loader2, AlertCircle } from "lucide-react";
 import RoomSearch from "../../components/DepartmentHead/Rooms/RoomSearch";
 import RoomCard, {
   type RoomRow,
@@ -139,10 +138,6 @@ export default function DepartmentHeadRooms() {
     });
   }, [rooms, search, roomType]);
 
-  const handleRequestRoom = () => {
-    console.log("Request Room");
-  };
-
   const handleViewSchedule = async (room: RoomRow) => {
     setSelectedRoomName(room.name);
     setIsModalOpen(true);
@@ -183,14 +178,6 @@ export default function DepartmentHeadRooms() {
             </p>
           </div>
 
-          <button
-            type="button"
-            className="rooms-request-btn"
-            onClick={handleRequestRoom}
-          >
-            <Plus size={20} />
-            <span>Request Room</span>
-          </button>
         </div>
 
         <div className="rooms-filter-card">

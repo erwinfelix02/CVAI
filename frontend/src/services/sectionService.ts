@@ -1,14 +1,23 @@
 export interface SectionData {
   _id: string;
   code: string;
-  yearLevel: string;
+  yearLevel?: string;
   program: string;
   capacity: number;
   room: string;
-  schedule: string;
-  adviser: string;
-  enrolled: number;
+  adviser?: string;
+  enrolled?: number;
 }
+
+export type CreateSectionPayload = {
+  code: string;
+  yearLevel?: string;
+  program: string;
+  capacity: number;
+  room: string;
+  adviser?: string;
+  enrolled?: number;
+};
 
 function getStoredToken(): string | null {
   const token = localStorage.getItem("token") || localStorage.getItem("authToken");
@@ -47,6 +56,29 @@ export async function fetchSectionsByProgram(program: string): Promise<SectionDa
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || "Failed to fetch sections for this program.");
+  }
+
+  return response.json();
+}
+
+export async function fetchSectionStudentsAndFaculty(sectionId: string) {
+  const token = getStoredToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`/api/sections/${sectionId}/students-and-faculty`, {
+    method: "GET",
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch details for this section.");
   }
 
   return response.json();

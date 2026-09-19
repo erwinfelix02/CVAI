@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Mail, Phone } from "lucide-react";
-import type { Student } from "./types";
+import { formatYearLevel, type Student } from "./types";
 
 type Props = {
   student: Student | null;
@@ -12,14 +12,25 @@ export default function StudentProfileModal({ student, onClose }: Props) {
 
   if (!student) return null;
 
+  const yearDisplay = formatYearLevel(student.year);
+  const attendanceRate = typeof student.attendance === "number" ? student.attendance : 100;
+  const isAtRisk = attendanceRate < 80;
+
+  // Extract phone directly from DB student object
+  const contactPhone = (student.phone || "").trim();
+  const displayPhone =
+    contactPhone && contactPhone !== "—" && contactPhone !== "null"
+      ? contactPhone
+      : "Not Provided";
+
   return (
     <div
       className="modal fade show d-block"
       tabIndex={-1}
       style={{
-        backgroundColor: "rgba(15, 23, 42, 0.4)", // Dark translucent background
-        backdropFilter: "blur(8px)", // Native CSS backdrop blur
-        WebkitBackdropFilter: "blur(8px)", // Safari support
+        backgroundColor: "rgba(15, 23, 42, 0.4)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
       }}
       onClick={onClose}
     >
@@ -78,7 +89,6 @@ export default function StudentProfileModal({ student, onClose }: Props) {
             {/* Tab Contents */}
             {activeTab === "overview" && (
               <div className="tab-pane-content">
-                {/* Profile Header Card */}
                 <div className="d-flex align-items-center gap-3 mb-4">
                   <div
                     className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold fs-3 flex-shrink-0"
@@ -88,22 +98,21 @@ export default function StudentProfileModal({ student, onClose }: Props) {
                       backgroundColor: "#3b7a9e",
                     }}
                   >
-                    {student.initials}
+                    {student.initials || student.name?.charAt(0) || "ST"}
                   </div>
                   <div>
                     <h4 className="fw-bold mb-1 text-dark">{student.name}</h4>
                     <p className="text-secondary mb-2">{student.id}</p>
                     <span
                       className={`badge rounded-pill px-3 py-1 ${
-                        student.status === "good" ? "bg-success" : "bg-warning text-dark"
+                        isAtRisk ? "bg-danger" : "bg-success"
                       }`}
                     >
-                      {student.status === "good" ? "active" : "probation"}
+                      {isAtRisk ? "At Risk" : "Active"}
                     </span>
                   </div>
                 </div>
 
-                {/* Info Cards */}
                 <div className="row g-3">
                   <div className="col-12 col-md-6">
                     <div className="bg-light p-3 rounded-4 h-100">
@@ -117,7 +126,7 @@ export default function StudentProfileModal({ student, onClose }: Props) {
                     <div className="bg-light p-3 rounded-4 h-100">
                       <span className="text-secondary small d-block mb-1">Year & Section</span>
                       <strong className="text-dark fs-5">
-                        3rd Year - {student.section}
+                        {yearDisplay} - {student.section || "—"}
                       </strong>
                     </div>
                   </div>
@@ -131,25 +140,29 @@ export default function StudentProfileModal({ student, onClose }: Props) {
                   <div className="border border-light-subtle rounded-4 p-4 h-100">
                     <span className="text-secondary small d-block mb-2">Current GPA</span>
                     <span className="display-6 fw-bold text-success d-block">
-                      {student.gpa.toFixed(2)}
+                      {typeof student.gpa === "number" ? student.gpa.toFixed(2) : "0.00"}
                     </span>
                   </div>
                 </div>
                 <div className="col-12 col-md-6">
                   <div className="border border-light-subtle rounded-4 p-4 h-100">
                     <span className="text-secondary small d-block mb-1">Attendance Rate</span>
-                    <span className="display-6 fw-bold text-dark d-block mb-3">
-                      {student.attendance}%
+                    <span
+                      className={`display-6 fw-bold d-block mb-3 ${
+                        isAtRisk ? "text-danger" : "text-dark"
+                      }`}
+                    >
+                      {attendanceRate}%
                     </span>
                     <div className="progress" style={{ height: "8px" }}>
                       <div
                         className="progress-bar"
                         role="progressbar"
                         style={{
-                          width: `${student.attendance}%`,
-                          backgroundColor: "#0d5c75",
+                          width: `${attendanceRate}%`,
+                          backgroundColor: isAtRisk ? "#dc3545" : "#0d5c75",
                         }}
-                        aria-valuenow={student.attendance}
+                        aria-valuenow={attendanceRate}
                         aria-valuemin={0}
                         aria-valuemax={100}
                       />
@@ -179,9 +192,7 @@ export default function StudentProfileModal({ student, onClose }: Props) {
                   </div>
                   <div>
                     <span className="text-secondary small d-block">Phone</span>
-                    <strong className="text-dark">
-                      {student.phone || "+63 917 123 4567"}
-                    </strong>
+                    <strong className="text-dark">{displayPhone}</strong>
                   </div>
                 </div>
               </div>

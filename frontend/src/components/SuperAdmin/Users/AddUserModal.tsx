@@ -1097,68 +1097,69 @@ export default function AddUserModal({
             </form>
 
             {discardOpen ? (
-              <div
-                className="users-modal-backdrop"
-                role="dialog"
-                aria-modal="true"
-                onMouseDown={(e) => {
-                  if (e.target === e.currentTarget && !isLoading) {
-                    setDiscardOpen(false);
-                  }
-                }}
-              >
-                <div
-                  className="users-modal users-modal-compact"
-                  onMouseDown={(e) => e.stopPropagation()}
-                >
-                  <div className="users-modal-header">
-                    <div>
-                      <h3 className="users-modal-title">Discard changes?</h3>
-                      <p className="users-modal-subtitle">
-                        You have unsaved input in this form.
-                      </p>
-                    </div>
+  <div
+    className="users-modal-backdrop"
+    style={{ zIndex: 1060 }}
+    role="dialog"
+    aria-modal="true"
+    onMouseDown={(e) => {
+      if (e.target === e.currentTarget && !isLoading) {
+        setDiscardOpen(false);
+      }
+    }}
+  >
+    <div
+      className="users-modal users-modal-dialog"
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <div className="users-modal-header">
+        <div>
+          <h3 className="users-modal-title">Discard changes?</h3>
+          <p className="users-modal-subtitle">
+            You have unsaved input in this form.
+          </p>
+        </div>
 
-                    <button
-                      type="button"
-                      className="users-modal-close app-icon-btn app-icon-btn-sm"
-                      onClick={() => setDiscardOpen(false)}
-                      aria-label="Close"
-                      title="Close"
-                      disabled={isLoading}
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
+        <button
+          type="button"
+          className="users-modal-close app-icon-btn app-icon-btn-sm"
+          onClick={() => setDiscardOpen(false)}
+          aria-label="Close"
+          title="Close"
+          disabled={isLoading}
+        >
+          <X size={18} />
+        </button>
+      </div>
 
-                  <div className="users-modal-body">
-                    <p className="mb-0 text-muted">
-                      Closing this modal will discard your changes.
-                    </p>
-                  </div>
+      <div className="users-modal-body">
+        <p className="mb-0 text-muted">
+          Closing this modal will discard your changes.
+        </p>
+      </div>
 
-                  <div className="users-modal-footer">
-                    <button
-                      type="button"
-                      className="btn btn-light"
-                      onClick={() => setDiscardOpen(false)}
-                      disabled={isLoading}
-                    >
-                      Keep Editing
-                    </button>
+      <div className="users-modal-footer">
+        <button
+          type="button"
+          className="btn btn-light"
+          onClick={() => setDiscardOpen(false)}
+          disabled={isLoading}
+        >
+          Keep Editing
+        </button>
 
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      onClick={forceClose}
-                      disabled={isLoading}
-                    >
-                      Discard & Close
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : null}
+        <button
+          type="button"
+          className="btn btn-danger"
+          onClick={forceClose}
+          disabled={isLoading}
+        >
+          Discard & Close
+        </button>
+      </div>
+    </div>
+  </div>
+) : null}
           </div>
         </div>
       )}

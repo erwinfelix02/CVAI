@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import "../../styles/registrar-settings.css";
 
 import SettingsSectionCard from "../../components/Registrar/settings/SettingsSectionCard";
@@ -13,6 +14,7 @@ import {
   FileText,
   Settings,
   TriangleAlert,
+  AlertTriangle,
   X,
 } from "lucide-react";
 
@@ -41,6 +43,12 @@ const DEFAULT_FORM: FormState = {
   maxStudentsPerSection: 45,
   processingDays: 5,
   autoApproveSimpleDocs: false,
+};
+
+const backdropBlurStyle: React.CSSProperties = {
+  backgroundColor: "rgba(15, 23, 42, 0.45)",
+  backdropFilter: "blur(4px)",
+  WebkitBackdropFilter: "blur(4px)",
 };
 
 const getAuthHeaders = (includeContentType = false): HeadersInit => {
@@ -76,7 +84,10 @@ export default function RegistrarSettings() {
 
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // Confirmation states
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
   const [registrarAccount, setRegistrarAccount] =
@@ -100,6 +111,11 @@ export default function RegistrarSettings() {
     const t = setTimeout(() => setAnimateAlert(false), 3000);
     return () => clearTimeout(t);
   }, [animateAlert]);
+
+  // Check if form was changed
+  const isDirty = useMemo(() => {
+    return JSON.stringify(form) !== JSON.stringify(savedForm);
+  }, [form, savedForm]);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     if (!isEditing) return;
@@ -188,6 +204,37 @@ export default function RegistrarSettings() {
     };
   }, []);
 
+  // Keyboard navigation & body overflow scroll lock
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || saving) return;
+
+      if (exitConfirmOpen) {
+        setExitConfirmOpen(false);
+        return;
+      }
+
+      if (confirmOpen) {
+        setConfirmOpen(false);
+        return;
+      }
+
+      if (isEditing) {
+        handleAttemptCancel();
+      }
+    };
+
+    if (confirmOpen || exitConfirmOpen) {
+      document.body.style.overflow = "hidden";
+      window.addEventListener("keydown", handleEscape);
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [confirmOpen, exitConfirmOpen, isEditing, isDirty, saving]);
+
   const onSave = async () => {
     setSaving(true);
 
@@ -234,8 +281,21 @@ export default function RegistrarSettings() {
     }
   };
 
-  const handleCancelEdit = () => {
+  const handleAttemptCancel = () => {
+    if (saving) return;
+
+    if (isDirty) {
+      setExitConfirmOpen(true);
+    } else {
+      setForm(savedForm);
+      setIsEditing(false);
+    }
+  };
+
+  const handleConfirmExit = () => {
     setForm(savedForm);
+    setExitConfirmOpen(false);
+    setConfirmOpen(false);
     setIsEditing(false);
   };
 
@@ -283,7 +343,7 @@ export default function RegistrarSettings() {
 
         {loading && <div className="alert alert-info">Loading settings...</div>}
 
-        <div style={{ pointerEvents: isEditing ? "auto" : "none" }}>
+        <div>
           <div className="row g-4">
             <div className="col-12 col-lg-6">
               <SettingsSectionCard
@@ -297,6 +357,7 @@ export default function RegistrarSettings() {
                   value={form.academicYear}
                   onChange={(v) => update("academicYear", v)}
                   options={yearOptions}
+                  disabled={!isEditing || saving}
                 />
 
                 <SelectField
@@ -305,6 +366,7 @@ export default function RegistrarSettings() {
                   value={form.semester}
                   onChange={(v) => update("semester", v)}
                   options={semesterOptions}
+                  disabled={!isEditing || saving}
                 />
               </SettingsSectionCard>
             </div>
@@ -321,6 +383,7 @@ export default function RegistrarSettings() {
                   description="Allow new student enrollments"
                   checked={form.enrollmentOpen}
                   onChange={(v) => update("enrollmentOpen", v)}
+                  disabled={!isEditing || saving}
                 />
 
                 <div className="rs-divider" />
@@ -331,6 +394,7 @@ export default function RegistrarSettings() {
                   value={form.maxStudentsPerSection}
                   min={1}
                   onChange={(v) => update("maxStudentsPerSection", v)}
+                  disabled={!isEditing || saving}
                 />
               </SettingsSectionCard>
             </div>
@@ -350,6 +414,7 @@ export default function RegistrarSettings() {
                       min={0}
                       onChange={(v) => update("processingDays", v)}
                       helpText="Number of working days to process documents"
+                      disabled={!isEditing || saving}
                     />
                   </div>
 
@@ -360,6 +425,7 @@ export default function RegistrarSettings() {
                       description="Certificates of enrollment, etc."
                       checked={form.autoApproveSimpleDocs}
                       onChange={(v) => update("autoApproveSimpleDocs", v)}
+                      disabled={!isEditing || saving}
                     />
                   </div>
                 </div>
@@ -373,8 +439,9 @@ export default function RegistrarSettings() {
             {isEditing && (
               <button
                 className="btn btn-outline-secondary btn-lg"
-                onClick={handleCancelEdit}
+                onClick={handleAttemptCancel}
                 type="button"
+                disabled={saving}
               >
                 Cancel
               </button>
@@ -384,6 +451,7 @@ export default function RegistrarSettings() {
               className="btn btn-lg px-4 rs-save-btn"
               onClick={handleAskSave}
               type="button"
+              disabled={saving}
             >
               {!isEditing ? "Edit" : saving ? "Saving..." : "Save Changes"}
             </button>
@@ -391,49 +459,106 @@ export default function RegistrarSettings() {
         </div>
       </div>
 
-      {confirmOpen && (
-        <div
-          className="registrar-settings-confirm-backdrop"
-          onClick={() => setConfirmOpen(false)}
-        >
+      {/* CONFIRM SAVE MODAL */}
+      {confirmOpen &&
+        createPortal(
           <div
-            className="registrar-settings-confirm-modal"
-            onClick={(e) => e.stopPropagation()}
+            className="registrar-settings-confirm-backdrop"
+            style={{ ...backdropBlurStyle, zIndex: 2000 }}
+            onClick={() => !saving && setConfirmOpen(false)}
           >
-            <button
-              className="registrar-settings-confirm-close"
-              onClick={() => setConfirmOpen(false)}
-              type="button"
+            <div
+              className="registrar-settings-confirm-modal"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X size={18} />
-            </button>
-
-            <div className="registrar-settings-confirm-icon">
-              <TriangleAlert size={22} />
-            </div>
-
-            <h5 className="fw-bold text-center">Confirm Save</h5>
-
-            <p className="text-muted text-center">
-              Are you sure you want to save the changes?
-            </p>
-
-            <div className="registrar-settings-confirm-actions">
               <button
-                className="btn btn-light border"
+                className="registrar-settings-confirm-close"
                 onClick={() => setConfirmOpen(false)}
                 type="button"
+                disabled={saving}
               >
-                Cancel
+                <X size={18} />
               </button>
 
-              <button className="btn btn-primary" onClick={onSave} type="button">
-                Yes, Save
-              </button>
+              <div className="registrar-settings-confirm-icon">
+                <TriangleAlert size={22} />
+              </div>
+
+              <h5 className="fw-bold text-center mb-1">Confirm Save</h5>
+
+              <p className="text-muted text-center mb-0">
+                Are you sure you want to save the settings changes?
+              </p>
+
+              <div className="registrar-settings-confirm-actions">
+                <button
+                  className="btn btn-light border"
+                  onClick={() => setConfirmOpen(false)}
+                  type="button"
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="btn btn-primary"
+                  onClick={onSave}
+                  type="button"
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Yes, Save"}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
+
+      {/* DISCARD / EXIT CONFIRMATION MODAL */}
+      {exitConfirmOpen &&
+        createPortal(
+          <div
+            className="registrar-settings-confirm-backdrop"
+            style={{ ...backdropBlurStyle, zIndex: 2010 }}
+            onClick={() => !saving && setExitConfirmOpen(false)}
+          >
+            <div
+              className="registrar-settings-confirm-modal"
+              style={{ maxWidth: "420px", width: "90%" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="d-flex align-items-center gap-2 mb-2">
+                <AlertTriangle size={20} className="text-danger" />
+                <h5 className="fw-bold mb-0 text-dark">Discard Changes?</h5>
+              </div>
+
+              <p className="text-muted mb-4 small">
+                You have unsaved changes in settings. Exiting will revert your changes back to the saved state.
+              </p>
+
+              <div className="d-flex justify-content-end gap-2">
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  onClick={() => setExitConfirmOpen(false)}
+                  disabled={saving}
+                >
+                  Keep Editing
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleConfirmExit}
+                  disabled={saving}
+                >
+                  Discard & Exit
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

@@ -8,10 +8,12 @@ import ScheduleCard from "../../components/DepartmentHead/Schedules/ScheduleCard
 import ScheduleModal, {
   type SubjectOption,
   type SectionOption,
-  type RoomOption,
   type FacultyOption,
 } from "../../components/DepartmentHead/Schedules/ScheduleModal";
-import type { DayFilter, ScheduleRow } from "../../components/DepartmentHead/Schedules/types";
+import type {
+  DayFilter,
+  ScheduleRow,
+} from "../../components/DepartmentHead/Schedules/types";
 import AuthAlert from "../../components/Authentication/AuthAlert";
 
 import "../../styles/dept-schedules.css";
@@ -24,14 +26,8 @@ export default function ScheduleManagementPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<ScheduleRow | null>(null);
 
-  /* =========================================================
-     DELETE CONFIRMATION MODAL STATE
-     ========================================================= */
   const [deletingRow, setDeletingRow] = useState<ScheduleRow | null>(null);
 
-  /* =========================================================
-     AUTH ALERT & CENTERED LOADING OVERLAY STATE
-     ========================================================= */
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [animateAlert, setAnimateAlert] = useState(false);
@@ -58,18 +54,13 @@ export default function ScheduleManagementPage() {
     return () => clearTimeout(t);
   }, [animateAlert]);
 
-  /* =========================================================
-     DYNAMIC DATA FETCHING (SCHEDULES, SUBJECTS, SECTIONS, ROOMS, FACULTY)
-     ========================================================= */
   const [subjects, setSubjects] = useState<SubjectOption[]>([]);
   const [sections, setSections] = useState<SectionOption[]>([]);
-  const [rooms, setRooms] = useState<RoomOption[]>([]);
   const [facultyList, setFacultyList] = useState<FacultyOption[]>([]);
 
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(true);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [isLoadingSections, setIsLoadingSections] = useState(true);
-  const [isLoadingRooms, setIsLoadingRooms] = useState(true);
   const [isLoadingFaculty, setIsLoadingFaculty] = useState(true);
 
   const userDepartment = useMemo(() => {
@@ -83,7 +74,7 @@ export default function ScheduleManagementPage() {
       ? `?department=${encodeURIComponent(userDepartment)}`
       : "";
 
-    // 1. Fetch Department-Specific Schedules
+    // 1. Fetch Schedules
     setIsLoadingSchedules(true);
     try {
       const res = await fetch(`/api/schedules${queryParam}`);
@@ -103,7 +94,7 @@ export default function ScheduleManagementPage() {
               time: s.time,
               department: s.department,
               createdBy: s.createdBy,
-            }))
+            })),
           );
         }
       }
@@ -113,7 +104,7 @@ export default function ScheduleManagementPage() {
       setIsLoadingSchedules(false);
     }
 
-    // 2. Fetch Subjects by Department
+    // 2. Fetch Subjects
     setIsLoadingSubjects(true);
     try {
       const res = await fetch(`/api/subjects${queryParam}`);
@@ -124,8 +115,11 @@ export default function ScheduleManagementPage() {
             _id: item._id,
             code: item.code,
             name: item.name,
-            program: item.program,
-          }))
+            program:
+              item.program || item.course || item.courseCode || item.department,
+            year: item.year || item.yearLevel,
+            department: item.department,
+          })),
         );
       }
     } catch (err) {
@@ -134,7 +128,7 @@ export default function ScheduleManagementPage() {
       setIsLoadingSubjects(false);
     }
 
-    // 3. Fetch Sections by Department
+    // 3. Fetch Sections
     setIsLoadingSections(true);
     try {
       const res = await fetch(`/api/sections${queryParam}`);
@@ -143,11 +137,17 @@ export default function ScheduleManagementPage() {
         setSections(
           data.map((item: any) => ({
             _id: item._id,
-            code: item.code,
-            program: item.program,
-            yearLevel: item.yearLevel,
-            room: item.room,
-          }))
+            code: item.code || item.name || item.sectionCode,
+            program:
+              item.program ||
+              item.course ||
+              item.courseCode ||
+              item.courseProgram ||
+              item.department,
+            yearLevel: item.yearLevel || item.year || item.level,
+            room: item.room || item.roomName || item.assignedRoom || "",
+            department: item.department,
+          })),
         );
       }
     } catch (err) {
@@ -156,33 +156,7 @@ export default function ScheduleManagementPage() {
       setIsLoadingSections(false);
     }
 
-    // 4. Fetch Rooms by Department
-    setIsLoadingRooms(true);
-    try {
-      let res = await fetch(`/api/sections/rooms${queryParam}`);
-      let data = res.ok ? await res.json() : [];
-
-      if (!Array.isArray(data) || data.length === 0) {
-        const roomRes = await fetch("/api/rooms");
-        if (roomRes.ok) {
-          data = await roomRes.json();
-        }
-      }
-
-      setRooms(
-        data.map((item: any) => ({
-          _id: item._id,
-          name: item.name || item.code || item._id,
-          building: item.building,
-        }))
-      );
-    } catch (err) {
-      console.error("Error fetching rooms:", err);
-    } finally {
-      setIsLoadingRooms(false);
-    }
-
-    // 5. Fetch Faculty by Department
+    // 4. Fetch Faculty
     setIsLoadingFaculty(true);
     try {
       const res = await fetch(`/api/users/faculty${queryParam}`);
@@ -193,7 +167,10 @@ export default function ScheduleManagementPage() {
             _id: item._id,
             name: item.name,
             idNumber: item.idNumber,
-          }))
+            department: item.department,
+            status: item.status,
+            isActive: item.isActive,
+          })),
         );
       }
     } catch (err) {
@@ -207,9 +184,6 @@ export default function ScheduleManagementPage() {
     fetchDepartmentData();
   }, [fetchDepartmentData]);
 
-  /* =========================================================
-     FILTERED SCHEDULES
-     ========================================================= */
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter((r) => {
@@ -226,9 +200,6 @@ export default function ScheduleManagementPage() {
     });
   }, [rows, query, day]);
 
-  /* =========================================================
-     ACTION HANDLERS (CREATE / EDIT / DELETE / SAVE)
-     ========================================================= */
   const onCreate = () => {
     setEditingRow(null);
     setIsModalOpen(true);
@@ -275,7 +246,7 @@ export default function ScheduleManagementPage() {
       console.error("Error deleting schedule:", err);
       showAlert(
         err.message || "An error occurred while deleting the schedule.",
-        "error"
+        "error",
       );
     } finally {
       setIsSubmitting(false);
@@ -283,14 +254,17 @@ export default function ScheduleManagementPage() {
   };
 
   const handleSave = async (data: ScheduleRow) => {
-    setLoadingText(editingRow ? "Updating schedule..." : "Creating schedule...");
+    setLoadingText(
+      editingRow ? "Updating schedule..." : "Creating schedule...",
+    );
     setIsSubmitting(true);
 
     const userJson = localStorage.getItem("user");
     const currentUser = userJson ? JSON.parse(userJson) : null;
 
     const fullUserName = currentUser
-      ? `${currentUser.firstName || ""} ${currentUser.lastName || ""}`.trim() || currentUser.email
+      ? `${currentUser.firstName || ""} ${currentUser.lastName || ""}`.trim() ||
+        currentUser.email
       : "Department Head";
 
     const payload = {
@@ -305,7 +279,6 @@ export default function ScheduleManagementPage() {
 
     try {
       if (data.id && data.id.length > 10) {
-        // Edit Schedule
         const res = await fetch(`/api/schedules/${data.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -321,10 +294,11 @@ export default function ScheduleManagementPage() {
           ? { ...result.schedule, id: result.schedule._id }
           : payload;
 
-        setRows((prev) => prev.map((item) => (item.id === data.id ? updatedRow : item)));
+        setRows((prev) =>
+          prev.map((item) => (item.id === data.id ? updatedRow : item)),
+        );
         showAlert("Schedule updated successfully!", "success");
       } else {
-        // Create Schedule
         const res = await fetch("/api/schedules", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -349,7 +323,7 @@ export default function ScheduleManagementPage() {
       console.error("Error saving schedule:", err);
       showAlert(
         err.message || "An error occurred while saving the schedule.",
-        "error"
+        "error",
       );
     } finally {
       setIsSubmitting(false);
@@ -360,7 +334,6 @@ export default function ScheduleManagementPage() {
 
   return (
     <>
-      {/* AUTH ALERT OVERLAY FOR SUCCESS / ERROR MESSAGES */}
       <AuthAlert
         message={alertMessage}
         type={alertType}
@@ -368,7 +341,6 @@ export default function ScheduleManagementPage() {
         loading={false}
       />
 
-      {/* CENTERED SPINNER OVERLAY WHEN SAVING OR DELETING */}
       {isSubmitting && (
         <div className="schedule-centered-alert-backdrop">
           <div className="schedule-centered-alert-card p-4 text-center">
@@ -384,7 +356,6 @@ export default function ScheduleManagementPage() {
         </div>
       )}
 
-      {/* CENTERED DELETE CONFIRMATION MODAL */}
       {deletingRow && !isSubmitting && (
         <div className="schedule-centered-alert-backdrop">
           <div className="schedule-centered-alert-card text-center p-4">
@@ -420,7 +391,6 @@ export default function ScheduleManagementPage() {
       )}
 
       <div className="container-fluid py-3 py-md-4 dept-schedules-page">
-        {/* Header row */}
         <div className="d-flex align-items-start align-items-md-center justify-content-between gap-3 mb-4 flex-wrap">
           <div>
             <h1 className="fw-bold mb-1">Schedule Management</h1>
@@ -440,7 +410,6 @@ export default function ScheduleManagementPage() {
           </button>
         </div>
 
-        {/* Toolbar */}
         <div className="mb-4">
           <ScheduleToolbar
             query={query}
@@ -450,7 +419,6 @@ export default function ScheduleManagementPage() {
           />
         </div>
 
-        {/* List / Loading / Empty State */}
         <div className="d-flex flex-column gap-3">
           {isLoadingSchedules ? (
             <div className="card border-0 shadow-sm rounded-4">
@@ -498,7 +466,6 @@ export default function ScheduleManagementPage() {
           )}
         </div>
 
-        {/* Modal */}
         <ScheduleModal
           isOpen={isModalOpen}
           onClose={() => {
@@ -508,11 +475,9 @@ export default function ScheduleManagementPage() {
           editingRow={editingRow}
           subjects={subjects}
           sections={sections}
-          rooms={rooms}
           facultyList={facultyList}
           isLoadingSubjects={isLoadingSubjects}
           isLoadingSections={isLoadingSections}
-          isLoadingRooms={isLoadingRooms}
           isLoadingFaculty={isLoadingFaculty}
         />
       </div>

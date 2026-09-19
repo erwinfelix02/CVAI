@@ -2,11 +2,7 @@
 
 import "../../styles/DepartmentHeadSidebar.css";
 
-import {
-  Link,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import {
   LayoutDashboard,
@@ -32,6 +28,27 @@ interface SidebarProps {
   setMobileOpen?: (open: boolean) => void;
   isMobile?: boolean;
 }
+
+const DEPT_HEAD_ROLE_ID = "depthead";
+
+type NavItem = {
+  label: string;
+  icon: any;
+  path: string;
+  badge?: number;
+  controlled?: boolean;
+};
+
+/* =========================================================
+   CONTROLLED PERMISSIONS MAPPING
+   Matches exact keys from ROLE_ALLOWED.depthead:
+   ["manage_schedules", "assign_rooms", "manage_faculty_loads"]
+   ========================================================= */
+const CONTROLLED_PERM: Record<string, string> = {
+  Faculty: "manage_faculty_loads",
+  Schedules: "manage_schedules",
+  Rooms: "assign_rooms",
+};
 
 /* =========================================================
    BOTTOM NAVIGATION
@@ -61,10 +78,44 @@ export default function DepartmentHeadSidebar({
   const navigate = useNavigate();
 
   /* =========================================================
-     DYNAMIC FACULTY COUNT STATE & FETCHING
+     PERMISSIONS & FACULTY COUNT STATE
      ========================================================= */
 
   const [facultyCount, setFacultyCount] = useState<number | null>(null);
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [loadingPerms, setLoadingPerms] = useState(true);
+
+  // Load department head role permissions dynamically
+  useEffect(() => {
+    async function loadPerms() {
+      setLoadingPerms(true);
+      try {
+        const res = await fetch(
+          `http://localhost:5000/api/roles/${DEPT_HEAD_ROLE_ID}`,
+        );
+        if (!res.ok) {
+          console.error(
+            "Failed to fetch department head role perms:",
+            res.status,
+          );
+          setPermissions([]);
+          return;
+        }
+
+        const role = await res.json();
+        setPermissions(
+          Array.isArray(role?.permissions) ? role.permissions : [],
+        );
+      } catch (e) {
+        console.error("Failed to load department head permissions", e);
+        setPermissions([]);
+      } finally {
+        setLoadingPerms(false);
+      }
+    }
+
+    loadPerms();
+  }, []);
 
   // Get department from logged-in user in localStorage
   const userDepartment = useMemo(() => {
@@ -100,10 +151,10 @@ export default function DepartmentHeadSidebar({
   }, [fetchFacultyCount]);
 
   /* =========================================================
-     MAIN NAVIGATION WITH DYNAMIC BADGE
+     MAIN NAVIGATION WITH DYNAMIC PERMISSIONS & BADGE
      ========================================================= */
 
-  const nav = useMemo(
+  const nav: NavItem[] = useMemo(
     () => [
       {
         label: "Dashboard",
@@ -115,6 +166,7 @@ export default function DepartmentHeadSidebar({
         icon: Users,
         path: "/dept-head/faculty",
         badge: facultyCount !== null ? facultyCount : undefined,
+        controlled: true,
       },
       {
         label: "Subjects",
@@ -125,15 +177,28 @@ export default function DepartmentHeadSidebar({
         label: "Schedules",
         icon: CalendarDays,
         path: "/dept-head/schedules",
+        controlled: true,
       },
       {
         label: "Rooms",
         icon: DoorOpen,
         path: "/dept-head/rooms",
+        controlled: true,
       },
     ],
-    [facultyCount]
+    [facultyCount],
   );
+
+  /* Filter visible navigation items according to granted permissions */
+  const visibleNav = useMemo(() => {
+    return nav.filter((item) => {
+      if (!item.controlled) return true;
+      if (loadingPerms) return false;
+
+      const permKey = CONTROLLED_PERM[item.label];
+      return permissions.includes(permKey);
+    });
+  }, [nav, permissions, loadingPerms]);
 
   /* =========================================================
      LOGOUT STATE
@@ -164,7 +229,7 @@ export default function DepartmentHeadSidebar({
   };
 
   /* =========================================================
-     LOGOUT
+     LOGOUT HANDLERS & TIMERS
      ========================================================= */
 
   const handleLogout = () => {
@@ -172,10 +237,6 @@ export default function DepartmentHeadSidebar({
     setIsLoggingOut(true);
     setLogoutCountdown(3);
   };
-
-  /* =========================================================
-     LOGOUT COUNTDOWN
-     ========================================================= */
 
   useEffect(() => {
     if (!isLoggingOut) {
@@ -185,6 +246,7 @@ export default function DepartmentHeadSidebar({
     if (logoutCountdown <= 0) {
       // Remove authentication data
       localStorage.removeItem("token");
+      localStorage.removeItem("sessionToken");
       localStorage.removeItem("user");
 
       // Close mobile sidebar
@@ -208,13 +270,7 @@ export default function DepartmentHeadSidebar({
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [
-    isLoggingOut,
-    logoutCountdown,
-    isMobile,
-    setMobileOpen,
-    navigate,
-  ]);
+  }, [isLoggingOut, logoutCountdown, isMobile, setMobileOpen, navigate]);
 
   /* =========================================================
      RENDER
@@ -228,16 +284,8 @@ export default function DepartmentHeadSidebar({
 
       <aside
         className={`dept-sidebar ${
-          isMobile
-            ? "expanded"
-            : collapsed
-            ? "collapsed"
-            : "expanded"
-        } ${
-          isMobile && mobileOpen
-            ? "mobile-open"
-            : ""
-        }`}
+          isMobile ? "expanded" : collapsed ? "collapsed" : "expanded"
+        } ${isMobile && mobileOpen ? "mobile-open" : ""}`}
       >
         {/* =================================================
             SIDEBAR HEADER
@@ -252,9 +300,7 @@ export default function DepartmentHeadSidebar({
               </span>
 
               <div className="brand-text-container">
-                <span className="brand-text fw-bold fs-5">
-                  CampusHub
-                </span>
+                <span className="brand-text fw-bold fs-5">CampusHub</span>
 
                 <span className="sidebar-description text-muted small">
                   Department Head
@@ -269,11 +315,7 @@ export default function DepartmentHeadSidebar({
               type="button"
               className="btn p-0 d-flex align-items-center justify-content-center dept-icon-btn"
               onClick={toggleCollapsed}
-              aria-label={
-                collapsed
-                  ? "Expand sidebar"
-                  : "Collapse sidebar"
-              }
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {collapsed ? (
                 <ChevronRight size={20} />
@@ -284,18 +326,16 @@ export default function DepartmentHeadSidebar({
           )}
 
           {/* MOBILE CLOSE BUTTON */}
-          {isMobile &&
-            mobileOpen &&
-            setMobileOpen && (
-              <button
-                type="button"
-                className="btn p-0 d-flex align-items-center justify-content-center dept-icon-btn"
-                onClick={() => setMobileOpen(false)}
-                aria-label="Close menu"
-              >
-                <X size={20} />
-              </button>
-            )}
+          {isMobile && mobileOpen && setMobileOpen && (
+            <button
+              type="button"
+              className="btn p-0 d-flex align-items-center justify-content-center dept-icon-btn"
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close menu"
+            >
+              <X size={20} />
+            </button>
+          )}
         </div>
 
         {/* =================================================
@@ -303,47 +343,31 @@ export default function DepartmentHeadSidebar({
             ================================================= */}
 
         <nav className="dept-sidebar-nav">
-          {nav.map(
-            ({
-              label,
-              icon: Icon,
-              badge,
-              path,
-            }) => {
-              const active = isActive(path);
+          {visibleNav.map(({ label, icon: Icon, badge, path }) => {
+            const active = isActive(path);
 
-              return (
-                <Link
-                  to={path}
-                  key={label}
-                  className="text-decoration-none"
-                  onClick={closeMobile}
-                >
-                  <div
-                    className={`nav-item ${
-                      active ? "active" : ""
-                    }`}
-                  >
-                    <div className="nav-label">
-                      <Icon size={18} />
+            return (
+              <Link
+                to={path}
+                key={label}
+                className="text-decoration-none"
+                onClick={closeMobile}
+              >
+                <div className={`nav-item ${active ? "active" : ""}`}>
+                  <div className="nav-label">
+                    <Icon size={18} />
 
-                      {(!collapsed || isMobile) && (
-                        <span>{label}</span>
-                      )}
-                    </div>
-
-                    {/* Dynamic Faculty Badge */}
-                    {(!collapsed || isMobile) &&
-                      badge !== undefined && (
-                        <span className="badge dept-badge">
-                          {badge}
-                        </span>
-                      )}
+                    {(!collapsed || isMobile) && <span>{label}</span>}
                   </div>
-                </Link>
-              );
-            }
-          )}
+
+                  {/* Dynamic Faculty Badge */}
+                  {(!collapsed || isMobile) && badge !== undefined && (
+                    <span className="badge dept-badge">{badge}</span>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
         </nav>
 
         {/* =================================================
@@ -354,38 +378,26 @@ export default function DepartmentHeadSidebar({
           <div className="sidebar-separator" />
 
           {/* Settings / Help */}
-          {bottomNav.map(
-            ({
-              label,
-              icon: Icon,
-              path,
-            }) => {
-              const active = isActive(path);
+          {bottomNav.map(({ label, icon: Icon, path }) => {
+            const active = isActive(path);
 
-              return (
-                <Link
-                  to={path}
-                  key={label}
-                  className="text-decoration-none"
-                  onClick={closeMobile}
-                >
-                  <div
-                    className={`nav-item ${
-                      active ? "active" : ""
-                    }`}
-                  >
-                    <div className="nav-label">
-                      <Icon size={18} />
+            return (
+              <Link
+                to={path}
+                key={label}
+                className="text-decoration-none"
+                onClick={closeMobile}
+              >
+                <div className={`nav-item ${active ? "active" : ""}`}>
+                  <div className="nav-label">
+                    <Icon size={18} />
 
-                      {(!collapsed || isMobile) && (
-                        <span>{label}</span>
-                      )}
-                    </div>
+                    {(!collapsed || isMobile) && <span>{label}</span>}
                   </div>
-                </Link>
-              );
-            }
-          )}
+                </div>
+              </Link>
+            );
+          })}
 
           {/* LOG OUT */}
           <div
@@ -394,10 +406,7 @@ export default function DepartmentHeadSidebar({
             tabIndex={0}
             onClick={() => setShowLogoutConfirm(true)}
             onKeyDown={(event) => {
-              if (
-                event.key === "Enter" ||
-                event.key === " "
-              ) {
+              if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
                 setShowLogoutConfirm(true);
               }
@@ -407,9 +416,7 @@ export default function DepartmentHeadSidebar({
             <div className="nav-label">
               <LogOut size={18} />
 
-              {(!collapsed || isMobile) && (
-                <span>Log Out</span>
-              )}
+              {(!collapsed || isMobile) && <span>Log Out</span>}
             </div>
           </div>
         </div>
@@ -423,13 +430,9 @@ export default function DepartmentHeadSidebar({
             aria-labelledby="dept-logout-title"
           >
             <div className="logout-modal">
-              <h6 id="dept-logout-title">
-                Confirm Log Out
-              </h6>
+              <h6 id="dept-logout-title">Confirm Log Out</h6>
 
-              <p>
-                Are you sure you want to log out?
-              </p>
+              <p>Are you sure you want to log out?</p>
 
               <div className="d-flex gap-2 justify-content-end">
                 <button
@@ -455,28 +458,15 @@ export default function DepartmentHeadSidebar({
 
       {/* LOGGING OUT OVERLAY */}
       {isLoggingOut && (
-        <div
-          className="logging-out-overlay"
-          role="status"
-          aria-live="polite"
-        >
+        <div className="logging-out-overlay" role="status" aria-live="polite">
           <div className="logging-out-box">
-            <div
-              className="logging-spinner"
-              aria-hidden="true"
-            />
+            <div className="logging-spinner" aria-hidden="true" />
 
-            <h5>
-              Logging out...
-            </h5>
+            <h5>Logging out...</h5>
 
             <p>
-              Redirecting in{" "}
-              {logoutCountdown}{" "}
-              second
-              {logoutCountdown !== 1
-                ? "s"
-                : ""}
+              Redirecting in {logoutCountdown} second
+              {logoutCountdown !== 1 ? "s" : ""}
             </p>
           </div>
         </div>

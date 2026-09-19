@@ -19,6 +19,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { STUDENT_COUNT_UPDATED_EVENT } from "../../utils/studentCount";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -27,6 +28,27 @@ interface SidebarProps {
   setMobileOpen?: (open: boolean) => void;
   isMobile?: boolean;
 }
+
+const FACULTY_ROLE_ID = "faculty";
+
+type NavItem = {
+  label: string;
+  icon: any;
+  path: string;
+  badge?: number | string;
+  controlled?: boolean;
+};
+
+/* =========================================================
+   CONTROLLED PERMISSIONS MAPPING
+   Matches exact keys from ROLE_ALLOWED.faculty:
+   ["grade_management", "class_materials", "attendance"]
+   ========================================================= */
+const CONTROLLED_PERM: Record<string, string> = {
+  "Grade Management": "grade_management",
+  "Course Materials": "class_materials",
+  Attendance: "attendance",
+};
 
 /* =========================================================
    BOTTOM NAVIGATION
@@ -56,11 +78,14 @@ export default function FacultySidebar({
   const navigate = useNavigate();
 
   /* =========================================================
-     DYNAMIC COUNTS / DATA FETCHING
+     DYNAMIC COUNTS & PERMISSIONS / DATA FETCHING
      ========================================================= */
 
   const [studentCount, setStudentCount] = useState<number | null>(null);
   const [announcementCount, setAnnouncementCount] = useState<number | null>(null);
+
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [loadingPerms, setLoadingPerms] = useState(true);
 
   // Get current user / faculty info from localStorage
   const user = useMemo(() => {
@@ -72,21 +97,66 @@ export default function FacultySidebar({
     }
   }, []);
 
-  // Fetch student count
+  // Fetch faculty role permissions dynamically
+  useEffect(() => {
+    async function loadPerms() {
+      setLoadingPerms(true);
+      try {
+        const res = await fetch(
+          `http://localhost:5000/api/roles/${FACULTY_ROLE_ID}`
+        );
+        if (!res.ok) {
+          console.error("Failed to fetch faculty role perms:", res.status);
+          setPermissions([]);
+          return;
+        }
+
+        const role = await res.json();
+        setPermissions(Array.isArray(role?.permissions) ? role.permissions : []);
+      } catch (e) {
+        console.error("Failed to load faculty permissions", e);
+        setPermissions([]);
+      } finally {
+        setLoadingPerms(false);
+      }
+    }
+
+    loadPerms();
+  }, []);
+
+  // Fetch total student count from the student management API
   const fetchStudentCount = useCallback(async () => {
     try {
-      const queryParam = user?.id ? `?facultyId=${encodeURIComponent(user.id)}` : "";
-      const res = await fetch(`/api/faculty/students${queryParam}`);
+      const token = localStorage.getItem("token") || localStorage.getItem("sessionToken");
+      const facultyId = user?.id || user?._id || "";
+      const facultyName =
+        user?.name ||
+        (user?.firstName && user?.lastName
+          ? `${user.firstName} ${user.lastName}`
+          : user?.email || "");
+
+      const queryParams = new URLSearchParams();
+      if (facultyId) queryParams.append("facultyId", facultyId);
+      if (facultyName) queryParams.append("facultyName", facultyName);
+
+      const res = await fetch(`/api/students?${queryParams.toString()}`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data)) {
-          setStudentCount(data.length);
-        }
+        const loadedStudents = Array.isArray(data)
+          ? data
+          : data.students || [];
+        setStudentCount(loadedStudents.length);
       }
     } catch (err) {
       console.error("Failed to fetch student count for sidebar:", err);
     }
-  }, [user?.id]);
+  }, [user]);
 
   // Fetch announcements count dynamically from backend
   const fetchAnnouncementCount = useCallback(async () => {
@@ -113,13 +183,33 @@ export default function FacultySidebar({
   useEffect(() => {
     fetchStudentCount();
     fetchAnnouncementCount();
+
+    // Listen for custom student count updates emitted from StudentsPage
+    const handleStudentCountUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ count: number }>;
+      if (typeof customEvent.detail?.count === "number") {
+        setStudentCount(customEvent.detail.count);
+      }
+    };
+
+    window.addEventListener(
+      STUDENT_COUNT_UPDATED_EVENT,
+      handleStudentCountUpdate
+    );
+
+    return () => {
+      window.removeEventListener(
+        STUDENT_COUNT_UPDATED_EVENT,
+        handleStudentCountUpdate
+      );
+    };
   }, [fetchStudentCount, fetchAnnouncementCount]);
 
   /* =========================================================
-     MAIN NAVIGATION WITH BADGES
+     MAIN NAVIGATION WITH CONTROLLED PERMISSIONS
      ========================================================= */
 
-  const nav = useMemo(
+  const nav: NavItem[] = useMemo(
     () => [
       {
         label: "Dashboard",
@@ -130,7 +220,7 @@ export default function FacultySidebar({
         label: "Students",
         icon: Users,
         path: "/faculty/students",
-        badge: studentCount !== null ? studentCount : 120,
+        badge: studentCount !== null ? studentCount : 0,
       },
       {
         label: "My Classes",
@@ -147,11 +237,13 @@ export default function FacultySidebar({
         icon: ClipboardCheck,
         path: "/faculty/grades",
         badge: 18,
+        controlled: true,
       },
       {
         label: "Attendance",
         icon: CheckSquare,
         path: "/faculty/attendance",
+        controlled: true,
       },
       {
         label: "Announcements",
@@ -163,10 +255,22 @@ export default function FacultySidebar({
         label: "Course Materials",
         icon: FolderOpen,
         path: "/faculty/materials",
+        controlled: true,
       },
     ],
     [studentCount, announcementCount]
   );
+
+  /* Filter visible nav items based on granted role permissions */
+  const visibleNav = useMemo(() => {
+    return nav.filter((item) => {
+      if (!item.controlled) return true;
+      if (loadingPerms) return false;
+
+      const permKey = CONTROLLED_PERM[item.label];
+      return permissions.includes(permKey);
+    });
+  }, [nav, permissions, loadingPerms]);
 
   /* =========================================================
      LOGOUT STATE
@@ -200,6 +304,31 @@ export default function FacultySidebar({
      LOGOUT HANDLERS & TIMERS
      ========================================================= */
 
+  const logLogoutActivity = async () => {
+    try {
+      const userEmail = user?.email || "faculty@example.com";
+      const userRole = user?.role || "Faculty";
+
+      await fetch("http://localhost:5000/api/logs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || localStorage.getItem("sessionToken") || ""}`,
+        },
+        body: JSON.stringify({
+          action: "Logout",
+          user: userEmail,
+          role: userRole,
+          type: "Security",
+          details: `${userEmail} logged out of the system.`,
+          status: "success",
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to log faculty logout activity:", err);
+    }
+  };
+
   const handleLogout = () => {
     setShowLogoutConfirm(false);
     setIsLoggingOut(true);
@@ -210,16 +339,24 @@ export default function FacultySidebar({
     if (!isLoggingOut) return;
 
     if (logoutCountdown <= 0) {
-      // Clear user session
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      async function finalizeLogout() {
+        await logLogoutActivity();
 
-      if (isMobile && setMobileOpen) {
-        setMobileOpen(false);
+        // Clear user session
+        localStorage.removeItem("token");
+        localStorage.removeItem("sessionToken");
+        localStorage.removeItem("user");
+        localStorage.removeItem("lastActivity");
+
+        if (isMobile && setMobileOpen) {
+          setMobileOpen(false);
+        }
+
+        setIsLoggingOut(false);
+        navigate("/signin", { replace: true });
       }
 
-      setIsLoggingOut(false);
-      navigate("/signin", { replace: true });
+      finalizeLogout();
       return;
     }
 
@@ -286,7 +423,7 @@ export default function FacultySidebar({
 
         {/* ================= MAIN NAV ================= */}
         <nav className="faculty-sidebar-nav">
-          {nav.map(({ label, icon: Icon, badge, path }) => {
+          {visibleNav.map(({ label, icon: Icon, badge, path }) => {
             const active = isActive(path);
 
             return (

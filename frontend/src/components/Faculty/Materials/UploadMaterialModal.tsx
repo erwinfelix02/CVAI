@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Upload,
-  X,
   ChevronDown,
   FileText,
   Video,
@@ -112,6 +111,23 @@ export default function UploadMaterialModal({
     return fallbackCourses.filter((c) => c !== "All Courses");
   }, [facultyCourses, fallbackCourses]);
 
+  const handleResetForm = () => {
+    setSelectedFile(null);
+    setTitle("");
+    setCourse("");
+    setMaterialType(null);
+    setDescription("");
+    setErrorMessage(null);
+  };
+
+  const handleResetAndClose = () => {
+    handleResetForm();
+    setIsSubmitting(false);
+    setShowExitConfirm(false);
+    setShowSubmitConfirm(false);
+    onClose();
+  };
+
   useEffect(() => {
     if (isOpen) {
       if (materialToEdit) {
@@ -188,7 +204,19 @@ export default function UploadMaterialModal({
       mimeType.includes("word") ||
       mimeType.includes("document") ||
       mimeType.includes("text") ||
-      ["doc", "docx", "txt", "rtf", "odt", "ppt", "pptx", "xls", "xlsx", "csv", "zip"].includes(extension)
+      [
+        "doc",
+        "docx",
+        "txt",
+        "rtf",
+        "odt",
+        "ppt",
+        "pptx",
+        "xls",
+        "xlsx",
+        "csv",
+        "zip",
+      ].includes(extension)
     ) {
       return "doc";
     }
@@ -296,36 +324,19 @@ export default function UploadMaterialModal({
     }
   };
 
-  const handleResetForm = () => {
-    setSelectedFile(null);
-    setTitle("");
-    setCourse("");
-    setMaterialType(null);
-    setDescription("");
-    setErrorMessage(null);
-  };
-
-  const handleResetAndClose = () => {
-    handleResetForm();
-    setIsSubmitting(false);
-    setShowExitConfirm(false);
-    setShowSubmitConfirm(false);
-    onClose();
-  };
-
   const renderFileIcon = () => {
     if (!materialType) {
-      return <HelpCircle size={20} className="text-muted" />;
+      return <HelpCircle size={18} className="text-muted flex-shrink-0" />;
     }
 
     switch (materialType) {
       case "video":
-        return <Video size={20} className="text-purple-600" />;
+        return <Video size={18} className="text-purple-600 flex-shrink-0" />;
       case "doc":
-        return <FileCode size={20} className="text-success" />;
+        return <FileCode size={18} className="text-success flex-shrink-0" />;
       case "pdf":
       default:
-        return <FileText size={20} className="text-danger" />;
+        return <FileText size={18} className="text-danger flex-shrink-0" />;
     }
   };
 
@@ -344,262 +355,335 @@ export default function UploadMaterialModal({
   };
 
   return (
-    <div
-      className="modal fade show d-block position-fixed top-0 start-0 w-100 h-100"
-      style={{ backgroundColor: "rgba(0, 0, 0, 0.4)", zIndex: 1050 }}
-      tabIndex={-1}
-      role="dialog"
-      aria-modal="true"
-      onClick={handleAttemptClose}
-    >
+    <>
+      {/* MAIN UPLOAD MATERIAL MODAL CONTAINER */}
       <div
-        className="modal-dialog modal-dialog-centered modal-lg px-2"
-        onClick={(e) => e.stopPropagation()}
+        className="modal fade show d-block"
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        style={{
+          backgroundColor: "rgba(15, 23, 42, 0.6)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+          zIndex: 9999,
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          overflowY: "auto",
+        }}
+        onClick={handleAttemptClose}
       >
-        <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-          {/* Main Modal Header */}
-          <div className="modal-header border-0 pb-0 pt-4 px-4 d-flex align-items-center justify-content-between">
-            <div className="d-flex align-items-center gap-3">
-              <div className="header-icon-square">
-                {isEditMode ? <Edit2 size={22} /> : <Upload size={22} />}
-              </div>
-              <h5 className="modal-title fw-bold text-dark mb-0 fs-4">
-                {isEditMode ? "Edit Course Material" : "Upload Course Material"}
-              </h5>
-            </div>
-
-            <button
-              type="button"
-              className="btn btn-light p-2 rounded-circle border-0 d-flex align-items-center justify-content-center text-secondary"
-              aria-label="Close"
-              disabled={isSubmitting}
-              onClick={handleAttemptClose}
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleFormSubmit}>
-            <div className="modal-body p-4">
-              {errorMessage && (
-                <div className="alert alert-danger py-2 mb-3 fs-6" role="alert">
-                  {errorMessage}
+        <div
+          className="modal-dialog modal-dialog-scrollable my-2 my-sm-auto mx-auto px-2"
+          style={{
+            maxWidth: "600px",
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            minHeight: "calc(100% - 1rem)",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div
+            className="modal-content border-0 shadow-lg rounded-4 overflow-hidden bg-white w-100 d-flex flex-column"
+            style={{ maxHeight: "calc(100vh - 1.5rem)" }}
+          >
+            {/* Header */}
+            <div className="modal-header border-bottom-0 pb-2 pt-3 pt-sm-4 px-3 px-sm-4 align-items-center justify-content-between flex-shrink-0">
+              <div className="d-flex align-items-center gap-2.5">
+                <div
+                  className="rounded-3 d-flex align-items-center justify-content-center text-primary flex-shrink-0"
+                  style={{
+                    width: "38px",
+                    height: "38px",
+                    backgroundColor: "#E0F2FE",
+                  }}
+                >
+                  {isEditMode ? <Edit2 size={20} /> : <Upload size={20} />}
                 </div>
-              )}
-
-              {/* Drop Zone */}
-              <div
-                className="upload-drop-zone"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleDrop}
-                onClick={() => {
-                  if (!isSubmitting) fileInputRef.current?.click();
-                }}
-              >
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="d-none"
-                  disabled={isSubmitting}
-                  onChange={handleFileChange}
-                />
-                <div className="upload-icon-circle">
-                  <Upload size={28} />
-                </div>
-
-                {selectedFile ? (
-                  <div className="d-flex align-items-center justify-content-center gap-2">
-                    {renderFileIcon()}
-                    <div className="text-start">
-                      <h6 className="fw-bold text-dark mb-0">{selectedFile.name}</h6>
-                      <span className="text-muted small">
-                        {formatFileSize(selectedFile.size)} &bull; Detected as{" "}
-                        <strong className="text-capitalize">{getFormatLabel()}</strong>
-                      </span>
-                    </div>
-                  </div>
-                ) : isEditMode && materialToEdit ? (
-                  <div className="d-flex align-items-center justify-content-center gap-2">
-                    {renderFileIcon()}
-                    <div className="text-start">
-                      <h6 className="fw-bold text-dark mb-0">{materialToEdit.title}</h6>
-                      <span className="text-muted small">
-                        {materialToEdit.sizeLabel} &bull; Currently Attached
-                      </span>
-                      <p className="text-muted small mb-0 mt-1" style={{ fontSize: "0.8rem" }}>
-                        (Click or drag here if you wish to replace this file)
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <h6 className="fw-semibold text-dark mb-1 fs-5">
-                      Drop your file here, or click to browse
-                    </h6>
-                    <p className="text-muted small mb-0">
-                      Supports PDF, Word, PowerPoint, Videos, Images, and Code files
-                    </p>
-                  </div>
-                )}
+                <h5 className="modal-title fw-bold text-dark m-0 fs-6 fs-sm-5">
+                  {isEditMode ? "Edit Course Material" : "Upload Course Material"}
+                </h5>
               </div>
 
-              {/* Material Title */}
-              <div className="mb-3">
-                <label className="form-label fw-semibold text-dark small">
-                  Material Title <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-control form-control-lg rounded-3 border shadow-none fs-6"
-                  placeholder="e.g., Week 1 - Introduction to Programming"
-                  value={title}
-                  disabled={isSubmitting}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                />
-              </div>
-
-              {/* Course Dropdown */}
-              <div className="row g-3 mb-3">
-                <div className="col-12 col-md-6">
-                  <label className="form-label fw-semibold text-dark small">
-                    Course <span className="text-danger">*</span>
-                  </label>
-                  <div className="position-relative">
-                    <select
-                      className="form-select form-select-lg rounded-3 border shadow-none fs-6 custom-select-control"
-                      value={course}
-                      disabled={isSubmitting || isLoadingCourses}
-                      onChange={(e) => setCourse(e.target.value)}
-                      required
-                    >
-                      <option value="" disabled>
-                        {isLoadingCourses
-                          ? "Loading assigned courses..."
-                          : availableCourses.length === 0
-                          ? "No assigned courses found"
-                          : "Select assigned course"}
-                      </option>
-                      {availableCourses.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown
-                      size={18}
-                      className="position-absolute text-muted end-0 top-50 translate-middle-y me-3 pointer-events-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="col-12 col-md-6">
-                  <label className="form-label fw-semibold text-dark small">
-                    Detected Material Type
-                  </label>
-                  <div className="form-control form-control-lg rounded-3 border bg-light d-flex align-items-center gap-2 fs-6 text-muted">
-                    {renderFileIcon()}
-                    <span className={`fw-medium ${materialType ? "text-dark" : "text-muted"}`}>
-                      {getFormatLabel()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="mb-2">
-                <label className="form-label fw-semibold text-dark small">
-                  Description
-                </label>
-                <textarea
-                  className="form-control rounded-3 border shadow-none fs-6"
-                  rows={3}
-                  placeholder="Brief description of this material..."
-                  value={description}
-                  disabled={isSubmitting}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Footer Buttons */}
-            <div className="modal-footer border-0 px-4 pb-4 pt-0 d-flex justify-content-end gap-2">
               <button
                 type="button"
-                className="btn btn-light rounded-3 px-4 py-2 border text-muted fw-medium"
+                className="btn-close shadow-none"
+                aria-label="Close"
                 disabled={isSubmitting}
                 onClick={handleAttemptClose}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="btn btn-upload-submit rounded-3 px-4 py-2 fw-medium d-inline-flex align-items-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={18} className="spinner-border spinner-border-sm" />
-                    {isEditMode ? "Saving..." : "Uploading..."}
-                  </>
-                ) : isEditMode ? (
-                  <>
-                    <Edit2 size={18} />
-                    Save Changes
-                  </>
-                ) : (
-                  <>
-                    <Upload size={18} />
-                    Upload Material
-                  </>
-                )}
-              </button>
+              />
             </div>
-          </form>
+
+            {/* Scrollable Form Body Container */}
+            <form
+              onSubmit={handleFormSubmit}
+              className="d-flex flex-column flex-grow-1 overflow-hidden m-0"
+            >
+              <div className="modal-body p-3 p-sm-4 overflow-y-auto">
+                {errorMessage && (
+                  <div
+                    className="alert alert-danger py-2 px-3 mb-3 small rounded-3"
+                    role="alert"
+                  >
+                    {errorMessage}
+                  </div>
+                )}
+
+                {/* Drop Zone */}
+                <div
+                  className="upload-drop-zone p-3 border-2 border-dashed rounded-3 text-center mb-3 cursor-pointer transition-all"
+                  style={{
+                    borderColor: "#CBD5E1",
+                    backgroundColor: "#F8FAFC",
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleDrop}
+                  onClick={() => {
+                    if (!isSubmitting) fileInputRef.current?.click();
+                  }}
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="d-none"
+                    disabled={isSubmitting}
+                    onChange={handleFileChange}
+                  />
+                  <div
+                    className="mx-auto mb-2 rounded-circle d-flex align-items-center justify-content-center bg-white border text-primary"
+                    style={{ width: "44px", height: "44px" }}
+                  >
+                    <Upload size={20} />
+                  </div>
+
+                  {selectedFile ? (
+                    <div className="d-flex align-items-center justify-content-center gap-2">
+                      {renderFileIcon()}
+                      <div className="text-start minw-0">
+                        <h6 className="fw-semibold text-dark mb-0 small text-truncate">
+                          {selectedFile.name}
+                        </h6>
+                        <span className="text-muted small fs-7">
+                          {formatFileSize(selectedFile.size)} &bull; Detected as{" "}
+                          <strong className="text-capitalize">
+                            {getFormatLabel()}
+                          </strong>
+                        </span>
+                      </div>
+                    </div>
+                  ) : isEditMode && materialToEdit ? (
+                    <div className="d-flex align-items-center justify-content-center gap-2">
+                      {renderFileIcon()}
+                      <div className="text-start minw-0">
+                        <h6 className="fw-semibold text-dark mb-0 small text-truncate">
+                          {materialToEdit.title}
+                        </h6>
+                        <span className="text-muted small fs-7">
+                          {materialToEdit.sizeLabel} &bull; Currently Attached
+                        </span>
+                        <div className="text-muted small fs-7 mt-0.5">
+                          (Click or drag here if you wish to replace this file)
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <h6 className="fw-semibold text-dark mb-1 small">
+                        Drop your file here, or click to browse
+                      </h6>
+                      <p className="text-muted small mb-0 fs-7">
+                        Supports PDF, Word, PowerPoint, Videos, Images, and Code
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Material Title */}
+                <div className="mb-3">
+                  <label className="form-label fw-medium text-dark small mb-1">
+                    Material Title <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control rounded-3 border shadow-none small py-1.5 px-3"
+                    style={{ borderColor: "#E2E8F0" }}
+                    placeholder="e.g., Week 1 - Introduction to Programming"
+                    value={title}
+                    disabled={isSubmitting}
+                    onChange={(e) => setTitle(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {/* Course & Type Dropdown Grid */}
+                <div className="row g-3 mb-3">
+                  <div className="col-12 col-md-6">
+                    <label className="form-label fw-medium text-dark small mb-1">
+                      Course <span className="text-danger">*</span>
+                    </label>
+                    <div className="position-relative">
+                      <select
+                        className="form-select rounded-3 border shadow-none small py-1.5 px-3"
+                        style={{ borderColor: "#E2E8F0" }}
+                        value={course}
+                        disabled={isSubmitting || isLoadingCourses}
+                        onChange={(e) => setCourse(e.target.value)}
+                        required
+                      >
+                        <option value="" disabled>
+                          {isLoadingCourses
+                            ? "Loading assigned courses..."
+                            : availableCourses.length === 0
+                            ? "No assigned courses found"
+                            : "Select assigned course"}
+                        </option>
+                        {availableCourses.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown
+                        size={16}
+                        className="position-absolute text-muted end-0 top-50 translate-middle-y me-3 pointer-events-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="col-12 col-md-6">
+                    <label className="form-label fw-medium text-dark small mb-1">
+                      Detected Material Type
+                    </label>
+                    <div
+                      className="form-control rounded-3 border bg-light d-flex align-items-center gap-2 small py-1.5 px-3 text-muted"
+                      style={{ borderColor: "#E2E8F0" }}
+                    >
+                      {renderFileIcon()}
+                      <span
+                        className={`fw-medium text-truncate ${
+                          materialType ? "text-dark" : "text-muted"
+                        }`}
+                      >
+                        {getFormatLabel()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="mb-1">
+                  <label className="form-label fw-medium text-dark small mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    className="form-control rounded-3 border shadow-none small p-2"
+                    style={{ borderColor: "#E2E8F0" }}
+                    rows={3}
+                    placeholder="Brief description of this material..."
+                    value={description}
+                    disabled={isSubmitting}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Fixed Bottom Modal Actions */}
+              <div className="modal-footer border-top-0 px-3 px-sm-4 py-2.5 bg-white flex-shrink-0 d-flex justify-content-end align-items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-light rounded-3 px-3 py-1.5 border text-dark fw-medium small"
+                  style={{ borderColor: "#E2E8F0" }}
+                  disabled={isSubmitting}
+                  onClick={handleAttemptClose}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="btn btn-primary rounded-3 px-3.5 py-1.5 fw-medium d-inline-flex align-items-center gap-2 shadow-sm small"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2
+                        size={16}
+                        className="spinner-border spinner-border-sm"
+                      />
+                      {isEditMode ? "Saving..." : "Uploading..."}
+                    </>
+                  ) : isEditMode ? (
+                    <>
+                      <Edit2 size={16} />
+                      Save Changes
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={16} />
+                      Upload Material
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
 
       {/* Unsaved Changes Confirmation Overlay */}
       {showExitConfirm && (
         <div
-          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3"
+          className="modal fade show d-block"
+          tabIndex={-1}
           style={{
-            backgroundColor: "rgba(15, 23, 42, 0.65)",
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
             backdropFilter: "blur(4px)",
-            zIndex: 1070,
+            WebkitBackdropFilter: "blur(4px)",
+            zIndex: 10000,
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
           }}
-          onClick={(e) => e.stopPropagation()}
+          onClick={() => setShowExitConfirm(false)}
         >
           <div
-            className="bg-white rounded-4 p-4 shadow-lg text-center"
-            style={{ maxWidth: 380, width: "100%" }}
+            className="modal-dialog modal-dialog-centered px-3"
+            style={{ maxWidth: "420px" }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="d-inline-flex align-items-center justify-content-center rounded-circle bg-warning bg-opacity-10 text-warning mb-3"
-              style={{ width: 56, height: 56 }}
-            >
-              <AlertTriangle size={28} />
-            </div>
-            <h5 className="fw-bold text-dark mb-1">Unsaved Changes</h5>
-            <p className="text-muted small mb-4">
-              You have unsaved changes. Are you sure you want to exit without saving?
-            </p>
-            <div className="d-flex gap-2">
-              <button
-                type="button"
-                className="btn btn-light border w-50 py-2 rounded-3 fw-medium"
-                onClick={() => setShowExitConfirm(false)}
+            <div className="modal-content border-0 shadow-lg rounded-4 text-center p-4 bg-white">
+              <div
+                className="mx-auto mb-3 text-warning bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                style={{ width: "52px", height: "52px" }}
               >
-                Keep Editing
-              </button>
-              <button
-                type="button"
-                className="btn btn-danger w-50 py-2 rounded-3 fw-medium"
-                onClick={handleResetAndClose}
-              >
-                Discard & Exit
-              </button>
+                <AlertTriangle size={26} />
+              </div>
+              <h5 className="fw-bold text-dark mb-1">Unsaved Changes</h5>
+              <p className="text-secondary small mb-4">
+                You have unsaved changes. Are you sure you want to exit without
+                saving?
+              </p>
+              <div className="d-flex gap-2 justify-content-center">
+                <button
+                  type="button"
+                  className="btn btn-light border flex-fill py-2 px-3 rounded-3 fw-medium text-dark small"
+                  onClick={() => setShowExitConfirm(false)}
+                >
+                  Keep Editing
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger flex-fill py-2 px-3 rounded-3 fw-medium small"
+                  onClick={handleResetAndClose}
+                >
+                  Discard & Exit
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -608,51 +692,61 @@ export default function UploadMaterialModal({
       {/* Upload Confirmation Overlay */}
       {showSubmitConfirm && (
         <div
-          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3"
+          className="modal fade show d-block"
+          tabIndex={-1}
           style={{
-            backgroundColor: "rgba(15, 23, 42, 0.65)",
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
             backdropFilter: "blur(4px)",
-            zIndex: 1070,
+            WebkitBackdropFilter: "blur(4px)",
+            zIndex: 10000,
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
           }}
-          onClick={(e) => e.stopPropagation()}
+          onClick={() => setShowSubmitConfirm(false)}
         >
           <div
-            className="bg-white rounded-4 p-4 shadow-lg text-center"
-            style={{ maxWidth: 380, width: "100%" }}
+            className="modal-dialog modal-dialog-centered px-3"
+            style={{ maxWidth: "420px" }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10 text-success mb-3"
-              style={{ width: 56, height: 56 }}
-            >
-              <CheckCircle2 size={28} />
-            </div>
-            <h5 className="fw-bold text-dark mb-1">
-              {isEditMode ? "Save Changes?" : "Upload Material?"}
-            </h5>
-            <p className="text-muted small mb-4">
-              {isEditMode
-                ? "Are you sure you want to update this material's details?"
-                : "Are you sure you want to publish this new material?"}
-            </p>
-            <div className="d-flex gap-2">
-              <button
-                type="button"
-                className="btn btn-light border w-50 py-2 rounded-3 fw-medium"
-                onClick={() => setShowSubmitConfirm(false)}
+            <div className="modal-content border-0 shadow-lg rounded-4 text-center p-4 bg-white">
+              <div
+                className="mx-auto mb-3 text-primary bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                style={{ width: "52px", height: "52px" }}
               >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-success w-50 py-2 rounded-3 fw-medium"
-                onClick={handleConfirmSubmit}
-              >
-                Confirm
-              </button>
+                <CheckCircle2 size={26} />
+              </div>
+              <h5 className="fw-bold text-dark mb-1">
+                {isEditMode ? "Save Changes?" : "Upload Material?"}
+              </h5>
+              <p className="text-secondary small mb-4">
+                {isEditMode
+                  ? "Are you sure you want to update this material's details?"
+                  : "Are you sure you want to publish this new material?"}
+              </p>
+              <div className="d-flex gap-2 justify-content-center">
+                <button
+                  type="button"
+                  className="btn btn-light border flex-fill py-2 px-3 rounded-3 text-dark fw-medium small"
+                  onClick={() => setShowSubmitConfirm(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary flex-fill py-2 px-3 rounded-3 fw-medium shadow-sm small"
+                  onClick={handleConfirmSubmit}
+                >
+                  Confirm
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

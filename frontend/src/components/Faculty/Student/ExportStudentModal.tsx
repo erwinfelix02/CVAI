@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Download,
   FileSpreadsheet,
@@ -9,6 +9,7 @@ import {
   Check,
   ChevronDown,
 } from "lucide-react";
+import type { Student } from "./types";
 
 type FormatOption = "csv" | "pdf" | "";
 
@@ -16,20 +17,29 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   sectionFilter?: string;
+  sectionsList?: string[];
+  studentsList?: Student[];
 };
 
 export default function ExportStudentModal({
   isOpen,
   onClose,
   sectionFilter = "All",
+  sectionsList = [],
+  studentsList = [],
 }: Props) {
-  // Empty Initial Form States
   const [format, setFormat] = useState<FormatOption>("");
   const [selectedSection, setSelectedSection] = useState<string>("");
   const [recordsToInclude, setRecordsToInclude] = useState<string>("");
   const [isRecordsDropdownOpen, setIsRecordsDropdownOpen] = useState(false);
 
-  // Column Selections for Student List
+  // Filter out 'All' so only enrolled student sections are displayed
+  const availableSectionsOnly = useMemo(() => {
+    return sectionsList.filter(
+      (sec) => sec !== "All" && sec.trim() !== "" && sec !== "—"
+    );
+  }, [sectionsList]);
+
   const [columns, setColumns] = useState({
     name: true,
     studentId: true,
@@ -39,19 +49,22 @@ export default function ExportStudentModal({
     status: true,
   });
 
-  // Modal Dialog Overlay States
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Detect if user modified any form fields from default
-  const initialSection = sectionFilter !== "All" ? sectionFilter : "";
+  const initialSection =
+    sectionFilter !== "All" && availableSectionsOnly.includes(sectionFilter)
+      ? sectionFilter
+      : availableSectionsOnly.length === 1
+      ? availableSectionsOnly[0]
+      : "";
+
   const isDirty =
     format !== "" ||
     selectedSection !== initialSection ||
     recordsToInclude !== "";
 
-  // Reset or initialize state when modal opens
   useEffect(() => {
     if (isOpen) {
       setFormat("");
@@ -62,7 +75,7 @@ export default function ExportStudentModal({
       setShowConfirm(false);
       setShowSuccess(false);
     }
-  }, [isOpen, sectionFilter]);
+  }, [isOpen, sectionFilter, initialSection]);
 
   if (!isOpen) return null;
 
@@ -70,7 +83,6 @@ export default function ExportStudentModal({
     setColumns((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // Safe Exit Attempt (Checks for modified fields)
   const handleAttemptClose = () => {
     if (isDirty && !showSuccess && !showConfirm) {
       setShowExitConfirm(true);
@@ -79,7 +91,6 @@ export default function ExportStudentModal({
     }
   };
 
-  // Completely reset states and close modal container
   const handleForceClose = () => {
     setFormat("");
     setSelectedSection("");
@@ -91,27 +102,133 @@ export default function ExportStudentModal({
     onClose();
   };
 
-  // Step 1: Open export confirmation overlay
   const handleTriggerExport = (e: React.FormEvent) => {
     e.preventDefault();
     setShowConfirm(true);
   };
 
-  // Step 2: Execute export & show success toast
+  // EXECUTE ACTUAL FILE DOWNLOAD BASED ON SELECTED TYPE
   const handleExecuteExport = () => {
     setShowConfirm(false);
 
-    console.log("Exporting Student List Data:", {
-      format,
-      selectedSection,
-      recordsToInclude,
-      columns,
+    // 1. Filter students base on section selection
+    let filteredData = studentsList.filter((s: any) => {
+      const studentSec = String(s.section || s.classSection || "").trim();
+      return studentSec.toLowerCase() === selectedSection.trim().toLowerCase();
     });
+
+    // 2. Filter base on records criteria
+    if (recordsToInclude === "flagged") {
+      filteredData = filteredData.filter(
+        (s: any) => s.status === "warning" || (s.attendance && s.attendance < 75)
+      );
+    }
+
+    if (filteredData.length === 0) {
+      alert("No student records found matching the export criteria.");
+      return;
+    }
+
+    // 3. Export CSV or PDF file
+    if (format === "csv") {
+      exportAsCSV(filteredData);
+    } else if (format === "pdf") {
+      exportAsPDF(filteredData);
+    }
 
     setShowSuccess(true);
     setTimeout(() => {
       handleForceClose();
     }, 1800);
+  };
+
+  // Helper to construct and download CSV
+  const exportAsCSV = (data: any[]) => {
+    const headers: string[] = [];
+    if (columns.name) headers.push("Full Name");
+    if (columns.studentId) headers.push("Student ID");
+    if (columns.section) headers.push("Section");
+    if (columns.gpa) headers.push("GPA");
+    if (columns.attendance) headers.push("Attendance (%)");
+    if (columns.status) headers.push("Status");
+
+    const rows = data.map((s) => {
+      const row: string[] = [];
+      if (columns.name) row.push(`"${s.name || s.fullName || ""}"`);
+      if (columns.studentId) row.push(`"${s.id || s.studentIdNumber || ""}"`);
+      if (columns.section) row.push(`"${s.section || s.classSection || ""}"`);
+      if (columns.gpa) row.push(`"${s.gpa || "3.5"}"`);
+      if (columns.attendance) row.push(`"${s.attendance ?? 100}%"`);
+      if (columns.status) row.push(`"${s.status === "good" ? "Active" : "Probation"}"`);
+      return row.join(",");
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `student-roster-${selectedSection}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Helper to open PDF print preview document
+  const exportAsPDF = (data: any[]) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    let headersHTML = "";
+    if (columns.name) headersHTML += "<th>Name</th>";
+    if (columns.studentId) headersHTML += "<th>Student ID</th>";
+    if (columns.section) headersHTML += "<th>Section</th>";
+    if (columns.gpa) headersHTML += "<th>GPA</th>";
+    if (columns.attendance) headersHTML += "<th>Attendance</th>";
+    if (columns.status) headersHTML += "<th>Status</th>";
+
+    const rowsHTML = data
+      .map((s) => {
+        let cells = "";
+        if (columns.name) cells += `<td>${s.name || s.fullName || ""}</td>`;
+        if (columns.studentId) cells += `<td>${s.id || s.studentIdNumber || ""}</td>`;
+        if (columns.section) cells += `<td>${s.section || s.classSection || ""}</td>`;
+        if (columns.gpa) cells += `<td>${s.gpa || "3.5"}</td>`;
+        if (columns.attendance) cells += `<td>${s.attendance ?? 100}%</td>`;
+        if (columns.status)
+          cells += `<td>${s.status === "good" ? "Active" : "Probation"}</td>`;
+        return `<tr>${cells}</tr>`;
+      })
+      .join("");
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Student Roster - ${selectedSection}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h2 { color: #0d5c75; margin-bottom: 5px; }
+            p { color: #666; margin-top: 0; font-size: 14px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; }
+            th { background-color: #f8f9fa; color: #333; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+          </style>
+        </head>
+        <body>
+          <h2>Class Roster Report</h2>
+          <p>Section: <strong>${selectedSection}</strong> | Date Generated: ${new Date().toLocaleDateString()}</p>
+          <table>
+            <thead><tr>${headersHTML}</tr></thead>
+            <tbody>${rowsHTML}</tbody>
+          </table>
+          <script>
+            window.onload = function() { window.print(); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const dropdownOptions = [
@@ -124,37 +241,46 @@ export default function ExportStudentModal({
     dropdownOptions.find((opt) => opt.value === recordsToInclude)?.label ||
     "Select records to include...";
 
-  const sectionOptions = [
-    { value: "All", label: "All Sections" },
-    { value: "CS-3A", label: "Section CS-3A" },
-    { value: "CS-3B", label: "Section CS-3B" },
-  ];
-
   return (
     <>
-      {/* MAIN EXPORT STUDENT MODAL */}
       <div
         className="modal fade show d-block"
         tabIndex={-1}
         style={{
-          backgroundColor: "rgba(15, 23, 42, 0.4)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          zIndex: 1050,
+          backgroundColor: "rgba(15, 23, 42, 0.6)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+          zIndex: 9999,
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          overflowY: "auto",
         }}
         onClick={handleAttemptClose}
       >
         <div
-          className="modal-dialog modal-dialog-centered modal-md modal-fullscreen-sm-down px-2"
+          className="modal-dialog modal-dialog-scrollable my-2 my-sm-auto mx-auto px-2"
+          style={{
+            maxWidth: "500px",
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            minHeight: "calc(100% - 1rem)",
+          }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+          <div
+            className="modal-content border-0 shadow-lg rounded-4 overflow-hidden bg-white w-100 d-flex flex-column"
+            style={{ maxHeight: "calc(100vh - 1.5rem)" }}
+          >
             {/* Header */}
-            <div className="modal-header border-0 pb-0 pt-4 px-4 d-flex justify-content-between align-items-start">
-              <div>
+            <div className="modal-header border-bottom-0 pb-2 pt-3 pt-sm-4 px-3 px-sm-4 align-items-start justify-content-between flex-shrink-0">
+              <div className="pe-2">
                 <div className="d-flex align-items-center gap-2">
-                  <Download className="text-dark" size={22} />
-                  <h5 className="modal-title fw-bold text-dark m-0">
+                  <Download className="text-dark flex-shrink-0" size={20} />
+                  <h5 className="modal-title fw-bold text-dark m-0 fs-6 fs-sm-5">
                     Export Student List
                   </h5>
                 </div>
@@ -170,255 +296,296 @@ export default function ExportStudentModal({
               />
             </div>
 
-            {/* Form Body */}
-            <form onSubmit={handleTriggerExport} className="modal-body p-4">
-              {/* File Format Selection */}
-              <div className="mb-4">
-                <label className="form-label text-dark small fw-medium mb-2">
-                  File format *
-                </label>
-                <div className="row g-2">
-                  <div className="col-6">
-                    <button
-                      type="button"
-                      className={`btn w-100 py-3 rounded-3 border d-flex flex-column align-items-center justify-content-center gap-1 transition-all ${
-                        format === "csv"
-                          ? "format-card-selected shadow-sm"
-                          : "border-light-subtle bg-white text-secondary hover-bg-light"
-                      }`}
-                      onClick={() => setFormat("csv")}
-                    >
-                      <FileSpreadsheet
-                        size={20}
-                        style={{
-                          color: format === "csv" ? "#0d5c75" : "#6c757d",
-                        }}
-                      />
-                      <span className="small fw-semibold mt-1">CSV (Excel)</span>
-                    </button>
-                  </div>
-
-                  <div className="col-6">
-                    <button
-                      type="button"
-                      className={`btn w-100 py-3 rounded-3 border d-flex flex-column align-items-center justify-content-center gap-1 transition-all ${
-                        format === "pdf"
-                          ? "format-card-selected shadow-sm"
-                          : "border-light-subtle bg-white text-secondary hover-bg-light"
-                      }`}
-                      onClick={() => setFormat("pdf")}
-                    >
-                      <FileText
-                        size={20}
-                        style={{
-                          color: format === "pdf" ? "#0d5c75" : "#6c757d",
-                        }}
-                      />
-                      <span className="small fw-semibold mt-1">PDF Report</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Section Filter Selection */}
-              <div className="mb-4">
-                <label className="form-label text-dark small fw-medium mb-1">
-                  Section *
-                </label>
-                <select
-                  required
-                  className="form-select border-2 shadow-none py-2 px-3 rounded-3"
-                  style={{ borderColor: "#0d5c75" }}
-                  value={selectedSection}
-                  onChange={(e) => setSelectedSection(e.target.value)}
-                >
-                  <option value="" disabled hidden>
-                    Select Section...
-                  </option>
-                  {sectionOptions.map((sec) => (
-                    <option key={sec.value} value={sec.value}>
-                      {sec.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Records To Include Dropdown */}
-              <div className="mb-4 position-relative">
-                <label className="form-label text-dark small fw-medium mb-1">
-                  Records to include *
-                </label>
-                <div
-                  className="custom-export-select form-control d-flex justify-content-between align-items-center py-2 px-3 rounded-3 border-2 cursor-pointer bg-white"
-                  style={{ borderColor: "#0d5c75" }}
-                  onClick={() => setIsRecordsDropdownOpen(!isRecordsDropdownOpen)}
-                >
-                  <span
-                    className={`small fw-medium ${
-                      recordsToInclude ? "text-dark" : "text-muted"
-                    }`}
-                  >
-                    {selectedOptionLabel}
-                  </span>
-                  <ChevronDown size={18} className="text-secondary" />
-                </div>
-
-                {/* Dropdown Options List */}
-                {isRecordsDropdownOpen && (
-                  <div className="custom-export-dropdown border-0 shadow-lg rounded-4 p-2 bg-white position-absolute w-100 mt-1">
-                    {dropdownOptions.map((opt) => {
-                      const isSelected = recordsToInclude === opt.value;
-                      return (
-                        <div
-                          key={opt.value}
-                          className={`custom-export-option d-flex align-items-center gap-2 p-2.5 rounded-3 cursor-pointer small transition-all ${
-                            isSelected
-                              ? "selected-highlight"
-                              : "hover-option text-dark"
-                          }`}
-                          onClick={() => {
-                            setRecordsToInclude(opt.value);
-                            setIsRecordsDropdownOpen(false);
-                          }}
-                        >
-                          {isSelected && (
-                            <Check
-                              size={16}
-                              className="text-white flex-shrink-0"
-                            />
-                          )}
-                          <span
-                            className={
-                              isSelected ? "text-white fw-semibold ms-0" : "ms-4"
-                            }
-                          >
-                            {opt.label}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Columns Selection Grid */}
-              <div className="mb-4">
-                <label className="form-label text-dark small fw-medium mb-2">
-                  Columns
-                </label>
-                <div className="bg-light p-3 rounded-4 border border-light-subtle">
+            <form
+              onSubmit={handleTriggerExport}
+              className="d-flex flex-column flex-grow-1 overflow-hidden m-0"
+            >
+              <div className="modal-body p-3 p-sm-4 overflow-y-auto">
+                {/* File Format Selection */}
+                <div className="mb-3">
+                  <label className="form-label text-dark small fw-medium mb-1.5">
+                    File format *
+                  </label>
                   <div className="row g-2">
                     <div className="col-6">
-                      <div
-                        className="d-flex align-items-center gap-2 cursor-pointer user-select-none"
-                        onClick={() => toggleColumn("name")}
+                      <button
+                        type="button"
+                        className={`btn w-100 py-2 py-sm-2.5 rounded-3 border d-flex flex-column align-items-center justify-content-center gap-1 transition-all ${
+                          format === "csv"
+                            ? "format-card-selected shadow-sm"
+                            : "border-light-subtle bg-white text-secondary hover-bg-light"
+                        }`}
+                        onClick={() => setFormat("csv")}
                       >
-                        <CheckCircle2
-                          size={20}
+                        <FileSpreadsheet
+                          size={18}
                           style={{
-                            fill: columns.name ? "#0d5c75" : "transparent",
-                            color: columns.name ? "#fff" : "#a0aec0",
+                            color: format === "csv" ? "#0d5c75" : "#6c757d",
                           }}
                         />
-                        <span className="small text-dark fw-medium">Name</span>
-                      </div>
+                        <span className="small fw-semibold mt-0.5 fs-7">
+                          CSV (Excel)
+                        </span>
+                      </button>
                     </div>
 
                     <div className="col-6">
-                      <div
-                        className="d-flex align-items-center gap-2 cursor-pointer user-select-none"
-                        onClick={() => toggleColumn("studentId")}
+                      <button
+                        type="button"
+                        className={`btn w-100 py-2 py-sm-2.5 rounded-3 border d-flex flex-column align-items-center justify-content-center gap-1 transition-all ${
+                          format === "pdf"
+                            ? "format-card-selected shadow-sm"
+                            : "border-light-subtle bg-white text-secondary hover-bg-light"
+                        }`}
+                        onClick={() => setFormat("pdf")}
                       >
-                        <CheckCircle2
-                          size={20}
+                        <FileText
+                          size={18}
                           style={{
-                            fill: columns.studentId ? "#0d5c75" : "transparent",
-                            color: columns.studentId ? "#fff" : "#a0aec0",
+                            color: format === "pdf" ? "#0d5c75" : "#6c757d",
                           }}
                         />
-                        <span className="small text-dark fw-medium">Student ID</span>
-                      </div>
+                        <span className="small fw-semibold mt-0.5 fs-7">
+                          PDF Report
+                        </span>
+                      </button>
                     </div>
+                  </div>
+                </div>
 
-                    <div className="col-6">
-                      <div
-                        className="d-flex align-items-center gap-2 cursor-pointer user-select-none"
-                        onClick={() => toggleColumn("section")}
-                      >
-                        <CheckCircle2
-                          size={20}
-                          style={{
-                            fill: columns.section ? "#0d5c75" : "transparent",
-                            color: columns.section ? "#fff" : "#a0aec0",
-                          }}
-                        />
-                        <span className="small text-dark fw-medium">Section</span>
-                      </div>
+                {/* Section Selection */}
+                <div className="mb-3">
+                  <label className="form-label text-dark small fw-medium mb-1">
+                    Section *
+                  </label>
+                  <select
+                    required
+                    className="form-select border-2 shadow-none py-1.5 px-3 rounded-3 small"
+                    style={{ borderColor: "#0d5c75" }}
+                    value={selectedSection}
+                    onChange={(e) => setSelectedSection(e.target.value)}
+                  >
+                    <option value="" disabled hidden>
+                      {availableSectionsOnly.length === 0
+                        ? "No sections available"
+                        : "Select Section..."}
+                    </option>
+                    {availableSectionsOnly.map((sec) => (
+                      <option key={sec} value={sec}>
+                        Section {sec}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Records To Include Dropdown */}
+                <div className="mb-3 position-relative">
+                  <label className="form-label text-dark small fw-medium mb-1">
+                    Records to include *
+                  </label>
+                  <div
+                    className="custom-export-select form-control d-flex justify-content-between align-items-center py-1.5 px-3 rounded-3 border-2 cursor-pointer bg-white"
+                    style={{ borderColor: "#0d5c75" }}
+                    onClick={() =>
+                      setIsRecordsDropdownOpen(!isRecordsDropdownOpen)
+                    }
+                  >
+                    <span
+                      className={`small fw-medium text-truncate ${
+                        recordsToInclude ? "text-dark" : "text-muted"
+                      }`}
+                    >
+                      {selectedOptionLabel}
+                    </span>
+                    <ChevronDown
+                      size={16}
+                      className="text-secondary flex-shrink-0 ms-1"
+                    />
+                  </div>
+
+                  {isRecordsDropdownOpen && (
+                    <div
+                      className="custom-export-dropdown border-0 shadow-lg rounded-4 p-1.5 bg-white position-absolute w-100 mt-1"
+                      style={{ zIndex: 10 }}
+                    >
+                      {dropdownOptions.map((opt) => {
+                        const isSelected = recordsToInclude === opt.value;
+                        return (
+                          <div
+                            key={opt.value}
+                            className={`custom-export-option d-flex align-items-center gap-2 p-2 rounded-3 cursor-pointer small transition-all ${
+                              isSelected
+                                ? "selected-highlight"
+                                : "hover-option text-dark"
+                            }`}
+                            onClick={() => {
+                              setRecordsToInclude(opt.value);
+                              setIsRecordsDropdownOpen(false);
+                            }}
+                          >
+                            {isSelected && (
+                              <Check
+                                size={16}
+                                className="text-white flex-shrink-0"
+                              />
+                            )}
+                            <span
+                              className={
+                                isSelected
+                                  ? "text-white fw-semibold ms-0"
+                                  : "ms-4"
+                              }
+                            >
+                              {opt.label}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
+                  )}
+                </div>
 
-                    <div className="col-6">
-                      <div
-                        className="d-flex align-items-center gap-2 cursor-pointer user-select-none"
-                        onClick={() => toggleColumn("gpa")}
-                      >
-                        <CheckCircle2
-                          size={20}
-                          style={{
-                            fill: columns.gpa ? "#0d5c75" : "transparent",
-                            color: columns.gpa ? "#fff" : "#a0aec0",
-                          }}
-                        />
-                        <span className="small text-dark fw-medium">GPA</span>
+                {/* Columns Selection Grid */}
+                <div className="mb-1">
+                  <label className="form-label text-dark small fw-medium mb-1.5">
+                    Columns
+                  </label>
+                  <div className="bg-light p-2.5 rounded-3 border border-light-subtle">
+                    <div className="row g-2">
+                      <div className="col-6">
+                        <div
+                          className="d-flex align-items-center gap-2 cursor-pointer user-select-none"
+                          onClick={() => toggleColumn("name")}
+                        >
+                          <CheckCircle2
+                            size={16}
+                            className="flex-shrink-0"
+                            style={{
+                              fill: columns.name ? "#0d5c75" : "transparent",
+                              color: columns.name ? "#fff" : "#a0aec0",
+                            }}
+                          />
+                          <span className="small text-dark fw-medium fs-7">
+                            Name
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="col-6">
-                      <div
-                        className="d-flex align-items-center gap-2 cursor-pointer user-select-none"
-                        onClick={() => toggleColumn("attendance")}
-                      >
-                        <CheckCircle2
-                          size={20}
-                          style={{
-                            fill: columns.attendance ? "#0d5c75" : "transparent",
-                            color: columns.attendance ? "#fff" : "#a0aec0",
-                          }}
-                        />
-                        <span className="small text-dark fw-medium">Attendance</span>
+                      <div className="col-6">
+                        <div
+                          className="d-flex align-items-center gap-2 cursor-pointer user-select-none"
+                          onClick={() => toggleColumn("studentId")}
+                        >
+                          <CheckCircle2
+                            size={16}
+                            className="flex-shrink-0"
+                            style={{
+                              fill: columns.studentId
+                                ? "#0d5c75"
+                                : "transparent",
+                              color: columns.studentId ? "#fff" : "#a0aec0",
+                            }}
+                          />
+                          <span className="small text-dark fw-medium fs-7">
+                            Student ID
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="col-6">
-                      <div
-                        className="d-flex align-items-center gap-2 cursor-pointer user-select-none"
-                        onClick={() => toggleColumn("status")}
-                      >
-                        <CheckCircle2
-                          size={20}
-                          style={{
-                            fill: columns.status ? "#0d5c75" : "transparent",
-                            color: columns.status ? "#fff" : "#a0aec0",
-                          }}
-                        />
-                        <span className="small text-dark fw-medium">Status</span>
+                      <div className="col-6">
+                        <div
+                          className="d-flex align-items-center gap-2 cursor-pointer user-select-none"
+                          onClick={() => toggleColumn("section")}
+                        >
+                          <CheckCircle2
+                            size={16}
+                            className="flex-shrink-0"
+                            style={{
+                              fill: columns.section ? "#0d5c75" : "transparent",
+                              color: columns.section ? "#fff" : "#a0aec0",
+                            }}
+                          />
+                          <span className="small text-dark fw-medium fs-7">
+                            Section
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="col-6">
+                        <div
+                          className="d-flex align-items-center gap-2 cursor-pointer user-select-none"
+                          onClick={() => toggleColumn("gpa")}
+                        >
+                          <CheckCircle2
+                            size={16}
+                            className="flex-shrink-0"
+                            style={{
+                              fill: columns.gpa ? "#0d5c75" : "transparent",
+                              color: columns.gpa ? "#fff" : "#a0aec0",
+                            }}
+                          />
+                          <span className="small text-dark fw-medium fs-7">
+                            GPA
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="col-6">
+                        <div
+                          className="d-flex align-items-center gap-2 cursor-pointer user-select-none"
+                          onClick={() => toggleColumn("attendance")}
+                        >
+                          <CheckCircle2
+                            size={16}
+                            className="flex-shrink-0"
+                            style={{
+                              fill: columns.attendance
+                                ? "#0d5c75"
+                                : "transparent",
+                              color: columns.attendance ? "#fff" : "#a0aec0",
+                            }}
+                          />
+                          <span className="small text-dark fw-medium fs-7">
+                            Attendance
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="col-6">
+                        <div
+                          className="d-flex align-items-center gap-2 cursor-pointer user-select-none"
+                          onClick={() => toggleColumn("status")}
+                        >
+                          <CheckCircle2
+                            size={16}
+                            className="flex-shrink-0"
+                            style={{
+                              fill: columns.status ? "#0d5c75" : "transparent",
+                              color: columns.status ? "#fff" : "#a0aec0",
+                            }}
+                          />
+                          <span className="small text-dark fw-medium fs-7">
+                            Status
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Modal Actions */}
-              <div className="d-flex justify-content-end align-items-center gap-2 pt-2">
+              {/* Actions */}
+              <div className="modal-footer border-top-0 px-3 px-sm-4 py-2.5 bg-white flex-shrink-0 d-flex justify-content-end align-items-center gap-2">
                 <button
                   type="button"
-                  className="btn btn-light px-4 py-2 rounded-3 border-0 fw-medium text-dark"
+                  className="btn btn-light px-3 py-1.5 rounded-3 border-0 fw-medium text-dark small"
                   onClick={handleAttemptClose}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn text-white px-4 py-2 rounded-3 d-flex align-items-center gap-2 fw-medium shadow-sm"
+                  className="btn text-white px-3.5 py-1.5 rounded-3 d-flex align-items-center gap-2 fw-medium shadow-sm small"
                   style={{ backgroundColor: "#0d5c75" }}
                   disabled={!format || !selectedSection || !recordsToInclude}
                 >
@@ -431,47 +598,53 @@ export default function ExportStudentModal({
         </div>
       </div>
 
-      {/* DISCARD UNSAVED SELECTIONS OVERLAY DIALOG */}
+      {/* DISCARD CONFIRMATION OVERLAY */}
       {showExitConfirm && (
         <div
           className="modal fade show d-block"
           tabIndex={-1}
           style={{
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
             backdropFilter: "blur(4px)",
             WebkitBackdropFilter: "blur(4px)",
-            zIndex: 1060,
+            zIndex: 10000,
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
           }}
           onClick={() => setShowExitConfirm(false)}
         >
           <div
             className="modal-dialog modal-dialog-centered px-3"
-            style={{ maxWidth: "440px" }}
+            style={{ maxWidth: "420px" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-content border-0 shadow-lg rounded-4 text-center p-4">
+            <div className="modal-content border-0 shadow-lg rounded-4 text-center p-4 bg-white">
               <div
                 className="mx-auto mb-3 text-warning bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
-                style={{ width: "56px", height: "56px" }}
+                style={{ width: "52px", height: "52px" }}
               >
-                <AlertTriangle size={28} />
+                <AlertTriangle size={26} />
               </div>
               <h5 className="fw-bold text-dark mb-1">Discard Selections?</h5>
               <p className="text-secondary small mb-4">
-                You have active selections. Leaving now will reset your export options.
+                You have active selections. Leaving now will reset your export
+                options.
               </p>
 
-              <div className="d-flex gap-3 justify-content-center">
+              <div className="d-flex gap-2 justify-content-center">
                 <button
                   type="button"
-                  className="btn btn-light flex-fill py-2.5 px-3 rounded-3 text-dark fw-medium border-0 text-nowrap"
+                  className="btn btn-light flex-fill py-2 px-3 rounded-3 text-dark fw-medium border-0 text-nowrap small"
                   onClick={() => setShowExitConfirm(false)}
                 >
                   Keep Editing
                 </button>
                 <button
                   type="button"
-                  className="btn btn-danger flex-fill py-2.5 px-3 rounded-3 fw-medium text-nowrap"
+                  className="btn btn-danger flex-fill py-2 px-3 rounded-3 fw-medium text-nowrap small"
                   onClick={handleForceClose}
                 >
                   Discard Changes
@@ -482,56 +655,62 @@ export default function ExportStudentModal({
         </div>
       )}
 
-      {/* PRE-EXPORT CONFIRMATION OVERLAY DIALOG */}
+      {/* PRE-EXPORT CONFIRMATION OVERLAY */}
       {showConfirm && (
         <div
           className="modal fade show d-block"
           tabIndex={-1}
           style={{
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
             backdropFilter: "blur(4px)",
             WebkitBackdropFilter: "blur(4px)",
-            zIndex: 1060,
+            zIndex: 10000,
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
           }}
           onClick={() => setShowConfirm(false)}
         >
           <div
             className="modal-dialog modal-dialog-centered px-3"
-            style={{ maxWidth: "440px" }}
+            style={{ maxWidth: "420px" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-content border-0 shadow-lg rounded-4 text-center p-4">
+            <div className="modal-content border-0 shadow-lg rounded-4 text-center p-4 bg-white">
               <div
                 className="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center"
                 style={{
-                  width: "56px",
-                  height: "56px",
+                  width: "52px",
+                  height: "52px",
                   backgroundColor: "rgba(13, 92, 117, 0.1)",
                   color: "#0d5c75",
                 }}
               >
-                <HelpCircle size={30} />
+                <HelpCircle size={28} />
               </div>
               <h5 className="fw-bold text-dark mb-1">Confirm Export?</h5>
               <p className="text-secondary small mb-4">
                 You are about to export the student list for <br />
                 <strong className="text-dark">
-                  {selectedSection === "All" ? "All Sections" : `Section ${selectedSection}`}
+                  Section {selectedSection}
                 </strong>{" "}
-                as a <strong className="text-dark">{format.toUpperCase()}</strong> file.
+                as a <strong className="text-dark">{format.toUpperCase()}</strong>{" "}
+                file.
               </p>
 
-              <div className="d-flex gap-3 justify-content-center">
+              <div className="d-flex gap-2 justify-content-center">
                 <button
                   type="button"
-                  className="btn btn-light flex-fill py-2.5 px-3 rounded-3 text-dark fw-medium border-0 text-nowrap"
+                  className="btn btn-light flex-fill py-2 px-3 rounded-3 text-dark fw-medium border-0 text-nowrap small"
                   onClick={() => setShowConfirm(false)}
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  className="btn text-white flex-fill py-2.5 px-3 rounded-3 fw-medium text-nowrap shadow-sm"
+                  className="btn text-white flex-fill py-2 px-3 rounded-3 fw-medium text-nowrap shadow-sm small"
                   style={{ backgroundColor: "#0d5c75" }}
                   onClick={handleExecuteExport}
                 >
@@ -543,25 +722,33 @@ export default function ExportStudentModal({
         </div>
       )}
 
-      {/* SUCCESS OVERLAY DIALOG */}
+      {/* SUCCESS OVERLAY */}
       {showSuccess && (
         <div
           className="modal fade show d-block"
           tabIndex={-1}
           style={{
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
             backdropFilter: "blur(4px)",
             WebkitBackdropFilter: "blur(4px)",
-            zIndex: 1060,
+            zIndex: 10000,
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
           }}
         >
-          <div className="modal-dialog modal-dialog-centered px-3" style={{ maxWidth: "400px" }}>
-            <div className="modal-content border-0 shadow-lg rounded-4 text-center p-4">
+          <div
+            className="modal-dialog modal-dialog-centered px-3"
+            style={{ maxWidth: "380px" }}
+          >
+            <div className="modal-content border-0 shadow-lg rounded-4 text-center p-4 bg-white">
               <div
                 className="mx-auto mb-3 text-success bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
-                style={{ width: "56px", height: "56px" }}
+                style={{ width: "52px", height: "52px" }}
               >
-                <CheckCircle2 size={32} />
+                <CheckCircle2 size={30} />
               </div>
               <h5 className="fw-bold text-dark mb-1">File Generated!</h5>
               <p className="text-secondary small mb-0">

@@ -5,9 +5,18 @@ type Props = {
   onChange: (value: number) => void;
   min?: number;
   helpText?: string;
+  disabled?: boolean;
 };
 
-export default function NumberField({ id, label, value, onChange, min, helpText }: Props) {
+export default function NumberField({
+  id,
+  label,
+  value,
+  onChange,
+  min,
+  helpText,
+  disabled,
+}: Props) {
   return (
     <div className="mb-2">
       <label htmlFor={id} className="form-label rs-label">
@@ -19,7 +28,10 @@ export default function NumberField({ id, label, value, onChange, min, helpText 
         className="form-control rs-form-control"
         value={Number.isFinite(value) ? value : 0}
         min={min}
-        onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+        disabled={disabled}
+        onChange={(e) =>
+          onChange(e.target.value === "" ? 0 : Number(e.target.value))
+        }
       />
       {helpText ? <div className="rs-help mt-2">{helpText}</div> : null}
     </div>
