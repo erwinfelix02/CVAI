@@ -30,6 +30,7 @@ interface Student {
   midterm: number;
   project: number;
   finals: number;
+  avatarUrl?: string; // 👈 Added avatarUrl support
 }
 
 interface Material {
@@ -112,6 +113,9 @@ export default function ClassDetailModal({
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [studentsError, setStudentsError] = useState<string | null>(null);
 
+  // Track image load errors per student ID
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
   const [courseMaterials, setCourseMaterials] = useState<Material[]>([]);
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(false);
   const [materialsError, setMaterialsError] = useState<string | null>(null);
@@ -157,6 +161,20 @@ export default function ClassDetailModal({
       .slice(0, 2)
       .map((n) => n[0]?.toUpperCase())
       .join("") || "ST";
+
+  // Helper to format proper backend image source URL
+  const getFullAvatarUrl = (url?: string): string => {
+    if (!url) return "";
+    if (
+      url.startsWith("data:") ||
+      url.startsWith("blob:") ||
+      url.startsWith("http://") ||
+      url.startsWith("https://")
+    ) {
+      return url;
+    }
+    return `http://localhost:5000${url.startsWith("/") ? "" : "/"}${url}`;
+  };
 
   const fetchClassStudents = useCallback(async () => {
     setIsLoadingStudents(true);
@@ -280,6 +298,7 @@ export default function ClassDetailModal({
             midterm: s.midterm ?? 85,
             project: s.project ?? 90,
             finals: s.finals ?? 87,
+            avatarUrl: s.avatarUrl || s.photo || s.image, // 👈 Map backend avatar property
           };
         }
       );
@@ -904,94 +923,118 @@ export default function ClassDetailModal({
                     <>
                       <div className="d-flex flex-column gap-2 max-h-350 overflow-y-auto pe-1">
                         {filteredStudents.length > 0 ? (
-                          filteredStudents.map((s) => (
-                            <div
-                              key={s.id}
-                              className="p-3 bg-white rounded-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3"
-                              style={{ border: "1px solid #F1F5F9" }}
-                            >
-                              <div className="d-flex align-items-center gap-3">
-                                <div
-                                  className="rounded-circle fw-semibold d-flex align-items-center justify-content-center flex-shrink-0"
-                                  style={{
-                                    width: "42px",
-                                    height: "42px",
-                                    fontSize: "0.85rem",
-                                    backgroundColor: "#F1F5F9",
-                                    color: "#334155",
-                                  }}
-                                >
-                                  {getInitials(s.name)}
-                                </div>
-                                <div>
-                                  <div
-                                    className="fw-semibold mb-0"
-                                    style={{ color: "#1E293B" }}
-                                  >
-                                    {s.name}
-                                  </div>
-                                  <div
-                                    className="small"
-                                    style={{ color: "#64748B" }}
-                                  >
-                                    {s.studentId} &bull; {s.yearLevel}
-                                  </div>
-                                </div>
-                              </div>
+                          filteredStudents.map((s) => {
+                            const resolvedAvatarUrl = getFullAvatarUrl(s.avatarUrl);
+                            const showAvatar = Boolean(resolvedAvatarUrl) && !imageErrors[s.id];
 
-                              <div className="d-flex align-items-center justify-content-between justify-content-sm-end gap-3 minw-180">
-                                <div className="text-sm-end">
+                            return (
+                              <div
+                                key={s.id}
+                                className="p-3 bg-white rounded-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3"
+                                style={{ border: "1px solid #F1F5F9" }}
+                              >
+                                <div className="d-flex align-items-center gap-3">
                                   <div
-                                    className="small mb-1"
-                                    style={{ color: "#64748B" }}
-                                  >
-                                    Attendance {s.attendance}%
-                                  </div>
-                                  <div
-                                    className="progress"
+                                    className="rounded-circle fw-semibold d-flex align-items-center justify-content-center flex-shrink-0 overflow-hidden border"
                                     style={{
-                                      height: "5px",
-                                      width: "100px",
-                                      backgroundColor: "#E2E8F0",
+                                      width: "42px",
+                                      height: "42px",
+                                      minWidth: "42px",
+                                      minHeight: "42px",
+                                      fontSize: "0.85rem",
+                                      backgroundColor: "#F1F5F9",
+                                      color: "#334155",
                                     }}
                                   >
+                                    {showAvatar ? (
+                                      <img
+                                        src={resolvedAvatarUrl}
+                                        alt={s.name}
+                                        style={{
+                                          width: "100%",
+                                          height: "100%",
+                                          objectFit: "cover",
+                                          display: "block",
+                                          borderRadius: "50%",
+                                        }}
+                                        onError={() => {
+                                          setImageErrors((prev) => ({ ...prev, [s.id]: true }));
+                                        }}
+                                      />
+                                    ) : (
+                                      getInitials(s.name)
+                                    )}
+                                  </div>
+                                  <div>
                                     <div
-                                      className="progress-bar"
-                                      style={{
-                                        width: `${s.attendance}%`,
-                                        backgroundColor:
-                                          s.attendance < 80
-                                            ? "#DC3545"
-                                            : "#0D3B52",
-                                      }}
-                                    />
+                                      className="fw-semibold mb-0"
+                                      style={{ color: "#1E293B" }}
+                                    >
+                                      {s.name}
+                                    </div>
+                                    <div
+                                      className="small"
+                                      style={{ color: "#64748B" }}
+                                    >
+                                      {s.studentId} &bull; {s.yearLevel}
+                                    </div>
                                   </div>
                                 </div>
 
-                                {s.status === "At Risk" ? (
-                                  <span
-                                    className="badge rounded-pill px-3 py-2 fw-medium border-0"
-                                    style={{
-                                      backgroundColor: "#DC3545",
-                                      color: "#FFFFFF",
-                                    }}
-                                  >
-                                    At Risk
-                                  </span>
-                                ) : (
-                                  <span
-                                    className="badge rounded-pill px-3 py-2 fw-medium border-0"
-                                    style={{
-                                      backgroundColor: "#E9EEF5",
-                                      color: "#0D3B52",
-                                    }}
-                                  >
-                                    Enrolled
-                                  </span>
-                                )}
+                                <div className="d-flex align-items-center justify-content-between justify-content-sm-end gap-3 minw-180">
+                                  <div className="text-sm-end">
+                                    <div
+                                      className="small mb-1"
+                                      style={{ color: "#64748B" }}
+                                    >
+                                      Attendance {s.attendance}%
+                                    </div>
+                                    <div
+                                      className="progress"
+                                      style={{
+                                        height: "5px",
+                                        width: "100px",
+                                        backgroundColor: "#E2E8F0",
+                                      }}
+                                    >
+                                      <div
+                                        className="progress-bar"
+                                        style={{
+                                          width: `${s.attendance}%`,
+                                          backgroundColor:
+                                            s.attendance < 80
+                                              ? "#DC3545"
+                                              : "#0D3B52",
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {s.status === "At Risk" ? (
+                                    <span
+                                      className="badge rounded-pill px-3 py-2 fw-medium border-0"
+                                      style={{
+                                        backgroundColor: "#DC3545",
+                                        color: "#FFFFFF",
+                                      }}
+                                    >
+                                      At Risk
+                                    </span>
+                                  ) : (
+                                    <span
+                                      className="badge rounded-pill px-3 py-2 fw-medium border-0"
+                                      style={{
+                                        backgroundColor: "#E9EEF5",
+                                        color: "#0D3B52",
+                                      }}
+                                    >
+                                      Enrolled
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ))
+                            );
+                          })
                         ) : (
                           <div
                             className="text-center py-4"

@@ -1,4 +1,4 @@
-import { CalendarDays, Users, Pencil, Trash2 } from "lucide-react";
+import { CalendarDays, Users, Pencil, Trash2, Pin } from "lucide-react";
 import type { Announcement } from "./types";
 
 const toneClass: Record<Announcement["priority"], string> = {
@@ -13,17 +13,14 @@ const formatReadableDate = (dateStr: string): string => {
 
   let year: number, month: number, day: number;
 
-  // Handles "M/D/YYYY" or "MM/DD/YYYY" (e.g., "9/11/2026")
   if (dateStr.includes("/")) {
     const parts = dateStr.split("/").map((p) => parseInt(p, 10));
     if (parts.length === 3 && !parts.some(isNaN)) {
-      month = parts[0] - 1; // Month is 0-indexed in JS
+      month = parts[0] - 1;
       day = parts[1];
       year = parts[2];
     }
-  }
-  // Handles "YYYY-MM-DD" (e.g., "2026-09-11")
-  else if (dateStr.includes("-")) {
+  } else if (dateStr.includes("-")) {
     const cleanDate = dateStr.split("T")[0];
     const parts = cleanDate.split("-").map((p) => parseInt(p, 10));
     if (parts.length === 3 && !parts.some(isNaN)) {
@@ -33,7 +30,6 @@ const formatReadableDate = (dateStr: string): string => {
     }
   }
 
-  // Construct date using explicit local Year, Month, Day to avoid timezone shifts
   if (year! && month! !== undefined && day!) {
     const localDate = new Date(year, month, day);
     if (!isNaN(localDate.getTime())) {
@@ -46,7 +42,6 @@ const formatReadableDate = (dateStr: string): string => {
     }
   }
 
-  // Fallback native parse attempt
   const parsed = new Date(dateStr);
   if (!isNaN(parsed.getTime())) {
     return parsed.toLocaleDateString("en-US", {
@@ -64,10 +59,12 @@ export default function AnnouncementCard({
   item,
   onEdit,
   onDelete,
+  onTogglePin,
 }: {
   item: Announcement;
   onEdit?: (a: Announcement) => void;
   onDelete?: (a: Announcement) => void;
+  onTogglePin?: (id: string) => void;
 }) {
   const readableDate = formatReadableDate(item.date);
   const formattedRecipients =
@@ -77,7 +74,9 @@ export default function AnnouncementCard({
 
   return (
     <div
-      className={`card shadow-sm announcement-card ${toneClass[item.priority]}`}
+      className={`card shadow-sm announcement-card ${toneClass[item.priority]} ${
+        item.pinned ? "border-primary border-2 bg-light-subtle" : ""
+      }`}
     >
       <div className="card-body p-3 p-md-4">
         {/* Top row: chips + actions */}
@@ -87,9 +86,33 @@ export default function AnnouncementCard({
             <span className={`chip chip-priority ${item.priority}`}>
               {item.priority}
             </span>
+            {item.pinned && (
+              <span className="badge bg-primary d-inline-flex align-items-center gap-1">
+                <Pin size={12} /> Pinned
+              </span>
+            )}
           </div>
 
           <div className="d-flex align-items-center gap-2 announcement-actions">
+            {onTogglePin && (
+              <button
+                type="button"
+                className={`icon-btn ${item.pinned ? "text-primary" : ""}`}
+                onClick={() => onTogglePin(item.id)}
+                title={item.pinned ? "Unpin announcement" : "Pin announcement"}
+                aria-label={item.pinned ? "Unpin announcement" : "Pin announcement"}
+              >
+                <Pin
+                  size={18}
+                  style={{
+                    transform: item.pinned ? "rotate(-45deg)" : "none",
+                    fill: item.pinned ? "currentColor" : "none",
+                    transition: "transform 0.2s ease",
+                  }}
+                />
+              </button>
+            )}
+
             <button
               type="button"
               className="icon-btn"

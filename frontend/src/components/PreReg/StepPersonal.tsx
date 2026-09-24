@@ -361,6 +361,13 @@ export default function StepPersonal({
         if (!isValidName(val)) return "Invalid characters.";
         break;
 
+      case "middleName":
+        // Optional field: only validate name format if a value exists
+        if (val.trim() && !isValidName(val)) {
+          return "Invalid characters.";
+        }
+        break;
+
       case "lastName":
         if (!val.trim()) return "Last name is required.";
         if (val.length < 2) return "Minimum 2 characters.";
@@ -423,7 +430,6 @@ export default function StepPersonal({
         k === "provinceCode" ||
         k === "municipalityCode" ||
         k === "barangayCode" ||
-        k === "middleName" ||
         k === "isEmailVerified"
       ) {
         return;
@@ -1096,7 +1102,7 @@ export default function StepPersonal({
 
         {/* MIDDLE NAME */}
         <div className="col-12 col-md-4">
-          <label className="form-label d-flex align-items-center gap-2">
+          <label className={labelClass("middleName")}>
             <LabelIcon>
               <User size={14} />
             </LabelIcon>
@@ -1104,13 +1110,16 @@ export default function StepPersonal({
           </label>
 
           <input
-            className="form-control"
+            className={inputClass("middleName")}
             value={value.middleName || ""}
             placeholder="Optional"
             onChange={(e) => set("middleName", e.target.value)}
+            onBlur={() => onBlurField("middleName")}
           />
 
-          <div className="invalid-feedback d-block">&nbsp;</div>
+          <div className="invalid-feedback d-block">
+            {invalid("middleName") ? getError("middleName") : "\u00A0"}
+          </div>
         </div>
 
         {/* LAST NAME */}
@@ -1531,7 +1540,7 @@ export default function StepPersonal({
       </div>
 
       {/* =========================================================
-         BLURRED BACKDROP POP-UP VERIFICATION MODAL
+          BLURRED BACKDROP POP-UP VERIFICATION MODAL
       ========================================================== */}
       {showVerifyModal && (
         <div

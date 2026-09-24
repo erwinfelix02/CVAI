@@ -6,12 +6,14 @@ interface AnnouncementListProps {
   items: Announcement[];
   onEdit?: (a: Announcement) => void;
   onDelete?: (a: Announcement) => void;
+  onTogglePin?: (id: string) => void;
 }
 
 export default function AnnouncementList({
   items,
   onEdit,
   onDelete,
+  onTogglePin,
 }: AnnouncementListProps) {
   if (!items || items.length === 0) {
     return (
@@ -40,6 +42,7 @@ export default function AnnouncementList({
           item={a}
           onEdit={onEdit}
           onDelete={onDelete}
+          onTogglePin={onTogglePin}
         />
       ))}
     </div>

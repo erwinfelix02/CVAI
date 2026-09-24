@@ -1,11 +1,23 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Plus, Trash2, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Loader2, AlertCircle, Pin, Inbox } from "lucide-react";
 import AnnouncementStats from "../../components/Faculty/Announcements/AnnouncementStats";
 import AnnouncementList from "../../components/Faculty/Announcements/AnnouncementList";
 import AnnouncementModal from "../../components/Faculty/Announcements/AnnouncementModal";
 import type { Announcement } from "../../components/Faculty/Announcements/types";
 
 import "../../styles/faculty-announcements.css";
+
+const FACULTY_PINNED_STORAGE_KEY = "faculty_pinned_announcements";
+
+function getStoredPinnedIds(): string[] {
+  try {
+    const saved = localStorage.getItem(FACULTY_PINNED_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch (err) {
+    console.error("Error reading faculty pinned IDs:", err);
+    return [];
+  }
+}
 
 export default function FacultyAnnouncementsPage() {
   const [items, setItems] = useState<Announcement[]>([]);
@@ -38,7 +50,6 @@ export default function FacultyAnnouncementsPage() {
 
       const queryParams = new URLSearchParams();
 
-      // Send only facultyId so the backend hits the faculty management route branch
       if (facultyId) {
         queryParams.append("facultyId", facultyId);
       } else if (department) {
@@ -56,7 +67,18 @@ export default function FacultyAnnouncementsPage() {
       }
 
       const data = await res.json();
-      setItems(Array.isArray(data) ? data : []);
+      const storedPinnedIds = getStoredPinnedIds();
+
+      const mappedData: Announcement[] = (Array.isArray(data) ? data : []).map((item: any) => {
+        const id = item.id || item._id;
+        return {
+          ...item,
+          id,
+          pinned: storedPinnedIds.includes(id) || Boolean(item.pinned),
+        };
+      });
+
+      setItems(mappedData);
     } catch (err: any) {
       console.error("fetchAnnouncements error:", err);
       setError(err.message || "Failed to fetch announcements.");
@@ -68,6 +90,19 @@ export default function FacultyAnnouncementsPage() {
   useEffect(() => {
     fetchAnnouncements();
   }, [fetchAnnouncements]);
+
+  const handleTogglePin = (id: string) => {
+    setItems((prev) => {
+      const updated = prev.map((item) =>
+        item.id === id ? { ...item, pinned: !item.pinned } : item
+      );
+
+      const pinnedIds = updated.filter((item) => item.pinned).map((item) => item.id);
+      localStorage.setItem(FACULTY_PINNED_STORAGE_KEY, JSON.stringify(pinnedIds));
+
+      return updated;
+    });
+  };
 
   const handleOpenCreateModal = () => {
     setEditingAnnouncement(null);
@@ -114,6 +149,9 @@ export default function FacultyAnnouncementsPage() {
     await fetchAnnouncements();
   };
 
+  const pinnedItems = items.filter((a) => a.pinned);
+  const unpinnedItems = items.filter((a) => !a.pinned);
+
   return (
     <div className="container-fluid py-3 py-md-4 faculty-announcements-page">
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
@@ -149,11 +187,54 @@ export default function FacultyAnnouncementsPage() {
           <div>{error}</div>
         </div>
       ) : (
-        <AnnouncementList
-          items={items}
-          onEdit={handleEditTrigger}
-          onDelete={handleDeleteTrigger}
-        />
+        <div className="mt-4">
+          {/* Pinned Section */}
+          {pinnedItems.length > 0 && (
+            <div className="mb-4">
+              <div className="d-flex align-items-center gap-2 mb-3">
+                <Pin size={20} className="text-primary" />
+                <h5 className="fw-bold mb-0">Pinned Announcements</h5>
+              </div>
+              <AnnouncementList
+                items={pinnedItems}
+                onEdit={handleEditTrigger}
+                onDelete={handleDeleteTrigger}
+                onTogglePin={handleTogglePin}
+              />
+            </div>
+          )}
+
+          {/* All / Unpinned Section */}
+          <div>
+            <h5 className="fw-bold mb-3">
+              {pinnedItems.length > 0 ? "All Announcements" : "Recent Announcements"}
+            </h5>
+            {unpinnedItems.length > 0 ? (
+              <AnnouncementList
+                items={unpinnedItems}
+                onEdit={handleEditTrigger}
+                onDelete={handleDeleteTrigger}
+                onTogglePin={handleTogglePin}
+              />
+            ) : items.length > 0 ? (
+              <div className="card text-center p-4 border-dashed bg-light my-2">
+                <div className="card-body d-flex flex-column align-items-center">
+                  <Inbox size={40} className="text-muted mb-2" />
+                  <p className="fw-semibold text-secondary mb-1">
+                    All announcements are currently pinned above.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <AnnouncementList
+                items={[]}
+                onEdit={handleEditTrigger}
+                onDelete={handleDeleteTrigger}
+                onTogglePin={handleTogglePin}
+              />
+            )}
+          </div>
+        </div>
       )}
 
       <AnnouncementModal

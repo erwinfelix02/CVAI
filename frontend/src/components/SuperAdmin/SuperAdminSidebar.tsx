@@ -1,5 +1,7 @@
+// ✅ src/components/SuperAdmin/SuperAdminSidebar.tsx
+
 import "../../styles/superadmin-sidebar.css";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -12,8 +14,8 @@ import {
   ChevronRight,
   X,
   Crown,
+  HelpCircle,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 interface SidebarProps {
@@ -28,6 +30,7 @@ const nav = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/superadmin" },
   { label: "Portal Users", icon: Users, path: "/superadmin/users" },
   { label: "Role Management", icon: Shield, path: "/superadmin/roles" },
+  { label: "Concerns", icon: HelpCircle, path: "/superadmin/concerns" }, // 👈 Added Concerns link here
   {
     label: "AI Knowledge",
     icon: Brain,

@@ -9,4 +9,5 @@ export type StudentRow = {
   section: string;
   year: number;
   status: StudentStatus;
+  avatarUrl?: string; 
 };

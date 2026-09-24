@@ -58,6 +58,7 @@ export default function AddSubjectModal({
 }: AddSubjectModalProps) {
   const [formData, setFormData] = useState<NewSubjectFormData>(DEFAULT_FORM_DATA);
   const [initialSnapshot, setInitialSnapshot] = useState<NewSubjectFormData>(DEFAULT_FORM_DATA);
+  const [validationError, setValidationError] = useState<string>("");
 
   // Centered confirmation overlays
   const [confirmExitOpen, setConfirmExitOpen] = useState(false);
@@ -77,7 +78,7 @@ export default function AddSubjectModal({
         ? {
             code: initialData.code || "",
             name: initialData.name || "",
-            units: initialData.units || 3,
+            units: initialData.units ? Math.min(Math.max(initialData.units, 1), 4) : 3,
             program: initialData.program || "",
             year: initialData.year || "",
             semester: initialData.semester || "1st Sem",
@@ -86,6 +87,7 @@ export default function AddSubjectModal({
 
       setFormData(initialValues);
       setInitialSnapshot(initialValues);
+      setValidationError("");
       setConfirmExitOpen(false);
       setConfirmSaveOpen(false);
     }
@@ -126,12 +128,41 @@ export default function AddSubjectModal({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    setValidationError("");
 
-    setFormData((prev) => {
-      if (name === "program") {
-        const course = programs.find((p) => p.code === value);
-        const limit = course ? course.yearLevels : 4;
+    // Subject Code input restriction (Uppercase, max 15 chars, alphanumeric + spaces/hyphens)
+    if (name === "code") {
+      const formattedCode = value.toUpperCase();
+      if (formattedCode !== "" && !/^[A-Z0-9\s-]*$/.test(formattedCode)) {
+        return; // Reject invalid characters
+      }
+      setFormData((prev) => ({ ...prev, code: formattedCode }));
+      return;
+    }
 
+    // Subject Name input restriction (Letters, spaces, hyphens only - NO NUMBERS, max 100 chars)
+    if (name === "name") {
+      if (value !== "" && !/^[A-Za-z\s-]*$/.test(value)) {
+        return; // Reject numbers & special characters
+      }
+      setFormData((prev) => ({ ...prev, name: value }));
+      return;
+    }
+
+    // Units input restriction (Clamped between 1 and 4)
+    if (name === "units") {
+      let numVal = Number(value);
+      if (numVal > 4) numVal = 4;
+      if (numVal < 1 && value !== "") numVal = 1;
+      setFormData((prev) => ({ ...prev, units: numVal }));
+      return;
+    }
+
+    if (name === "program") {
+      const course = programs.find((p) => p.code === value);
+      const limit = course ? course.yearLevels : 4;
+
+      setFormData((prev) => {
         const currentYearNum = parseInt(prev.year, 10);
         const isYearExceeded = !isNaN(currentYearNum) && currentYearNum > limit;
 
@@ -140,13 +171,14 @@ export default function AddSubjectModal({
           program: value,
           year: isYearExceeded ? "" : prev.year,
         };
-      }
+      });
+      return;
+    }
 
-      return {
-        ...prev,
-        [name]: name === "units" ? Number(value) || 0 : value,
-      };
-    });
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   /* =========================================================
@@ -154,10 +186,29 @@ export default function AddSubjectModal({
      ========================================================= */
   const handleSubmitAttempt = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.code || !formData.name || !formData.program || !formData.year) {
-      alert("Please fill in all required fields.");
+
+    if (!formData.code.trim()) {
+      setValidationError("Subject code is required.");
       return;
     }
+    if (!formData.name.trim()) {
+      setValidationError("Subject name is required (letters only).");
+      return;
+    }
+    if (formData.units < 1 || formData.units > 4) {
+      setValidationError("Units must be between 1 and 4.");
+      return;
+    }
+    if (!formData.program) {
+      setValidationError("Please select a program.");
+      return;
+    }
+    if (!formData.year) {
+      setValidationError("Please select a year level.");
+      return;
+    }
+
+    setValidationError("");
     setConfirmSaveOpen(true);
   };
 
@@ -193,10 +244,20 @@ export default function AddSubjectModal({
           {/* Form Body */}
           <form onSubmit={handleSubmitAttempt}>
             <div className="add-subject-modal-body">
+              {/* Validation Warning Alert */}
+              {validationError && (
+                <div className="alert alert-danger d-flex align-items-center gap-2 py-2 px-3 mb-3 small rounded-3 border-0">
+                  <AlertCircle size={16} className="flex-shrink-0" />
+                  <span>{validationError}</span>
+                </div>
+              )}
+
               {/* Row 1: Code & Units */}
               <div className="add-subject-row">
                 <div className="add-subject-field flex-3">
-                  <label htmlFor="code">Subject Code</label>
+                  <label htmlFor="code">
+                    Subject Code <span className="text-muted fw-normal fs-xs">(Max 15 chars)</span>
+                  </label>
                   <input
                     type="text"
                     id="code"
@@ -204,13 +265,16 @@ export default function AddSubjectModal({
                     value={formData.code}
                     onChange={handleChange}
                     placeholder="e.g. CSPC 210"
+                    maxLength={15}
                     required
                     disabled={isSubmitting}
                   />
                 </div>
 
                 <div className="add-subject-field flex-2">
-                  <label htmlFor="units">Units</label>
+                  <label htmlFor="units">
+                    Units <span className="text-muted fw-normal fs-xs">(Max 4)</span>
+                  </label>
                   <input
                     type="number"
                     id="units"
@@ -218,7 +282,7 @@ export default function AddSubjectModal({
                     value={formData.units}
                     onChange={handleChange}
                     min={1}
-                    max={10}
+                    max={4}
                     required
                     disabled={isSubmitting}
                   />
@@ -227,7 +291,9 @@ export default function AddSubjectModal({
 
               {/* Row 2: Subject Name */}
               <div className="add-subject-field">
-                <label htmlFor="name">Subject Name</label>
+                <label htmlFor="name">
+                  Subject Name <span className="text-muted fw-normal fs-xs">(Letters only, Max 100 chars)</span>
+                </label>
                 <input
                   type="text"
                   id="name"
@@ -235,6 +301,7 @@ export default function AddSubjectModal({
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="e.g. Operating Systems"
+                  maxLength={100}
                   required
                   disabled={isSubmitting}
                 />

@@ -16,4 +16,5 @@ export type Announcement = {
   facultyId?: string;
   author?: string;
   department?: string;
+  pinned?: boolean;       // <-- Added pinned property
 };

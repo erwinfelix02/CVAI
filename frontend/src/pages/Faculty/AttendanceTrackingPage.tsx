@@ -16,6 +16,7 @@ export type StudentItem = {
   name: string;
   studentNo: string;
   status: AttendanceStatus;
+  avatarUrl?: string; // 👈 Added avatarUrl support to fix TypeScript error and pass images
 };
 
 export type AttendanceRecord = {
@@ -57,7 +58,9 @@ export default function AttendanceTrackingPage() {
   const [date, setDate] = useState<string>(todayStr);
   const [query, setQuery] = useState<string>("");
   const [database, setDatabase] = useState<AttendanceRecord[]>([]);
-  const [courseRosters, setCourseRosters] = useState<Record<string, StudentItem[]>>({});
+  const [courseRosters, setCourseRosters] = useState<
+    Record<string, StudentItem[]>
+  >({});
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
@@ -91,31 +94,43 @@ export default function AttendanceTrackingPage() {
         if (userDepartment) queryParams.append("department", userDepartment);
         if (facultyName) queryParams.append("faculty", facultyName);
 
-        const response = await fetch(`/api/schedules?${queryParams.toString()}`, {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        const response = await fetch(
+          `/api/schedules?${queryParams.toString()}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
           },
-        });
+        );
 
         if (response.ok) {
           const rawSchedules = await response.json();
-          const courseMap = new Map<string, { label: string; section?: string }>();
+          const courseMap = new Map<
+            string,
+            { label: string; section?: string }
+          >();
 
-          (Array.isArray(rawSchedules) ? rawSchedules : []).forEach((sch: any) => {
-            if (sch.code && !courseMap.has(sch.code)) {
-              courseMap.set(sch.code, {
-                label: `${sch.code} - ${sch.title || "Assigned Course"} ${
-                  sch.section ? `(${sch.section})` : ""
-                }`.trim(),
-                section: sch.section,
-              });
-            }
-          });
-
-          const fetchedSubjects: SubjectOption[] = Array.from(courseMap.entries()).map(
-            ([value, meta]) => ({ value, label: meta.label, section: meta.section })
+          (Array.isArray(rawSchedules) ? rawSchedules : []).forEach(
+            (sch: any) => {
+              if (sch.code && !courseMap.has(sch.code)) {
+                courseMap.set(sch.code, {
+                  label: `${sch.code} - ${sch.title || "Assigned Course"} ${
+                    sch.section ? `(${sch.section})` : ""
+                  }`.trim(),
+                  section: sch.section,
+                });
+              }
+            },
           );
+
+          const fetchedSubjects: SubjectOption[] = Array.from(
+            courseMap.entries(),
+          ).map(([value, meta]) => ({
+            value,
+            label: meta.label,
+            section: meta.section,
+          }));
 
           if (fetchedSubjects.length > 0) {
             setSubjects(fetchedSubjects);
@@ -152,18 +167,21 @@ export default function AttendanceTrackingPage() {
       });
       if (facultyId) queryParams.append("facultyId", facultyId);
 
-      const response = await fetch(`/api/attendance?${queryParams.toString()}`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      const response = await fetch(
+        `/api/attendance?${queryParams.toString()}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
         },
-      });
+      );
 
       if (response.ok) {
         const records: AttendanceRecord[] = await response.json();
         setDatabase((prev) => {
           const filtered = prev.filter(
-            (r) => !(r.subject === subject && r.date === date)
+            (r) => !(r.subject === subject && r.date === date),
           );
 
           if (records.length > 0) {
@@ -179,6 +197,7 @@ export default function AttendanceTrackingPage() {
                   name: s.name,
                   studentNo: s.studentNo,
                   status: s.status,
+                  avatarUrl: s.avatarUrl || s.photo || s.image, // 👈 Map database avatar property
                 })),
               },
             ];
@@ -211,47 +230,79 @@ export default function AttendanceTrackingPage() {
         if (facultyId) queryParams.append("facultyId", facultyId);
         if (facultyName) queryParams.append("facultyName", facultyName);
 
-        const response = await fetch(`/api/students?${queryParams.toString()}`, {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        const response = await fetch(
+          `/api/students?${queryParams.toString()}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
           },
-        });
+        );
 
         if (response.ok) {
           const data = await response.json();
-          const loadedStudents: any[] = Array.isArray(data) ? data : data.students || [];
+          const loadedStudents: any[] = Array.isArray(data)
+            ? data
+            : data.students || [];
 
           const targetClean = cleanStr(targetSubject);
           const targetSectionClean = cleanStr(selectedObj?.section);
 
           const matchedStudents = loadedStudents.filter((s: any) => {
-            const studentSection = cleanStr(s.section || s.classSection || s.sectionName);
-            const studentCourse = cleanStr(s.subject || s.course || s.courseCode || s.assignedSubject);
+            const studentSection = cleanStr(
+              s.section || s.classSection || s.sectionName,
+            );
+            const studentCourse = cleanStr(
+              s.subject || s.course || s.courseCode || s.assignedSubject,
+            );
 
-            const courseList = Array.isArray(s.enrolledSubjects || s.courses || s.subjects || s.enrolledClasses)
-              ? (s.enrolledSubjects || s.courses || s.subjects || s.enrolledClasses).map(cleanStr)
+            const courseList = Array.isArray(
+              s.enrolledSubjects ||
+                s.courses ||
+                s.subjects ||
+                s.enrolledClasses,
+            )
+              ? (
+                  s.enrolledSubjects ||
+                  s.courses ||
+                  s.subjects ||
+                  s.enrolledClasses
+                ).map(cleanStr)
               : [];
 
             const isDirectCourseMatch =
               studentCourse.includes(targetClean) ||
               targetClean.includes(studentCourse) ||
-              courseList.some((c: string) => c.includes(targetClean) || targetClean.includes(c));
+              courseList.some(
+                (c: string) =>
+                  c.includes(targetClean) || targetClean.includes(c),
+              );
 
-            const isSectionMatch = targetSectionClean ? studentSection === targetSectionClean : false;
+            const isSectionMatch = targetSectionClean
+              ? studentSection === targetSectionClean
+              : false;
 
-            return isDirectCourseMatch || isSectionMatch || courseList.length === 0;
+            return (
+              isDirectCourseMatch || isSectionMatch || courseList.length === 0
+            );
           });
 
-          const formattedRoster: StudentItem[] = matchedStudents.map((s: any, idx: number) => ({
-            id: s._id || s.id || `stu-${idx}`,
-            name:
-              s.fullName ||
-              s.name ||
-              (s.firstName ? `${s.firstName} ${s.lastName || ""}` : "Unknown Student"),
-            studentNo: s.studentIdNumber || s.studentId || s.id || `STU-${idx + 1}`,
-            status: "pending",
-          }));
+          const formattedRoster: StudentItem[] = matchedStudents.map(
+            (s: any, idx: number) => ({
+              id: s._id || s.id || `stu-${idx}`,
+              name:
+                s.fullName ||
+                s.name ||
+                (s.firstName
+                  ? `${s.firstName} ${s.lastName || ""}`
+                  : "Unknown Student"),
+              studentNo:
+                s.studentIdNumber || s.studentId || s.id || `STU-${idx + 1}`,
+              status: "pending",
+              avatarUrl: s.avatarUrl || s.photo || s.image, // 👈 Map roster avatar property
+            }),
+          );
 
           setCourseRosters((prev) => ({
             ...prev,
@@ -264,7 +315,7 @@ export default function AttendanceTrackingPage() {
         setIsLoadingRoster(false);
       }
     },
-    [facultyId, facultyName, subjects]
+    [facultyId, facultyName, subjects],
   );
 
   useEffect(() => {
@@ -275,28 +326,54 @@ export default function AttendanceTrackingPage() {
 
   const activeRecord = useMemo(() => {
     if (!subject || !date) return null;
-    return database.find((rec) => rec.subject === subject && rec.date === date) ?? null;
+    return (
+      database.find((rec) => rec.subject === subject && rec.date === date) ??
+      null
+    );
   }, [database, subject, date]);
 
-  const isRecorded = useMemo(() => activeRecord?.isRecorded ?? false, [activeRecord]);
+  const isRecorded = useMemo(
+    () => activeRecord?.isRecorded ?? false,
+    [activeRecord],
+  );
 
-  const currentStudents = useMemo(() => activeRecord?.students || [], [activeRecord]);
+  // Fallback map to ensure avatarUrl shows even if old database records lack it
+  const currentStudents = useMemo(() => {
+    const dbStudents = activeRecord?.students || [];
+    const rosterMap = new Map(
+      (courseRosters[subject] || []).map((r) => [r.id, r.avatarUrl])
+    );
 
-  const baseRosterCount = useMemo(() => (courseRosters[subject] || []).length, [courseRosters, subject]);
+    return dbStudents.map((s) => ({
+      ...s,
+      avatarUrl: s.avatarUrl || rosterMap.get(s.id),
+    }));
+  }, [activeRecord, courseRosters, subject]);
+
+  const baseRosterCount = useMemo(
+    () => (courseRosters[subject] || []).length,
+    [courseRosters, subject],
+  );
 
   const filteredStudents = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return currentStudents;
     return currentStudents.filter(
-      (s) => s.name.toLowerCase().includes(q) || s.studentNo.toLowerCase().includes(q)
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.studentNo.toLowerCase().includes(q),
     );
   }, [currentStudents, query]);
 
   const stats = useMemo(() => {
     const total = currentStudents.length;
-    const present = currentStudents.filter((s) => s.status === "present").length;
+    const present = currentStudents.filter(
+      (s) => s.status === "present",
+    ).length;
     const absent = currentStudents.filter((s) => s.status === "absent").length;
-    const pending = currentStudents.filter((s) => s.status === "pending" || s.status === "late").length;
+    const pending = currentStudents.filter(
+      (s) => s.status === "pending" || s.status === "late",
+    ).length;
     const percent = total ? Math.round((present / total) * 100) : 0;
     return { total, present, absent, pending, percent };
   }, [currentStudents]);
@@ -305,7 +382,7 @@ export default function AttendanceTrackingPage() {
   async function handleSaveFromModal(
     newSubject: string,
     newDate: string,
-    updatedRecords: ModalStudent[]
+    updatedRecords: ModalStudent[],
   ) {
     setSubject(newSubject);
     setDate(newDate);
@@ -315,6 +392,7 @@ export default function AttendanceTrackingPage() {
       name: r.name,
       studentNo: r.studentNo,
       status: (r.status as AttendanceStatus) || "pending",
+      avatarUrl: r.avatarUrl, // 👈 Pass avatarUrl through when saving
     }));
 
     try {
@@ -339,6 +417,7 @@ export default function AttendanceTrackingPage() {
             name: s.name,
             studentNo: s.studentNo,
             status: s.status,
+            avatarUrl: s.avatarUrl, // 👈 Save avatarUrl to backend database
           })),
         }),
       });
@@ -353,7 +432,7 @@ export default function AttendanceTrackingPage() {
 
       setDatabase((prev) => {
         const existingIdx = prev.findIndex(
-          (r) => r.subject === newSubject && r.date === newDate
+          (r) => r.subject === newSubject && r.date === newDate,
         );
 
         const formattedRecord: AttendanceRecord = {
@@ -365,7 +444,9 @@ export default function AttendanceTrackingPage() {
         };
 
         if (existingIdx >= 0) {
-          return prev.map((rec, idx) => (idx === existingIdx ? formattedRecord : rec));
+          return prev.map((rec, idx) =>
+            idx === existingIdx ? formattedRecord : rec,
+          );
         } else {
           return [...prev, formattedRecord];
         }
@@ -416,9 +497,13 @@ export default function AttendanceTrackingPage() {
           {isLoadingRoster || isFetchingDB ? (
             <div className="text-center py-5 bg-white rounded-4 shadow-sm border my-3">
               <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading attendance session...</span>
+                <span className="visually-hidden">
+                  Loading attendance session...
+                </span>
               </div>
-              <p className="text-muted mt-2 mb-0">Fetching attendance records...</p>
+              <p className="text-muted mt-2 mb-0">
+                Fetching attendance records...
+              </p>
             </div>
           ) : baseRosterCount === 0 ? (
             <div className="card border-0 shadow-sm rounded-4 p-5 text-center my-3 bg-white">
@@ -431,10 +516,14 @@ export default function AttendanceTrackingPage() {
             </div>
           ) : !isRecorded ? (
             <div className="card border-0 shadow-sm rounded-4 p-5 text-center my-3 bg-white">
-              <CalendarX size={48} className="text-muted mx-auto mb-3 opacity-50" />
+              <CalendarX
+                size={48}
+                className="text-muted mx-auto mb-3 opacity-50"
+              />
               <h5 className="fw-bold text-dark mb-1">No Attendance Recorded</h5>
               <p className="text-muted mb-0">
-                No attendance session has been saved for <strong>{subject}</strong> on{" "}
+                No attendance session has been saved for{" "}
+                <strong>{subject}</strong> on{" "}
                 <strong>{formattedDateLabel}</strong>.
               </p>
             </div>
@@ -442,7 +531,9 @@ export default function AttendanceTrackingPage() {
             <AttendanceList
               subjectSelected={Boolean(subject)}
               dateSelected={Boolean(date)}
-              subjectLabel={subjects.find((s) => s.value === subject)?.label ?? subject}
+              subjectLabel={
+                subjects.find((s) => s.value === subject)?.label ?? subject
+              }
               dateLabel={formattedDateLabel}
               presentSummary={`${stats.present}/${stats.total} Present (${stats.percent}%)`}
               students={filteredStudents}

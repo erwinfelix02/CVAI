@@ -1,4 +1,5 @@
-import { Ban, CheckCircle2, Pencil, Trash2, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Ban, CheckCircle2, Pencil, Trash2, X, Loader2 } from "lucide-react";
 import type { UserItem } from "./types";
 
 type Props = {
@@ -9,12 +10,30 @@ type Props = {
   onToggle: () => void;
   onDelete: () => void;
 };
-const formatDateOnly = (dateString: string) =>
-  new Date(dateString).toLocaleDateString(undefined, {
+
+const formatDateOnly = (dateString: string) => {
+  if (!dateString) return "—";
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString(undefined, {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
+};
+
+const getFullAvatarUrl = (url?: string): string => {
+  if (!url) return "";
+  if (
+    url.startsWith("data:") ||
+    url.startsWith("blob:") ||
+    url.startsWith("http://") ||
+    url.startsWith("https://")
+  ) {
+    return url;
+  }
+  return `http://localhost:5000${url.startsWith("/") ? "" : "/"}${url}`;
+};
 
 export default function UserInfoCard({
   roleName,
@@ -24,6 +43,55 @@ export default function UserInfoCard({
   onToggle,
   onDelete,
 }: Props) {
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [isLoadingAvatar, setIsLoadingAvatar] = useState<boolean>(false);
+  const [imageError, setImageError] = useState<boolean>(false);
+
+  // Fetch student avatar from the student database when a student is selected
+  useEffect(() => {
+    if (!user) {
+      setAvatarUrl("");
+      return;
+    }
+
+    // Default to existing user avatar if present
+    setAvatarUrl(user.avatarUrl || "");
+    setImageError(false);
+
+    // If role is student or user has a student ID, fetch live from student endpoint
+    const targetIdentifier = user.userId || user.id;
+    if (roleName.toLowerCase() === "student" && targetIdentifier) {
+      const fetchStudentAvatar = async () => {
+        setIsLoadingAvatar(true);
+        try {
+          const token = localStorage.getItem("token");
+          const headers = {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          };
+
+          const res = await fetch(`/api/students/${targetIdentifier}`, { headers });
+          if (res.ok) {
+            const data = await res.json();
+            const student = data.student || data;
+            if (student?.avatarUrl) {
+              setAvatarUrl(student.avatarUrl);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch student avatar for card:", err);
+        } finally {
+          setIsLoadingAvatar(false);
+        }
+      };
+
+      fetchStudentAvatar();
+    }
+  }, [user, roleName]);
+
+  const resolvedAvatarUrl = getFullAvatarUrl(avatarUrl);
+  const showAvatar = Boolean(resolvedAvatarUrl) && !imageError;
+
   return (
     <div className="card shadow-sm border-0">
       {/* Header */}
@@ -58,17 +126,36 @@ export default function UserInfoCard({
             {/* Avatar + Name */}
             <div className="d-flex flex-column align-items-center text-center mb-3">
               <div
-                className="rounded-circle d-flex align-items-center justify-content-center mb-2 border"
+                className="rounded-circle overflow-hidden d-flex align-items-center justify-content-center mb-2 border shadow-sm position-relative"
                 style={{
                   width: 64,
                   height: 64,
-                  background: "rgba(13, 110, 253, 0.10)", // bootstrap primary tint
+                  minWidth: 64,
+                  minHeight: 64,
+                  background: "rgba(13, 110, 253, 0.10)",
                   color: "#0d6efd",
                   fontWeight: 800,
                   fontSize: 22,
                 }}
               >
-                {user.fullName.trim().slice(0, 1).toUpperCase()}
+                {isLoadingAvatar ? (
+                  <Loader2 size={24} className="spinner-border spinner-border-sm text-primary" />
+                ) : showAvatar ? (
+                  <img
+                    src={resolvedAvatarUrl}
+                    alt={user.fullName}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                      borderRadius: "50%",
+                    }}
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  user.fullName.trim().slice(0, 1).toUpperCase()
+                )}
               </div>
 
               <div className="fw-bold fs-6">{user.fullName}</div>
@@ -80,7 +167,7 @@ export default function UserInfoCard({
               <div className="row g-2">
                 <div className="col-6">
                   <div className="text-muted small">User ID</div>
-                  <div className="fw-semibold">{user.userId}</div>
+                  <div className="fw-semibold">{user.userId || "—"}</div>
                 </div>
 
                 <div className="col-6 text-end">
@@ -104,9 +191,8 @@ export default function UserInfoCard({
                 <div className="col-6 text-end">
                   <div className="text-muted small">Created</div>
                   <div className="fw-semibold">
-  {formatDateOnly(user.createdAt)}
-</div>
-
+                    {formatDateOnly(user.createdAt)}
+                  </div>
                 </div>
               </div>
             </div>

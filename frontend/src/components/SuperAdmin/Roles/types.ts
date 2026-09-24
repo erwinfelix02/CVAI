@@ -40,5 +40,6 @@ export type UserItem = {
 
   status: UserStatus;
   roleId: RoleCardItem["id"];
+  avatarUrl?: string;
   createdAt: string; // yyyy-mm-dd
 };

@@ -25,7 +25,6 @@ import {
   BookOpen,
   CalendarDays,
   DoorOpen,
-  ArrowRight,
   AlertTriangle,
   CheckCircle2,
   Loader2,
@@ -368,8 +367,6 @@ export default function DepartmentHeadDashboard() {
               <div className="col-12 col-xl-6">
                 <TeachingLoadsCard
                   title="Faculty Teaching Loads"
-                  actionLabel="View All"
-                  actionIcon={ArrowRight}
                   rows={teachingLoads}
                 />
               </div>
@@ -396,8 +393,6 @@ export default function DepartmentHeadDashboard() {
               <div className="col-12">
                 <RecentAssignmentsCard
                   title="Recent Schedule Assignments"
-                  actionLabel="Manage Schedules"
-                  actionIcon={ArrowRight}
                   rows={recentAssignments}
                 />
               </div>

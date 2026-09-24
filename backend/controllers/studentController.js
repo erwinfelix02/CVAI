@@ -117,6 +117,7 @@ const mapStudentRow = (s) => {
     name: fullName,
     email: s.email || "",
     phone: s.phone || "",
+    avatarUrl: s.avatarUrl || "",
     address: s.address || "N/A",
     course: s.program || "—",
     program: s.program || "—",
@@ -133,12 +134,39 @@ const mapStudentRow = (s) => {
   };
 };
 
+// backend/controllers/studentController.js
+
 export const getStudentRecords = async (req, res) => {
   try {
     const filter = buildStudentFilter(req.query);
 
-    const students = await Student.find(filter).sort({ createdAt: -1 });
-    const rows = students.map(mapStudentRow);
+    // 1. Fetch student documents from MongoDB
+    const students = await Student.find(filter).sort({ createdAt: -1 }).lean();
+
+    if (!students.length) {
+      return res.json([]);
+    }
+
+    // 2. Fetch avatarUrls from User collection as fallback
+    const studentEmails = students.map((s) => s.email).filter(Boolean);
+    const users = await User.find({ email: { $in: studentEmails } })
+      .select("email avatarUrl")
+      .lean();
+
+    const userAvatarMap = new Map(
+      users.map((u) => [String(u.email).toLowerCase(), u.avatarUrl])
+    );
+
+    // 3. Map rows and attach avatarUrl
+    const rows = students.map((s) => {
+      const row = mapStudentRow(s);
+      
+      // Fallback: If Student document doesn't have avatarUrl, use User's avatarUrl
+      const fallbackAvatar = userAvatarMap.get(String(s.email).toLowerCase());
+      row.avatarUrl = s.avatarUrl || fallbackAvatar || "";
+
+      return row;
+    });
 
     return res.json(rows);
   } catch (err) {
@@ -146,7 +174,6 @@ export const getStudentRecords = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
-
 export const exportStudentRecords = async (req, res) => {
   try {
     const filter = buildStudentFilter(req.query);
@@ -229,20 +256,39 @@ export const getStudentById = async (req, res) => {
       query.push({ _id: cleanId });
     }
 
-    // 2. Match studentIdNumber or email
+    // 2. Match studentIdNumber or email (case-insensitive)
     query.push({ studentIdNumber: cleanId });
-    query.push({ email: cleanId.toLowerCase() });
+    query.push({ email: { $regex: new RegExp(`^${cleanId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") } });
 
     let student = await Student.findOne({ $or: query });
 
-    // 3. Fallback: If id belongs to a User document, search Student by User's email/idNumber
+    // 3. Fallback: If id belongs to a User document, search Student by User's email / idNumber
     if (!student && mongoose.Types.ObjectId.isValid(cleanId)) {
       const user = await User.findById(cleanId);
       if (user) {
         student = await Student.findOne({
           $or: [
-            { email: user.email?.toLowerCase() },
-            { studentIdNumber: user.idNumber || user.studentIdNumber },
+            ...(user.email ? [{ email: { $regex: new RegExp(`^${user.email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") } }] : []),
+            ...(user.idNumber || user.studentIdNumber ? [{ studentIdNumber: user.idNumber || user.studentIdNumber }] : []),
+          ],
+        });
+      }
+    }
+
+    // 4. Fallback: Search User collection first if student wasn't found directly
+    if (!student) {
+      const user = await User.findOne({
+        $or: [
+          { email: { $regex: new RegExp(`^${cleanId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") } },
+          { idNumber: cleanId },
+        ],
+      });
+
+      if (user) {
+        student = await Student.findOne({
+          $or: [
+            ...(user.email ? [{ email: { $regex: new RegExp(`^${user.email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") } }] : []),
+            ...(user.idNumber || user.studentIdNumber ? [{ studentIdNumber: user.idNumber || user.studentIdNumber }] : []),
           ],
         });
       }
@@ -251,6 +297,15 @@ export const getStudentById = async (req, res) => {
     if (!student) {
       console.warn(`[getStudentById] No student record found for: "${id}"`);
       return res.status(404).json({ message: "Student record not found." });
+    }
+
+    // 5. Fallback avatar from User collection if Student doesn't have one
+    let studentAvatar = student.avatarUrl || "";
+    if (!studentAvatar && student.email) {
+      const matchedUser = await User.findOne({ email: student.email }).select("avatarUrl").lean();
+      if (matchedUser) {
+        studentAvatar = matchedUser.avatarUrl || "";
+      }
     }
 
     const formatDate = (d) => {
@@ -285,12 +340,14 @@ export const getStudentById = async (req, res) => {
       birthdate: formatDate(student.birthdate),
       enrolledDate: formatDate(student.createdAt),
       status: student.status || "Active",
+      avatarUrl: studentAvatar, // 👈 Added avatarUrl so the frontend modal can display the profile picture
     });
   } catch (err) {
     console.error("getStudentById error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };
+
 export const updateStudentInfo = async (req, res) => {
   const updatedBy = req.body?.updatedBy || "registrar";
 
@@ -349,7 +406,10 @@ export const updateStudentInfo = async (req, res) => {
         student.email = cleanEmail;
       }
     }
-
+// In updateStudentInfo inside studentController.js:
+if (req.body.avatarUrl !== undefined) {
+  student.avatarUrl = req.body.avatarUrl; // 👈 Add this line inside updateStudentInfo
+}
     if (phone !== undefined) {
       let cleanPhone = String(phone).trim().replace(/\s+/g, "");
 
@@ -682,5 +742,39 @@ export const createStudent = async (req, res) => {
     return res.status(500).json({
       message: err.message || "Server error while processing student record.",
     });
+  }
+};
+
+export const uploadProfileAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file provided." });
+    }
+
+    const relativePath = `/uploads/avatars/${req.file.filename}`;
+    const { id } = req.params;
+
+    // 1. Update Student model if studentId is supplied
+    if (id && id !== "—") {
+      await Student.findOneAndUpdate(
+        { $or: [{ studentIdNumber: id }, { email: id }] },
+        { avatarUrl: relativePath }
+      );
+    }
+
+    // 2. Update User model if matching user exists
+    if (req.user?.id || req.user?._id) {
+      await User.findByIdAndUpdate(req.user.id || req.user._id, {
+        avatarUrl: relativePath,
+      });
+    }
+
+    return res.status(200).json({
+      message: "Avatar uploaded successfully.",
+      avatarUrl: relativePath,
+    });
+  } catch (err) {
+    console.error("uploadProfileAvatar error:", err);
+    return res.status(500).json({ message: "Server error uploading avatar." });
   }
 };

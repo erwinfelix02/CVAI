@@ -34,6 +34,7 @@ type StudentDetails = {
 
   status: "Active" | "Inactive" | "Dropped" | "Graduated";
   initials?: string;
+  avatarUrl?: string;
 
   gpa?: string;
 };
@@ -122,6 +123,7 @@ export default function EditStudentInfoModal({
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -147,6 +149,7 @@ export default function EditStudentInfoModal({
       setActiveTab("overview");
       setConfirmSaveOpen(false);
       setConfirmDiscardOpen(false);
+      setImageError(false);
     }
   }, [open]);
 
@@ -167,6 +170,22 @@ export default function EditStudentInfoModal({
     () => getInitials(student?.name, student?.initials),
     [student],
   );
+
+  const getFullAvatarUrl = (url?: string): string => {
+    if (!url) return "";
+    if (
+      url.startsWith("data:") ||
+      url.startsWith("blob:") ||
+      url.startsWith("http://") ||
+      url.startsWith("https://")
+    ) {
+      return url;
+    }
+    return `http://localhost:5000${url.startsWith("/") ? "" : "/"}${url}`;
+  };
+
+  const resolvedAvatarUrl = getFullAvatarUrl(student?.avatarUrl);
+  const showAvatar = Boolean(resolvedAvatarUrl) && !imageError;
 
   const selectedCourse = useMemo(
     () => courseOptions.find((c) => c.name === course || c.code === course),
@@ -349,7 +368,32 @@ export default function EditStudentInfoModal({
           {activeTab === "overview" && (
             <>
               <div className="student-profile-card">
-                <div className="student-profile-avatar">{initials}</div>
+                <div
+                  className="student-profile-avatar overflow-hidden d-flex align-items-center justify-content-center p-0"
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: "50%",
+                    backgroundColor: showAvatar ? "transparent" : undefined,
+                  }}
+                >
+                  {showAvatar ? (
+                    <img
+                      src={resolvedAvatarUrl}
+                      alt={student.name}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                        borderRadius: "50%",
+                      }}
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    initials
+                  )}
+                </div>
 
                 <div className="student-profile-main">
                   <div className="student-profile-name">{student.name}</div>
@@ -653,7 +697,8 @@ export default function EditStudentInfoModal({
                 </div>
 
                 <p className="text-muted text-center mb-0">
-                  You have unsaved changes in student details. Closing now will discard your changes.
+                  You have unsaved changes in student details. Closing now will
+                  discard your changes.
                 </p>
               </div>
 

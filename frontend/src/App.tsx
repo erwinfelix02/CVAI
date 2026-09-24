@@ -21,6 +21,7 @@ import GradesPage from "./pages/Student/GradesPage";
 import DocumentsPage from "./pages/Student/DocumentsPage";
 import FeesPaymentsPage from "./pages/Student/FeesPaymentsPage";
 import HelpCenterPage from "./pages/Student/HelpCenterPage";
+import StudentCoursesPage from "./pages/Student/StudentCourses";
 
 import FacultyLayoutPage from "./pages/Faculty/FacultyLayoutPage";
 import FacultyDashboard from "./pages/Faculty/FacultyDashboard";
@@ -56,6 +57,7 @@ import AIKnowledgeCategoryPage from "./pages/SuperAdmin/AIKnowledgeCategoryPage"
 import ActivityLogsPage from "./pages/SuperAdmin/ActivityLogsPage";
 import SettingsPage from "./pages/SuperAdmin/SettingsPage";
 import UsersPage from "./pages/SuperAdmin/UsersPage";
+import SuperAdminConcerns from "./pages/SuperAdmin/SuperAdminConcerns";
 
 import DepartmentHeadLayoutPage from "./pages/DepartmentHead/DepartmentHeadLayoutPage";
 import DepartmentHeadDashboard from "./pages/DepartmentHead/DepartmentHeadDashboard";
@@ -97,6 +99,7 @@ export default function App() {
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="fees" element={<FeesPaymentsPage />} />
         <Route path="help" element={<HelpCenterPage />} />
+        <Route path="courses" element={<StudentCoursesPage />} />
       </Route>
 
       {/* Faculty */}
@@ -168,6 +171,7 @@ export default function App() {
         <Route path="logs" element={<ActivityLogsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="users" element={<UsersPage />} />
+        <Route path="concerns" element={<SuperAdminConcerns />} />
       </Route>
 
       {/* Department Head */}

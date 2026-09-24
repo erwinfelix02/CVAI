@@ -3,6 +3,7 @@ import Section from "../models/Section.js";
 import Course from "../models/Course.js";
 import User from "../models/User.js";
 import Schedule from "../models/Schedule.js";
+import Student from "../models/Student.js";
 import { addLog, getClientIp } from "../utils/logActivity.js";
 
 const router = express.Router();
@@ -99,9 +100,11 @@ router.post("/", async (req, res) => {
 });
 
 // READ ALL OR FILTER BY DEPARTMENT / COURSE PROGRAM
-// (UPDATED: Strictly queries and matches assigned faculty from Schedule)
 router.get("/", async (req, res) => {
   try {
+    console.log("==========================================");
+    console.log("🔍 [DEBUG] GET /api/sections called with query:", req.query);
+
     const { department, program } = req.query;
     const targetDept = department || program;
 
@@ -112,24 +115,24 @@ router.get("/", async (req, res) => {
       matchStage.$or = patterns.map((p) => ({ program: p }));
     }
 
-    // Single DB aggregation query that accurately matches Section.code to Schedule.section
+    console.log("👉 Section Match Stage Query:", JSON.stringify(matchStage, null, 2));
+
+    // Aggregation pipeline:
+    // 1. Matches rooms to Schedules for Faculty lookup.
+    // 2. Matches Section code to Students for dynamic active student count.
     const sectionsWithFaculty = await Section.aggregate([
       { $match: matchStage },
-      { $sort: { createdAt: -1 } },
-      {
-        $lookup: {
-          from: "schedules", // Query Schedule collection
-          let: { sectionCode: "$code" },
+      { $sort: { createdAt: -1 } },       {$lookup: {
+          from: "schedules",
+          let: { sectionRoom: "$room" },
           pipeline: [
             {
               $match: {
-                $expr: {
-                  $and: [
-                    // Case-insensitive exact comparison ignoring leading/trailing whitespace
+                $expr: {$and: [
                     {
                       $eq: [
-                        { $toLower: { $trim: { input: "$section" } } },
-                        { $toLower: { $trim: { input: "$$sectionCode" } } },
+                        { $toLower: { $trim: { input: "$room" } } },
+                        { $toLower: { $trim: { input: "$$sectionRoom" } } },
                       ],
                     },
                     { $eq: ["$status", "Active"] },
@@ -137,14 +140,36 @@ router.get("/", async (req, res) => {
                 },
               },
             },
-            { $project: { faculty: 1 } },
+            { $project: { faculty: 1, room: 1, section: 1 } },
           ],
           as: "matchedSchedules",
         },
       },
       {
+        $lookup: {
+          from: "students",
+          let: { sectionCode: "$code" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {$and: [
+                    {
+                      $eq: [
+                        { $toLower: { $trim: { input: "$section" } } },
+                        { $toLower: { $trim: { input: "$$sectionCode" } } },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+            { $project: { _id: 1 } },
+          ],
+          as: "matchedStudents",
+        },
+      },
+      {
         $addFields: {
-          // Extract faculty names, ignore invalid or empty strings
           assignedFacultyArray: {
             $filter: {
               input: "$matchedSchedules.faculty",
@@ -153,16 +178,17 @@ router.get("/", async (req, res) => {
                 $and: [
                   { $ne: ["$$f", null] },
                   { $ne: [{ $trim: { input: "$$f" } }, ""] },
-                  { $ne: [{ $toUpper: { $trim: { input: "$$f" } } }, "TBA"] },
+                  { $ne: [{$toUpper: { $trim: { input: "$$f" } } }, "TBA"] },
                 ],
               },
             },
           },
+          // Dynamically override stored 'enrolled' with the actual matched student document count
+          enrolled: { $size: "$matchedStudents" },
         },
       },
       {
         $addFields: {
-          // Deduplicate assigned faculty names
           uniqueFaculty: { $setUnion: ["$assignedFacultyArray", []] },
         },
       },
@@ -175,7 +201,8 @@ router.get("/", async (req, res) => {
           room: 1,
           enrolled: 1,
           createdAt: 1,
-          // Build string of matched faculty, falling back to original adviser or TBA
+          matchedSchedules: 1,
+          uniqueFaculty: 1,
           adviser: {
             $cond: [
               { $gt: [{ $size: "$uniqueFaculty" }, 0] },
@@ -185,40 +212,31 @@ router.get("/", async (req, res) => {
                   initialValue: "",
                   in: {
                     $cond: [
-                      { $eq: ["$$value", ""] },
-                      "$$this",
+                      { $eq: ["$$value", ""] },                       "$$this",
                       { $concat: ["$$value", ", ", "$$this"] },
                     ],
                   },
                 },
               },
-              {
-                $cond: [
-                  {
-                    $and: [
-                      { $ne: ["$adviser", null] },
-                      { $ne: [{ $trim: { input: "$adviser" } }, ""] },
-                      {
-                        $ne: [
-                          { $toUpper: { $trim: { input: "$adviser" } } },
-                          "TBA",
-                        ],
-                      },
-                    ],
-                  },
-                  "$adviser",
-                  "TBA",
-                ],
-              },
+              "TBA",
             ],
           },
         },
       },
     ]);
 
+    sectionsWithFaculty.forEach((sec, idx) => {
+      console.log(`--- Section [${idx + 1}] Code: ${sec.code} ---`);
+      console.log(`    Room: ${sec.room}`);
+      console.log(`    Dynamic Enrolled Count:`, sec.enrolled);
+      console.log(`    Matched Schedules Count:`, sec.matchedSchedules?.length || 0);
+      console.log(`    Resolved Faculty (Adviser):`, sec.adviser);
+    });
+
+    console.log("==========================================");
     res.json(sectionsWithFaculty);
   } catch (err) {
-    console.error("Error fetching sections with assigned faculty:", err);
+    console.error("❌ Error fetching sections with assigned faculty & student count:", err);
     res.status(500).json({ message: "Failed to load sections." });
   }
 });
@@ -239,11 +257,35 @@ router.get("/rooms", async (req, res) => {
     const roomsFromSections = await Section.aggregate([
       { $match: matchQuery },
       {
+        $lookup: {
+          from: "students",
+          let: { sectionCode: "$code" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {$eq: [
+                    { $toLower: { $trim: { input: "$section" } } },
+                    { $toLower: { $trim: { input: "$$sectionCode" } } },
+                  ],
+                },
+              },
+            },
+            { $project: { _id: 1 } },
+          ],
+          as: "roomStudents",
+        },
+      },
+      {
+        $addFields: {
+          enrolledCount: { $size: "$roomStudents" },
+        },
+      },
+      {
         $group: {
           _id: "$room",
           classes: { $sum: 1 },
           totalCapacity: { $sum: "$capacity" },
-          totalEnrolled: { $sum: "$enrolled" },
+          totalEnrolled: { $sum: "$enrolledCount" },
         },
       },
       {
@@ -253,17 +295,14 @@ router.get("/rooms", async (req, res) => {
           building: { $literal: "Main Building" },
           type: { $literal: "Lecture" },
           seats: {
-            $cond: [{ $gt: ["$totalCapacity", 0] }, "$totalCapacity", 40],
+            $cond: [{$gt: ["$totalCapacity", 0] }, "$totalCapacity", 40],
           },
           classes: 1,
           utilization: {
             $cond: [
               { $gt: ["$totalCapacity", 0] },
               {
-                $min: [
-                  100,
-                  {
-                    $round: [
+                $min: [                   100,                   {$round: [
                       {
                         $multiply: [
                           { $divide: ["$totalEnrolled", "$totalCapacity"] },

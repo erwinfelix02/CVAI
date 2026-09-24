@@ -5,6 +5,7 @@ export type StudentItem = {
   name: string;
   studentNo: string;
   status: AttendanceStatus;
+  avatarUrl?: string;
 };
 
 export type AttendanceRecord = {

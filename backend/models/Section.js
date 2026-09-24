@@ -10,7 +10,7 @@ const sectionSchema = new mongoose.Schema(
     adviser: { type: String, default: "TBA" },
     enrolled: { type: Number, default: 0 },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Section = mongoose.model("Section", sectionSchema);

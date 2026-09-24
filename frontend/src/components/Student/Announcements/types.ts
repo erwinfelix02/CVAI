@@ -1,14 +1,13 @@
 export type Announcement = {
   id: string;
   title: string;
-  message?: string;
-  body?: string;
+  body: string;
   date: string;
-  course?: string;
-  subjectCode?: string;
-  section?: string;
-  category?: string;
-  categoryTone?: "danger" | "primary" | "success" | "warning" | "purple";
-  priority?: "low" | "medium" | "high";
+  category: string;
+  categoryTone: "danger" | "primary" | "success" | "warning" | "purple";
   pinned?: boolean;
+  priority?: "low" | "medium" | "high";
+  author?: string;
+  department?: string;
+  read?: boolean;
 };

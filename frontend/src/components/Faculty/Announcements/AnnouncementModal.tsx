@@ -16,6 +16,7 @@ interface ScheduleOption {
   code: string;
   title: string;
   section: string;
+  department: string;
   displayLabel: string;
 }
 
@@ -55,8 +56,27 @@ export default function AnnouncementModal({
 
   const isEditMode = Boolean(announcementToEdit);
 
+  /**
+   * Parses option strings like "MAT151 - mathematics in the modern world (BSHTM-01)"
+   * into clean code ("MAT151") and section ("BSHTM-01").
+   */
+  const parseDisplayLabel = (label: string) => {
+    let code = label;
+    let section = "";
+
+    if (label.includes("-")) {
+      code = label.split("-")[0].trim();
+    }
+    const matchSection = label.match(/\(([^)]+)\)/);
+    if (matchSection && matchSection[1]) {
+      section = matchSection[1].trim();
+    }
+
+    return { code, section };
+  };
+
   /* =========================================================
-     FETCH FACULTY SCHEDULES TO DYNAMICALLY POPULATE COURSES & SECTIONS
+     FETCH FACULTY SCHEDULES TO DYNAMICALLY POPULATE DROPDOWN
      ========================================================= */
   useEffect(() => {
     if (!isOpen) return;
@@ -90,16 +110,27 @@ export default function AnnouncementModal({
           const schedules = await res.json();
 
           const mappedOptions: ScheduleOption[] = schedules
-            .filter((s: any) => Boolean(s.code || s.title))
-            .map((s: any) => ({
-              id: String(s._id || s.id),
-              code: s.code || "",
-              title: s.title || "",
-              section: s.section || "",
-              displayLabel: `${s.code || "Subject"} - ${s.title || "Untitled"}${
-                s.section ? ` (${s.section})` : ""
-              }`,
-            }));
+            .filter((s: any) => Boolean(s.code || s.title || s.subjectCode || s.displayLabel))
+            .map((s: any) => {
+              const rawLabel =
+                s.displayLabel ||
+                `${s.code || s.subjectCode || "Subject"} - ${s.title || s.subjectTitle || "Title"}${
+                  s.section || s.classSection ? ` (${s.section || s.classSection})` : ""
+                }`;
+
+              const parsed = parseDisplayLabel(rawLabel);
+              const code = s.code || s.subjectCode || parsed.code;
+              const section = s.section || s.classSection || parsed.section;
+
+              return {
+                id: String(s._id || s.id),
+                code,
+                title: s.title || s.subjectTitle || "",
+                section,
+                department: user?.department || s.department || "General",
+                displayLabel: rawLabel,
+              };
+            });
 
           setScheduleOptions(mappedOptions);
         } else if (isMounted) {
@@ -121,51 +152,49 @@ export default function AnnouncementModal({
   }, [isOpen]);
 
   const activeSchedule = useMemo(() => {
-    return scheduleOptions.find((opt) => opt.id === selectedScheduleKey);
+    return scheduleOptions.find((opt) => String(opt.id) === String(selectedScheduleKey));
   }, [scheduleOptions, selectedScheduleKey]);
 
   /* =========================================================
-     FETCH RECIPIENT COUNT LIVE FROM BACKEND
+     FETCH LIVE RECIPIENT COUNT FROM BACKEND
      ========================================================= */
-  const fetchRecipientCount = useCallback(async (targetCode: string, section: string) => {
-    if (!targetCode) {
-      setRecipientCount(0);
-      return;
-    }
-
-    setIsCalculatingRecipients(true);
-    try {
-      const userJson = localStorage.getItem("user");
-      const token = localStorage.getItem("token");
-      const user = userJson ? JSON.parse(userJson) : null;
-
-      const params = new URLSearchParams({
-        courseCode: targetCode,
-        section: section || "",
-        department: user?.department || "General",
-      });
-
-      const res = await fetch(`/api/announcements/recipients/count?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setRecipientCount(data.count ?? 0);
-      } else {
+  const fetchRecipientCount = useCallback(
+    async (targetCode: string, section: string, targetDept: string) => {
+      if (!targetCode) {
         setRecipientCount(0);
+        return;
       }
-    } catch (err) {
-      console.error("Failed to fetch recipient count:", err);
-      setRecipientCount(0);
-    } finally {
-      setIsCalculatingRecipients(false);
-    }
-  }, []);
 
-  /* =========================================================
-     SYNC FORM STATE IN EDIT MODE / SCHEDULE LOAD
-     ========================================================= */
+      setIsCalculatingRecipients(true);
+      try {
+        const token = localStorage.getItem("token");
+
+        const params = new URLSearchParams({
+          courseCode: targetCode,
+          section: section || "",
+          department: targetDept || "General",
+        });
+
+        const res = await fetch(`/api/announcements/recipients/count?${params.toString()}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setRecipientCount(data.count ?? 0);
+        } else {
+          setRecipientCount(0);
+        }
+      } catch (err) {
+        console.error("Failed to fetch recipient count:", err);
+        setRecipientCount(0);
+      } finally {
+        setIsCalculatingRecipients(false);
+      }
+    },
+    []
+  );
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -201,20 +230,22 @@ export default function AnnouncementModal({
     setShowSubmitConfirm(false);
   }, [isOpen, announcementToEdit, scheduleOptions]);
 
-  /* =========================================================
-     TRIGGER RECIPIENT RE-CALCULATION WHEN TARGET SELECTION CHANGES
-     ========================================================= */
   useEffect(() => {
     if (!isOpen) return;
 
+    const userJson = localStorage.getItem("user");
+    const user = userJson ? JSON.parse(userJson) : null;
+    const signedInDepartment = user?.department || "General";
+
     if (selectedScheduleKey === "ALL") {
-      fetchRecipientCount("All Courses", "");
+      fetchRecipientCount("All Courses", "", signedInDepartment);
     } else if (activeSchedule) {
-      fetchRecipientCount(activeSchedule.code, activeSchedule.section);
+      fetchRecipientCount(activeSchedule.code, activeSchedule.section, signedInDepartment);
     } else if (announcementToEdit && selectedScheduleKey) {
       fetchRecipientCount(
         announcementToEdit.subjectCode || announcementToEdit.course,
-        announcementToEdit.section || ""
+        announcementToEdit.section || "",
+        announcementToEdit.department || signedInDepartment
       );
     } else {
       setRecipientCount(0);
@@ -249,29 +280,12 @@ export default function AnnouncementModal({
     }
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen && !isSubmitting) {
-        if (showExitConfirm || showSubmitConfirm) {
-          setShowExitConfirm(false);
-          setShowSubmitConfirm(false);
-        } else {
-          handleAttemptClose();
-        }
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isSubmitting, isDirty, showExitConfirm, showSubmitConfirm]);
-
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
     if (!title.trim() || !selectedScheduleKey || !priority || !message.trim()) {
-      setErrorMessage(
-        "Please fill in all required fields including Target Schedule and Priority Level."
-      );
+      setErrorMessage("Please fill in all required fields including Target Schedule and Priority.");
       return;
     }
 
@@ -287,21 +301,25 @@ export default function AnnouncementModal({
       const token = localStorage.getItem("token");
       const user = userJson ? JSON.parse(userJson) : null;
 
-      const courseLabel = activeSchedule
-        ? activeSchedule.displayLabel
-        : selectedScheduleKey === "ALL"
-        ? "All Courses"
-        : selectedScheduleKey;
+      // Department is strictly derived from the signed-in user's account
+      const signedInDepartment = user?.department || "General";
 
-      const subjectCode = activeSchedule
-        ? activeSchedule.code
-        : selectedScheduleKey === "ALL"
-        ? "All Courses"
-        : announcementToEdit?.subjectCode || selectedScheduleKey;
+      let courseLabel = "All Courses";
+      let subjectCode = "All Courses";
+      let section = "";
 
-      const section = activeSchedule
-        ? activeSchedule.section
-        : announcementToEdit?.section || "";
+      if (selectedScheduleKey !== "ALL") {
+        if (activeSchedule) {
+          courseLabel = activeSchedule.displayLabel;
+          subjectCode = activeSchedule.code;
+          section = activeSchedule.section;
+        } else {
+          const parsed = parseDisplayLabel(selectedScheduleKey);
+          courseLabel = selectedScheduleKey;
+          subjectCode = parsed.code;
+          section = parsed.section;
+        }
+      }
 
       const payload = {
         title: title.trim(),
@@ -320,8 +338,10 @@ export default function AnnouncementModal({
           (user?.firstName && user?.lastName
             ? `${user.firstName} ${user.lastName}`
             : "Faculty Member"),
-        department: user?.department || "General",
+        department: signedInDepartment,
       };
+
+      console.log("[AnnouncementModal] Creating Announcement with Payload:", payload);
 
       const url = isEditMode
         ? `/api/announcements/${announcementToEdit?.id}`
@@ -340,9 +360,7 @@ export default function AnnouncementModal({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(
-          data.message || `Failed to ${isEditMode ? "update" : "create"} announcement.`
-        );
+        throw new Error(data.message || `Failed to ${isEditMode ? "update" : "create"} announcement.`);
       }
 
       onSaveSuccess(data.announcement || data);
@@ -488,22 +506,20 @@ export default function AnnouncementModal({
                     <label className="form-label fw-semibold text-dark small">
                       Priority Level <span className="text-danger">*</span>
                     </label>
-                    <div className="position-relative">
-                      <select
-                        className="form-select form-select-lg rounded-3 border fs-6 shadow-none"
-                        value={priority}
-                        disabled={isSubmitting}
-                        onChange={(e) => setPriority(e.target.value as any)}
-                        required
-                      >
-                        <option value="" disabled>
-                          Select priority level
-                        </option>
-                        <option value="low">Low Priority</option>
-                        <option value="medium">Medium Priority</option>
-                        <option value="high">High Priority</option>
-                      </select>
-                    </div>
+                    <select
+                      className="form-select form-select-lg rounded-3 border fs-6 shadow-none"
+                      value={priority}
+                      disabled={isSubmitting}
+                      onChange={(e) => setPriority(e.target.value as any)}
+                      required
+                    >
+                      <option value="" disabled>
+                        Select priority level
+                      </option>
+                      <option value="low">Low Priority</option>
+                      <option value="medium">Medium Priority</option>
+                      <option value="high">High Priority</option>
+                    </select>
                   </div>
                 </div>
 
@@ -559,9 +575,6 @@ export default function AnnouncementModal({
                     onChange={(e) => setMessage(e.target.value)}
                     required
                   />
-                  <div className="text-end text-muted small mt-1" style={{ fontSize: "0.8rem" }}>
-                    {message.length} / 1000 characters
-                  </div>
                 </div>
 
                 <div className="mb-3">
@@ -576,50 +589,6 @@ export default function AnnouncementModal({
                     disabled={isSubmitting}
                     onChange={(e) => setScheduledDate(e.target.value)}
                   />
-                  <div className="form-text text-muted small">
-                    Leave empty to send immediately
-                  </div>
-                </div>
-
-                <div className="p-3 bg-light bg-opacity-75 rounded-3 border mb-2">
-                  <div className="fw-semibold text-dark mb-3 d-flex align-items-center gap-2 small">
-                    <Users size={18} className="text-primary" />
-                    Notification Options
-                  </div>
-
-                  <div className="d-flex flex-column gap-2">
-                    <div
-                      className="form-check d-flex align-items-center gap-2 pointer"
-                      onClick={() => !isSubmitting && setSendPush(!sendPush)}
-                    >
-                      <input
-                        type="checkbox"
-                        className="form-check-input mt-0 pointer"
-                        checked={sendPush}
-                        onChange={() => {}}
-                        readOnly
-                      />
-                      <label className="form-check-label text-dark small pointer mb-0">
-                        Send push notification to students ({recipientCount} enrolled)
-                      </label>
-                    </div>
-
-                    <div
-                      className="form-check d-flex align-items-center gap-2 pointer"
-                      onClick={() => !isSubmitting && setSendEmail(!sendEmail)}
-                    >
-                      <input
-                        type="checkbox"
-                        className="form-check-input mt-0 pointer"
-                        checked={sendEmail}
-                        onChange={() => {}}
-                        readOnly
-                      />
-                      <label className="form-check-label text-dark small pointer mb-0">
-                        Also send via email
-                      </label>
-                    </div>
-                  </div>
                 </div>
               </div>
 

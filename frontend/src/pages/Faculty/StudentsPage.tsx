@@ -1,3 +1,5 @@
+// src/pages/Faculty/StudentsPage.tsx
+
 import { useState, useEffect, useMemo } from "react";
 import type { ChangeEvent, JSX } from "react";
 import StatsCards from "../../components/Faculty/Student/StatsCards";
@@ -24,15 +26,11 @@ export default function StudentsPage(): JSX.Element {
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState<boolean>(false);
 
-  // Student State
   const [studentsList, setStudentsList] = useState<Student[]>([]);
-
-  // Dynamic schedules
   const [assignedClasses, setAssignedClasses] = useState<AssignedClass[]>([]);
   const [isLoadingClasses, setIsLoadingClasses] = useState<boolean>(false);
   const [isLoadingStudents, setIsLoadingStudents] = useState<boolean>(false);
 
-  // Extract sections strictly from loaded students who are actively enrolled
   const sectionsList = useMemo(() => {
     const activeStudentSections = studentsList
       .map((s: any) => String(s.section || s.classSection || s.sectionName || "").trim())
@@ -45,7 +43,6 @@ export default function StudentsPage(): JSX.Element {
     return ["All", ...uniqueSections];
   }, [studentsList]);
 
-  // Compute active section students list
   const activeSectionStudents = useMemo(() => {
     if (sectionFilter === "All") return studentsList;
     return studentsList.filter((s: any) => {
@@ -54,7 +51,6 @@ export default function StudentsPage(): JSX.Element {
     });
   }, [studentsList, sectionFilter]);
 
-  // Fetch student records and computed attendance from API
   const fetchStudentRecords = async (): Promise<void> => {
     setIsLoadingStudents(true);
     try {
@@ -76,7 +72,6 @@ export default function StudentsPage(): JSX.Element {
       const attParams = new URLSearchParams();
       if (facultyId) attParams.append("facultyId", facultyId);
 
-      // Fetch students and attendance in parallel
       const [studentsRes, attendanceRes] = await Promise.all([
         fetch(`/api/students?${queryParams.toString()}`, {
           headers: {
@@ -98,7 +93,6 @@ export default function StudentsPage(): JSX.Element {
           ? data
           : data.students || [];
 
-        // Parse attendance sessions into student stats map
         const attendanceMap = new Map<string, { present: number; total: number }>();
 
         if (attendanceRes && attendanceRes.ok) {
@@ -122,7 +116,6 @@ export default function StudentsPage(): JSX.Element {
           }
         }
 
-        // Merge computed attendance percentage into student objects
         const loadedStudents: Student[] = rawStudents.map((s: any) => {
           const lookupKey = (s._id || s.id || s.studentIdNumber || s.studentId || "").toString().trim().toLowerCase();
           const attStats = attendanceMap.get(lookupKey);
@@ -136,6 +129,7 @@ export default function StudentsPage(): JSX.Element {
 
           return {
             ...s,
+            avatarUrl: s.avatarUrl || s.avatar || s.photoUrl || s.photo || "",
             attendance: calculatedPct,
           };
         });
@@ -150,7 +144,6 @@ export default function StudentsPage(): JSX.Element {
     }
   };
 
-  // Fetch assigned schedules from API
   const fetchAssignedSchedules = async (): Promise<void> => {
     setIsLoadingClasses(true);
     try {

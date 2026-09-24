@@ -13,6 +13,7 @@ export interface Student {
   phone?: string;
   facultyId?: string;
   facultyName?: string;
+  avatarUrl?: string;
 }
 
 export const formatYearLevel = (year?: number | string): string => {

@@ -11,7 +11,6 @@ import {
   createUser,
   getUsers,
   sendCredentials,
-  getUserById,
 } from "../../api/userService";
 import "../../styles/superadmin-user.css";
 
@@ -41,11 +40,6 @@ export type UserRow = {
   createdBy?: string;
 };
 
-export type UserDetailsRow = UserRow & {
-  gender?: string;
-  createdAt?: string;
-};
-
 export type RoleFilter =
   | "All"
   | "Super Admin"
@@ -73,7 +67,7 @@ export default function UsersPage() {
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
-  const [viewUser, setViewUser] = useState<UserDetailsRow | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null); // 👈 Track selected ID for modal fetch
 
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"success" | "error">("success");
@@ -133,7 +127,7 @@ export default function UsersPage() {
   const safePage = Math.min(page, totalPages);
   const pageRows = filtered.slice(
     (safePage - 1) * pageSize,
-    safePage * pageSize
+    safePage * pageSize,
   );
 
   const showAlert = (message: string, type: "success" | "error") => {
@@ -181,38 +175,11 @@ export default function UsersPage() {
     setSendOpen(true);
   };
 
-  const handleViewClick = async (user: UserRow) => {
-    try {
-      setIsLoading(true);
-
-      const data = await getUserById(user.id);
-
-      const fullName = `${data.firstName} ${
-        data.middleName ? data.middleName + " " : ""
-      }${data.lastName}`.trim();
-
-      setViewUser({
-        id: data._id,
-        name: fullName,
-        email: data.email,
-        role: data.role,
-        department: data.department,
-        status: data.status,
-        phone: data.phone,
-        userCode: data.idNumber,
-        notes: data.notes,
-        createdBy: data.createdBy,
-        gender: data.gender,
-        createdAt: data.createdAt,
-        credentialsSent: data.credentialsSent,
-      });
-
-      setDetailsOpen(true);
-    } catch (err: any) {
-      showAlert(err.message || "Failed to load user details", "error");
-    } finally {
-      setIsLoading(false);
-    }
+  // 👈 Set ID and open modal so UserDetailsModal fetches fresh data internally
+  const handleViewClick = (user: UserRow) => {
+    console.log("Opening details modal for user/student ID:", user.id);
+    setSelectedUserId(user.id);
+    setDetailsOpen(true);
   };
 
   const confirmSendCredentials = async () => {
@@ -300,8 +267,10 @@ export default function UsersPage() {
                   </div>
 
                   <div className="text-muted small">
-                    Showing {filtered.length === 0 ? 0 : (safePage - 1) * pageSize + 1} to{" "}
-                    {Math.min(safePage * pageSize, filtered.length)} of {filtered.length} users
+                    Showing{" "}
+                    {filtered.length === 0 ? 0 : (safePage - 1) * pageSize + 1}{" "}
+                    to {Math.min(safePage * pageSize, filtered.length)} of{" "}
+                    {filtered.length} users
                   </div>
 
                   {totalPages > 1 && (
@@ -314,9 +283,7 @@ export default function UsersPage() {
                         >
                           <button
                             className="page-link"
-                            onClick={() =>
-                              setPage((p) => Math.max(1, p - 1))
-                            }
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
                           >
                             <ChevronLeft size={16} />
                           </button>
@@ -373,12 +340,13 @@ export default function UsersPage() {
           isLoading={isLoading}
         />
 
+        {/* 👈 Pass userId so UserDetailsModal handles internal data fetching */}
         <UserDetailsModal
           open={detailsOpen}
-          user={viewUser}
+          userId={selectedUserId}
           onClose={() => {
             setDetailsOpen(false);
-            setViewUser(null);
+            setSelectedUserId(null);
           }}
         />
       </div>

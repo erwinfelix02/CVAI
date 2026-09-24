@@ -196,7 +196,6 @@ export default function StudentEnrollmentPage() {
       const data = await res.json();
 
       const list: EnrollmentItem[] = Array.isArray(data) ? data : [];
-      // Filter out students who already had credentials sent
       const pendingCredentials = list.filter((x) => !x.credentialsSent);
       setEnrolledStudents(pendingCredentials);
 
@@ -243,6 +242,89 @@ export default function StudentEnrollmentPage() {
   const onEvaluate = (item: EnrollmentItem) => {
     setSelected(item);
     setEvalOpen(true);
+  };
+
+  // 🟢 Fetch Archived Evaluations List
+  const fetchArchivedEnrollments = async (): Promise<EnrollmentItem[]> => {
+    try {
+      const res = await fetch("http://localhost:5000/api/enrollments?status=Archived");
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      console.error("Failed to load archived enrollments", e);
+      showAlert("Failed to load archived evaluations.", "error");
+      return [];
+    }
+  };
+
+  // 🟢 Archive Enrollment Handler
+  const handleArchive = async (id: string) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/enrollment/${id}/archive`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updatedBy: registrarEmail }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.message || "Failed to archive enrollment.");
+      }
+
+      await Promise.all([
+        loadPending(query),
+        fetchStats(),
+      ]);
+
+      showAlert("Enrollment moved to archives.", "success");
+    } catch (e: any) {
+      console.error(e);
+      showAlert(e?.message || "Failed to archive enrollment.", "error");
+    }
+  };
+
+  // 🟢 Restore Enrollment Handler
+  const handleRestore = async (id: string) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/enrollment/${id}/restore`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updatedBy: registrarEmail }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.message || "Failed to restore enrollment.");
+      }
+
+      await Promise.all([
+        loadPending(query),
+        fetchStats(),
+      ]);
+
+      showAlert("Enrollment restored successfully.", "success");
+    } catch (e: any) {
+      console.error(e);
+      showAlert(e?.message || "Failed to restore enrollment.", "error");
+    }
+  };
+
+  // 🟢 Permanently Delete Archived Handler
+  const handleDeleteArchived = async (id: string) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/enrollment/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete archived record.");
+      }
+
+      showAlert("Archived record deleted permanently.", "success");
+    } catch (e: any) {
+      console.error(e);
+      showAlert(e?.message || "Failed to delete record.", "error");
+    }
   };
 
   const handleEnroll = async ({
@@ -408,7 +490,6 @@ export default function StudentEnrollmentPage() {
       throw new Error(data?.message || "Failed to send credentials.");
     }
 
-    // Automatically remove students whose credentials were sent from the enrolled list
     setEnrolledStudents((prev) =>
       prev.filter((enr) => !credEnrollmentIds.includes(enr._id)),
     );
@@ -471,6 +552,10 @@ export default function StudentEnrollmentPage() {
             items={enrollments}
             titleCount={pendingCount}
             onEvaluate={onEvaluate}
+            onArchive={handleArchive}
+            onRestore={handleRestore}
+            onDeleteArchived={handleDeleteArchived}
+            fetchArchived={fetchArchivedEnrollments}
           />
         </div>
 

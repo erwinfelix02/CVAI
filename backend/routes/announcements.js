@@ -5,18 +5,52 @@ import Student from "../models/Student.js";
 const router = express.Router();
 
 /**
- * Calculates real enrolled student count matching target course code, section, and department.
+ * Clean and extract raw subject code (e.g., "MAT151" from "MAT151 - mathematics in the modern world (BSHTM-01)")
+ */
+function extractSubjectCode(str) {
+  if (!str) return "";
+  const clean = String(str).trim();
+  const basePart = clean.split("-")[0].split("(")[0].trim();
+  return basePart || clean;
+}
+
+/**
+ * Escapes regex special characters
+ */
+function escapeRegex(str) {
+  return String(str || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Extracts key department keywords (e.g., "Hospitality Management")
+ */
+function getDepartmentKeywordRegex(dept) {
+  if (!dept || dept === "General") return null;
+  
+  // Extract key phrases like "Hospitality Management" or core acronyms
+  const clean = String(dept).trim();
+  const keywords = clean
+    .replace(/(Bachelor of Science in|College of|System|Department of)/gi, "")
+    .trim();
+
+  const pattern = escapeRegex(keywords || clean).replace(/\s+/g, "\\s*");
+  return new RegExp(pattern, "i");
+}
+
+/**
+ * Calculates enrolled recipients for an announcement target
  */
 async function calculateEnrolledRecipients(courseCode, section, department) {
   try {
-    const cleanCourse = String(courseCode || "").trim();
+    const cleanCourse = extractSubjectCode(courseCode);
     const cleanSection = String(section || "").trim();
     const cleanDept = String(department || "").trim();
 
     if (!cleanCourse || cleanCourse.toLowerCase() === "all courses") {
       const filter = { status: { $regex: /^active$/i } };
       if (cleanDept && cleanDept !== "General") {
-        filter.department = { $regex: new RegExp(`^${cleanDept.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") };
+        const deptRegex = getDepartmentKeywordRegex(cleanDept);
+        if (deptRegex) filter.department = deptRegex;
       }
       return await Student.countDocuments(filter);
     }
@@ -24,8 +58,8 @@ async function calculateEnrolledRecipients(courseCode, section, department) {
     const alphaNumericCode = cleanCourse.replace(/[^a-zA-Z0-9]/g, "");
     const codePattern = alphaNumericCode
       ? alphaNumericCode.split("").join("\\s*")
-      : cleanCourse.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s*");
-    const courseRegex = new RegExp(`^${codePattern}$`, "i");
+      : escapeRegex(cleanCourse).replace(/\s+/g, "\\s*");
+    const courseRegex = new RegExp(codePattern, "i");
 
     const courseMatchConditions = [
       { enrolledSubjects: courseRegex },
@@ -41,13 +75,8 @@ async function calculateEnrolledRecipients(courseCode, section, department) {
       $or: courseMatchConditions,
     };
 
-    if (cleanDept && cleanDept !== "General") {
-      studentQuery.department = { $regex: new RegExp(`^${cleanDept.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") };
-    }
-
-    if (cleanSection) {
-      const escapedSection = cleanSection.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const secRegex = new RegExp(`^${escapedSection.replace(/\s+/g, "\\s*")}$`, "i");
+    if (cleanSection && !/^all sections$/i.test(cleanSection)) {
+      const secRegex = new RegExp(`^${escapeRegex(cleanSection).replace(/\s+/g, "\\s*")}$`, "i");
 
       const sectionQuery = {
         ...studentQuery,
@@ -58,11 +87,9 @@ async function calculateEnrolledRecipients(courseCode, section, department) {
       };
 
       let count = await Student.countDocuments(sectionQuery);
-
       if (count === 0) {
         count = await Student.countDocuments(studentQuery);
       }
-
       return count;
     }
 
@@ -85,45 +112,49 @@ router.get("/recipients/count", async (req, res) => {
   }
 });
 
-// ==================== GET ALL ANNOUNCEMENTS FOR STUDENTS ====================
+// ==================== GET ALL ANNOUNCEMENTS FOR STUDENTS & FACULTY ====================
 router.get("/", async (req, res) => {
   try {
     const { department, facultyId, studentSection, studentCourses } = req.query;
+
     const filter = {};
 
+    // 1. Faculty View
     if (facultyId) {
       filter.facultyId = facultyId;
-    } else if (studentCourses || studentSection) {
+    } 
+    // 2. Student View (Filtered by section, courses, and department)
+    else if (studentCourses || studentSection || department) {
       const cleanSection = studentSection ? String(studentSection).trim() : "";
       const rawCourses = studentCourses
         ? String(studentCourses).split(",").map((c) => c.trim()).filter(Boolean)
         : [];
 
-      const secRegex = cleanSection
-        ? new RegExp(`^${cleanSection.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s*")}$`, "i")
-        : null;
-
       const studentMatchConditions = [
-        // Global broadcasts targeting all courses
-        { course: /^all courses$/i },
-        { subjectCode: /^all courses$/i },
+        // Global Broadcasts to all courses
+        { course: { $regex: /^all courses$/i } },
+        { subjectCode: { $regex: /^all courses$/i } },
       ];
 
-      // Match each course code
+      // Match student's enrolled subject codes & section
       rawCourses.forEach((rawCode) => {
-        const cleanCode = rawCode.split("-")[0].trim();
+        const cleanCode = extractSubjectCode(rawCode);
         const alphaNumeric = cleanCode.replace(/[^a-zA-Z0-9]/g, "");
-        const pattern = alphaNumeric ? alphaNumeric.split("").join("\\s*") : cleanCode;
+        const pattern = alphaNumeric
+          ? alphaNumeric.split("").join("\\s*")
+          : escapeRegex(cleanCode);
         const codeRegex = new RegExp(pattern, "i");
 
         const subjectMatch = {
           $or: [
             { subjectCode: codeRegex },
             { course: codeRegex },
+            { title: codeRegex },
           ],
         };
 
-        if (secRegex) {
+        if (cleanSection) {
+          const secRegex = new RegExp(`^${escapeRegex(cleanSection).replace(/\s+/g, "\\s*")}$`, "i");
           studentMatchConditions.push({
             $and: [
               subjectMatch,
@@ -132,7 +163,8 @@ router.get("/", async (req, res) => {
                   { section: secRegex },
                   { section: "" },
                   { section: { $exists: false } },
-                  { section: /^all sections$/i },
+                  { section: null },
+                  { section: { $regex: /^all sections$/i } },
                 ],
               },
             ],
@@ -142,28 +174,36 @@ router.get("/", async (req, res) => {
         }
       });
 
-      // Department broadcast fallback
+      // Match Department-level Broadcasts
       if (department && department !== "General") {
-        const deptRegex = new RegExp(`^${department.trim()}$`, "i");
-        studentMatchConditions.push({
-          $and: [
-            { department: deptRegex },
-            {
-              $or: [
-                { course: /^all courses$/i },
-                { subjectCode: /^all courses$/i },
-                { section: /^all sections$/i },
-                { section: "" },
-                { section: { $exists: false } },
-              ],
-            },
-          ],
-        });
+        const deptRegex = getDepartmentKeywordRegex(department);
+        if (deptRegex) {
+          studentMatchConditions.push({
+            $and: [
+              { department: deptRegex },
+              {
+                $or: [
+                  { course: { $regex: /^all courses$/i } },
+                  { subjectCode: { $regex: /^all courses$/i } },
+                  { section: { $regex: /^all sections$/i } },
+                  { section: "" },
+                  { section: { $exists: false } },
+                  { section: null },
+                ],
+              },
+            ],
+          });
+        }
       }
 
       filter.$or = studentMatchConditions;
-    } else if (department && department !== "General") {
-      filter.department = { $regex: new RegExp(`^${department.trim()}$`, "i") };
+    } 
+    // 3. Fallback: Department Filter Only
+    else if (department && department !== "General") {
+      const deptRegex = getDepartmentKeywordRegex(department);
+      if (deptRegex) {
+        filter.department = deptRegex;
+      }
     }
 
     const announcements = await Announcement.find(filter).sort({ createdAt: -1 });
@@ -197,7 +237,9 @@ router.post("/", async (req, res) => {
     }
 
     const activeDept = department || "General";
-    const targetCode = subjectCode || course;
+    const extractedCode = extractSubjectCode(subjectCode || course);
+    const targetCode = extractedCode || subjectCode || course;
+
     const realRecipients = await calculateEnrolledRecipients(targetCode, section, activeDept);
 
     const newAnnouncement = new Announcement({
@@ -228,14 +270,32 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, course, subjectCode, section, priority, message, scheduledDate, sendPush, sendEmail } = req.body;
+    const {
+      title,
+      course,
+      subjectCode,
+      section,
+      priority,
+      message,
+      scheduledDate,
+      sendPush,
+      sendEmail,
+      department,
+    } = req.body;
 
     const existing = await Announcement.findById(id);
     if (!existing) return res.status(404).json({ message: "Announcement not found." });
 
-    const targetCode = subjectCode || course || existing.subjectCode;
+    const rawCode = subjectCode || course || existing.subjectCode;
+    const targetCode = extractSubjectCode(rawCode) || rawCode;
     const targetSec = section !== undefined ? section : existing.section;
-    const realRecipients = await calculateEnrolledRecipients(targetCode, targetSec, existing.department);
+    const targetDept = department || existing.department;
+
+    const realRecipients = await calculateEnrolledRecipients(
+      targetCode,
+      targetSec,
+      targetDept
+    );
 
     const updated = await Announcement.findByIdAndUpdate(
       id,
@@ -249,6 +309,7 @@ router.put("/:id", async (req, res) => {
         scheduledDate,
         sendPush,
         sendEmail,
+        department: targetDept,
         recipients: realRecipients,
       },
       { new: true, runValidators: true }

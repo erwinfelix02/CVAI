@@ -141,6 +141,8 @@ export default function GenerateReportModal({
     return facultyList;
   }, [facultyList, includeFilter]);
 
+  const hasData = filteredFaculty.length > 0;
+
   // Dynamic Metrics
   const totalFacultyCount = filteredFaculty.length;
   const totalAssignedUnits = filteredFaculty.reduce((acc, f) => acc + f.currentLoad, 0);
@@ -154,6 +156,7 @@ export default function GenerateReportModal({
      PRINT HANDLERS
      ========================================================= */
   const handleRequestPrint = () => {
+    if (!hasData) return;
     setConfirmPrintOpen(true);
   };
 
@@ -168,6 +171,7 @@ export default function GenerateReportModal({
      EXPORT CSV HANDLERS
      ========================================================= */
   const handleRequestExport = () => {
+    if (!hasData) return;
     setConfirmExportOpen(true);
   };
 
@@ -345,6 +349,16 @@ export default function GenerateReportModal({
               </div>
             </div>
 
+            {/* No Data Warning Alert */}
+            {!hasData && (
+              <div className="alert alert-warning border-0 rounded-3 d-flex align-items-center gap-2 p-2 px-3 mb-3 small">
+                <AlertTriangle size={18} className="text-warning flex-shrink-0" />
+                <span>
+                  No faculty records match <strong>"{includeFilter}"</strong>. Select another option to print or generate a report.
+                </span>
+              </div>
+            )}
+
             {/* Faculty Table Container */}
             <div className="report-table-wrapper border rounded-4">
               <div className="table-responsive">
@@ -359,7 +373,7 @@ export default function GenerateReportModal({
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredFaculty.length > 0 ? (
+                    {hasData ? (
                       filteredFaculty.map((f) => (
                         <tr key={f.id}>
                           <td className="fw-semibold text-dark text-nowrap">{f.name}</td>
@@ -426,6 +440,7 @@ export default function GenerateReportModal({
               type="button"
               className="btn btn-light report-btn-print"
               onClick={handleRequestPrint}
+              disabled={!hasData}
             >
               <Printer size={17} />
               <span className="d-none d-sm-inline">Print</span>
@@ -434,6 +449,7 @@ export default function GenerateReportModal({
               type="button"
               className="btn btn-primary report-btn-generate"
               onClick={handleRequestExport}
+              disabled={!hasData}
             >
               <Download size={17} />
               <span>Generate Report</span>

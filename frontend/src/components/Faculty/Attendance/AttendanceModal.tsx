@@ -20,6 +20,7 @@ export type ModalStudent = {
   name: string;
   studentNo: string;
   status: ModalAttendanceStatus;
+  avatarUrl?: string; 
 };
 
 export type StudentItem = {
@@ -69,21 +70,35 @@ const formatReadableDate = (dateStr: string): string => {
   });
 };
 
+const getTodayFormatted = (): string => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export default function AttendanceModal({
   isOpen,
   onClose,
   subjects,
   initialSubject,
-  initialDate,
   existingDatabase,
   onSave,
 }: AttendanceModalProps) {
+  const todayStr = useMemo(() => getTodayFormatted(), []);
+
   const [selectedSubject, setSelectedSubject] = useState(initialSubject || "");
-  const [selectedDate, setSelectedDate] = useState(initialDate || "");
+  const [selectedDate, setSelectedDate] = useState(todayStr);
   const [searchQuery, setSearchQuery] = useState("");
   const [records, setRecords] = useState<ModalStudent[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  // Track image load errors per student ID
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
+  const isToday = useMemo(() => selectedDate === todayStr, [selectedDate, todayStr]);
 
   const readableDateLabel = useMemo(
     () => formatReadableDate(selectedDate),
@@ -99,6 +114,20 @@ export default function AttendanceModal({
         rec.isRecorded,
     );
   }, [existingDatabase, selectedSubject, selectedDate]);
+
+  // Helper to format proper backend image source URL
+  const getFullAvatarUrl = (url?: string): string => {
+    if (!url) return "";
+    if (
+      url.startsWith("data:") ||
+      url.startsWith("blob:") ||
+      url.startsWith("http://") ||
+      url.startsWith("https://")
+    ) {
+      return url;
+    }
+    return `http://localhost:5000${url.startsWith("/") ? "" : "/"}${url}`;
+  };
 
   const fetchStudentsForCourse = useCallback(
     async (courseCode: string) => {
@@ -188,6 +217,7 @@ export default function AttendanceModal({
               studentNo:
                 s.studentIdNumber || s.studentId || s.id || `STU-${idx + 1}`,
               status: "present",
+              avatarUrl: s.avatarUrl || s.photo || s.image, // 👈 Map backend avatar property
             }),
           );
 
@@ -210,12 +240,12 @@ export default function AttendanceModal({
       const activeCourse =
         selectedSubject || initialSubject || (subjects[0]?.value ?? "");
       setSelectedSubject(activeCourse);
-      setSelectedDate(initialDate || new Date().toISOString().split("T")[0]);
+      setSelectedDate(todayStr);
       setSearchQuery("");
 
       fetchStudentsForCourse(activeCourse);
     }
-  }, [isOpen, initialSubject, initialDate, subjects, fetchStudentsForCourse]);
+  }, [isOpen, initialSubject, subjects, todayStr, fetchStudentsForCourse]);
 
   const handleSubjectChange = (newSubject: string) => {
     setSelectedSubject(newSubject);
@@ -241,18 +271,20 @@ export default function AttendanceModal({
 
   if (!isOpen) return null;
 
+  const isActionDisabled = isSubmitting || isAlreadyRecorded || !isToday;
+
   const handleStatusChange = (id: string, status: ModalAttendanceStatus) => {
-    if (isAlreadyRecorded) return;
+    if (isActionDisabled) return;
     setRecords((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
   };
 
   const handleAllPresent = () => {
-    if (isAlreadyRecorded) return;
+    if (isActionDisabled) return;
     setRecords((prev) => prev.map((s) => ({ ...s, status: "present" })));
   };
 
   const handleAllAbsent = () => {
-    if (isAlreadyRecorded) return;
+    if (isActionDisabled) return;
     setRecords((prev) => prev.map((s) => ({ ...s, status: "absent" })));
   };
 
@@ -265,6 +297,10 @@ export default function AttendanceModal({
   };
 
   const handleSaveAndSubmit = async () => {
+    if (!isToday) {
+      alert("Attendance can only be recorded for the current date (today).");
+      return;
+    }
     if (isAlreadyRecorded) {
       alert("Attendance for this subject and date has already been recorded.");
       return;
@@ -325,7 +361,22 @@ export default function AttendanceModal({
           </div>
 
           <div className="modal-body p-3 p-md-4">
-            {isAlreadyRecorded && (
+            {!isToday && (
+              <div
+                className="alert alert-danger d-flex align-items-center gap-2 mb-3 rounded-3"
+                role="alert"
+              >
+                <AlertTriangle
+                  size={20}
+                  className="text-danger flex-shrink-0"
+                />
+                <div className="small">
+                  <strong>Invalid Date:</strong> Attendance can only be recorded on the exact current date (<strong>{formatReadableDate(todayStr)}</strong>).
+                </div>
+              </div>
+            )}
+
+            {isAlreadyRecorded && isToday && (
               <div
                 className="alert alert-warning d-flex align-items-center gap-2 mb-3 rounded-3"
                 role="alert"
@@ -372,6 +423,8 @@ export default function AttendanceModal({
                   type="date"
                   className="form-control form-control-lg rounded-3 border fs-6 shadow-none"
                   value={selectedDate}
+                  min={todayStr}
+                  max={todayStr}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   disabled={isSubmitting}
                 />
@@ -406,12 +459,7 @@ export default function AttendanceModal({
                   type="button"
                   className="btn btn-white bg-white border rounded-3 px-3 py-2 fw-semibold text-dark d-inline-flex align-items-center gap-2 text-nowrap shadow-sm"
                   onClick={handleAllPresent}
-                  disabled={
-                    records.length === 0 ||
-                    isLoadingStudents ||
-                    isSubmitting ||
-                    isAlreadyRecorded
-                  }
+                  disabled={records.length === 0 || isLoadingStudents || isActionDisabled}
                 >
                   <CheckCircle2 size={18} className="text-success" />
                   All Present
@@ -421,12 +469,7 @@ export default function AttendanceModal({
                   type="button"
                   className="btn btn-white bg-white border rounded-3 px-3 py-2 fw-semibold text-dark d-inline-flex align-items-center gap-2 text-nowrap shadow-sm"
                   onClick={handleAllAbsent}
-                  disabled={
-                    records.length === 0 ||
-                    isLoadingStudents ||
-                    isSubmitting ||
-                    isAlreadyRecorded
-                  }
+                  disabled={records.length === 0 || isLoadingStudents || isActionDisabled}
                 >
                   <XCircle size={18} className="text-danger" />
                   All Absent
@@ -445,9 +488,7 @@ export default function AttendanceModal({
                 placeholder="Search students..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                disabled={
-                  records.length === 0 || isLoadingStudents || isSubmitting
-                }
+                disabled={records.length === 0 || isLoadingStudents || isSubmitting}
               />
             </div>
 
@@ -486,6 +527,9 @@ export default function AttendanceModal({
                   const isLate = s.status === "late";
                   const isAbsent = s.status === "absent";
 
+                  const resolvedAvatarUrl = getFullAvatarUrl(s.avatarUrl);
+                  const showAvatar = Boolean(resolvedAvatarUrl) && !imageErrors[s.id];
+
                   return (
                     <div
                       key={s.id}
@@ -501,14 +545,33 @@ export default function AttendanceModal({
                     >
                       <div className="d-flex align-items-center gap-3 min-w-0">
                         <div
-                          className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
+                          className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0 overflow-hidden border"
                           style={{
                             width: 44,
                             height: 44,
+                            minWidth: 44,
+                            minHeight: 44,
                             backgroundColor: "#3b82f6",
                           }}
                         >
-                          {getInitials(s.name)}
+                          {showAvatar ? (
+                            <img
+                              src={resolvedAvatarUrl}
+                              alt={s.name}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                display: "block",
+                                borderRadius: "50%",
+                              }}
+                              onError={() => {
+                                setImageErrors((prev) => ({ ...prev, [s.id]: true }));
+                              }}
+                            />
+                          ) : (
+                            getInitials(s.name)
+                          )}
                         </div>
                         <div className="text-truncate">
                           <h6 className="fw-bold text-dark mb-0 text-truncate">
@@ -529,7 +592,7 @@ export default function AttendanceModal({
                           style={{ width: 40, height: 40 }}
                           title="Mark Present"
                           onClick={() => handleStatusChange(s.id, "present")}
-                          disabled={isSubmitting || isAlreadyRecorded}
+                          disabled={isActionDisabled}
                         >
                           <CheckCircle2 size={20} />
                         </button>
@@ -544,7 +607,7 @@ export default function AttendanceModal({
                           style={{ width: 40, height: 40 }}
                           title="Mark Late"
                           onClick={() => handleStatusChange(s.id, "late")}
-                          disabled={isSubmitting || isAlreadyRecorded}
+                          disabled={isActionDisabled}
                         >
                           <Clock size={20} />
                         </button>
@@ -559,7 +622,7 @@ export default function AttendanceModal({
                           style={{ width: 40, height: 40 }}
                           title="Mark Absent"
                           onClick={() => handleStatusChange(s.id, "absent")}
-                          disabled={isSubmitting || isAlreadyRecorded}
+                          disabled={isActionDisabled}
                         >
                           <XCircle size={20} />
                         </button>
@@ -587,8 +650,7 @@ export default function AttendanceModal({
               disabled={
                 records.length === 0 ||
                 isLoadingStudents ||
-                isSubmitting ||
-                isAlreadyRecorded
+                isActionDisabled
               }
             >
               {isSubmitting ? (
@@ -603,6 +665,11 @@ export default function AttendanceModal({
                 <>
                   <Lock size={18} />
                   Already Recorded
+                </>
+              ) : !isToday ? (
+                <>
+                  <Lock size={18} />
+                  Date Invalid
                 </>
               ) : (
                 <>

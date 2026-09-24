@@ -1,6 +1,5 @@
 // ✅ src/components/DepartmentHead/Dashboard/TeachingLoadsCard.tsx
 
-import type { ElementType } from "react";
 import { Users } from "lucide-react";
 
 export type TeachingLoadRow = {
@@ -13,15 +12,11 @@ export type TeachingLoadRow = {
 
 interface TeachingLoadsCardProps {
   title: string;
-  actionLabel: string;
-  actionIcon: ElementType;
   rows: TeachingLoadRow[];
 }
 
 export default function TeachingLoadsCard({
   title,
-  actionLabel,
-  actionIcon: ActionIcon,
   rows,
 }: TeachingLoadsCardProps) {
   return (
@@ -29,24 +24,21 @@ export default function TeachingLoadsCard({
       <div className="card-body p-4 d-flex flex-column justify-content-between">
         <div>
           {/* HEADER */}
-          <div className="d-flex align-items-center justify-content-between mb-3 gap-3">
+          <div className="d-flex align-items-center justify-content-between mb-3">
             <h5 className="fw-bold mb-0">{title}</h5>
-
-            {rows.length > 0 && (
-              <button
-                type="button"
-                className="btn btn-link text-decoration-none d-inline-flex align-items-center gap-2 flex-shrink-0"
-              >
-                {actionLabel}
-                <ActionIcon size={18} />
-              </button>
-            )}
           </div>
 
           {/* TEACHING LOADS OR EMPTY STATE */}
           {rows.length > 0 ? (
-            <div className="d-flex flex-column gap-4">
-              {rows.map((r) => {
+            <div
+              className="d-flex flex-column gap-4 pe-2"
+              style={{
+                maxHeight: "320px",
+                overflowY: "auto",
+                scrollbarWidth: "thin",
+              }}
+            >
+              {rows.map((r, index) => {
                 const pct =
                   r.max > 0
                     ? Math.min(100, Math.round((r.current / r.max) * 100))
@@ -55,12 +47,12 @@ export default function TeachingLoadsCard({
                 const isDanger = r.tone === "danger";
 
                 return (
-                  <div key={r.name}>
+                  <div key={`${r.name}-${index}`}>
                     {/* FACULTY INFORMATION */}
                     <div className="d-flex align-items-start justify-content-between gap-3">
                       <div className="min-width-0">
                         <div className="fw-semibold">{r.name}</div>
-                        <div className="text-muted">{r.dept}</div>
+                        <div className="text-muted small">{r.dept}</div>
                       </div>
 
                       {/* LOAD PILL */}
@@ -97,9 +89,12 @@ export default function TeachingLoadsCard({
               <div className="bg-light d-inline-flex align-items-center justify-content-center rounded-circle p-3 mb-2">
                 <Users size={28} className="text-secondary" />
               </div>
-              <h6 className="fw-semibold mb-1 text-dark">No Teaching Loads Recorded</h6>
+              <h6 className="fw-semibold mb-1 text-dark">
+                No Teaching Loads Recorded
+              </h6>
               <p className="small text-muted mb-0">
-                There are currently no active teaching loads assigned to faculty in this department.
+                There are currently no active teaching loads assigned to faculty in
+                this department.
               </p>
             </div>
           )}

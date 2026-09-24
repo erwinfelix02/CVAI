@@ -40,6 +40,7 @@ export default function StudentsTable({
 
   const [menu, setMenu] = useState<MenuState>(null);
   const [showUnavailableModal, setShowUnavailableModal] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -117,6 +118,19 @@ export default function StudentsTable({
     setShowUnavailableModal(true);
   };
 
+  const getFullAvatarUrl = (url?: string): string => {
+    if (!url) return "";
+    if (
+      url.startsWith("data:") ||
+      url.startsWith("blob:") ||
+      url.startsWith("http://") ||
+      url.startsWith("https://")
+    ) {
+      return url;
+    }
+    return `http://localhost:5000${url.startsWith("/") ? "" : "/"}${url}`;
+  };
+
   return (
     <>
       <div className="card shadow-sm registrar-card">
@@ -143,12 +157,47 @@ export default function StudentsTable({
                 <tbody>
                   {rows.map((s) => {
                     const isOpen = menu?.id === s.id;
+                    const resolvedAvatarUrl = getFullAvatarUrl(s.avatarUrl);
+                    const showAvatar =
+                      Boolean(resolvedAvatarUrl) && !imageErrors[s.id];
 
                     return (
                       <tr key={s.id}>
                         <td>
                           <div className="d-flex align-items-center gap-3">
-                            <div className="registrar-avatar">{s.initials}</div>
+                            <div
+                              className="registrar-avatar overflow-hidden d-flex align-items-center justify-content-center p-0"
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: "50%",
+                                backgroundColor: showAvatar
+                                  ? "transparent"
+                                  : undefined,
+                              }}
+                            >
+                              {showAvatar ? (
+                                <img
+                                  src={resolvedAvatarUrl}
+                                  alt={s.name}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    display: "block",
+                                    borderRadius: "50%",
+                                  }}
+                                  onError={() =>
+                                    setImageErrors((prev) => ({
+                                      ...prev,
+                                      [s.id]: true,
+                                    }))
+                                  }
+                                />
+                              ) : (
+                                s.initials
+                              )}
+                            </div>
                             <div className="min-w-0">
                               <div className="fw-semibold text-truncate">
                                 {s.name}
@@ -238,46 +287,46 @@ export default function StudentsTable({
           document.body,
         )}
 
-     {showUnavailableModal &&
-  createPortal(
-    <div
-      className="students-modal-backdrop"
-      onClick={() => setShowUnavailableModal(false)}
-    >
-      <div
-        className="students-modal-card"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="students-unavailable-title"
-      >
-        <div className="students-modal-icon-wrap">
-          <div className="students-modal-icon">
-            <UserX size={22} />
-          </div>
-        </div>
-
-        <h5 id="students-unavailable-title" className="students-modal-title">
-          Not Available Yet
-        </h5>
-
-        <p className="students-modal-text">
-          Mark as Dropped is not available yet.
-        </p>
-
-        <div className="students-modal-actions">
-          <button
-            type="button"
-            className="btn btn-danger students-modal-btn-primary"
+      {showUnavailableModal &&
+        createPortal(
+          <div
+            className="students-modal-backdrop"
             onClick={() => setShowUnavailableModal(false)}
           >
-            OK
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body,
-  )}
+            <div
+              className="students-modal-card"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="students-unavailable-title"
+            >
+              <div className="students-modal-icon-wrap">
+                <div className="students-modal-icon">
+                  <UserX size={22} />
+                </div>
+              </div>
+
+              <h5 id="students-unavailable-title" className="students-modal-title">
+                Not Available Yet
+              </h5>
+
+              <p className="students-modal-text">
+                Mark as Dropped is not available yet.
+              </p>
+
+              <div className="students-modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-danger students-modal-btn-primary"
+                  onClick={() => setShowUnavailableModal(false)}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

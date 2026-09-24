@@ -1,3 +1,5 @@
+// src/components/Faculty/Student/StudentProfileModal.tsx
+
 import { useState } from "react";
 import { Mail, Phone } from "lucide-react";
 import { formatYearLevel, type Student } from "./types";
@@ -9,6 +11,7 @@ type Props = {
 
 export default function StudentProfileModal({ student, onClose }: Props) {
   const [activeTab, setActiveTab] = useState<"overview" | "academics" | "contact">("overview");
+  const [imageError, setImageError] = useState(false);
 
   if (!student) return null;
 
@@ -22,6 +25,24 @@ export default function StudentProfileModal({ student, onClose }: Props) {
     contactPhone && contactPhone !== "—" && contactPhone !== "null"
       ? contactPhone
       : "Not Provided";
+
+  // Helper to format proper image source URL
+  const getFullAvatarUrl = (url?: string): string => {
+    if (!url) return "";
+    if (
+      url.startsWith("data:") ||
+      url.startsWith("blob:") ||
+      url.startsWith("http://") ||
+      url.startsWith("https://")
+    ) {
+      return url;
+    }
+    // Prepend http://localhost:5000 for relative server paths
+    return `http://localhost:5000${url.startsWith("/") ? "" : "/"}${url}`;
+  };
+
+  const resolvedAvatarUrl = getFullAvatarUrl(student.avatarUrl);
+  const showAvatar = Boolean(resolvedAvatarUrl) && !imageError;
 
   return (
     <div
@@ -55,6 +76,7 @@ export default function StudentProfileModal({ student, onClose }: Props) {
             {/* Pill Navigation */}
             <div className="bg-light p-1 rounded-3 mb-4 d-flex gap-1">
               <button
+                type="button"
                 className={`btn flex-fill py-2 rounded-3 fw-medium transition-all ${
                   activeTab === "overview"
                     ? "bg-white text-dark shadow-sm"
@@ -65,6 +87,7 @@ export default function StudentProfileModal({ student, onClose }: Props) {
                 Overview
               </button>
               <button
+                type="button"
                 className={`btn flex-fill py-2 rounded-3 fw-medium transition-all ${
                   activeTab === "academics"
                     ? "bg-white text-dark shadow-sm"
@@ -75,6 +98,7 @@ export default function StudentProfileModal({ student, onClose }: Props) {
                 Academics
               </button>
               <button
+                type="button"
                 className={`btn flex-fill py-2 rounded-3 fw-medium transition-all ${
                   activeTab === "contact"
                     ? "bg-white text-dark shadow-sm"
@@ -90,15 +114,34 @@ export default function StudentProfileModal({ student, onClose }: Props) {
             {activeTab === "overview" && (
               <div className="tab-pane-content">
                 <div className="d-flex align-items-center gap-3 mb-4">
+                  {/* Avatar Container */}
                   <div
-                    className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold fs-3 flex-shrink-0"
+                    className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold fs-3 flex-shrink-0 overflow-hidden border"
                     style={{
                       width: "80px",
                       height: "80px",
                       backgroundColor: "#3b7a9e",
                     }}
                   >
-                    {student.initials || student.name?.charAt(0) || "ST"}
+                    {showAvatar ? (
+                      <img
+                        src={resolvedAvatarUrl}
+                        alt={student.name}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          display: "block",
+                          borderRadius: "50%",
+                        }}
+                        onError={(_e) => {
+                          console.warn(`Failed to load avatar image for modal: ${resolvedAvatarUrl}`);
+                          setImageError(true);
+                        }}
+                      />
+                    ) : (
+                      student.initials || student.name?.charAt(0) || "ST"
+                    )}
                   </div>
                   <div>
                     <h4 className="fw-bold mb-1 text-dark">{student.name}</h4>

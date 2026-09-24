@@ -18,12 +18,8 @@ import {
   getFacultyByDepartment,
   searchStudentsByName,
   sendStudentEmail,
+  changeMyPassword,
 } from "../controllers/userController.js";
-
-import {
-  authMiddleware,
-  authorizeRoles,
-} from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -45,76 +41,25 @@ router.post("/send-email", sendStudentEmail);
 
 router.get("/reserve-faculty-id", reserveFacultyId);
 router.get("/reserve-user-id", reserveUserId);
-
-router.get(
-  "/portal-statuses",
-  authMiddleware,
-  authorizeRoles("Super Admin"),
-  getPortalStatuses
-);
+router.get("/portal-statuses", getPortalStatuses);
 
 /* =========================================================
    SPECIFIC USER LISTS & ROLES
    ========================================================= */
 
-router.get(
-  "/students",
-  authMiddleware,
-  authorizeRoles("Registrar", "Super Admin", "Faculty"),
-  getStudentUsers
-);
-
-router.get(
-  "/role/registrar",
-  authMiddleware,
-  authorizeRoles("Registrar", "Super Admin"),
-  getRegistrarByRole
-);
+router.get("/students", getStudentUsers);
+router.get("/role/registrar", getRegistrarByRole);
 
 /* =========================================================
    GENERAL USER MANAGEMENT (CRUD)
    ========================================================= */
 
-router.get(
-  "/",
-  authMiddleware,
-  authorizeRoles("Registrar", "Super Admin"),
-  getUsers
-);
-
-router.post(
-  "/",
-  authMiddleware,
-  authorizeRoles("Registrar", "Super Admin"),
-  createUser
-);
-
-router.post(
-  "/:id/send-credentials",
-  authMiddleware,
-  authorizeRoles("Registrar", "Super Admin"),
-  sendCredentials
-);
-
-router.get(
-  "/:id",
-  authMiddleware,
-  authorizeRoles("Registrar", "Super Admin"),
-  getUserById
-);
-
-router.patch(
-  "/:id",
-  authMiddleware,
-  authorizeRoles("Registrar", "Super Admin"),
-  updateUser
-);
-
-router.patch(
-  "/:id/contact",
-  authMiddleware,
-  authorizeRoles("Registrar", "Super Admin"),
-  updateUserContactInfo
-);
+router.get("/", getUsers);
+router.post("/", createUser);
+router.post("/:id/send-credentials", sendCredentials);
+router.get("/:id", getUserById);
+router.patch("/:id", updateUser);
+router.patch("/:id/contact", updateUserContactInfo);
+router.patch("/me/password", changeMyPassword);
 
 export default router;

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { CheckCircle2, XCircle, Clock } from "lucide-react";
 import type { StudentItem } from "./attendance.types";
 
@@ -14,17 +15,36 @@ export default function StudentAttendanceRow({
   onSetPresent,
   onSetAbsent,
 }: StudentAttendanceRowProps) {
+  const [imageError, setImageError] = useState(false);
+
   const isPresent = student.status === "present";
   const isAbsent = student.status === "absent";
   const isLate = student.status === "late";
 
-  // Compute initials from name
+  // Helper to format backend local server or absolute avatar URL paths
+  const getFullAvatarUrl = (url?: string): string => {
+    if (!url) return "";
+    if (
+      url.startsWith("data:") ||
+      url.startsWith("blob:") ||
+      url.startsWith("http://") ||
+      url.startsWith("https://")
+    ) {
+      return url;
+    }
+    return `http://localhost:5000${url.startsWith("/") ? "" : "/"}${url}`;
+  };
+
+  const resolvedAvatarUrl = getFullAvatarUrl(student.avatarUrl);
+  const showAvatar = Boolean(resolvedAvatarUrl) && !imageError;
+
+  // Compute initials from name fallback
   const getInitials = (name: string) => {
-    const parts = name.trim().split(" ");
+    const parts = (name || "").trim().split(" ");
     if (parts.length >= 2) {
       return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
     }
-    return name.slice(0, 2).toUpperCase();
+    return (name || "").slice(0, 2).toUpperCase();
   };
 
   return (
@@ -39,23 +59,34 @@ export default function StudentAttendanceRow({
           : "bg-white border-light-subtle"
       }`}
     >
-      {/* Student Info with Avatar */}
+      {/* Student Info with Account Profile Avatar */}
       <div className="d-flex align-items-center gap-3 min-w-0">
         <div
-          className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
+          className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0 overflow-hidden border"
           style={{
             width: 44,
             height: 44,
-            backgroundColor: isPresent
-              ? "#10b981"
-              : isAbsent
-              ? "#f43f5e"
-              : isLate
-              ? "#f59e0b"
-              : "#475569",
+            minWidth: 44,
+            minHeight: 44,
+            backgroundColor: showAvatar ? "transparent" : "#3b82f6",
           }}
         >
-          {getInitials(student.name)}
+          {showAvatar ? (
+            <img
+              src={resolvedAvatarUrl}
+              alt={student.name}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                display: "block",
+                borderRadius: "50%",
+              }}
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            getInitials(student.name)
+          )}
         </div>
         <div className="text-truncate">
           <h6 className="fw-bold text-dark mb-0 text-truncate">
@@ -67,7 +98,6 @@ export default function StudentAttendanceRow({
 
       {/* Interactive Status Toggle Buttons */}
       <div className="d-flex align-items-center gap-2 flex-shrink-0">
-        {/* Late indicator badge if status was saved as late via modal */}
         {isLate && (
           <span className="badge bg-amber text-white px-3 py-2 rounded-3 d-inline-flex align-items-center gap-1">
             <Clock size={16} />

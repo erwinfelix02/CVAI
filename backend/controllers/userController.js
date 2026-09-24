@@ -2,6 +2,7 @@ import User from "../models/User.js";
 import Student from "../models/Student.js";
 import sendEmail from "../utils/sendEmail.js";
 import validator from "validator";
+import bcrypt from "bcryptjs";
 import { generateId, peekNextId } from "../utils/generateId.js";
 
 function getUserIdChecks() {
@@ -732,20 +733,20 @@ export const getMyProfile = async (req, res) => {
 
     if (id) {
       user = await User.findById(id).select(
-        "firstName middleName lastName idNumber email phone gender role status department maxUnits semester"
+        "firstName middleName lastName idNumber email phone gender role status department maxUnits semester address avatarUrl" // 👈 ADDED avatarUrl & address
       );
     } else if (email) {
       user = await User.findOne({ email }).select(
-        "firstName middleName lastName idNumber email phone gender role status department maxUnits semester"
+        "firstName middleName lastName idNumber email phone gender role status department maxUnits semester address avatarUrl" // 👈 ADDED avatarUrl & address
       );
     } else {
       user = await User.findOne({ role: "Dept Head", status: "active" }).select(
-        "firstName middleName lastName idNumber email phone gender role status department maxUnits semester"
+        "firstName middleName lastName idNumber email phone gender role status department maxUnits semester address avatarUrl" // 👈 ADDED avatarUrl & address
       );
 
       if (!user) {
         user = await User.findOne({ status: "active" }).select(
-          "firstName middleName lastName idNumber email phone gender role status department maxUnits semester"
+          "firstName middleName lastName idNumber email phone gender role status department maxUnits semester address avatarUrl" // 👈 ADDED avatarUrl & address
         );
       }
     }
@@ -990,7 +991,7 @@ export const updateMyProfile = async (req, res) => {
     }
 
     if (avatarUrl !== undefined) {
-      user.avatarUrl = avatarUrl;
+      user.avatarUrl = avatarUrl; // 👈 Saves avatar path to MongoDB
     }
 
     await user.save();
@@ -1004,5 +1005,64 @@ export const updateMyProfile = async (req, res) => {
     return res.status(500).json({
       message: err.message || "Failed to update profile.",
     });
+  }
+};
+
+export const changeMyPassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword, email, id } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current and new passwords are required." });
+    }
+
+    // Password Validation: Length, Uppercase, and Special Character
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: "New password must be at least 8 characters long." });
+    }
+
+    const hasUppercase = /[A-Z]/.test(newPassword);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>\-_=+[\]\\/`~;']/.test(newPassword);
+
+    if (!hasUppercase || !hasSpecialChar) {
+      return res.status(400).json({ 
+        message: "New password must include at least one capital letter and one special character." 
+      });
+    }
+
+    let user = null;
+    if (id) {
+      user = await User.findById(id).select("+password");
+    } else if (email) {
+      user = await User.findOne({ email }).select("+password");
+    } else if (req.user?.id) {
+      user = await User.findById(req.user.id).select("+password");
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "User account not found." });
+    }
+
+    // Verify current password matches
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Incorrect current password." });
+    }
+
+    // 🟢 Prevent reusing the current password as the new password
+    const isSameAsCurrent = await bcrypt.compare(newPassword, user.password);
+    if (isSameAsCurrent) {
+      return res.status(400).json({ message: "New password cannot be the same as your current password." });
+    }
+
+    // Assign new password (the pre-save hook on UserSchema handles hashing automatically)
+    user.password = newPassword;
+    user.isTemporaryPassword = false;
+    await user.save();
+
+    return res.status(200).json({ message: "Password updated successfully." });
+  } catch (err) {
+    console.error("changeMyPassword error:", err);
+    return res.status(500).json({ message: err.message || "Failed to update password." });
   }
 };

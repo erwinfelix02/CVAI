@@ -10,7 +10,6 @@ import {
   CheckCircle,
   Bell,
   FileText,
-  CreditCard,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -26,28 +25,6 @@ interface SidebarProps {
   setMobileOpen?: (open: boolean) => void;
   isMobile?: boolean;
 }
-
-const nav = [
-  { label: "Dashboard", icon: Home, path: "/student" },
-  {
-    label: "AI Assistant",
-    icon: Bot,
-    badge: "AI",
-    path: "/student/aiassistant",
-  },
-  { label: "My Profile", icon: User, path: "/student/profile" },
-  { label: "Schedule", icon: Calendar, path: "/student/schedule" },
-  { label: "Grades", icon: Book, path: "/student/grades" },
-  { label: "Attendance", icon: CheckCircle, path: "/student/attendance" },
-  {
-    label: "Announcements",
-    icon: Bell,
-    badge: 3,
-    path: "/student/announcements",
-  },
-  { label: "Documents", icon: FileText, path: "/student/documents" },
-  { label: "Fees & Payments", icon: CreditCard, path: "/student/fees" },
-];
 
 export default function StudentSidebar({
   collapsed = false,
@@ -65,6 +42,9 @@ export default function StudentSidebar({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutCountdown, setLogoutCountdown] = useState(3);
+  
+  // 🟢 Live Announcement Count State for Sidebar Badge
+  const [announcementCount, setAnnouncementCount] = useState<number>(0);
 
   const user = useMemo(() => {
     try {
@@ -74,6 +54,68 @@ export default function StudentSidebar({
       return null;
     }
   }, []);
+
+  // Fetch actual announcement count for the sidebar badge
+  useEffect(() => {
+    async function fetchSidebarAnnouncementCount() {
+      try {
+        const storedUser =
+          localStorage.getItem("user") || localStorage.getItem("studentProfile");
+        const student = storedUser ? JSON.parse(storedUser) : null;
+
+        const studentSection = student?.section || "BSHTM-01";
+        const studentCourses = Array.isArray(student?.enrolledSubjects)
+          ? student.enrolledSubjects.join(",")
+          : "MAT151";
+        const department =
+          student?.department || "College of Hospitality Management Technology";
+
+        const params = new URLSearchParams({
+          studentSection,
+          studentCourses,
+          department,
+        });
+
+        const res = await fetch(`/api/announcements?${params.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setAnnouncementCount(data.length);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch sidebar announcement count:", err);
+      }
+    }
+
+    fetchSidebarAnnouncementCount();
+  }, []);
+
+  const nav = [
+    { label: "Dashboard", icon: Home, path: "/student" },
+    {
+      label: "AI Assistant",
+      icon: Bot,
+      badge: "AI",
+      path: "/student/aiassistant",
+    },
+    { label: "My Profile", icon: User, path: "/student/profile" },
+    { label: "Schedule", icon: Calendar, path: "/student/schedule" },
+    { label: "Grades", icon: Book, path: "/student/grades" },
+    { label: "Attendance", icon: CheckCircle, path: "/student/attendance" },
+    {
+      label: "Announcements",
+      icon: Bell,
+      badge: announcementCount > 0 ? announcementCount : undefined,
+      path: "/student/announcements",
+    },
+    {
+      label: "My Courses",
+      icon: Book,
+      path: "/student/courses",
+    },
+    { label: "Documents", icon: FileText, path: "/student/documents" },
+  ];
 
   /* =========================================================
      LOGOUT AUDIT LOGGING & TIMER HANDLERS
@@ -198,7 +240,7 @@ export default function StudentSidebar({
           {nav.map(({ label, icon: Icon, badge, path }) => {
             const isActive =
               path === "/student"
-                ? location.pathname === path // exact match for dashboard
+                ? location.pathname === path
                 : location.pathname.startsWith(path);
 
             return (
@@ -215,7 +257,7 @@ export default function StudentSidebar({
                     <Icon size={18} />
                     {(!collapsed || isMobile) && <span>{label}</span>}
                   </div>
-                  {(!collapsed || isMobile) && badge && (
+                  {(!collapsed || isMobile) && badge !== undefined && (
                     <span className="badge bg-primary">{badge}</span>
                   )}
                 </div>

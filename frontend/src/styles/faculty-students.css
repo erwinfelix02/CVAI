@@ -182,3 +182,64 @@
 .cursor-pointer {
   cursor: pointer;
 }
+/* ==========================================
+   FACULTY STUDENT LIST - AVATAR STYLES
+   ========================================== */
+
+.student-row {
+  transition: background-color 0.2s ease-in-out;
+}
+
+.student-row:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Avatar container wrapper */
+.student-avatar-wrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  background-color: #e2e8f0;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+}
+
+/* Ensures the avatar image covers the container smoothly */
+.student-avatar-wrap img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+  border-radius: 50% !important;
+}
+
+/* Status indicator dot */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981; /* Green for active/good */
+}
+
+.status-dot.warning {
+  background-color: #f59e0b; /* Amber */
+}
+
+.status-dot.good,
+.status-dot.Active {
+  background-color: #10b981; /* Emerald */
+}
+
+.status-dot.Inactive,
+.status-dot.Dropped {
+  background-color: #ef4444; /* Rose */
+}

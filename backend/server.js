@@ -33,7 +33,9 @@ import { initArchiveCleanupTask } from "./utils/archiveCleanup.js";
 import announcementsRouter from "./routes/announcements.js";
 import attendanceRoutes from "./routes/attendance.js";
 import verificationRoutes from "./routes/verificationRoutes.js";
-
+import todoRoutes from "./routes/todoRoutes.js";
+import { checkUpcomingTasks } from "./utils/taskReminderService.js";
+import ticketRouter from "./routes/ticketRoutes.js";
 
 const app = express();
 
@@ -41,6 +43,7 @@ initArchiveCleanupTask();
 
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use(
   "/uploads",
   express.static("uploads", {
@@ -76,6 +79,10 @@ const startServer = async () => {
     await seedRolesIfMissing(); // ✅ seed after connect
      await startArchiveScheduler();
 
+     setInterval(() => {
+      checkUpcomingTasks();
+    }, 60 * 1000);
+
     app.use("/uploads", express.static("uploads"));
     app.use("/api/users", userRoutes);
     app.use("/api/auth", authRoutes);
@@ -102,6 +109,8 @@ const startServer = async () => {
     app.use("/api/announcements", announcementsRouter);
     app.use("/api/attendance", attendanceRoutes);
     app.use("/api/verification", verificationRoutes);
+    app.use("/api/todos", todoRoutes);
+    app.use('/api/tickets', ticketRouter)
     
 
 app.use(express.json({ limit: "25mb" }));

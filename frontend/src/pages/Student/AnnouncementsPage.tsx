@@ -1,72 +1,149 @@
+import { useState, useEffect } from "react";
 import "../../styles/announcements.css";
 import PinnedGrid from "../../components/Student/Announcements/PinnedGrid";
 import AnnouncementsList from "../../components/Student/Announcements/AnnouncementsList";
+import type { Announcement } from "../../components/Student/Announcements/types";
+import { Bell, Pin, Loader2, Inbox } from "lucide-react";
 
-import { Bell, Pin } from "lucide-react";
+const PINNED_STORAGE_KEY = "pinned_announcement_ids";
+const READ_STORAGE_KEY = "read_announcement_ids";
 
-export type Announcement = {
-  id: string;
-  title: string;
-  body: string;
-  date: string;
-  category: string;
-  categoryTone: "danger" | "primary" | "success" | "warning" | "purple";
-  pinned?: boolean;
-};
+function getStoredIds(key: string): string[] {
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : [];
+  } catch (err) {
+    console.error(`Error reading ${key} from localStorage`, err);
+    return [];
+  }
+}
 
-const data: Announcement[] = [
-  {
-    id: "a1",
-    pinned: true,
-    title: "Mid-term Examination Schedule Released",
-    body:
-      "The mid-term examination schedule for the 2nd semester has been released. Please check your student portal for your specific exam dates and venues. Make sure to review your subjects and prepare accordingly.",
-    date: "January 15, 2025",
-    category: "Examinations",
-    categoryTone: "danger",
-  },
-  {
-    id: "a2",
-    pinned: true,
-    title: "Library Extended Hours During Finals",
-    body:
-      "The university library will extend its operating hours from January 20-31. The library will be open from 6:00 AM to 12:00 MN to accommodate students preparing for finals. Please observe library rules and guidelines.",
-    date: "January 14, 2025",
-    category: "Facilities",
-    categoryTone: "primary",
-  },
-  {
-    id: "a3",
-    title: "Campus Science Fair 2025",
-    body:
-      "Join us for the annual Campus Science Fair on February 5-7, 2025. Students from all departments are encouraged to participate. Registration deadline is January 25, 2025.",
-    date: "January 13, 2025",
-    category: "Events",
-    categoryTone: "purple",
-  },
-  {
-    id: "a4",
-    title: "Scholarship Application for AY 2025-2026",
-    body:
-      "Applications for various scholarship programs for AY 2025-2026 are now open. Visit the Office of Student Affairs for more information and requirements.",
-    date: "January 12, 2025",
-    category: "Scholarships",
-    categoryTone: "success",
-  },
-  {
-    id: "a5",
-    title: "Campus Maintenance Notice",
-    body:
-      "Scheduled maintenance will take place this weekend. Some facilities and online services may experience intermittent downtime. Thank you for your understanding.",
-    date: "January 11, 2025",
-    category: "Maintenance",
-    categoryTone: "warning",
-  },
-];
+function getCategoryTone(
+  priority?: string
+): "danger" | "primary" | "success" | "warning" | "purple" {
+  switch (priority?.toLowerCase()) {
+    case "high":
+      return "danger";
+    case "medium":
+      return "warning";
+    case "low":
+      return "primary";
+    default:
+      return "purple";
+  }
+}
 
 export default function AnnouncementsPage() {
-  const pinned = data.filter((a) => a.pinned);
-  const all = data.filter((a) => !a.pinned);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchAnnouncements() {
+      try {
+        setLoading(true);
+
+        const storedUser =
+          localStorage.getItem("user") || localStorage.getItem("studentProfile");
+        const student = storedUser ? JSON.parse(storedUser) : null;
+
+        const studentSection = student?.section || "BSHTM-01";
+        const studentCourses = Array.isArray(student?.enrolledSubjects)
+          ? student.enrolledSubjects.join(",")
+          : "MAT151";
+        const department =
+          student?.department || "College of Hospitality Management Technology";
+
+        const params = new URLSearchParams({
+          studentSection,
+          studentCourses,
+          department,
+        });
+
+        const res = await fetch(`/api/announcements?${params.toString()}`);
+        if (!res.ok) throw new Error("Failed to load announcements");
+
+        const data = await res.json();
+        const savedPinnedIds = getStoredIds(PINNED_STORAGE_KEY);
+        const savedReadIds = getStoredIds(READ_STORAGE_KEY);
+
+        const mappedData: Announcement[] = data.map((item: any) => {
+          const id = item.id || item._id;
+          return {
+            id,
+            title: item.title,
+            body: item.message,
+            date:
+              item.date ||
+              new Date(item.createdAt).toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              }),
+            category: item.subjectCode
+              ? `${item.subjectCode} (${item.section || "All"})`
+              : "General",
+            categoryTone: getCategoryTone(item.priority),
+            pinned: savedPinnedIds.includes(id) || Boolean(item.pinned),
+            read: savedReadIds.includes(id),
+            priority: item.priority,
+            author: item.author,
+            department: item.department,
+          };
+        });
+
+        setAnnouncements(mappedData);
+      } catch (err: any) {
+        console.error("Fetch announcements error:", err);
+        setError("Unable to load announcements at this time.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchAnnouncements();
+  }, []);
+
+  const handleTogglePin = (id: string) => {
+    setAnnouncements((prev) => {
+      const updated = prev.map((item) =>
+        item.id === id ? { ...item, pinned: !item.pinned } : item
+      );
+
+      const pinnedIds = updated.filter((item) => item.pinned).map((item) => item.id);
+      localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(pinnedIds));
+
+      return updated;
+    });
+  };
+
+  const handleMarkAsRead = (id: string) => {
+    setAnnouncements((prev) => {
+      const updated = prev.map((item) =>
+        item.id === id ? { ...item, read: true } : item
+      );
+
+      const readIds = updated.filter((item) => item.read).map((item) => item.id);
+      localStorage.setItem(READ_STORAGE_KEY, JSON.stringify(readIds));
+
+      return updated;
+    });
+  };
+
+  const pinned = announcements.filter((a) => a.pinned);
+  const all = announcements.filter((a) => !a.pinned);
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center py-5">
+        <Loader2 className="spinner-border text-primary" size={32} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="alert alert-danger my-3">{error}</div>;
+  }
 
   return (
     <div className="ann-page">
@@ -79,23 +156,54 @@ export default function AnnouncementsPage() {
 
         <div className="ann-pill-count">
           <Bell size={16} />
-          <span className="fw-semibold">{data.length} announcements</span>
+          <span className="fw-semibold">{announcements.length} announcements</span>
         </div>
       </div>
 
-      {/* Pinned */}
-      <div className="d-flex align-items-center gap-2 mb-2 mt-2">
-  <div className="ann-section-icon">
-    <Pin size={18} />
-  </div>
-  <h4 className="fw-bold mb-0">Pinned</h4>
-</div>
+      {/* Pinned Section */}
+      {pinned.length > 0 && (
+        <>
+          <div className="d-flex align-items-center gap-2 mb-2 mt-2">
+            <div className="ann-section-icon">
+              <Pin size={18} />
+            </div>
+            <h4 className="fw-bold mb-0">Pinned</h4>
+          </div>
+          <PinnedGrid
+            items={pinned}
+            onTogglePin={handleTogglePin}
+            onMarkAsRead={handleMarkAsRead}
+          />
+        </>
+      )}
 
-      <PinnedGrid items={pinned} />
+      {/* All / Unpinned Announcements Section */}
+      <h4 className="fw-bold mt-4 mb-2">
+        {pinned.length > 0 ? "All Announcements" : "Recent Announcements"}
+      </h4>
 
-      {/* All */}
-      <h4 className="fw-bold mt-4 mb-2">All Announcements</h4>
-      <AnnouncementsList items={all} />
+      {all.length > 0 ? (
+        <AnnouncementsList
+          items={all}
+          onTogglePin={handleTogglePin}
+          onMarkAsRead={handleMarkAsRead}
+        />
+      ) : (
+        /* Empty State when all announcements are pinned or none exist */
+        <div className="card text-center p-4 border-dashed bg-light my-2">
+          <div className="card-body d-flex flex-column align-items-center">
+            <Inbox size={40} className="text-muted mb-2" />
+            <p className="fw-semibold text-secondary mb-1">
+              {pinned.length > 0
+                ? "All announcements are currently pinned above."
+                : "No announcements available."}
+            </p>
+            <small className="text-muted">
+              Check back later for new course updates.
+            </small>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,3 +1,5 @@
+// ✅ src/pages/Student/StudentDashboard.tsx
+
 import { useState, useEffect } from "react";
 import { CheckCircle2 } from "lucide-react";
 
@@ -15,11 +17,23 @@ interface UserProfile {
   email?: string;
 }
 
+interface RegistrarSettings {
+  academicYear: string;
+  semester: string;
+}
+
 export default function StudentDashboard() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [isWelcomeClosing, setIsWelcomeClosing] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState("");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  // State initialized with safe fallback values to prevent empty ", A.Y." rendering
+  const [academicSettings, setAcademicSettings] = useState<RegistrarSettings>({
+    academicYear: "2025-2026",
+    semester: "1st Semester",
+  });
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
   // 1. Check for sign-in welcome message in localStorage
   useEffect(() => {
@@ -52,18 +66,16 @@ export default function StudentDashboard() {
     };
   }, [showWelcome]);
 
-  // 3. Fetch signed-in student profile from /api/users/me
+  // 3. Fetch signed-in student profile
   useEffect(() => {
     async function fetchProfile() {
       try {
-        // Retrieve logged-in student's email or ID stored during sign-in
         const storedUser = localStorage.getItem("user");
         const parsedUser = storedUser ? JSON.parse(storedUser) : null;
         const userEmail = parsedUser?.email || localStorage.getItem("userEmail");
         const userId = parsedUser?.id || parsedUser?._id || localStorage.getItem("userId");
 
-        // Build URL query string based on backend getMyProfile expectations
-        let url = "http://localhost:5000/api/users/me";
+        let url = "/api/users/me";
         if (userId) {
           url += `?id=${encodeURIComponent(userId)}`;
         } else if (userEmail) {
@@ -91,10 +103,47 @@ export default function StudentDashboard() {
     fetchProfile();
   }, []);
 
+  // 4. Fetch dynamic Registrar Settings (Academic Year & Semester)
+  useEffect(() => {
+    async function fetchRegistrarSettings() {
+      try {
+        const token = localStorage.getItem("token");
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+        };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        const res = await fetch("/api/registrar-settings", { headers });
+        if (res.ok) {
+          const data = await res.json();
+
+          setAcademicSettings({
+            academicYear: data?.academicYear || "2025-2026",
+            semester: data?.semester || "1st Semester",
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch registrar settings:", err);
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    }
+
+    fetchRegistrarSettings();
+  }, []);
+
   // Construct full student name dynamically
   const studentFullName = userProfile
     ? `${userProfile.firstName} ${userProfile.middleName ? userProfile.middleName + " " : ""}${userProfile.lastName}`.trim()
     : "Student";
+
+  // Formatted Semester String Helper
+  const formattedSemester =
+    academicSettings.semester && academicSettings.academicYear
+      ? `${academicSettings.semester}, A.Y. ${academicSettings.academicYear}`
+      : academicSettings.semester || academicSettings.academicYear || "2nd Semester, A.Y. 2025-2026";
 
   return (
     <>
@@ -126,10 +175,12 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* Current Semester section */}
+        {/* Dynamic Current Semester section */}
         <div className="current-semester">
           <span className="label">Current Semester</span>
-          <span className="semester">2nd Semester, 2025–2026</span>
+          <span className="semester">
+            {isLoadingSettings ? "Loading..." : formattedSemester}
+          </span>
         </div>
       </header>
 

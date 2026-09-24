@@ -51,6 +51,7 @@ type StudentDetails = {
 
   status: "Active" | "Inactive" | "Dropped" | "Graduated";
   initials?: string;
+  avatarUrl?: string;
 
   gpa?: string;
 };
@@ -149,11 +150,71 @@ export default function StudentRecordsPage() {
   const registrarEmail =
     registrarAccount?.user || registrarAccount?.email || "";
 
+  // Normalization helper with type cast for row matching
+  const parseStudentDetails = (
+    responsePayload: any,
+    targetId: string,
+  ): StudentDetails => {
+    const s =
+      responsePayload?.student ||
+      responsePayload?.data?.student ||
+      responsePayload?.data ||
+      responsePayload ||
+      {};
+
+    const matchingRow = rows.find(
+      (r) =>
+        r.id === targetId ||
+        (r as any)._id === targetId ||
+        (r as any).studentIdNumber === targetId,
+    );
+
+    const rawAvatar =
+      s.avatarUrl ||
+      s.photo ||
+      s.image ||
+      s.avatar ||
+      s.profilePicture ||
+      s.profileImg ||
+      s.picture ||
+      s.profile_image ||
+      s.profile_pic ||
+      s.avatar_url ||
+      matchingRow?.avatarUrl ||
+      s.user?.avatarUrl ||
+      s.user?.photo ||
+      s.user?.profilePicture ||
+      s.user?.image ||
+      s.user?.avatar ||
+      s.account?.avatarUrl ||
+      s.account?.photo ||
+      s.profile?.avatarUrl ||
+      s.profile?.photo ||
+      "";
+
+    return {
+      ...s,
+      id: s.id || s._id || s.studentIdNumber || targetId || "",
+      name:
+        s.name ||
+        s.fullName ||
+        (s.firstName || s.lastName
+          ? `${s.firstName || ""} ${s.lastName || ""}`.trim()
+          : ""),
+      email: s.email || s.user?.email || "",
+      phone: s.phone || s.contactNumber || s.mobileNumber || "",
+      course: s.course || s.program || s.degree || "",
+      year: Number(s.year || s.yearLevel || 1),
+      status: s.status || "Active",
+      avatarUrl: rawAvatar,
+    };
+  };
+
   const load = async () => {
     try {
       setLoading(true);
 
-      const data = await getStudentRecords({
+      const data: any = await getStudentRecords({
         q: query.trim(),
         status,
         course,
@@ -161,7 +222,51 @@ export default function StudentRecordsPage() {
         section,
       });
 
-      setRows(data);
+      const recordsArray = Array.isArray(data)
+        ? data
+        : data?.students || data?.data || [];
+
+      const mappedRows: StudentRow[] = recordsArray.map((s: any) => {
+        let rawAvatar =
+          s.avatarUrl ||
+          s.photo ||
+          s.image ||
+          s.avatar ||
+          s.profilePicture ||
+          s.user?.avatarUrl ||
+          s.user?.photo ||
+          s.user?.profilePicture ||
+          "";
+
+        if (!rawAvatar && s && typeof s === "object") {
+          for (const key of Object.keys(s)) {
+            const val = s[key];
+            if (
+              typeof val === "string" &&
+              (val.includes("uploads") ||
+                val.includes("images") ||
+                val.includes("avatars") ||
+                val.startsWith("http") ||
+                val.startsWith("data:") ||
+                val.endsWith(".jpg") ||
+                val.endsWith(".jpeg") ||
+                val.endsWith(".png") ||
+                val.endsWith(".webp"))
+            ) {
+              rawAvatar = val;
+              break;
+            }
+          }
+        }
+
+        return {
+          ...s,
+          id: s.id || s._id || s.studentIdNumber || s.studentId,
+          avatarUrl: rawAvatar,
+        };
+      });
+
+      setRows(mappedRows);
     } catch (e: any) {
       console.error(e);
       setRows([]);
@@ -173,17 +278,26 @@ export default function StudentRecordsPage() {
 
   const loadEditOptions = async () => {
     try {
-      const [coursesData, departmentsData] = await Promise.all([
+      const [coursesDataRaw, departmentsDataRaw] = await Promise.all([
         getCourses(),
         getDepartments(),
       ]);
 
-      const mappedCourses: CourseOption[] = (
-        Array.isArray(coursesData) ? coursesData : []
-      )
+      const coursesData: any = coursesDataRaw;
+      const departmentsData: any = departmentsDataRaw;
+
+      const coursesArray = Array.isArray(coursesData)
+        ? coursesData
+        : coursesData?.courses || coursesData?.data || [];
+
+      const departmentsArray = Array.isArray(departmentsData)
+        ? departmentsData
+        : departmentsData?.departments || departmentsData?.data || [];
+
+      const mappedCourses: CourseOption[] = coursesArray
         .map(
           (c: any): CourseOption => ({
-            id: c._id,
+            id: c._id || c.id,
             code: c.code,
             name: c.name,
             yearLevels: Number(c.yearLevels ?? 4),
@@ -191,20 +305,18 @@ export default function StudentRecordsPage() {
             status: c.status === "Inactive" ? "Inactive" : "Active",
           }),
         )
-        .filter((c) => c.status === "Active");
+        .filter((c: CourseOption) => c.status === "Active");
 
-      const mappedDepartments: DepartmentOption[] = (
-        Array.isArray(departmentsData) ? departmentsData : []
-      )
+      const mappedDepartments: DepartmentOption[] = departmentsArray
         .map(
           (d: any): DepartmentOption => ({
-            id: d._id,
+            id: d._id || d.id,
             code: d.code,
             name: d.name,
             status: d.status === "Inactive" ? "Inactive" : "Active",
           }),
         )
-        .filter((d) => d.status === "Active");
+        .filter((d: DepartmentOption) => d.status === "Active");
 
       setCourseOptions(mappedCourses);
       setDepartmentOptions(mappedDepartments);
@@ -217,8 +329,10 @@ export default function StudentRecordsPage() {
 
   const loadRegistrarAccount = async () => {
     try {
-      const data = await getRegistrarByRole();
-      setRegistrarAccount(data || null);
+      const data: any = await getRegistrarByRole();
+      setRegistrarAccount(
+        data?.registrar || data?.user || data?.data || data || null,
+      );
     } catch (e) {
       console.error("Failed to load registrar account", e);
       setRegistrarAccount(null);
@@ -321,8 +435,8 @@ export default function StudentRecordsPage() {
 
   const handleViewDetails = async (id: string) => {
     try {
-      const student = await getStudentById(id);
-      setSelectedStudent(student);
+      const studentData = await getStudentById(id);
+      setSelectedStudent(parseStudentDetails(studentData, id));
       setDetailsOpen(true);
     } catch (err: any) {
       console.error(err);
@@ -333,8 +447,8 @@ export default function StudentRecordsPage() {
   const handleEditInfo = async (id: string) => {
     try {
       setEditLoading(true);
-      const student = await getStudentById(id);
-      setEditStudent(student);
+      const studentData = await getStudentById(id);
+      setEditStudent(parseStudentDetails(studentData, id));
       setEditOpen(true);
     } catch (err: any) {
       console.error(err);
@@ -375,7 +489,7 @@ export default function StudentRecordsPage() {
 
       if (selectedStudent?.id === editStudent.id) {
         const refreshed = await getStudentById(editStudent.id);
-        setSelectedStudent(refreshed);
+        setSelectedStudent(parseStudentDetails(refreshed, editStudent.id));
       }
 
       setEditOpen(false);
@@ -554,7 +668,7 @@ export default function StudentRecordsPage() {
           loading={editLoading}
         />
 
-        {/* 1. EXPORT OPTIONS MODAL (PORTALED TO DOCUMENT.BODY TO BLUR SIDEBAR) */}
+        {/* 1. EXPORT OPTIONS MODAL */}
         {exportModalOpen &&
           createPortal(
             <div
@@ -679,7 +793,7 @@ export default function StudentRecordsPage() {
             document.body,
           )}
 
-        {/* 2. CONFIRM EXPORT MODAL (PORTALED TO DOCUMENT.BODY AT HIGHER Z-INDEX) */}
+        {/* 2. CONFIRM EXPORT MODAL */}
         {confirmModalOpen &&
           createPortal(
             <div
@@ -745,7 +859,7 @@ export default function StudentRecordsPage() {
             document.body,
           )}
 
-        {/* 3. EXIT CONFIRMATION MODAL FOR EXPORT (PORTALED TO DOCUMENT.BODY AT HIGHEST Z-INDEX) */}
+        {/* 3. EXIT CONFIRMATION MODAL */}
         {exitConfirmModalOpen &&
           createPortal(
             <div

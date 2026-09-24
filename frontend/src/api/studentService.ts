@@ -99,6 +99,11 @@ export async function getStudentRecords(params?: {
   return (Array.isArray(data) ? data : []) as StudentRow[];
 }
 
+// 🟢 NEW: Helper function to fetch students specifically by section name
+export async function getStudentsBySection(sectionName: string) {
+  return getStudentRecords({ section: sectionName });
+}
+
 export async function getStudentById(id: string) {
   const res = await fetch(`${API_BASE_URL}/${id}`);
 

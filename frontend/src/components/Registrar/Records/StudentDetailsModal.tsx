@@ -33,6 +33,7 @@ type StudentDetails = {
 
   status: "Active" | "Inactive" | "Dropped" | "Graduated";
   initials?: string;
+  avatarUrl?: string;
 
   gpa?: string;
 };
@@ -76,6 +77,7 @@ export default function StudentDetailsModal({
   student,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -99,7 +101,10 @@ export default function StudentDetailsModal({
   }, [open, onClose]);
 
   useEffect(() => {
-    if (open) setActiveTab("overview");
+    if (open) {
+      setActiveTab("overview");
+      setImageError(false);
+    }
   }, [open]);
 
   const initials = useMemo(
@@ -107,7 +112,23 @@ export default function StudentDetailsModal({
     [student],
   );
 
+  const getFullAvatarUrl = (url?: string): string => {
+    if (!url) return "";
+    if (
+      url.startsWith("data:") ||
+      url.startsWith("blob:") ||
+      url.startsWith("http://") ||
+      url.startsWith("https://")
+    ) {
+      return url;
+    }
+    return `http://localhost:5000${url.startsWith("/") ? "" : "/"}${url}`;
+  };
+
   if (!open || !student) return null;
+
+  const resolvedAvatarUrl = getFullAvatarUrl(student.avatarUrl);
+  const showAvatar = Boolean(resolvedAvatarUrl) && !imageError;
 
   const enrolledDate = student.enrolledDate || "—";
   const birthdate = student.birthdate || "—";
@@ -159,7 +180,32 @@ export default function StudentDetailsModal({
           {activeTab === "overview" && (
             <>
               <div className="student-profile-card">
-                <div className="student-profile-avatar">{initials}</div>
+                <div
+                  className="student-profile-avatar overflow-hidden d-flex align-items-center justify-content-center p-0"
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: "50%",
+                    backgroundColor: showAvatar ? "transparent" : undefined,
+                  }}
+                >
+                  {showAvatar ? (
+                    <img
+                      src={resolvedAvatarUrl}
+                      alt={student.name}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                        borderRadius: "50%",
+                      }}
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    initials
+                  )}
+                </div>
 
                 <div className="student-profile-main">
                   <div className="student-profile-name">{student.name}</div>
