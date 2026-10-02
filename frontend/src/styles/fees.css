@@ -1,0 +1,12 @@
+/* Optional tweaks */
+.card {
+  border-radius: 16px;
+}
+
+.progress {
+  border-radius: 999px;
+}
+
+.progress-bar {
+  border-radius: 999px;
+}

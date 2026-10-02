@@ -1,0 +1,277 @@
+/* ==============================
+   REGISTRAR SIDEBAR (match Faculty)
+============================== */
+.registrar-sidebar {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+
+  height: 100dvh;
+  transition: width 0.25s ease, transform 0.25s ease;
+
+  position: relative;
+  z-index: 1050;
+  overflow: hidden;
+}
+
+/* widths */
+.registrar-sidebar.collapsed { width: 70px; }
+.registrar-sidebar.expanded { width: 250px; }
+
+/* ==============================
+   Header
+============================== */
+.registrar-sidebar-header {
+  padding: 14px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+
+  border-bottom: 1px solid #e5e7eb;
+}
+/* Make sidebar text smaller */
+.registrar-sidebar .nav-label span {
+  font-size: 0.85rem;   /* smaller than default */
+}
+
+/* Slightly reduce nav item height */
+.registrar-sidebar .nav-item {
+  padding: 8px 10px;    /* was 10px 12px */
+}
+
+/* Reduce header text size slightly */
+.brand-text {
+  font-size: 0.95rem;
+}
+
+.sidebar-description {
+  font-size: 0.7rem;
+}
+.brand-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.brand-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #e6f2ff;
+  color: #2563eb;
+}
+
+.brand-text-container {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+/* ==============================
+   Nav (Scrollable middle)
+============================== */
+.registrar-sidebar-nav {
+  padding: 6px 10px 0px 10px;  /* less bottom padding */
+  display: flex;
+  flex-direction: column;
+  gap: 2px;                   /* slightly reduce spacing */
+
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ==============================
+   Nav Items
+============================== */
+.registrar-sidebar .nav-item {
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #0f172a;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.registrar-sidebar .nav-item:hover {
+  background: #f3f4f6;
+}
+
+.registrar-sidebar .nav-item.active {
+  background: #0d6efd;
+}
+
+.registrar-sidebar .nav-item.active .nav-label span,
+.registrar-sidebar .nav-item.active .nav-label svg {
+  color: #fff;
+}
+
+.registrar-sidebar .nav-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+/* ==============================
+   Bottom (Pinned)
+============================== */
+.registrar-sidebar-bottom {
+  margin-top: auto;
+  padding: 6px 10px 0px 10px;
+  flex-shrink: 0;
+}
+
+.sidebar-separator {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 4px 0;
+}
+
+.nav-item-danger {
+  color: #dc2626;
+}
+.nav-item-danger .nav-label svg {
+  color: #dc2626;
+}
+.nav-item-danger:hover {
+  background: rgba(220, 38, 38, 0.08);
+}
+
+/* ==============================
+   Collapsed adjustments (match Faculty)
+============================== */
+.registrar-sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 0.5rem 0;
+}
+
+.registrar-sidebar.collapsed .nav-item .nav-label {
+  justify-content: center;
+  gap: 0;
+}
+
+.registrar-sidebar.collapsed .nav-item .nav-label span {
+  display: none;
+}
+
+.registrar-sidebar.collapsed .nav-item .badge {
+  display: none;
+}
+
+.registrar-sidebar.collapsed .registrar-sidebar-header {
+  justify-content: center;
+}
+
+.registrar-sidebar.collapsed .registrar-sidebar-header button {
+  margin: 0;
+}
+
+.registrar-sidebar.collapsed .registrar-sidebar-bottom {
+  padding: 8px 0.5rem;
+}
+
+.registrar-sidebar.collapsed .sidebar-separator {
+  margin: 10px 0.5rem;
+}
+
+/* ==============================
+   Mobile slide in/out (same as Faculty)
+============================== */
+@media (max-width: 767.98px) {
+  .registrar-sidebar.expanded,
+  .registrar-sidebar.collapsed {
+    position: fixed;
+    top: 0;
+    left: -250px;
+    height: 100dvh;
+    width: 250px;
+    transition: left 0.25s ease;
+    z-index: 1300;
+  }
+
+  .registrar-sidebar.mobile-open {
+    left: 0;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
+}
+.logout-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.logout-modal {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 320px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+.logging-out-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.logging-out-box {
+  width: min(90%, 360px);
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 24px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: fadeInScale 0.25s ease;
+}
+
+.logging-out-box h5 {
+  margin: 12px 0 8px;
+  font-weight: 700;
+}
+
+.logging-out-box p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.logging-spinner {
+  width: 46px;
+  height: 46px;
+  margin: 0 auto;
+  border: 4px solid #e9ecef;
+  border-top: 4px solid #dc3545;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

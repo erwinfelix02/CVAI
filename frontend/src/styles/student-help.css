@@ -1,0 +1,50 @@
+.help-page {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 0;
+}
+
+/* Card button reset */
+.help-card {
+  border-radius: 16px;
+  background: #fff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.help-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
+}
+
+.help-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+}
+
+.help-form-card {
+  border-radius: 18px;
+}
+
+.help-form-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #eef6ff;
+  color: #0d6efd;
+}
+
+/* Custom purple tone (Bootstrap doesn’t have bg-purple by default) */
+.bg-purple {
+  background: #7c3aed !important;
+}
+.student-help-page {
+  width: 100%;
+  min-width: 0;
+}
+
+.student-help-shell {
+  width: 100%;
+  min-width: 0;
+  padding: 0; /* same as profile shell */
+}

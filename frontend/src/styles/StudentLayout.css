@@ -1,0 +1,176 @@
+/* StudentLayout.css */
+.student-layout {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* Main content area */
+.student-main {
+  height: 100dvh;
+  overflow-y: auto;
+
+  /* breathing room */
+  padding-left: 16px;
+  padding-right: 16px;
+
+  /* safe-area padding (notches / rounded corners) */
+  padding-top: calc(16px + env(safe-area-inset-top));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+/* Optional: extra top space so content doesn't sit under the fixed hamburger */
+@media (max-width: 767.98px) {
+  .student-main {
+    padding-top: calc(64px + env(safe-area-inset-top));
+  }
+}
+.student-layout {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* main scroll container */
+.student-main {
+  height: 100dvh;
+  overflow-y: auto;
+  padding: 16px;
+  padding-top: calc(16px + env(safe-area-inset-top));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+/* =========================
+   MOBILE TOP HEADER (Better UI)
+========================= */
+.student-mobile-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  /* height without safe-area; safe-area is added via padding-top */
+  height: 60px;
+  padding-top: env(safe-area-inset-top);
+
+  /* padding */
+  padding-left: 14px;
+  padding-right: 14px;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  /* modern look */
+  background: #ffffff;
+  color: #0f172a;
+
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+
+  z-index: 1200;
+}
+
+/* left menu button */
+.student-mobile-menu-btn {
+  width: 42px;
+  height: 42px;
+  border: 1px solid #e5e7eb;
+  background: #105192;
+  border-radius: 12px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.student-mobile-menu-btn:active {
+  transform: scale(0.96);
+  background: #eef2ff;
+}
+
+/* title container */
+.student-mobile-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0; /* allows ellipsis */
+}
+
+.student-mobile-title {
+  font-weight: 800;
+  font-size: 0.98rem;
+  line-height: 1.05;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.student-mobile-subtitle {
+  font-size: 0.78rem;
+  color: #64748b;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ✅ spacing so content doesn't go under header */
+@media (max-width: 767.98px) {
+  .student-main.has-mobile-header {
+    padding-top: calc(60px + 16px + env(safe-area-inset-top));
+  }
+}
+/* StudentLayout.css */
+
+.student-layout {
+  display: flex;
+  width: 100%;
+}
+@media (max-width: 767.98px) {
+  .student-sidebar.collapsed,
+  .student-sidebar.expanded {
+    z-index: 1300; /* must be > header */
+  }
+}
+.student-mobile-header {
+  z-index: 1200;
+}
+
+/* ✅ CRITICAL: prevent the main content from overflowing under the sidebar */
+.student-main {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+/* ✅ Sidebar should not shrink */
+.student-sidebar {
+  flex-shrink: 0;
+}
+.student-mobile-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.student-mobile-title {
+  font-weight: 800;
+  font-size: 0.98rem;
+  line-height: 1.05;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.student-mobile-subtitle {
+  font-size: 0.78rem;
+  color: rgba(15, 15, 15, 0.75);
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

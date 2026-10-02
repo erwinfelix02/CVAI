@@ -1,0 +1,257 @@
+/* =========================
+   PREREG NAVBAR
+========================= */
+.prereg-navbar {
+  min-height: 72px;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  z-index: 1200;
+  transition:
+    background-color 0.3s ease,
+    backdrop-filter 0.3s ease,
+    -webkit-backdrop-filter 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.prereg-navbar.scrolled {
+  background-color: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 10px 24px rgba(2, 8, 23, 0.06);
+}
+
+/* =========================
+   INNER CONTAINER
+   identical side spacing/alignment
+========================= */
+.prereg-navbar-inner {
+  max-width: 1320px;
+  width: 100%;
+  min-height: 72px;
+  margin: 0 auto;
+  padding-left: 16px;
+  padding-right: 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* =========================
+   BRAND
+========================= */
+.prereg-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* =========================
+   LOGO WRAPPER
+========================= */
+.prereg-logo-wrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 12px rgba(2, 8, 23, 0.12);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+/* =========================
+   LOGO
+========================= */
+.prereg-navbar-logo {
+  width: 46px;
+  height: 46px;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+  flex: 0 0 auto;
+}
+
+/* =========================
+   TEXT
+========================= */
+.prereg-navbar-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.15;
+  overflow: visible;
+}
+
+.prereg-navbar-school,
+.prereg-navbar-subtitle {
+  display: block;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.prereg-navbar-school {
+  font-weight: 900;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: #0f172a;
+}
+
+.prereg-navbar-subtitle {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+/* =========================
+   TABLET
+========================= */
+@media (max-width: 991.98px) {
+  .prereg-navbar {
+    min-height: 68px;
+  }
+
+  .prereg-navbar-inner {
+    min-height: 68px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .prereg-logo-wrapper {
+    width: 50px;
+    height: 50px;
+  }
+
+  .prereg-navbar-logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .prereg-navbar-school {
+    font-size: 13px;
+  }
+
+  .prereg-navbar-subtitle {
+    font-size: 11px;
+  }
+}
+
+/* =========================
+   MOBILE
+========================= */
+@media (max-width: 767.98px) {
+  .prereg-navbar {
+    min-height: 64px;
+  }
+
+  .prereg-navbar-inner {
+    min-height: 64px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .prereg-brand {
+    gap: 8px;
+  }
+
+  .prereg-logo-wrapper {
+    width: 42px;
+    height: 42px;
+  }
+
+  .prereg-navbar-logo {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  .prereg-navbar-school {
+    font-size: 11px;
+    line-height: 1.1;
+  }
+
+  .prereg-navbar-subtitle {
+    font-size: 10px;
+    line-height: 1.1;
+  }
+}
+
+/* =========================
+   SMALL PHONES
+========================= */
+@media (max-width: 575.98px) {
+  .prereg-navbar-inner {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .prereg-brand {
+    gap: 6px;
+  }
+
+  .prereg-logo-wrapper {
+    width: 38px;
+    height: 38px;
+  }
+
+  .prereg-navbar-logo {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+  }
+
+  .prereg-navbar-school {
+    font-size: 10px;
+  }
+
+  .prereg-navbar-subtitle {
+    font-size: 9px;
+  }
+}
+
+/* =========================
+   EXTRA SMALL PHONES
+========================= */
+@media (max-width: 420px) {
+  .prereg-navbar-school {
+    font-size: 9.5px;
+  }
+
+  .prereg-navbar-subtitle {
+    font-size: 8.5px;
+  }
+}
+
+/* =========================
+   VERY TINY DEVICES
+========================= */
+@media (max-width: 360px) {
+  .prereg-logo-wrapper {
+    width: 34px;
+    height: 34px;
+  }
+
+  .prereg-navbar-logo {
+    width: 26px;
+    height: 26px;
+  }
+
+  .prereg-navbar-school {
+    font-size: 9px;
+  }
+
+  .prereg-navbar-subtitle {
+    font-size: 8px;
+  }
+}

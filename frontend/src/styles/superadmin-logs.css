@@ -1,0 +1,367 @@
+/* =========================
+   SUPERADMIN - ACTIVITY LOGS
+========================= */
+
+.superadmin-logs .superadmin-logs-card {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+/* title icon */
+.superadmin-logs-titleicon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(245, 158, 11, 0.14);
+  color: #d97706;
+  flex: 0 0 auto;
+}
+
+.superadmin-logs-btn {
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-weight: 600;
+}
+
+/* =========================
+   Stats
+========================= */
+.superadmin-logs-stat-ic {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.superadmin-logs-stat-ic.blue { background: rgba(59,130,246,.14); color: #2563eb; }
+.superadmin-logs-stat-ic.green { background: rgba(34,197,94,.14); color: #16a34a; }
+.superadmin-logs-stat-ic.orange { background: rgba(245,158,11,.16); color: #d97706; }
+.superadmin-logs-stat-ic.red { background: rgba(239,68,68,.12); color: #dc2626; }
+
+.superadmin-logs-stat-val {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.4px;
+}
+
+/* =========================
+   Filters bar
+========================= */
+.superadmin-logs-search {
+  position: relative;
+}
+.superadmin-logs-search-ic {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  color: #64748b;
+}
+.superadmin-logs-search-input {
+  padding-left: 40px;
+  border-radius: 14px;
+  height: 44px;
+}
+.superadmin-logs-search-input:focus { box-shadow: none; }
+
+.superadmin-logs-select {
+  position: relative;
+  min-width: 180px;
+}
+.superadmin-logs-select-control {
+  border-radius: 14px;
+  height: 44px;
+  padding-right: 38px;
+  font-weight: 600;
+}
+.superadmin-logs-select-control:focus { box-shadow: none; }
+.superadmin-logs-select-caret {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+}
+
+/* =========================
+   Table
+========================= */
+.superadmin-logs-tablewrap {
+  border-radius: 18px;
+}
+.superadmin-logs-table thead th {
+  font-size: 0.92rem;
+  color: #64748b;
+  font-weight: 700;
+  padding-top: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+.superadmin-logs-table td {
+  padding-top: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #eef2f6;
+  vertical-align: middle;
+}
+.superadmin-logs-details {
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.superadmin-logs-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.92rem;
+}
+
+/* user icon */
+.superadmin-logs-useric {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(15,23,42,.06);
+  display: grid;
+  place-items: center;
+  color: #0f172a;
+}
+
+/* pills */
+.superadmin-logs-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.superadmin-logs-pill.role.admin { color: #ef4444; background: rgba(239,68,68,.10); }
+.superadmin-logs-pill.role.faculty { color: #16a34a; background: rgba(34,197,94,.12); }
+.superadmin-logs-pill.role.student { color: #2563eb; background: rgba(59,130,246,.12); }
+.superadmin-logs-pill.role.neutral { color: #0f172a; background: rgba(15,23,42,.06); }
+
+.superadmin-logs-pill.type.auth { color: #2563eb; background: rgba(59,130,246,.12); }
+.superadmin-logs-pill.type.data { color: #7c3aed; background: rgba(124,58,237,.12); }
+.superadmin-logs-pill.type.security { color: #d97706; background: rgba(245,158,11,.14); }
+.superadmin-logs-pill.type.system { color: #0f172a; background: rgba(15,23,42,.06); }
+
+.superadmin-logs-pill.status.success { color: #16a34a; background: rgba(34,197,94,.12); }
+.superadmin-logs-pill.status.warning { color: #d97706; background: rgba(245,158,11,.14); }
+.superadmin-logs-pill.status.error { color: #dc2626; background: rgba(239,68,68,.12); }
+
+/* Mobile tweaks */
+@media (max-width: 575.98px) {
+  .superadmin-logs-select { width: 100%; min-width: 0; }
+  .superadmin-logs-details { max-width: 160px; }
+}
+.superadmin-logs-spin {
+  animation: superadminLogsSpin 0.8s linear infinite;
+}
+
+@keyframes superadminLogsSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.superadmin-logs-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1050;
+  animation: superadminLogsFadeIn 0.2s ease;
+}
+
+.superadmin-logs-modal {
+  width: 100%;
+  max-width: 560px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+  animation: superadminLogsModalIn 0.22s ease;
+}
+
+.superadmin-logs-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.25rem 1rem;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.superadmin-logs-modal-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef4ff;
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.superadmin-logs-modal-close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s ease;
+}
+
+.superadmin-logs-modal-close:hover {
+  background: #eef2f7;
+}
+
+.superadmin-logs-modal-close:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.superadmin-logs-modal-body {
+  padding: 1.25rem;
+}
+
+.superadmin-logs-export-options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+}
+
+.superadmin-logs-export-option {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 16px;
+  padding: 1rem 1rem;
+  transition: 0.2s ease;
+}
+
+.superadmin-logs-export-option:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.superadmin-logs-export-option.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.superadmin-logs-export-option:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.superadmin-logs-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 1.25rem;
+  border-top: 1px solid #eef2f7;
+}
+
+@keyframes superadminLogsFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes superadminLogsModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.superadmin-logs-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1060;
+  animation: superadminLogsFadeIn 0.18s ease;
+}
+
+.superadmin-logs-confirm-modal {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.2);
+  padding: 1.5rem;
+  animation: superadminLogsModalIn 0.2s ease;
+}
+
+.superadmin-logs-confirm-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 1rem;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #ea580c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.superadmin-logs-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+.superadmin-logs-modal-close {
+  flex-shrink: 0;
+}
+
+.superadmin-logs-modal-close.app-icon-btn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #d7dce5;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #374151;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.superadmin-logs-modal-close.app-icon-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #111827;
+}

@@ -1,0 +1,213 @@
+/* Overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+/* Card */
+.modal-card {
+  background: #fff;
+  width: 420px;
+  max-width: 90%;
+  border-radius: 14px;
+  padding: 20px 20px 30px; /* extra padding at the bottom */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Header */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.close-btn {
+  border: none;
+  background: #f8f9fa; /* light gray background by default */
+  cursor: pointer;
+  padding: 6px; /* slightly bigger to make a perfect circle */
+  border-radius: 50%; /* perfect circle */
+  display: flex; /* center the icon */
+  justify-content: center;
+  align-items: center;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.close-btn:hover {
+  background: #f03e3e; /* red background on hover */
+  color: #fff; /* icon turns white */
+}
+
+/* User info */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #e9ecef;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 600;
+  font-size: 18px;
+  color: #495057;
+}
+
+.user-info h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.user-info p {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+/* Divider */
+hr {
+  border: none;
+  border-top: 1px solid #e9ecef;
+  margin: 16px 0;
+}
+
+/* Grid */
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.label {
+  font-size: 12px;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.details-grid p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  font-weight: 600; /* make the info text bolder */
+  color: #212529; /* darker text for better contrast */
+}
+
+/* Status badge text bold */
+.status {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600; /* make status text bolder */
+}
+
+/* Status badge */
+.status {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status.active {
+  background: #e6fcf5;
+  color: #0ca678;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* Darker Overlay for Modals */
+.modal-overlay {
+  position: fixed; /* cover entire screen */
+  top: 0;
+  left: 0;
+  width: 100vw; /* full width */
+  height: 100vh; /* full height */
+  background: rgba(0, 0, 0, 0.65); /* darker black overlay */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000; /* above sidebar */
+}
+.status-wrapper {
+  margin-top: 4px; /* spacing below label */
+  display: flex;
+}
+
+.info-separator {
+  border: none; /* remove default border */
+  border-bottom: 1px solid #161616; /* light gray line */
+  margin: 12px 0 16px; /* space above and below */
+  width: 100%; /* full width under user info */
+}
+.label {
+  font-size: 12px;
+  color: #0f4c75; /* darker blue for highlight */
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600; /* make it bolder */
+  margin-bottom: 4px; /* spacing from value below */
+  display: block; /* ensures spacing works correctly */
+}
+.label {
+  background: rgba(15, 76, 117, 0.05); /* very light blue background */
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #0f4c75;
+  font-weight: 600;
+  display: inline-block; /* shrink-wrap to content */
+  margin-bottom: 4px;
+}
+.status.inactive {
+  background: #fff3f3; /* light red */
+  color: #f03e3e;
+}
+
+.modal-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000; /* higher than overlay */
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+}
+.modal-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000; /* above overlay */
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 520px;
+  width: 90%; /* responsive for mobile */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
