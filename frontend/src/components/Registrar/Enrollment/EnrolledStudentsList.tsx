@@ -21,12 +21,12 @@ export default function EnrolledStudentsList({
       {loading ? (
         <div className="text-muted text-center py-4">Loading...</div>
       ) : items.length > 0 ? (
-        <div 
+        <div
           className="d-flex flex-column gap-3 pe-1"
-          style={{ 
-            maxHeight: "310px", 
-            overflowY: "auto", 
-            overflowX: "hidden" 
+          style={{
+            maxHeight: "310px",
+            overflowY: "auto",
+            overflowX: "hidden",
           }}
         >
           {items.map((s) => {
