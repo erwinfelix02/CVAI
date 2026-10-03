@@ -69,8 +69,10 @@ app.use(
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
+    crossOriginOpenerPolicy: false,
     contentSecurityPolicy: false,
-  }),
+    frameguard: false,
+  })
 );
 
 // ✅ Start server only after DB is connected
