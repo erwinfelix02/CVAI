@@ -1,0 +1,238 @@
+/* Student Dashboard Header */
+.student-dashboard-header {
+  margin-bottom: 1.5rem; /* spacing below header */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .student-dashboard-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+/* Welcome section */
+.student-dashboard-header .welcome-text h1 {
+  font-size: 1.25rem; /* h4 size */
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.student-dashboard-header .welcome-text p {
+  color: #6c757d; /* muted gray */
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Current semester section */
+.student-dashboard-header .current-semester {
+  text-align: right;
+}
+
+
+.student-dashboard-header .current-semester .semester {
+  font-weight: 700;
+  color: #000; /* pure black */
+  font-size: 1rem;
+  display: block;
+  background: none; /* ensure no background */
+  padding: 0;       /* remove any padding if present */
+}
+@media (max-width: 767.98px) {
+  .student-dashboard-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between; /* space between welcome and semester */
+  }
+
+  /* Push welcome text a little to the right to make room for hamburger */
+  .student-dashboard-header .welcome-text {
+    margin-left: 50px; /* same as hamburger width + margin */
+    flex: 1;
+    min-width: 0; /* allow text to shrink if needed */
+  }
+
+  .student-dashboard-header .welcome-text h1 {
+    font-size: 1.2rem; /* bigger welcome text */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .student-dashboard-header .welcome-text p {
+    font-size: 0.85rem; /* slightly bigger subtitle */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Current semester smaller on mobile */
+  .student-dashboard-header .current-semester {
+    text-align: right;
+    font-size: 0.65rem; /* smaller text */
+    flex-shrink: 0;
+  }
+
+  .student-dashboard-header .current-semester .label {
+    font-size: 0.6rem; /* shrink label */
+  }
+
+  .student-dashboard-header .current-semester .semester {
+    font-size: 0.75rem; /* shrink semester text */
+  }
+}
+/* ===========================
+   Desktop: stacked text
+=========================== */
+.marquee-track {
+  display: flex;
+  flex-direction: column; /* stacked */
+  gap: 4px;
+}
+
+/* Hide duplicate item by default */
+.marquee-track .marquee-item[aria-hidden="true"] {
+  display: none;
+}
+
+/* ===========================
+   Mobile: side-by-side scrolling carousel
+=========================== */
+@media (max-width: 767.98px) {
+  .student-dashboard-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .welcome-text {
+    margin-left: 50px; /* space for hamburger/menu */
+    flex: 1;
+    min-width: 0; /* allow shrinking */
+    overflow: hidden; /* hide overflowing text */
+  }
+
+  .marquee-track {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 60px; /* space between repeated items */
+    animation: marqueeScroll 12s linear infinite;
+  }
+
+  .marquee-track .marquee-item[aria-hidden="true"] {
+    display: inline-flex;
+  }
+
+  .marquee-track .marquee-item {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .marquee-track h1,
+  .marquee-track p {
+    margin: 0;
+    white-space: nowrap;
+    font-size: 1rem;
+  }
+
+  /* Keyframes */
+  @keyframes marqueeScroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(calc(-50% - 1rem)); /* move only half + gap */
+    }
+  }
+}
+/* =========================
+   Scrollable Today Schedule
+========================= */
+
+.schedule-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* scroll container */
+.schedule-list {
+  flex: 1;
+  min-height: 0;                 /* 🔥 CRITICAL for flex scrolling */
+  overflow-y: auto;
+
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Desktop */
+@media (min-width: 992px) {
+  .schedule-list {
+    max-height: 320px;
+  }
+}
+
+/* Tablets */
+@media (max-width: 991.98px) {
+  .schedule-list {
+    max-height: 360px;
+  }
+}
+
+/* Phones */
+@media (max-width: 575.98px) {
+  .schedule-list {
+    max-height: 260px;
+  }
+}
+/* =========================
+   Scrollable Announcements
+========================= */
+
+.announcements-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* scroll container */
+.announcements-list {
+  flex: 1;
+  min-height: 0;                 /* 🔥 required for flex scrolling */
+  overflow-y: auto;
+
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Desktop */
+@media (min-width: 992px) {
+  .announcements-list {
+    max-height: 320px;
+  }
+}
+
+/* Tablets */
+@media (max-width: 991.98px) {
+  .announcements-list {
+    max-height: 360px;
+  }
+}
+
+/* Phones */
+@media (max-width: 575.98px) {
+  .announcements-list {
+    max-height: 260px;
+  }
+}

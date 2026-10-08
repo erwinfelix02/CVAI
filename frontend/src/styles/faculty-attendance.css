@@ -1,0 +1,448 @@
+.faculty-att-page {
+  background: #f6f8fb;
+  padding-top: 0 !important;
+}
+
+/* header buttons */
+.att-btn {
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 700;
+}
+
+/* filters card */
+.att-filters-card,
+.att-stat-card,
+.att-list-card {
+  border: 0;
+  border-radius: 16px;
+  box-shadow: 0 12px 26px rgba(2, 8, 23, 0.06);
+}
+
+.att-input {
+  border-radius: 12px !important;
+}
+
+/* stats */
+.att-stat-ico {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.att-stat-value {
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+  color: #0f172a; /* ✅ always visible */
+}
+
+.tone-blue { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+.tone-green { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+.tone-red { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+.tone-orange { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+
+.tone-text-blue { color: #2563eb; }
+.tone-text-green { color: #10b981; }
+.tone-text-red { color: #ef4444; }
+.tone-text-orange { color: #f59e0b; }
+
+/* list header pill */
+.att-pill {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+/* rows */
+.att-rows > * + * {
+  margin-top: 12px;
+}
+
+.att-row {
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: #fff;
+}
+
+.row-present {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.30);
+}
+.row-absent {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.30);
+}
+.row-pending {
+  background: #fff;
+}
+
+/* avatar */
+.att-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: #0b4a6f;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+}
+
+/* present/absent toggle buttons */
+.att-toggle {
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 800;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+}
+
+.att-toggle.is-on.is-present {
+  background: #10b981;
+  border-color: #10b981;
+  color: #fff;
+}
+
+.att-toggle.is-on.is-absent {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+
+/* responsive */
+@media (max-width: 576px) {
+  .att-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .att-toggle {
+    width: 100%;
+    justify-content: center;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+/* ✅ prevent inputs from overflowing in bootstrap grid */
+.faculty-att-filters .row > [class*="col-"] {
+  min-width: 0;
+}
+
+/* ✅ search container should not exceed its column */
+.faculty-att-search {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ✅ input can shrink (prevents cut) */
+.faculty-att-search input {
+  min-width: 0;
+  width: 100%;
+}
+
+/* ✅ if lucide icon is shrinking weird */
+.faculty-att-search svg {
+  flex: 0 0 auto;
+}
+/* =========================
+   ATTENDANCE HEADER (SAFE)
+   - Only affects buttons inside .attendance-header
+   - Will NOT affect other buttons in your app
+========================= */
+
+.attendance-header .att-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  /* ✅ Make borders visible only here */
+  border: 1px solid rgba(15, 23, 42, 0.14) !important;
+
+  /* ✅ Keep Bootstrap look */
+  background-clip: padding-box;
+
+  /* ✅ Prevent text wrapping/ugly cut */
+  white-space: nowrap;
+
+  /* ✅ Nice spacing */
+  padding: 10px 14px;
+  border-radius: 12px;
+
+  /* ✅ Light shadow like screenshot */
+  box-shadow: 0 8px 18px rgba(2, 8, 23, 0.06);
+}
+
+/* keep btn-light looking clean */
+.attendance-header .btn.btn-light.att-btn {
+  background: #fff !important;
+}
+
+/* keep btn-success proper (don’t force white bg) */
+.attendance-header .btn.btn-success.att-btn {
+  border-color: transparent !important;
+  box-shadow: 0 10px 20px rgba(16, 185, 129, 0.25);
+}
+
+/* hover safe */
+.attendance-header .btn.btn-light.att-btn:hover {
+  background: #f8fafc !important;
+}
+
+/* =========================
+   MOBILE: buttons become full width
+========================= */
+@media (max-width: 576px) {
+  .attendance-actions {
+    width: 100%;
+  }
+
+  .attendance-header .att-btn {
+    flex: 1;
+  }
+}
+/* =========================
+   ATTENDANCE SEARCH (FIX CUT)
+========================= */
+
+/* allow columns to shrink without breaking input-group */
+.att-filters-row > [class*="col-"] {
+  min-width: 0;
+}
+
+/* prevent the input-group from wrapping weirdly */
+.att-search-group {
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
+}
+
+/* icon area */
+.att-search-icon {
+  border-radius: 12px 0 0 12px !important;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+  flex: 0 0 auto;
+}
+
+/* input area */
+.att-search-input {
+  min-width: 0;
+  width: 100%;
+  border-radius: 0 12px 12px 0 !important;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-left: 0; /* ✅ removes double border between icon and input */
+}
+
+/* keep focus clean */
+.att-search-input:focus {
+  box-shadow: none;
+}
+.att-search-group:focus-within .att-search-icon,
+.att-search-group:focus-within .att-search-input {
+  border-color: rgba(11, 74, 111, 0.35);
+}
+/* Custom Attendance Modal Colors */
+.bg-emerald {
+  background-color: #10b981 !important;
+}
+
+.bg-emerald-subtle {
+  background-color: #d1fae5 !important;
+}
+
+.bg-emerald-light {
+  background-color: #ecfdf5 !important;
+}
+
+.text-emerald {
+  color: #047857 !important;
+}
+
+.border-emerald {
+  border-color: #a7f3d0 !important;
+}
+
+.border-emerald-subtle {
+  border-color: #a7f3d0 !important;
+}
+
+/* Rose / Absent Colors */
+.bg-rose {
+  background-color: #f43f5e !important;
+}
+
+.bg-rose-subtle {
+  background-color: #ffe4e6 !important;
+}
+
+.bg-rose-light {
+  background-color: #fff1f2 !important;
+}
+
+.text-rose {
+  color: #be123c !important;
+}
+
+.border-rose {
+  border-color: #fecdd3 !important;
+}
+
+.border-rose-subtle {
+  border-color: #fecdd3 !important;
+}
+
+/* Amber / Late Colors */
+.bg-amber {
+  background-color: #f59e0b !important;
+}
+
+.bg-amber-subtle {
+  background-color: #fef3c7 !important;
+}
+
+.bg-amber-light {
+  background-color: #fffbeb !important;
+}
+
+.text-amber {
+  color: #b45309 !important;
+}
+
+.border-amber {
+  border-color: #fde68a !important;
+}
+
+.border-amber-subtle {
+  border-color: #fde68a !important;
+}
+
+/* Modal Overlay Utility */
+.modal-blur-backdrop-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.att-list-card {
+  border-radius: 0.5rem;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.att-pill {
+  background-color: #eef2ff;
+  color: #4f46e5;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 50rem;
+}
+
+.att-stat-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 0.5rem;
+}
+
+.tone-blue { background-color: #e0f2fe; color: #0284c7; }
+.tone-green { background-color: #dcfce7; color: #16a34a; }
+.tone-red { background-color: #fee2e2; color: #dc2626; }
+.tone-orange { background-color: #ffedd5; color: #ea580c; }
+
+.tone-text-blue { color: #0284c7; font-weight: 700; font-size: 1.25rem; }
+.tone-text-green { color: #16a34a; font-weight: 700; font-size: 1.25rem; }
+.tone-text-red { color: #dc2626; font-weight: 700; font-size: 1.25rem; }
+.tone-text-orange { color: #ea580c; font-weight: 700; font-size: 1.25rem; }
+
+/* Color Palette Matching the UI */
+.bg-emerald-light {
+  background-color: #ecfdf5 !important;
+}
+
+.border-emerald-subtle {
+  border-color: #a7f3d0 !important;
+}
+
+.btn-emerald {
+  background-color: #10b981 !important;
+  color: #ffffff !important;
+}
+
+.btn-emerald:hover {
+  background-color: #059669 !important;
+}
+
+.bg-rose-light {
+  background-color: #fef2f2 !important;
+}
+
+.border-rose-subtle {
+  border-color: #fecaca !important;
+}
+
+.btn-rose {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+.btn-rose:hover {
+  background-color: #dc2626 !important;
+}
+/* Selected File Format Card (Blue Theme) */
+.format-card-selected {
+  border: 2px solid #0d5c75 !important;
+  background-color: rgba(13, 92, 117, 0.08) !important;
+  color: #0d5c75 !important;
+}
+
+/* Custom Dropdown Trigger Box */
+.custom-export-select {
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+/* Dropdown Options Popup */
+.custom-export-dropdown {
+  z-index: 1070;
+  top: 100%;
+  left: 0;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Selected Highlight State (Blue background matching initial design) */
+.custom-export-option.selected-highlight {
+  background-color: #0d5c75 !important;
+  color: #ffffff !important;
+  font-weight: 500;
+}
+
+/* Hover state for unselected options */
+.custom-export-option.hover-option:hover {
+  background-color: #f1f5f9;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}

@@ -1,0 +1,267 @@
+import mongoose from "mongoose";
+import {
+  encrypt,
+  decrypt,
+  isEncrypted,
+  hashLookup,
+  normalizeForStorage,
+} from "../utils/fieldCrypto.js";
+
+function generateRegistrationId() {
+  const year = new Date().getFullYear();
+  const random = Math.floor(100000 + Math.random() * 900000);
+  return `PR-${year}-${random}`;
+}
+
+function encryptedField(fieldName) {
+  return {
+    type: String,
+    get: (value) => decrypt(value),
+    set: (value) => {
+      if (value === undefined || value === null || value === "") return value;
+      return encrypt(normalizeForStorage(fieldName, value));
+    },
+  };
+}
+
+function getRawNested(doc, path) {
+  return doc.get(path, null, { getters: false });
+}
+
+function getPlainNested(doc, path) {
+  return decrypt(getRawNested(doc, path));
+}
+
+function ensureEncryptedNested(doc, paths) {
+  for (const path of paths) {
+    const raw = getRawNested(doc, path);
+    if (raw === undefined || raw === null || raw === "") continue;
+
+    if (!isEncrypted(raw)) {
+      doc.set(path, raw);
+    }
+  }
+}
+
+function isOperatorObject(value) {
+  return (
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.keys(value).some((key) => key.startsWith("$"))
+  );
+}
+
+const preregSchema = new mongoose.Schema(
+  {
+    blockchainTxHash: String,
+
+    registrationId: { type: String, unique: true },
+
+    personal: {
+      firstName: encryptedField("personal.firstName"),
+      middleName: encryptedField("personal.middleName"),
+      lastName: encryptedField("personal.lastName"),
+      email: encryptedField("personal.email"),
+      phone: encryptedField("personal.phone"),
+      birthDate: encryptedField("personal.birthDate"),
+      gender: encryptedField("personal.gender"),
+      address: encryptedField("personal.address"),
+
+      barangay: encryptedField("personal.barangay"),
+      municipality: encryptedField("personal.municipality"),
+      province: encryptedField("personal.province"),
+      postalCode: encryptedField("personal.postalCode"),
+
+      provinceCode: String,
+      municipalityCode: String,
+      barangayCode: String,
+    },
+
+    academic: {
+      applicantType: encryptedField("academic.applicantType"),
+      course: encryptedField("academic.course"),
+      previousSchool: encryptedField("academic.previousSchool"),
+    },
+
+    documents: {
+      birthCert: String,
+      goodMoral: String,
+      idPhoto: String,
+    },
+
+    emailHash: {
+      type: String,
+      index: true,
+      unique: true,
+      sparse: true,
+      select: false,
+    },
+
+    phoneHash: {
+      type: String,
+      index: true,
+      unique: true,
+      sparse: true,
+      select: false,
+    },
+
+    status: {
+      type: String,
+      enum: ["Pending", "Approved", "Rejected"],
+      default: "Pending",
+    },
+
+    rejectionReason: encryptedField("rejectionReason"),
+    approvedAt: { type: Date, default: null },
+    rejectedAt: { type: Date, default: null },
+    scheduleSentAt: { type: Date, default: null },
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      getters: true,
+      versionKey: false,
+    },
+    toObject: {
+      getters: true,
+      versionKey: false,
+    },
+  },
+);
+
+preregSchema.pre("save", function () {
+  if (!this.registrationId) {
+    this.registrationId = generateRegistrationId();
+  }
+
+  const encryptedPaths = [
+    "personal.firstName",
+    "personal.middleName",
+    "personal.lastName",
+    "personal.email",
+    "personal.phone",
+    "personal.birthDate",
+    "personal.gender",
+    "personal.address",
+    "personal.barangay",
+    "personal.municipality",
+    "personal.province",
+    "personal.postalCode",
+    "academic.applicantType",
+    "academic.course",
+    "academic.previousSchool",
+    "rejectionReason",
+  ];
+
+  ensureEncryptedNested(this, encryptedPaths);
+
+  const email = getPlainNested(this, "personal.email");
+  const phone = getPlainNested(this, "personal.phone");
+
+  this.emailHash = hashLookup("personal.email", email);
+  this.phoneHash = hashLookup("personal.phone", phone);
+});
+
+function rewriteLookupFilter(filter) {
+  if (!filter || typeof filter !== "object") return;
+
+  for (const logical of ["$or", "$and", "$nor"]) {
+    if (Array.isArray(filter[logical])) {
+      filter[logical].forEach(rewriteLookupFilter);
+    }
+  }
+
+  if (
+    "personal.email" in filter &&
+    !isOperatorObject(filter["personal.email"])
+  ) {
+    filter.emailHash = hashLookup("personal.email", filter["personal.email"]);
+    delete filter["personal.email"];
+  }
+
+  if (
+    "personal.phone" in filter &&
+    !isOperatorObject(filter["personal.phone"])
+  ) {
+    filter.phoneHash = hashLookup("personal.phone", filter["personal.phone"]);
+    delete filter["personal.phone"];
+  }
+}
+
+function applyEncryptedUpdate(update) {
+  if (!update || typeof update !== "object") return;
+
+  const target = update.$set || update;
+
+  const encryptMap = {
+    "personal.firstName": "personal.firstName",
+    "personal.middleName": "personal.middleName",
+    "personal.lastName": "personal.lastName",
+    "personal.email": "personal.email",
+    "personal.phone": "personal.phone",
+    "personal.birthDate": "personal.birthDate",
+    "personal.gender": "personal.gender",
+    "personal.address": "personal.address",
+
+    "personal.barangay": "personal.barangay",
+    "personal.municipality": "personal.municipality",
+    "personal.province": "personal.province",
+    "personal.postalCode": "personal.postalCode",
+    "academic.applicantType": "academic.applicantType",
+    "academic.course": "academic.course",
+    "academic.previousSchool": "academic.previousSchool",
+    rejectionReason: "rejectionReason",
+  };
+
+  for (const [path, fieldName] of Object.entries(encryptMap)) {
+    if (target[path] !== undefined) {
+      target[path] = encrypt(normalizeForStorage(fieldName, target[path]));
+    }
+  }
+
+  const plainEmail =
+    target["personal.email"] !== undefined
+      ? decrypt(target["personal.email"])
+      : undefined;
+
+  const plainPhone =
+    target["personal.phone"] !== undefined
+      ? decrypt(target["personal.phone"])
+      : undefined;
+
+  if (plainEmail !== undefined) {
+    target.emailHash = hashLookup("personal.email", plainEmail);
+  }
+
+  if (plainPhone !== undefined) {
+    target.phoneHash = hashLookup("personal.phone", plainPhone);
+  }
+
+  if (update.$set) update.$set = target;
+}
+
+for (const hook of [
+  "find",
+  "findOne",
+  "countDocuments",
+  "findOneAndUpdate",
+  "updateOne",
+  "updateMany",
+]) {
+  preregSchema.pre(hook, function () {
+    rewriteLookupFilter(this.getFilter());
+  });
+}
+
+for (const hook of ["findOneAndUpdate", "updateOne", "updateMany"]) {
+  preregSchema.pre(hook, function () {
+    applyEncryptedUpdate(this.getUpdate());
+  });
+}
+
+const Preregistration =
+  mongoose.models.Preregistration ||
+  mongoose.model("Preregistration", preregSchema);
+
+export default Preregistration;

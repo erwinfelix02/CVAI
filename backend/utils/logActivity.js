@@ -1,0 +1,127 @@
+// src/utils/logActivity.js
+import fs from "fs";
+import path from "path";
+import crypto from "crypto";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const logsFilePath = path.join(__dirname, "../data/logs.json");
+
+function ensureLogsFile() {
+  const dir = path.dirname(logsFilePath);
+
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  if (!fs.existsSync(logsFilePath)) {
+    fs.writeFileSync(logsFilePath, "[]", "utf-8");
+  }
+}
+
+/**
+ * @param {import("express").Request} req
+ */
+export function getClientIp(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  const rawIp =
+    (typeof forwarded === "string" ? forwarded.split(",")[0]?.trim() : "") ||
+    req.socket?.remoteAddress ||
+    req.ip ||
+    "unknown";
+
+  return rawIp === "::1" ? "127.0.0.1" : rawIp;
+}
+
+// 🟢 Automatically deletes logs older than 30 days
+export function deleteOldLogs() {
+  ensureLogsFile();
+  try {
+    const raw = fs.readFileSync(logsFilePath, "utf-8");
+    const logs = JSON.parse(raw);
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const validLogs = logs.filter((log) => {
+      // Parse log date and time (fallback to current time if invalid)
+      const logDate = new Date(`${log.date}T${log.time || "00:00:00"}`);
+      return !isNaN(logDate.getTime()) && logDate >= thirtyDaysAgo;
+    });
+
+    if (validLogs.length < logs.length) {
+      fs.writeFileSync(logsFilePath, JSON.stringify(validLogs, null, 2), "utf-8");
+      console.log(`🧹 Cleaned up ${logs.length - validLogs.length} logs older than 30 days.`);
+    }
+  } catch (err) {
+    console.error("Failed to clean up old logs:", err);
+  }
+}
+
+// Run cleanup immediately when the server boots up
+deleteOldLogs();
+
+export function getAllLogs() {
+  ensureLogsFile();
+  deleteOldLogs(); // Clean up on every read to ensure accuracy
+
+  try {
+    const raw = fs.readFileSync(logsFilePath, "utf-8");
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * @param {Array<any>} logs
+ */
+export function saveAllLogs(logs) {
+  ensureLogsFile();
+  fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2), "utf-8");
+}
+
+/**
+ * @param {{
+ *  action: string;
+ *  user: string;
+ *  role?: string;
+ *  type: string;
+ *  details: string;
+ *  ip?: string;
+ *  status: string;
+ * }} param0
+ */
+export function addLog({
+  action,
+  user,
+  role = "unknown",
+  type,
+  details,
+  ip = "unknown",
+  status,
+}) {
+  deleteOldLogs(); // Clean up before adding a new log
+  const logs = getAllLogs();
+  const now = new Date();
+
+  const log = {
+    id: crypto.randomUUID(),
+    date: now.toISOString().slice(0, 10),
+    time: now.toTimeString().slice(0, 8),
+    action,
+    user,
+    role,
+    type,
+    details,
+    ip,
+    status,
+  };
+
+  logs.unshift(log);
+  saveAllLogs(logs);
+
+  return log;
+}

@@ -1,0 +1,130 @@
+/* Page background similar to screenshot */
+.faculty-announcements-page {
+  background: #f6f7fb;
+   padding-top: 0 !important;
+}
+
+/* Small stat icons (colored rounded squares) */
+.stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+}
+
+.stat-icon.soft-blue { background: #eaf2ff; color: #2563eb; }
+.stat-icon.soft-red { background: #ffecec; color: #ef4444; }
+.stat-icon.soft-green { background: #eafff4; color: #22c55e; }
+
+/* Announcement cards */
+.announcement-card {
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+/* Colored top borders (match your screenshot lines) */
+.announcement-card.tone-medium { border-top: 4px solid #f59e0b; }
+.announcement-card.tone-high   { border-top: 4px solid #ef4444; }
+.announcement-card.tone-low    { border-top: 4px solid #22c55e; }
+
+/* Chips */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.chip-course {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  color: #0f172a;
+}
+
+.chip-priority.low {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+.chip-priority.medium {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.chip-priority.high {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+/* Actions on right */
+.icon-btn {
+  border: none;
+  background: transparent;
+  padding: 6px;
+  border-radius: 10px;
+  color: #0f172a;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.icon-btn:active {
+  transform: scale(0.96);
+}
+
+.icon-btn.danger {
+  color: #ef4444;
+}
+
+/* Mobile spacing */
+@media (max-width: 575.98px) {
+  .announcement-actions {
+    gap: 6px;
+  }
+}
+/* Guarantees full viewport coverage without clipping */
+.modal-blur-backdrop-fixed {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  z-index: 9999 !important;
+}
+
+/* Full Viewport Backdrop Overlay */
+.modal-blur-backdrop-fixed {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  z-index: 2000 !important; /* Higher than Bootstrap's 1050/1080 */
+}
+
+/* Glassmorphism Card Style */
+.modal-blur-card {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Cursor helper */
+.pointer {
+  cursor: pointer;
+}

@@ -1,0 +1,119 @@
+.ann-page {
+  width: 100%;
+  min-width: 0;
+}
+
+/* top pill counter */
+.ann-pill-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+}
+
+/* section icon box */
+.ann-section-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #eef6ff;
+  display: grid;
+  place-items: center;
+  color: #0d6efd;
+}
+
+/* announcement card */
+.ann-card {
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+}
+
+.ann-card--pinned {
+  background: #f3f6f9;
+  border-color: rgba(13, 110, 253, 0.35);
+}
+
+/* dot before title */
+.ann-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-top: 10px;
+  flex: 0 0 auto;
+}
+
+.ann-body {
+  /* Standard (modern browsers) */
+  line-clamp: 2;
+
+  /* Required layout rules */
+  display: -webkit-box;
+  display: box;
+  box-orient: vertical;
+  -webkit-box-orient: vertical;
+
+  /* WebKit fallback (Chrome, Safari, Edge) */
+  -webkit-line-clamp: 2;
+
+  overflow: hidden;
+}
+
+
+/* Read more link */
+.ann-readmore {
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* Category badge styles */
+.ann-badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.ann-badge.danger {
+  color: #dc3545;
+  background: #ffe8ea;
+  border-color: #ffc0c7;
+}
+
+.ann-badge.primary {
+  color: #0d6efd;
+  background: #e7f0ff;
+  border-color: #bcd5ff;
+}
+
+.ann-badge.success {
+  color: #198754;
+  background: #e9f8ef;
+  border-color: #bfead0;
+}
+
+.ann-badge.warning {
+  color: #f59f00;
+  background: #fff4e6;
+  border-color: #ffe0b2;
+}
+
+/* Purple badge (Events) */
+.bg-purple {
+  background: #7c3aed;
+}
+.ann-badge.purple {
+  color: #7c3aed;
+  background: #f3e8ff;
+  border-color: #e9d5ff;
+}
+
+/* Utility */
+.min-w-0 {
+  min-width: 0;
+}

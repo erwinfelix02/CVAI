@@ -1,0 +1,45 @@
+.attendance-page {
+  width: 100%;
+  min-width: 0;
+}
+
+.attendance-header h2 {
+  letter-spacing: -0.2px;
+}
+
+.att-stat-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.att-stat-value {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.att-subject-name {
+  font-size: 1.05rem;
+}
+
+.att-subject-percent {
+  font-size: 1.1rem;
+}
+
+.att-progress {
+  height: 10px;
+  border-radius: 999px;
+}
+
+.att-progress .progress-bar {
+  border-radius: 999px;
+}
+
+/* Make long subject names not break layout */
+.min-w-0 {
+  min-width: 0;
+}

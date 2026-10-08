@@ -1,0 +1,309 @@
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Eye, PencilLine, UserX } from "lucide-react";
+import { API_BASE_URL } from "../../../config";
+import type { StudentRow, StudentStatus } from "./types";
+
+function StatusPill({ status }: { status: StudentStatus | string }) {
+  const rawStatus = (status || "").toString().trim();
+  const lowerStatus = rawStatus.toLowerCase();
+
+  let cls = "dropped";
+  if (lowerStatus === "active" || lowerStatus === "good") {
+    cls = "active";
+  } else if (lowerStatus === "graduated") {
+    cls = "graduated";
+  } else if (lowerStatus === "inactive") {
+    cls = "inactive";
+  }
+
+  return <span className={`registrar-status ${cls}`}>{rawStatus}</span>;
+}
+
+type Props = {
+  title: string;
+  rows: StudentRow[];
+  onRowAction?: (id: string) => void;
+  onViewDetails?: (id: string) => void;
+  onEditInfo?: (id: string) => void;
+  onMarkDropped?: (id: string) => void;
+};
+
+type MenuState = {
+  id: string;
+  top: number;
+  left: number;
+} | null;
+
+export default function StudentsTable({
+  title,
+  rows,
+  onRowAction,
+  onViewDetails,
+  onEditInfo,
+  onMarkDropped,
+}: Props) {
+  const hasRows = rows.length > 0;
+
+  const [menu, setMenu] = useState<MenuState>(null);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(e.target as Node)) {
+        setMenu(null);
+      }
+    }
+
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setMenu(null);
+      }
+    }
+
+    function handleScroll() {
+      setMenu(null);
+    }
+
+    function handleResize() {
+      setMenu(null);
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  const toggleMenu = (
+    id: string,
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+  ) => {
+    const button = e.currentTarget;
+
+    setMenu((prev) => {
+      if (prev?.id === id) return null;
+
+      const rect = button.getBoundingClientRect();
+      const menuWidth = 196;
+      const menuHeight = 130; // Approximate height of the 3 action items
+      const gap = 8;
+
+      let left = rect.right - menuWidth;
+      if (left < 8) left = 8;
+
+      // Check if menu overflows the bottom of the viewport; if so, flip it above the button
+      let top = rect.bottom + gap;
+      if (top + menuHeight > window.innerHeight) {
+        top = rect.top - menuHeight - gap;
+      }
+
+      return { id, top, left };
+    });
+  };
+
+  const handleView = (id: string) => {
+    setMenu(null);
+    if (onViewDetails) return onViewDetails(id);
+    if (onRowAction) return onRowAction(id);
+  };
+
+  const handleEdit = (id: string) => {
+    setMenu(null);
+    if (onEditInfo) return onEditInfo(id);
+    if (onRowAction) return onRowAction(id);
+  };
+
+  const handleDropped = (id: string) => {
+    setMenu(null);
+    if (onMarkDropped) return onMarkDropped(id);
+  };
+
+  const getFullAvatarUrl = (url?: string): string => {
+    if (!url) return "";
+    if (
+      url.startsWith("data:") ||
+      url.startsWith("blob:") ||
+      url.startsWith("http://") ||
+      url.startsWith("https://")
+    ) {
+      return url;
+    }
+    const origin = API_BASE_URL.replace(/\/api\/?$/, "");
+    return `${origin}${url.startsWith("/") ? "" : "/"}${url}`;
+  };
+
+  return (
+    <>
+      <div className="card shadow-sm registrar-card">
+        <div className="card-body p-0">
+          <div className="p-3 p-md-4">
+            <h5 className="fw-bold mb-0">{title}</h5>
+          </div>
+
+          <div 
+            className="table-responsive registrar-table-wrap"
+            style={{ 
+              overflowY: "auto", 
+              position: "relative" 
+            }}
+          >
+            {hasRows ? (
+              <table className="table align-middle mb-0 registrar-table">
+                <thead style={{ position: "sticky", top: 0, zIndex: 1, backgroundColor: "#fff" }}>
+                  <tr className="text-muted">
+                    <th style={{ minWidth: 260 }}>Student</th>
+                    <th style={{ minWidth: 140 }}>Student ID</th>
+                    <th style={{ minWidth: 220 }}>Course</th>
+                    <th style={{ minWidth: 120 }}>Section</th>
+                    <th style={{ minWidth: 80 }}>Year</th>
+                    <th style={{ minWidth: 120 }}>Status</th>
+                    <th style={{ width: 70 }}>Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {rows.map((s) => {
+                    const isOpen = menu?.id === s.id;
+                    const resolvedAvatarUrl = getFullAvatarUrl(s.avatarUrl);
+                    const showAvatar =
+                      Boolean(resolvedAvatarUrl) && !imageErrors[s.id];
+
+                    return (
+                      <tr key={s.id}>
+                        <td>
+                          <div className="d-flex align-items-center gap-3">
+                            <div
+                              className="registrar-avatar overflow-hidden d-flex align-items-center justify-content-center p-0"
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: "50%",
+                                backgroundColor: showAvatar
+                                  ? "transparent"
+                                  : undefined,
+                              }}
+                            >
+                              {showAvatar ? (
+                                <img
+                                  src={resolvedAvatarUrl}
+                                  alt={s.name}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    display: "block",
+                                    borderRadius: "50%",
+                                  }}
+                                  onError={() =>
+                                    setImageErrors((prev) => ({
+                                      ...prev,
+                                      [s.id]: true,
+                                    }))
+                                  }
+                                />
+                              ) : (
+                                s.initials
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="fw-semibold text-truncate">
+                                {s.name}
+                              </div>
+                              <div className="text-muted small text-truncate">
+                                {s.email}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="fw-semibold">{s.id}</td>
+                        <td>{s.course}</td>
+                        <td>{s.section}</td>
+                        <td>{s.year}</td>
+                        <td>
+                          <StatusPill status={s.status} />
+                        </td>
+
+                        <td className="text-center">
+                          <button
+                            type="button"
+                            className="btn btn-link p-0 registrar-dots"
+                            onClick={(e) => toggleMenu(s.id, e)}
+                            aria-label="Row actions"
+                            aria-expanded={isOpen}
+                          >
+                            ⋮
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="users-empty-state py-5">
+                <div className="users-empty-icon">📭</div>
+                <h5 className="fw-semibold mb-1">No students found</h5>
+                <p className="text-muted mb-0">
+                  Try adjusting your search or filters.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {menu &&
+        createPortal(
+          <div
+            ref={menuRef}
+            className="student-actions-menu shadow-sm"
+            style={{
+              position: "fixed",
+              top: `${menu.top}px`,
+              left: `${menu.left}px`,
+              zIndex: 3000,
+            }}
+          >
+            <button
+              type="button"
+              className="student-actions-item"
+              onClick={() => handleView(menu.id)}
+            >
+              <Eye size={16} className="student-actions-icon" />
+              <span>View Details</span>
+            </button>
+
+            <button
+              type="button"
+              className="student-actions-item"
+              onClick={() => handleEdit(menu.id)}
+            >
+              <PencilLine size={16} className="student-actions-icon" />
+              <span>Edit Info</span>
+            </button>
+
+            <button
+              type="button"
+              className="student-actions-item student-actions-item-danger"
+              onClick={() => handleDropped(menu.id)}
+            >
+              <UserX size={16} className="student-actions-icon" />
+              <span>Mark as Dropped</span>
+            </button>
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}

@@ -1,0 +1,147 @@
+/* =========================
+   FACULTY AI ASSISTANT
+========================= */
+
+.faculty-ai-page {
+  min-height: 100%;
+}
+
+.faculty-ai-shell {
+  min-height: calc(100dvh - 24px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* center section */
+.faculty-ai-center {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+/* keep center content at a nice max width */
+.faculty-ai-hero,
+.faculty-ai-suggestions {
+  width: 100%;
+  max-width: 920px;
+}
+
+/* hero */
+.faculty-ai-hero-icon {
+  width: 86px;
+  height: 86px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+
+  background: rgba(124, 58, 237, 0.14);
+  color: #7c3aed;
+
+  box-shadow: 0 10px 40px rgba(124, 58, 237, 0.15);
+}
+
+.faculty-ai-hero-sub {
+  max-width: 680px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* suggestion cards */
+.faculty-ai-suggest-card {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 14px 14px;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+.faculty-ai-suggest-card:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+  border-color: rgba(15, 23, 42, 0.18);
+}
+
+.faculty-ai-suggest-ic {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+
+  background: rgba(124, 58, 237, 0.12);
+  color: #7c3aed;
+  flex: 0 0 auto;
+}
+
+.faculty-ai-suggest-text {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* bottom composer */
+.faculty-ai-bottom {
+  padding-top: 10px;
+  padding-bottom: 12px;
+}
+
+.faculty-ai-inputwrap {
+  max-width: 980px;
+  margin: 0 auto;
+
+  position: relative;
+  background: #f1f5f9;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  border-radius: 16px;
+  padding: 10px;
+}
+
+.faculty-ai-input {
+  border: 0 !important;
+  background: transparent !important;
+  padding: 16px 56px 16px 14px !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+.faculty-ai-sendbtn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+
+  background: rgba(124, 58, 237, 0.22);
+  color: #7c3aed;
+  border: 0;
+}
+
+.faculty-ai-sendbtn:hover {
+  background: rgba(124, 58, 237, 0.28);
+}
+
+/* Responsive tweaks */
+@media (max-width: 575.98px) {
+  .faculty-ai-hero-icon {
+    width: 74px;
+    height: 74px;
+    border-radius: 20px;
+  }
+
+  .faculty-ai-suggest-card {
+    padding: 12px;
+  }
+
+  .faculty-ai-inputwrap {
+    border-radius: 14px;
+  }
+}

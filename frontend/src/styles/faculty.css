@@ -1,0 +1,762 @@
+/* ======================
+   STAT CARDS
+====================== */
+.stat-card {
+  border-radius: 14px;
+}
+
+/* ======================
+   TABLE
+====================== */
+.table-head th {
+  font-weight: 500;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.faculty-row td {
+  padding: 1.1rem 1rem;
+  vertical-align: middle;
+}
+
+.faculty-row:hover {
+  background-color: #f8fafc;
+}
+
+/* ======================
+   AVATAR
+====================== */
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #e9f1f5;
+  color: #0d6efd;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+/* ======================
+   STATUS PILLS
+====================== */
+.status-pill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-active {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.status-inactive {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+/* ======================
+   ACTION BUTTON
+====================== */
+.btn-icon {
+  width: 38px; /* same as height = perfect circle */
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+}
+
+.btn-icon:hover {
+  background-color: #f1f5f9;
+  border-radius: 50%;
+}
+/* ======================
+   TABLE LABELS
+====================== */
+.table-head th {
+  font-size: 16px;
+  font-weight: 500;
+  color: #64748b; /* muted slate */
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.table thead th:first-child {
+  padding-left: 1.75rem;
+}
+
+.table thead th:last-child {
+  padding-right: 1.75rem;
+}
+/* ======================
+   ROW SPACING
+====================== */
+.faculty-row td {
+  padding-top: 1.15rem;
+  padding-bottom: 1.15rem;
+  vertical-align: middle;
+}
+
+.faculty-row td:first-child {
+  padding-left: 1.75rem;
+}
+
+.faculty-row td:last-child {
+  padding-right: 1.75rem;
+}
+/* ======================
+   ACTIONS
+====================== */
+.btn-outline-primary {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+}
+
+.btn-icon {
+  width: 38px; /* same as height = perfect circle */
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+}
+
+.btn-icon:hover {
+  background: #f1f5f9;
+  border-radius: 50%;
+}
+
+/* ======================
+   CARD FIX (ROUNDED BOTTOM)
+====================== */
+.faculty-card {
+  border-radius: 14px;
+  overflow: hidden; /* 👈 THIS FIXES IT */
+}
+
+/* ======================
+   TABLE BACKGROUND FIX
+====================== */
+.faculty-table {
+  margin-bottom: 0;
+}
+
+.faculty-table tbody tr:last-child td {
+  border-bottom: none;
+}
+/* ======================
+   SEND CREDENTIALS BUTTON
+====================== */
+.send-credentials-btn {
+  padding: 0 16px; /* vertical handled by height */
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #0d6efd;
+  background-color: #ffffff;
+  border: 1px solid #0d6efd;
+  border-radius: 10px;
+}
+
+.send-credentials-btn:hover {
+  background-color: #0d6efd;
+  color: #ffffff;
+}
+
+/* ======================
+   ICON BUTTON (3 DOTS)
+====================== */
+.btn-icon {
+  width: 38px; /* same as height = perfect circle */
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+}
+
+.btn-icon:hover {
+  background-color: #f1f5f9;
+} /* ======================
+   FACULTY INFO
+====================== */
+.faculty-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.faculty-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.faculty-email {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+/* ======================
+   STATUS PILL
+====================== */
+.status-pill {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.status-active {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.status-inactive {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+/* ======================
+   SEND CREDENTIALS BUTTON
+====================== */
+.send-credentials-btn {
+  padding: 0 16px; /* vertical handled by height */
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #0d6efd;
+  background-color: #ffffff;
+  border: 1px solid #0d6efd;
+  border-radius: 10px;
+}
+
+.send-credentials-btn:hover {
+  background-color: #0d6efd;
+  color: #ffffff;
+}
+
+/* ======================
+   ICON BUTTON (3 DOTS)
+====================== */
+.btn-icon {
+  width: 38px; /* same as height = perfect circle */
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+}
+
+.btn-icon:hover {
+  background-color: #f1f5f9;
+}
+
+/* ======================
+   ROW ALIGNMENT
+====================== */
+.faculty-row td {
+  vertical-align: middle;
+  padding-top: 1.15rem;
+  padding-bottom: 1.15rem;
+}
+/* ======================
+   ACTION BUTTON BASE
+====================== */
+.action-btn {
+  height: 38px; /* ✅ same height */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+/* ================= OVERLAY ================= */
+
+.faculty-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55); /* slightly darker like screenshot */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+/* ================= MODAL (MATCH SCREENSHOT) ================= */
+
+.faculty-modal {
+  background: #ffffff;
+
+  /* 🎯 exact balanced width */
+  width: 860px;
+  max-width: 90%;
+
+  /* balanced height */
+  max-height: 88vh;
+
+  border-radius: 16px;
+
+  /* softer professional shadow like screenshot */
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+
+  /* internal spacing like SuperAdmin */
+  padding: 26px 32px;
+
+  overflow-y: auto;
+
+  animation: fadeIn 0.2s ease;
+}
+
+/* ================= HEADER ================= */
+
+.faculty-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 22px;
+}
+
+/* ================= GRID ================= */
+
+.faculty-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+/* ================= NOTES ================= */
+
+.faculty-notes {
+  margin-top: 24px;
+}
+
+/* ================= FOOTER ================= */
+
+.faculty-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid #eaeaea; /* subtle divider like screenshot */
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 992px) {
+  .faculty-form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .faculty-modal {
+    width: 95%;
+    padding: 20px;
+    border-radius: 14px;
+  }
+
+  .faculty-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .faculty-modal-footer {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .faculty-modal-footer button {
+    width: 100%;
+  }
+}
+
+/* ================= ANIMATION ================= */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #f3f4f6;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background: #e5e7eb;
+  transform: translateY(-1px);
+}
+
+.btn-icon:active {
+  transform: scale(0.95);
+}
+.users-input.users-status-inactive {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+  border: 2px solid #ef4444 !important;
+  font-weight: 600;
+}
+.users-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.users-input-icon {
+  position: absolute;
+  left: 12px;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.users-input-with-icon .users-input,
+.users-input-with-icon .users-select {
+  padding-left: 38px;
+}
+/* ===============================
+   FACULTY DETAILS MODAL
+================================= */
+
+.fdm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 9999;
+}
+
+
+/* Modal container */
+.fdm-modal {
+  width: min(720px, 96vw);
+  max-height: 92vh;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+/* Header */
+.fdm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: #f8fafc;
+}
+
+.fdm-header h5 {
+  font-size: 1.1rem;
+}
+
+/* Close button */
+.fdm-close {
+  border: none;
+  background: transparent;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.fdm-close:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* Body */
+.fdm-body {
+  padding: 20px;
+  overflow-y: auto;
+}
+
+/* Card inside modal */
+.fdm-card {
+  background: #f9fafb;
+  border-radius: 14px;
+  padding: 20px;
+}
+
+/* Avatar */
+.fdm-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  background: rgba(13, 110, 253, 0.12);
+  color: #0d6efd;
+}
+
+/* Name */
+.fdm-name {
+  font-size: 1.05rem;
+}
+
+/* Grid layout */
+.fdm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 20px;
+  margin-top: 10px;
+}
+
+/* Label */
+.fdm-label {
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.55);
+  margin-bottom: 4px;
+}
+
+/* Value */
+.fdm-value {
+  font-weight: 600;
+  word-break: break-word;
+}
+
+/* Footer */
+.fdm-footer {
+  padding: 14px 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: flex-end;
+  background: #ffffff;
+}
+
+/* ===============================
+   STATUS PILL
+================================= */
+
+.status-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-inactive {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+/* ===============================
+   MOBILE RESPONSIVE
+================================= */
+
+@media (max-width: 768px) {
+  .fdm-modal {
+    width: 100%;
+    max-height: 95vh;
+    border-radius: 14px;
+  }
+
+  .fdm-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fdm-avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 1rem;
+  }
+}
+
+/* ===============================
+   ANIMATION
+================================= */
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fdm-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;              /* ✅ adds space between buttons */
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.faculty-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 10050;
+}
+
+.faculty-confirm-modal {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22);
+  padding: 1.5rem;
+  animation: facultyConfirmIn 0.18s ease;
+  margin: 0 auto;
+}
+
+.faculty-confirm-modal {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22);
+  padding: 1.5rem;
+  animation: facultyConfirmIn 0.18s ease;
+}
+
+.faculty-confirm-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.faculty-confirm-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 1rem;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #ea580c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.faculty-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+@keyframes facultyConfirmIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.app-icon-btn {
+  width: 42px;
+  height: 42px;
+  border: 1px solid #d7dce5;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #374151;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  flex-shrink: 0;
+}
+
+.app-icon-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #111827;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 24, 40, 0.08);
+}
+
+.app-icon-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.app-icon-btn-sm {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+.users-modal-close.app-icon-btn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #d7dce5;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #374151;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.users-modal-close.app-icon-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #111827;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 24, 40, 0.08);
+}
+
+.users-modal-close.app-icon-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
