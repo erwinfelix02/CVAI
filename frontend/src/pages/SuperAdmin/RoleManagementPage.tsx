@@ -213,6 +213,14 @@ export default function RoleManagementPage() {
     try {
       setLoading(true);
 
+      await updateUser(userId, {
+        firstName: patch.firstName,
+        middleName: patch.middleName,
+        lastName: patch.lastName,
+        email: patch.email,
+        phone: patch.phone,
+      });
+      
       const isContactOnlyUpdate =
         patch.status === undefined &&
         (patch.email !== undefined || patch.phone !== undefined);

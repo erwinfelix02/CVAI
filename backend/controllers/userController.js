@@ -460,7 +460,7 @@ export const getUserById = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { phone, department, status, role } = req.body;
+    const { firstName, middleName, lastName, email, phone, department, status, role } = req.body;
 
     const user = await User.findById(id);
     if (!user) {
@@ -468,6 +468,43 @@ export const updateUser = async (req, res) => {
     }
 
     const update = {};
+
+    // 🟢 Update Name fields if provided
+    if (firstName !== undefined) {
+      const cleanFirst = validator.escape(String(firstName).trim());
+      if (!cleanFirst) return res.status(400).json({ message: "First name is required." });
+      update.firstName = cleanFirst;
+    }
+
+    if (middleName !== undefined) {
+      update.middleName = middleName ? validator.escape(String(middleName).trim()) : "";
+    }
+
+    if (lastName !== undefined) {
+      const cleanLast = validator.escape(String(lastName).trim());
+      if (!cleanLast) return res.status(400).json({ message: "Last name is required." });
+      update.lastName = cleanLast;
+    }
+
+    // 🟢 Update Email if provided
+    if (email !== undefined) {
+      const cleanEmail = validator.normalizeEmail(String(email).trim()) || String(email).trim();
+
+      if (!validator.isEmail(cleanEmail)) {
+        return res.status(400).json({ message: "Invalid email format." });
+      }
+
+      const existingEmail = await User.findOne({
+        _id: { $ne: id },
+        email: cleanEmail,
+      });
+
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email already exists." });
+      }
+
+      update.email = cleanEmail;
+    }
 
     if (phone !== undefined) {
       let cleanPhone = String(phone).trim().replace(/\s+/g, "");

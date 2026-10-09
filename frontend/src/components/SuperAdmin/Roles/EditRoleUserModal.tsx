@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { X, Phone, Mail, Hash, AlertTriangle } from "lucide-react";
+import { X, Phone, Mail, Hash, User, AlertTriangle } from "lucide-react";
 import type { UserItem } from "./types";
 
 type Props = {
@@ -15,6 +15,9 @@ export default function EditRoleUserModal({
   onClose,
   onSave,
 }: Props) {
+  const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
@@ -25,20 +28,58 @@ export default function EditRoleUserModal({
   useEffect(() => {
     if (!open || !user) return;
 
+    setFirstName(user.firstName || "");
+    setMiddleName(user.middleName || "");
+    setLastName(user.lastName || "");
     setEmail(user.email || "");
-    setPhone(user.phone || "");
+
+    // Ensure initial phone starts with +639 if empty or invalid
+    let initialPhone = user.phone || "+639";
+    if (!initialPhone.startsWith("+639")) {
+      initialPhone = "+639" + initialPhone.replace(/\D/g, "").slice(-9);
+    }
+    setPhone(initialPhone);
+
     setConfirmSave(false);
     setConfirmDiscard(false);
   }, [open, user]);
 
+  // Handle phone input changes with strict formatting (+639 prefix + 9 digits max, numbers only)
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+
+    if (!val.startsWith("+639")) {
+      val = "+639";
+    }
+
+    const prefix = "+63";
+    const remainder = val.slice(prefix.length).replace(/\D/g, "");
+    const clampedRemainder = remainder.slice(0, 10);
+
+    setPhone(prefix + clampedRemainder);
+  };
+
   // Check if form state differs from original user data
   const hasUnsavedChanges = useMemo(() => {
     if (!user) return false;
+    const initialFirst = user.firstName || "";
+    const initialMiddle = user.middleName || "";
+    const initialLast = user.lastName || "";
     const initialEmail = user.email || "";
-    const initialPhone = user.phone || "";
+    
+    let initialPhone = user.phone || "+639";
+    if (!initialPhone.startsWith("+639")) {
+      initialPhone = "+639" + initialPhone.replace(/\D/g, "").slice(-9);
+    }
 
-    return email.trim() !== initialEmail || phone.trim() !== initialPhone;
-  }, [email, phone, user]);
+    return (
+      firstName.trim() !== initialFirst ||
+      middleName.trim() !== initialMiddle ||
+      lastName.trim() !== initialLast ||
+      email.trim() !== initialEmail ||
+      phone.trim() !== initialPhone
+    );
+  }, [firstName, middleName, lastName, email, phone, user]);
 
   // Request close: show discard prompt if edited, otherwise close directly
   const handleRequestClose = () => {
@@ -87,6 +128,9 @@ export default function EditRoleUserModal({
 
   const confirmSubmit = () => {
     onSave({
+      firstName: firstName.trim(),
+      middleName: middleName.trim(),
+      lastName: lastName.trim(),
       email: email.trim(),
       phone: phone.trim(),
     });
@@ -114,22 +158,55 @@ export default function EditRoleUserModal({
           <div className="rbac-edit-title">
             <div className="fw-bold">Edit User</div>
             <div className="text-muted">
-              Update the selected user's contact information.
+              Update the selected user's name and contact information.
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-3">
-            <div className="mb-3">
-              <label className="form-label fw-semibold">User</label>
-              <input className="form-control" value={user.fullName} disabled />
-            </div>
-
             <div className="mb-3">
               <label className="form-label fw-semibold d-flex align-items-center gap-2">
                 <Hash size={16} />
                 User ID
               </label>
               <input className="form-control" value={user.userId} disabled />
+            </div>
+
+            <div className="row g-2 mb-3">
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold d-flex align-items-center gap-2">
+                  <User size={16} />
+                  First Name
+                </label>
+                <input
+                  className="form-control"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="First name"
+                  required
+                />
+              </div>
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">Middle Name</label>
+                <input
+                  className="form-control"
+                  type="text"
+                  value={middleName}
+                  onChange={(e) => setMiddleName(e.target.value)}
+                  placeholder="Middle name"
+                />
+              </div>
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">Last Name</label>
+                <input
+                  className="form-control"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Last name"
+                  required
+                />
+              </div>
             </div>
 
             <div className="mb-3">
@@ -149,14 +226,19 @@ export default function EditRoleUserModal({
             <div className="mb-3">
               <label className="form-label fw-semibold d-flex align-items-center gap-2">
                 <Phone size={16} />
-                Phone
+                Phone Number
               </label>
               <input
                 className="form-control"
+                type="text"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={handlePhoneChange}
                 placeholder="+639XXXXXXXXX"
+                maxLength={13}
               />
+              <div className="form-text text-muted small mt-1">
+                Format: +639 followed by 9 digits (Philippine mobile standard).
+              </div>
             </div>
 
             <div className="rbac-actions">
@@ -191,7 +273,7 @@ export default function EditRoleUserModal({
             <div className="fw-bold mb-2">Confirm Update</div>
 
             <div className="text-muted mb-3">
-              Are you sure you want to update this user's contact information?
+              Are you sure you want to update this user's details?
             </div>
 
             <div className="d-flex justify-content-end gap-2">
@@ -233,7 +315,7 @@ export default function EditRoleUserModal({
             </div>
 
             <div className="text-muted mb-3">
-              You have unsaved changes to this user's contact details. Are you sure you want to exit without saving?
+              You have unsaved changes. Are you sure you want to exit without saving?
             </div>
 
             <div className="d-flex justify-content-end gap-2">

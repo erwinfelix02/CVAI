@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Ban, CheckCircle2, Pencil, Trash2, X, Loader2 } from "lucide-react";
+import { API_BASE_URL } from "../../../config"; //  Imported API base URL from config
 import type { UserItem } from "./types";
 
 type Props = {
@@ -32,7 +33,8 @@ const getFullAvatarUrl = (url?: string): string => {
   ) {
     return url;
   }
-  return `http://localhost:5000${url.startsWith("/") ? "" : "/"}${url}`;
+  // 🟢 Replaced hardcoded localhost with API_BASE_URL
+  return `${API_BASE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
 };
 
 export default function UserInfoCard({
@@ -64,13 +66,14 @@ export default function UserInfoCard({
       const fetchStudentAvatar = async () => {
         setIsLoadingAvatar(true);
         try {
-          const token = localStorage.getItem("token");
+          const token = localStorage.getItem("sessionToken"); // 🟢 Updated to match your sessionToken auth storage
           const headers = {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           };
 
-          const res = await fetch(`/api/students/${targetIdentifier}`, { headers });
+          // 🟢 Updated to use API_BASE_URL for student endpoint fetch
+          const res = await fetch(`${API_BASE_URL}/students/${targetIdentifier}`, { headers });
           if (res.ok) {
             const data = await res.json();
             const student = data.student || data;
