@@ -101,7 +101,10 @@ export const createUser = async (req, res) => {
     const currentYear = new Date().getFullYear();
     const previewId = idNumber ? validator.escape(String(idNumber).trim()) : "";
 
-    if (previewId && !new RegExp(`^GIP-${currentYear}-\\d{3}$`).test(previewId)) {
+    if (
+      previewId &&
+      !new RegExp(`^GIP-${currentYear}-\\d{3}$`).test(previewId)
+    ) {
       return res.status(400).json({
         message: `ID number must follow the format GIP-${currentYear}-###.`,
       });
@@ -307,7 +310,9 @@ export const sendCredentials = async (req, res) => {
       message: "Credentials sent and user activated.",
     });
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
   }
 };
 
@@ -333,7 +338,7 @@ export const getStudentUsers = async (req, res) => {
 
     const docs = await User.find(filter)
       .select(
-        "firstName middleName lastName idNumber email phone status department role year yearLevel section"
+        "firstName middleName lastName idNumber email phone status department role year yearLevel section",
       )
       .sort({ createdAt: -1 });
 
@@ -349,10 +354,18 @@ export const getStudentUsers = async (req, res) => {
           }${u.lastName}`.trim();
 
           return (
-            String(u.idNumber || "").toLowerCase().includes(search) ||
-            String(u.firstName || "").toLowerCase().includes(search) ||
-            String(u.lastName || "").toLowerCase().includes(search) ||
-            String(u.email || "").toLowerCase().includes(search) ||
+            String(u.idNumber || "")
+              .toLowerCase()
+              .includes(search) ||
+            String(u.firstName || "")
+              .toLowerCase()
+              .includes(search) ||
+            String(u.lastName || "")
+              .toLowerCase()
+              .includes(search) ||
+            String(u.email || "")
+              .toLowerCase()
+              .includes(search) ||
             fullName.toLowerCase().includes(search)
           );
         });
@@ -446,7 +459,7 @@ export const getUserById = async (req, res) => {
     const { id } = req.params;
 
     const user = await User.findById(id).select(
-      "firstName middleName lastName idNumber email phone gender role status department notes createdBy credentialsSent isTemporaryPassword createdAt updatedAt"
+      "firstName middleName lastName idNumber email phone gender role status department notes createdBy credentialsSent isTemporaryPassword createdAt updatedAt",
     );
 
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -460,7 +473,16 @@ export const getUserById = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { firstName, middleName, lastName, email, phone, department, status, role } = req.body;
+    const {
+      firstName,
+      middleName,
+      lastName,
+      email,
+      phone,
+      department,
+      status,
+      role,
+    } = req.body;
 
     const user = await User.findById(id);
     if (!user) {
@@ -472,23 +494,28 @@ export const updateUser = async (req, res) => {
     // 🟢 Update Name fields if provided
     if (firstName !== undefined) {
       const cleanFirst = validator.escape(String(firstName).trim());
-      if (!cleanFirst) return res.status(400).json({ message: "First name is required." });
+      if (!cleanFirst)
+        return res.status(400).json({ message: "First name is required." });
       update.firstName = cleanFirst;
     }
 
     if (middleName !== undefined) {
-      update.middleName = middleName ? validator.escape(String(middleName).trim()) : "";
+      update.middleName = middleName
+        ? validator.escape(String(middleName).trim())
+        : "";
     }
 
     if (lastName !== undefined) {
       const cleanLast = validator.escape(String(lastName).trim());
-      if (!cleanLast) return res.status(400).json({ message: "Last name is required." });
+      if (!cleanLast)
+        return res.status(400).json({ message: "Last name is required." });
       update.lastName = cleanLast;
     }
 
     // 🟢 Update Email if provided
     if (email !== undefined) {
-      const cleanEmail = validator.normalizeEmail(String(email).trim()) || String(email).trim();
+      const cleanEmail =
+        validator.normalizeEmail(String(email).trim()) || String(email).trim();
 
       if (!validator.isEmail(cleanEmail)) {
         return res.status(400).json({ message: "Invalid email format." });
@@ -579,7 +606,8 @@ export const updateUser = async (req, res) => {
           cleanDepartment === "Finance Office")
       ) {
         return res.status(400).json({
-          message: "Department Head cannot be assigned to Registrar or Finance Office.",
+          message:
+            "Department Head cannot be assigned to Registrar or Finance Office.",
         });
       }
 
@@ -612,7 +640,7 @@ export const updateUser = async (req, res) => {
       new: true,
       runValidators: true,
     }).select(
-      "firstName middleName lastName idNumber email phone gender role status department notes createdBy credentialsSent isTemporaryPassword createdAt updatedAt"
+      "firstName middleName lastName idNumber email phone gender role status department notes createdBy credentialsSent isTemporaryPassword createdAt updatedAt",
     );
 
     return res.status(200).json({
@@ -681,7 +709,7 @@ export const updateUserContactInfo = async (req, res) => {
       new: true,
       runValidators: true,
     }).select(
-      "firstName middleName lastName idNumber email phone gender role status department notes createdBy credentialsSent isTemporaryPassword createdAt updatedAt"
+      "firstName middleName lastName idNumber email phone gender role status department notes createdBy credentialsSent isTemporaryPassword createdAt updatedAt",
     );
 
     return res.status(200).json({
@@ -697,7 +725,7 @@ export const updateUserContactInfo = async (req, res) => {
 export const getRegistrarByRole = async (_req, res) => {
   try {
     const registrar = await User.findOne({ role: "Registrar" }).select(
-      "firstName middleName lastName email role"
+      "firstName middleName lastName email role",
     );
 
     if (!registrar) {
@@ -737,7 +765,7 @@ export const getPortalStatuses = async (_req, res) => {
 
     const portals = portalMap.map(({ role, name }) => {
       const roleUsers = users.filter(
-        (u) => u.role === role && u.status === "active"
+        (u) => u.role === role && u.status === "active",
       );
 
       const onlineUsers = roleUsers.filter((u) => {
@@ -773,12 +801,13 @@ export const getMyProfile = async (req, res) => {
       email = req.user.email;
     }
 
-    const selectFields = "firstName middleName lastName idNumber email phone gender role status department maxUnits semester address avatarUrl";
+    const selectFields =
+      "firstName middleName lastName idNumber email phone gender role status department maxUnits semester address avatarUrl";
 
     if (id) {
       user = await User.findById(id).select(selectFields);
-    } 
-    
+    }
+
     if (!user && email) {
       user = await User.findOne({ email }).select(selectFields);
     }
@@ -948,8 +977,9 @@ export const searchStudentsByName = async (req, res) => {
       return res.status(200).json([]);
     }
 
-    const docs = await User.find({ role: "Student", status: "active" })
-      .select("firstName middleName lastName idNumber email department");
+    const docs = await User.find({ role: "Student", status: "active" }).select(
+      "firstName middleName lastName idNumber email department",
+    );
 
     const students = docs.map((doc) => doc.toObject({ getters: true }));
 
@@ -960,9 +990,15 @@ export const searchStudentsByName = async (req, res) => {
 
       return (
         fullName.toLowerCase().includes(search) ||
-        String(u.firstName || "").toLowerCase().includes(search) ||
-        String(u.lastName || "").toLowerCase().includes(search) ||
-        String(u.idNumber || "").toLowerCase().includes(search)
+        String(u.firstName || "")
+          .toLowerCase()
+          .includes(search) ||
+        String(u.lastName || "")
+          .toLowerCase()
+          .includes(search) ||
+        String(u.idNumber || "")
+          .toLowerCase()
+          .includes(search)
       );
     });
 
@@ -1046,20 +1082,27 @@ export const changeMyPassword = async (req, res) => {
     const { currentPassword, newPassword, email, id } = req.body;
 
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({ message: "Current and new passwords are required." });
+      return res
+        .status(400)
+        .json({ message: "Current and new passwords are required." });
     }
 
     // Password Validation: Length, Uppercase, and Special Character
     if (newPassword.length < 8) {
-      return res.status(400).json({ message: "New password must be at least 8 characters long." });
+      return res
+        .status(400)
+        .json({ message: "New password must be at least 8 characters long." });
     }
 
     const hasUppercase = /[A-Z]/.test(newPassword);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>\-_=+[\]\\/`~;']/.test(newPassword);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>\-_=+[\]\\/`~;']/.test(
+      newPassword,
+    );
 
     if (!hasUppercase || !hasSpecialChar) {
-      return res.status(400).json({ 
-        message: "New password must include at least one capital letter and one special character." 
+      return res.status(400).json({
+        message:
+          "New password must include at least one capital letter and one special character.",
       });
     }
 
@@ -1085,7 +1128,11 @@ export const changeMyPassword = async (req, res) => {
     // 🟢 Prevent reusing the current password as the new password
     const isSameAsCurrent = await bcrypt.compare(newPassword, user.password);
     if (isSameAsCurrent) {
-      return res.status(400).json({ message: "New password cannot be the same as your current password." });
+      return res
+        .status(400)
+        .json({
+          message: "New password cannot be the same as your current password.",
+        });
     }
 
     // Assign new password (the pre-save hook on UserSchema handles hashing automatically)
@@ -1096,7 +1143,9 @@ export const changeMyPassword = async (req, res) => {
     return res.status(200).json({ message: "Password updated successfully." });
   } catch (err) {
     console.error("changeMyPassword error:", err);
-    return res.status(500).json({ message: err.message || "Failed to update password." });
+    return res
+      .status(500)
+      .json({ message: err.message || "Failed to update password." });
   }
 };
 
@@ -1137,11 +1186,12 @@ export const dropStudent = async (req, res) => {
     await sendEmail(
       user.email,
       `Enrollment Status Update: Dropped - ${appName}`,
-      emailHtml
+      emailHtml,
     );
 
     return res.status(200).json({
-      message: "Student successfully marked as dropped, account deactivated, and email notification sent.",
+      message:
+        "Student successfully marked as dropped, account deactivated, and email notification sent.",
       user: user.toObject({ getters: true }),
     });
   } catch (err) {

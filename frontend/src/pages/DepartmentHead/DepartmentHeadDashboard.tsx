@@ -1,6 +1,7 @@
 // ✅ src/pages/DepartmentHead/DepartmentHeadDashboard.tsx
 
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 
 import StatCardsRow, {
   type StatCardItem,
@@ -19,7 +20,7 @@ import RecentAssignmentsCard, {
 } from "../../components/DepartmentHead/Dashboard/RecentAssignmentsCard";
 
 import ResolveConflictsModal from "../../components/DepartmentHead/Dashboard/ResolveConflictsModal";
-import { API_BASE_URL } from "../../config"; // Adjust relative path based on where config.ts is located
+import { API_BASE_URL } from "../../config";
 
 import {
   Users,
@@ -34,6 +35,8 @@ import {
 import "../../styles/department-headDashboard.css";
 
 export default function DepartmentHeadDashboard() {
+  const navigate = useNavigate();
+
   /* =========================================================
      WELCOME MESSAGE
      ========================================================= */
@@ -49,6 +52,13 @@ export default function DepartmentHeadDashboard() {
   const [isResolveModalOpen, setIsResolveModalOpen] = useState(false);
 
   /* =========================================================
+     BACK NAVIGATION LOGOUT & COUNTDOWN STATES
+     ========================================================= */
+  const [showBackLogoutConfirm, setShowBackLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutCountdown, setLogoutCountdown] = useState(3);
+
+  /* =========================================================
      DYNAMIC DATA STATES & LOADING
      ========================================================= */
 
@@ -57,24 +67,27 @@ export default function DepartmentHeadDashboard() {
   const [activeScheduleCount, setActiveScheduleCount] = useState<number>(0);
   const [availableRoomsCount, setAvailableRoomsCount] = useState<number>(0);
 
-  const [schedulesList, setSchedulesList] = useState<any[]>([]); // Track raw schedule records
+  const [schedulesList, setSchedulesList] = useState<any[]>([]);
   const [teachingLoads, setTeachingLoads] = useState<TeachingLoadRow[]>([]);
   const [conflictsList, setConflictsList] = useState<ConflictRow[]>([]);
-  const [recentAssignments, setRecentAssignments] = useState<AssignmentRow[]>(
-    [],
-  );
+  const [recentAssignments, setRecentAssignments] = useState<AssignmentRow[]>([]);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   /* =========================================================
-     GET SIGNED-IN USER'S DEPARTMENT
+     GET SIGNED-IN USER'S DEPARTMENT & PROFILE
      ========================================================= */
 
-  const userDepartment = useMemo(() => {
-    const userJson = localStorage.getItem("user");
-    const currentUser = userJson ? JSON.parse(userJson) : null;
-    return currentUser?.department || "";
+  const currentUser = useMemo(() => {
+    try {
+      const userJson = localStorage.getItem("user");
+      return userJson ? JSON.parse(userJson) : null;
+    } catch {
+      return null;
+    }
   }, []);
+
+  const userDepartment = currentUser?.department || "";
 
   /* =========================================================
      SHOW WELCOME MESSAGE AFTER LOGIN
@@ -115,6 +128,92 @@ export default function DepartmentHeadDashboard() {
   }, [showWelcome]);
 
   /* =========================================================
+     INTERCEPT BACK BUTTON (Trigger Logout Confirmation)
+     ========================================================= */
+  useEffect(() => {
+    if (!window.history.state || !window.history.state.guarded) {
+      window.history.pushState({ guarded: true }, "", window.location.href);
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      event.preventDefault();
+      setShowBackLogoutConfirm(true);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  /* =========================================================
+     LOGOUT AUDIT & COUNTDOWN HANDLERS
+     ========================================================= */
+  const logLogoutActivity = async () => {
+    try {
+      const userEmail = currentUser?.email || "departmenthead@example.com";
+      const userRole = currentUser?.role || "Department Head";
+
+      await fetch(`${API_BASE_URL}/logs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${
+            localStorage.getItem("token") ||
+            localStorage.getItem("sessionToken") ||
+            ""
+          }`,
+        },
+        body: JSON.stringify({
+          action: "Logout",
+          user: userEmail,
+          role: userRole,
+          type: "Security",
+          details: `${userEmail} logged out of the department head portal via back navigation.`,
+          status: "success",
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to log department head logout activity:", err);
+    }
+  };
+
+  const handleBackLogoutConfirm = () => {
+    setShowBackLogoutConfirm(false);
+    setIsLoggingOut(true);
+    setLogoutCountdown(3);
+  };
+
+  useEffect(() => {
+    if (!isLoggingOut) return;
+
+    if (logoutCountdown <= 0) {
+      async function finalizeLogout() {
+        await logLogoutActivity();
+
+        // Clear session tokens
+        localStorage.removeItem("token");
+        localStorage.removeItem("sessionToken");
+        localStorage.removeItem("user");
+        localStorage.removeItem("lastActivity");
+
+        setIsLoggingOut(false);
+        navigate("/signin", { replace: true });
+      }
+
+      finalizeLogout();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setLogoutCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [isLoggingOut, logoutCountdown, navigate]);
+
+  /* =========================================================
      DYNAMIC DATA FETCHING BASED ON DEPARTMENT
      ========================================================= */
 
@@ -143,15 +242,11 @@ export default function DepartmentHeadDashboard() {
 
       const facultyList = Array.isArray(rawFaculty) ? rawFaculty : [];
       const subjectsList = Array.isArray(rawSubjects) ? rawSubjects : [];
-      const parsedSchedulesList = Array.isArray(rawSchedules)
-        ? rawSchedules
-        : [];
+      const parsedSchedulesList = Array.isArray(rawSchedules) ? rawSchedules : [];
       const roomsList = Array.isArray(rawRooms) ? rawRooms : [];
 
-      // Save raw schedule list for computing conflict-free targets
       setSchedulesList(parsedSchedulesList);
 
-      // 1. STATS COMPUTATION
       setFacultyCount(facultyList.length);
       setSubjectCount(subjectsList.length);
       setActiveScheduleCount(parsedSchedulesList.length);
@@ -161,7 +256,6 @@ export default function DepartmentHeadDashboard() {
         ).length || roomsList.length,
       );
 
-      // Subject Units Map
       const subjectUnitsMap = new Map<string, number>();
       subjectsList.forEach((sub: any) => {
         if (sub.code) {
@@ -169,7 +263,6 @@ export default function DepartmentHeadDashboard() {
         }
       });
 
-      // 2. TEACHING LOADS COMPUTATION
       const mappedLoads: TeachingLoadRow[] = facultyList.map((member: any) => {
         const facultyName =
           member.name ||
@@ -207,7 +300,6 @@ export default function DepartmentHeadDashboard() {
 
       setTeachingLoads(mappedLoads);
 
-      // 3. SCHEDULE CONFLICTS COMPUTATION
       if (Array.isArray(rawConflicts) && rawConflicts.length > 0) {
         setConflictsList(
           rawConflicts.map((c: any) => ({
@@ -218,7 +310,6 @@ export default function DepartmentHeadDashboard() {
           })),
         );
       } else {
-        // Fallback Client Computation (Uses days + time from Schedule model)
         const roomTimeMap = new Map<string, any[]>();
         parsedSchedulesList.forEach((sch: any) => {
           if (sch.room && (sch.days || sch.time)) {
@@ -253,12 +344,11 @@ export default function DepartmentHeadDashboard() {
         setConflictsList(fallbackConflicts);
       }
 
-      // 4. RECENT ASSIGNMENTS COMPUTATION
       const mappedRecent: AssignmentRow[] = parsedSchedulesList
         .slice(-5)
         .reverse()
         .map((sch: any) => ({
-          subject: `${sch.code || "SUBJ"} - ${sch.title || "Subject"}`,
+          subject: `${sch.code || "SUBJ"} ${sch.title || "Subject"}`,
           instructor: sch.faculty || "Unassigned",
           room: sch.room || "TBA",
           schedule: `${sch.days || ""} ${sch.time || ""}`.trim() || "TBA",
@@ -275,10 +365,6 @@ export default function DepartmentHeadDashboard() {
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
-
-  /* =========================================================
-     COMPUTED STATS
-     ========================================================= */
 
   const stats = useMemo<StatCardItem[]>(
     () => [
@@ -310,10 +396,6 @@ export default function DepartmentHeadDashboard() {
     [facultyCount, subjectCount, activeScheduleCount, availableRoomsCount],
   );
 
-  /* =========================================================
-     RENDER
-     ========================================================= */
-
   return (
     <>
       {/* WELCOME OVERLAY */}
@@ -333,9 +415,56 @@ export default function DepartmentHeadDashboard() {
         </div>
       )}
 
+      {/* BACK NAVIGATION LOGOUT CONFIRMATION MODAL */}
+      {showBackLogoutConfirm && (
+        <div
+          className="logout-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="back-logout-title"
+        >
+          <div className="logout-modal">
+            <h6 id="back-logout-title">Confirm Log Out</h6>
+            <p>Going back will log you out of your session. Are you sure?</p>
+            <div className="d-flex gap-2 justify-content-end">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setShowBackLogoutConfirm(false);
+                  window.history.pushState({ guarded: true }, "", window.location.href);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                onClick={handleBackLogoutConfirm}
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LOGGING OUT OVERLAY WITH COUNTDOWN */}
+      {isLoggingOut && (
+        <div className="logging-out-overlay" role="status" aria-live="polite">
+          <div className="logging-out-box">
+            <div className="logging-spinner" aria-hidden="true" />
+            <h5>Logging out...</h5>
+            <p>
+              Redirecting in {logoutCountdown} second
+              {logoutCountdown !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* DASHBOARD CONTENT */}
       <div className="department-head-dashboard">
-        {/* HEADER */}
         <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-3 mb-md-4">
           <div>
             <h2 className="fw-bold mb-1">Department Head Dashboard</h2>
@@ -362,12 +491,10 @@ export default function DepartmentHeadDashboard() {
           </div>
         ) : (
           <>
-            {/* STAT CARDS */}
             <div className="row g-3 g-md-4 mb-3 mb-md-4">
               <StatCardsRow items={stats} />
             </div>
 
-            {/* TEACHING LOADS + SCHEDULE CONFLICTS */}
             <div className="row g-3 g-md-4 mb-3 mb-md-4">
               <div className="col-12 col-xl-6">
                 <TeachingLoadsCard
@@ -393,7 +520,6 @@ export default function DepartmentHeadDashboard() {
               </div>
             </div>
 
-            {/* RECENT ASSIGNMENTS */}
             <div className="row g-3 g-md-4">
               <div className="col-12">
                 <RecentAssignmentsCard
@@ -406,7 +532,6 @@ export default function DepartmentHeadDashboard() {
         )}
       </div>
 
-      {/* RESOLVE SCHEDULE CONFLICTS MODAL */}
       <ResolveConflictsModal
         isOpen={isResolveModalOpen}
         onClose={() => setIsResolveModalOpen(false)}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { CheckCircle2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../../config";
 
 import "./../../styles/student-dashboard.css";
@@ -18,6 +19,7 @@ interface StudentProfile {
   idNumber?: string;
   email?: string;
   enrolledSubjects?: string[];
+  role?: string;
 }
 
 interface RegistrarSettings {
@@ -26,6 +28,8 @@ interface RegistrarSettings {
 }
 
 export default function StudentDashboard() {
+  const navigate = useNavigate();
+
   const [showWelcome, setShowWelcome] = useState(false);
   const [isWelcomeClosing, setIsWelcomeClosing] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState("");
@@ -41,6 +45,11 @@ export default function StudentDashboard() {
     semester: "1st Semester",
   });
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+
+  // Back navigation logout & countdown states (matching StudentSidebar logic)
+  const [showBackLogoutConfirm, setShowBackLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutCountdown, setLogoutCountdown] = useState(3);
 
   // Parse local storage user fallback
   const storedUser = localStorage.getItem("user");
@@ -76,10 +85,91 @@ export default function StudentDashboard() {
     };
   }, [showWelcome]);
 
+  // 2.5. Intercept browser Back button (custom modal trigger)
+  useEffect(() => {
+    if (!window.history.state || !window.history.state.guarded) {
+      window.history.pushState({ guarded: true }, "", window.location.href);
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      event.preventDefault();
+      setShowBackLogoutConfirm(true);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  // 2.6. Handle countdown and session destruction just like the Sidebar logout
+  const logLogoutActivity = async () => {
+    try {
+      const userEmail = studentProfile?.email || parsedUser?.email || "student@example.com";
+      const userRole = studentProfile?.role || parsedUser?.role || "Student";
+
+      await fetch(`${API_BASE_URL}/logs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${
+            localStorage.getItem("token") ||
+            localStorage.getItem("sessionToken") ||
+            ""
+          }`,
+        },
+        body: JSON.stringify({
+          action: "Logout",
+          user: userEmail,
+          role: userRole,
+          type: "Security",
+          details: `${userEmail} logged out of the student portal via back navigation.`,
+          status: "success",
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to log student logout activity:", err);
+    }
+  };
+
+  const handleBackLogoutConfirm = () => {
+    setShowBackLogoutConfirm(false);
+    setIsLoggingOut(true);
+    setLogoutCountdown(3);
+  };
+
+  useEffect(() => {
+    if (!isLoggingOut) return;
+
+    if (logoutCountdown <= 0) {
+      async function finalizeLogout() {
+        await logLogoutActivity();
+
+        // Clear user session tokens
+        localStorage.removeItem("token");
+        localStorage.removeItem("sessionToken");
+        localStorage.removeItem("user");
+        localStorage.removeItem("lastActivity");
+
+        setIsLoggingOut(false);
+        navigate("/signin", { replace: true });
+      }
+
+      finalizeLogout();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setLogoutCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [isLoggingOut, logoutCountdown, navigate]);
+
   // 3. Fetch Student Profile and Live Grades Data via Authenticated Session (/users/me)
   useEffect(() => {
     async function fetchStudentData() {
-      // Set initial state from localStorage immediately to prevent rendering delays
       if (parsedUser) {
         setStudentProfile(parsedUser);
       }
@@ -93,14 +183,12 @@ export default function StudentDashboard() {
           headers["Authorization"] = `Bearer ${token}`;
         }
 
-        // Fetch securely using the Bearer token session
         const userRes = await fetch(`${API_BASE_URL}/users/me`, { headers });
         if (userRes.ok) {
           const userData = await userRes.json();
           setStudentProfile(userData);
         }
 
-        // Fetch live GPA, credits, and grades count
         const gradesRes = await fetch(`${API_BASE_URL}/students/my-grades`, { headers });
         if (gradesRes.ok) {
           const gradesData = await gradesRes.json();
@@ -146,7 +234,6 @@ export default function StudentDashboard() {
     fetchRegistrarSettings();
   }, []);
 
-  // Safe full name computation checking profile and local storage fallback
   const studentFullName = studentProfile
     ? studentProfile.name ||
       [studentProfile.firstName, studentProfile.middleName, studentProfile.lastName]
@@ -180,6 +267,54 @@ export default function StudentDashboard() {
             </div>
             <h4>{welcomeMessage}</h4>
             <p>You have successfully signed in.</p>
+          </div>
+        </div>
+      )}
+
+      {/* BACK NAVIGATION LOGOUT CONFIRMATION MODAL */}
+      {showBackLogoutConfirm && (
+        <div
+          className="logout-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="back-logout-title"
+        >
+          <div className="logout-modal">
+            <h6 id="back-logout-title">Confirm Log Out</h6>
+            <p>Going back will log you out of your session. Are you sure?</p>
+            <div className="d-flex gap-2 justify-content-end">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setShowBackLogoutConfirm(false);
+                  window.history.pushState({ guarded: true }, "", window.location.href);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                onClick={handleBackLogoutConfirm}
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LOGGING OUT OVERLAY WITH COUNTDOWN (Matches Sidebar Style) */}
+      {isLoggingOut && (
+        <div className="logging-out-overlay" role="status" aria-live="polite">
+          <div className="logging-out-box">
+            <div className="logging-spinner" aria-hidden="true" />
+            <h5>Logging out...</h5>
+            <p>
+              Redirecting in {logoutCountdown} second
+              {logoutCountdown !== 1 ? "s" : ""}
+            </p>
           </div>
         </div>
       )}

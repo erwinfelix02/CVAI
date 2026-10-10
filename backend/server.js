@@ -3,6 +3,7 @@ dotenv.config();
 import path from "path";
 import express from "express";
 import cors from "cors";
+import nocache from "nocache"; // ✅ 1. Import nocache
 import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -44,6 +45,11 @@ initArchiveCleanupTask();
 app.use(cors());
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ limit: "25mb", extended: true }));
+
+// Apply nocache specifically to your API routes so browsers 
+// never cache authenticated API responses/sessions when going back
+app.use("/api", nocache());
+
 app.use(
   "/uploads",
   express.static(path.join(process.cwd(), "uploads"), {
@@ -75,9 +81,9 @@ const startServer = async () => {
   try {
     await connectDB(); // ✅ wait for mongo connect
     await seedRolesIfMissing(); // ✅ seed after connect
-     await startArchiveScheduler();
+    await startArchiveScheduler();
 
-     setInterval(() => {
+    setInterval(() => {
       checkUpcomingTasks();
     }, 60 * 1000);
 
@@ -107,8 +113,7 @@ const startServer = async () => {
     app.use("/api/attendance", attendanceRoutes);
     app.use("/api/verification", verificationRoutes);
     app.use("/api/todos", todoRoutes);
-    app.use('/api/tickets', ticketRouter)
-    
+    app.use('/api/tickets', ticketRouter);
     
     app.listen(5000, () => {
       console.log("🚀 Server running on http://localhost:5000");

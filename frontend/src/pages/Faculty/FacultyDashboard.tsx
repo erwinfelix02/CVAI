@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import "../../styles/faculty-dashboard.css";
 import FacultyStatsGrid from "../../components/Faculty/Dashboard/FacultyStatsGrid";
@@ -10,6 +11,8 @@ import PendingTasks from "../../components/Faculty/Dashboard/PendingTasks";
 import { API_BASE_URL } from "../../config"; // 🟢 Centralized API Configuration
 
 export default function FacultyDashboard() {
+  const navigate = useNavigate();
+
   /* =========================================================
      WELCOME MESSAGE STATE
      ========================================================= */
@@ -22,11 +25,19 @@ export default function FacultyDashboard() {
      DYNAMIC USER, SEMESTER & ACADEMIC YEAR STATE
      ========================================================= */
 
+  const [facultyProfile, setFacultyProfile] = useState<any>(null);
   const [facultyName, setFacultyName] = useState("Faculty Member");
   const [academicYear, setAcademicYear] = useState("");
   const [semester, setSemester] = useState("");
   const [greeting, setGreeting] = useState("Good Morning");
   const [isSettingsLoading, setIsSettingsLoading] = useState(true);
+
+  /* =========================================================
+     BACK NAVIGATION LOGOUT & COUNTDOWN STATES
+     ========================================================= */
+  const [showBackLogoutConfirm, setShowBackLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutCountdown, setLogoutCountdown] = useState(3);
 
   /* =========================================================
      TIME-BASED GREETING CALCULATOR
@@ -81,6 +92,7 @@ export default function FacultyDashboard() {
         const storedUser = userJson ? JSON.parse(userJson) : {};
 
         if (storedUser.firstName || storedUser.lastName || storedUser.name) {
+          setFacultyProfile(storedUser);
           setFacultyName(formatFacultyName(storedUser));
         }
 
@@ -101,6 +113,7 @@ export default function FacultyDashboard() {
 
         if (res.ok) {
           const data = await res.json();
+          setFacultyProfile(data);
           setFacultyName(formatFacultyName(data));
         }
       } catch (err) {
@@ -123,8 +136,6 @@ export default function FacultyDashboard() {
 
         if (res.ok) {
           const data = await res.json();
-          console.log("Registrar Settings Loaded in Faculty Dashboard:", data);
-
           const payload = Array.isArray(data) ? data[0] : data;
 
           if (payload) {
@@ -184,6 +195,92 @@ export default function FacultyDashboard() {
   }, [showWelcome]);
 
   /* =========================================================
+     INTERCEPT BACK BUTTON (Trigger Logout Confirmation)
+     ========================================================= */
+  useEffect(() => {
+    if (!window.history.state || !window.history.state.guarded) {
+      window.history.pushState({ guarded: true }, "", window.location.href);
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      event.preventDefault();
+      setShowBackLogoutConfirm(true);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  /* =========================================================
+     LOGOUT AUDIT & COUNTDOWN HANDLERS
+     ========================================================= */
+  const logLogoutActivity = async () => {
+    try {
+      const userEmail = facultyProfile?.email || "faculty@example.com";
+      const userRole = facultyProfile?.role || "Faculty";
+
+      await fetch(`${API_BASE_URL}/logs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${
+            localStorage.getItem("token") ||
+            localStorage.getItem("sessionToken") ||
+            ""
+          }`,
+        },
+        body: JSON.stringify({
+          action: "Logout",
+          user: userEmail,
+          role: userRole,
+          type: "Security",
+          details: `${userEmail} logged out of the faculty portal via back navigation.`,
+          status: "success",
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to log faculty logout activity:", err);
+    }
+  };
+
+  const handleBackLogoutConfirm = () => {
+    setShowBackLogoutConfirm(false);
+    setIsLoggingOut(true);
+    setLogoutCountdown(3);
+  };
+
+  useEffect(() => {
+    if (!isLoggingOut) return;
+
+    if (logoutCountdown <= 0) {
+      async function finalizeLogout() {
+        await logLogoutActivity();
+
+        // Clear user session tokens
+        localStorage.removeItem("token");
+        localStorage.removeItem("sessionToken");
+        localStorage.removeItem("user");
+        localStorage.removeItem("lastActivity");
+
+        setIsLoggingOut(false);
+        navigate("/signin", { replace: true });
+      }
+
+      finalizeLogout();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setLogoutCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [isLoggingOut, logoutCountdown, navigate]);
+
+  /* =========================================================
      RENDER
      ========================================================= */
 
@@ -202,6 +299,54 @@ export default function FacultyDashboard() {
             <h4>{welcomeMessage}</h4>
 
             <p>You have successfully signed in.</p>
+          </div>
+        </div>
+      )}
+
+      {/* BACK NAVIGATION LOGOUT CONFIRMATION MODAL */}
+      {showBackLogoutConfirm && (
+        <div
+          className="logout-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="back-logout-title"
+        >
+          <div className="logout-modal">
+            <h6 id="back-logout-title">Confirm Log Out</h6>
+            <p>Going back will log you out of your session. Are you sure?</p>
+            <div className="d-flex gap-2 justify-content-end">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setShowBackLogoutConfirm(false);
+                  window.history.pushState({ guarded: true }, "", window.location.href);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                onClick={handleBackLogoutConfirm}
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LOGGING OUT OVERLAY WITH COUNTDOWN */}
+      {isLoggingOut && (
+        <div className="logging-out-overlay" role="status" aria-live="polite">
+          <div className="logging-out-box">
+            <div className="logging-spinner" aria-hidden="true" />
+            <h5>Logging out...</h5>
+            <p>
+              Redirecting in {logoutCountdown} second
+              {logoutCountdown !== 1 ? "s" : ""}
+            </p>
           </div>
         </div>
       )}

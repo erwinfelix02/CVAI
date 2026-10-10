@@ -1,6 +1,7 @@
 // src/pages/Registrar/RegistrarDashboard.tsx
 
 import { useMemo, useRef, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Users,
   ClipboardList,
@@ -32,12 +33,20 @@ import "../../styles/registrar-dashboard.css";
 const REGISTRAR_ROLE_ID = "registrar";
 
 export default function RegistrarDashboard() {
+  const navigate = useNavigate();
   const quickRef = useRef<HTMLDivElement | null>(null);
   const recentRef = useRef<HTMLDivElement | null>(null);
 
   const [showWelcome, setShowWelcome] = useState(false);
   const [isWelcomeClosing, setIsWelcomeClosing] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState("");
+
+  /* =========================================================
+     BACK NAVIGATION LOGOUT & COUNTDOWN STATES
+     ========================================================= */
+  const [showBackLogoutConfirm, setShowBackLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutCountdown, setLogoutCountdown] = useState(3);
 
   const [totalStudents, setTotalStudents] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
@@ -50,6 +59,16 @@ export default function RegistrarDashboard() {
 
   const [permissions, setPermissions] = useState<string[]>([]);
   const [, setLoadingPerms] = useState(true);
+
+  // Get current user details for audit logging
+  const currentUser = useMemo(() => {
+    try {
+      const userJson = localStorage.getItem("user");
+      return userJson ? JSON.parse(userJson) : null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     const message = localStorage.getItem("welcomeMessage");
@@ -79,6 +98,92 @@ export default function RegistrarDashboard() {
       clearTimeout(removeTimer);
     };
   }, [showWelcome]);
+
+  /* =========================================================
+     INTERCEPT BACK BUTTON (Trigger Logout Confirmation)
+     ========================================================= */
+  useEffect(() => {
+    if (!window.history.state || !window.history.state.guarded) {
+      window.history.pushState({ guarded: true }, "", window.location.href);
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      event.preventDefault();
+      setShowBackLogoutConfirm(true);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  /* =========================================================
+     LOGOUT AUDIT & COUNTDOWN HANDLERS
+     ========================================================= */
+  const logLogoutActivity = async () => {
+    try {
+      const userEmail = currentUser?.email || "registrar@example.com";
+      const userRole = currentUser?.role || "Registrar";
+
+      await fetch(`${API_BASE_URL}/logs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${
+            localStorage.getItem("token") ||
+            localStorage.getItem("sessionToken") ||
+            ""
+          }`,
+        },
+        body: JSON.stringify({
+          action: "Logout",
+          user: userEmail,
+          role: userRole,
+          type: "Security",
+          details: `${userEmail} logged out of the registrar portal via back navigation.`,
+          status: "success",
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to log registrar logout activity:", err);
+    }
+  };
+
+  const handleBackLogoutConfirm = () => {
+    setShowBackLogoutConfirm(false);
+    setIsLoggingOut(true);
+    setLogoutCountdown(3);
+  };
+
+  useEffect(() => {
+    if (!isLoggingOut) return;
+
+    if (logoutCountdown <= 0) {
+      async function finalizeLogout() {
+        await logLogoutActivity();
+
+        // Clear session tokens
+        localStorage.removeItem("token");
+        localStorage.removeItem("sessionToken");
+        localStorage.removeItem("user");
+        localStorage.removeItem("lastActivity");
+
+        setIsLoggingOut(false);
+        navigate("/signin", { replace: true });
+      }
+
+      finalizeLogout();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setLogoutCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [isLoggingOut, logoutCountdown, navigate]);
 
   useEffect(() => {
     async function loadPerms() {
@@ -297,6 +402,54 @@ export default function RegistrarDashboard() {
             </div>
             <h4>{welcomeMessage}</h4>
             <p>You have successfully signed in.</p>
+          </div>
+        </div>
+      )}
+
+      {/* BACK NAVIGATION LOGOUT CONFIRMATION MODAL */}
+      {showBackLogoutConfirm && (
+        <div
+          className="logout-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="back-logout-title"
+        >
+          <div className="logout-modal">
+            <h6 id="back-logout-title">Confirm Log Out</h6>
+            <p>Going back will log you out of your session. Are you sure?</p>
+            <div className="d-flex gap-2 justify-content-end">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setShowBackLogoutConfirm(false);
+                  window.history.pushState({ guarded: true }, "", window.location.href);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                onClick={handleBackLogoutConfirm}
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LOGGING OUT OVERLAY WITH COUNTDOWN */}
+      {isLoggingOut && (
+        <div className="logging-out-overlay" role="status" aria-live="polite">
+          <div className="logging-out-box">
+            <div className="logging-spinner" aria-hidden="true" />
+            <h5>Logging out...</h5>
+            <p>
+              Redirecting in {logoutCountdown} second
+              {logoutCountdown !== 1 ? "s" : ""}
+            </p>
           </div>
         </div>
       )}

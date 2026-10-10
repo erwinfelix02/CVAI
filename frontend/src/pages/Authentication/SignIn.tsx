@@ -1,3 +1,5 @@
+// ✅ src/pages/SignIn.tsx
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -164,10 +166,21 @@ export default function SignIn() {
         `Welcome back, ${user?.firstName || user?.fullName || "User"}!`,
       );
 
+      // 🟢 Clear input fields and reset button state immediately before redirecting
+      setEmail("");
+      setPassword("");
+      setUserAnswer("");
+      setLoading(false);
+
       window.location.href = redirect;
     } catch (error: any) {
       setLoading(false);
       setAnimateAlert(false);
+
+      // 🟢 Reset inputs and refresh captcha challenge on failed login as well
+      setPassword("");
+      setUserAnswer("");
+      generateQuestion();
 
       const data = error.response?.data;
 

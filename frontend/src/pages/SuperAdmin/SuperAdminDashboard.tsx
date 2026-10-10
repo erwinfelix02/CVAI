@@ -1,4 +1,7 @@
+// ✅ src/pages/SuperAdmin/SuperAdminDashboard.tsx
+
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   Users,
@@ -79,9 +82,18 @@ function getActivityMeta(log: LogRow): Pick<ActivityRow, "icon" | "tone"> {
 }
 
 export default function SuperAdminDashboard() {
+  const navigate = useNavigate();
+
   const [showWelcome, setShowWelcome] = useState(false);
   const [isWelcomeClosing, setIsWelcomeClosing] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState("");
+
+  /* =========================================================
+     BACK NAVIGATION LOGOUT & COUNTDOWN STATES
+     ========================================================= */
+  const [showBackLogoutConfirm, setShowBackLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutCountdown, setLogoutCountdown] = useState(3);
 
   const [totalUsers, setTotalUsers] = useState(0);
   const [aiItems, setAiItems] = useState(0);
@@ -93,6 +105,16 @@ export default function SuperAdminDashboard() {
   const [loadingFaqs, setLoadingFaqs] = useState(false);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [loadingPortals, setLoadingPortals] = useState(false);
+
+  // Get current user details for audit logging
+  const currentUser = useMemo(() => {
+    try {
+      const userJson = localStorage.getItem("user");
+      return userJson ? JSON.parse(userJson) : null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     const message = localStorage.getItem("welcomeMessage");
@@ -122,6 +144,93 @@ export default function SuperAdminDashboard() {
       clearTimeout(removeTimer);
     };
   }, [showWelcome]);
+
+  /* =========================================================
+     INTERCEPT BACK BUTTON (Trigger Logout Confirmation)
+     ========================================================= */
+  useEffect(() => {
+    if (!window.history.state || !window.history.state.guarded) {
+      window.history.pushState({ guarded: true }, "", window.location.href);
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      event.preventDefault();
+      setShowBackLogoutConfirm(true);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  /* =========================================================
+     LOGOUT AUDIT & COUNTDOWN HANDLERS
+     ========================================================= */
+  const logLogoutActivity = async () => {
+    try {
+      const userEmail = currentUser?.email || "superadmin@example.com";
+      const userRole = currentUser?.role || "SuperAdmin";
+
+      await axios.post(
+        `${API_BASE_URL}/logs`,
+        {
+          action: "Logout",
+          user: userEmail,
+          role: userRole,
+          type: "Security",
+          details: `${userEmail} logged out of the superadmin portal via back navigation.`,
+          status: "success",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${
+              localStorage.getItem("token") ||
+              localStorage.getItem("sessionToken") ||
+              ""
+            }`,
+          },
+        }
+      );
+    } catch (err) {
+      console.error("Failed to log superadmin logout activity:", err);
+    }
+  };
+
+  const handleBackLogoutConfirm = () => {
+    setShowBackLogoutConfirm(false);
+    setIsLoggingOut(true);
+    setLogoutCountdown(3);
+  };
+
+  useEffect(() => {
+    if (!isLoggingOut) return;
+
+    if (logoutCountdown <= 0) {
+      async function finalizeLogout() {
+        await logLogoutActivity();
+
+        // Clear session tokens
+        localStorage.removeItem("token");
+        localStorage.removeItem("sessionToken");
+        localStorage.removeItem("user");
+        localStorage.removeItem("lastActivity");
+
+        setIsLoggingOut(false);
+        navigate("/signin", { replace: true });
+      }
+
+      finalizeLogout();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setLogoutCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [isLoggingOut, logoutCountdown, navigate]);
 
   useEffect(() => {
     const load = async () => {
@@ -359,6 +468,54 @@ export default function SuperAdminDashboard() {
         </div>
       )}
 
+      {/* BACK NAVIGATION LOGOUT CONFIRMATION MODAL */}
+      {showBackLogoutConfirm && (
+        <div
+          className="logout-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="back-logout-title"
+        >
+          <div className="logout-modal">
+            <h6 id="back-logout-title">Confirm Log Out</h6>
+            <p>Going back will log you out of your session. Are you sure?</p>
+            <div className="d-flex gap-2 justify-content-end">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setShowBackLogoutConfirm(false);
+                  window.history.pushState({ guarded: true }, "", window.location.href);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                onClick={handleBackLogoutConfirm}
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LOGGING OUT OVERLAY WITH COUNTDOWN */}
+      {isLoggingOut && (
+        <div className="logging-out-overlay" role="status" aria-live="polite">
+          <div className="logging-out-box">
+            <div className="logging-spinner" aria-hidden="true" />
+            <h5>Logging out...</h5>
+            <p>
+              Redirecting in {logoutCountdown} second
+              {logoutCountdown !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="superadmin-dashboard">
         <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-3 mb-md-4">
           <div>
@@ -383,7 +540,7 @@ export default function SuperAdminDashboard() {
           ))}
         </div>
 
-        {/* 2. Quick Actions Grid (Moved right under Stat Cards) */}
+        {/* 2. Quick Actions Grid */}
         <div className="row g-3 g-md-4 mb-3 mb-md-4">
           <div className="col-12">
             <QuickActionsGrid title="Quick Actions" items={quick} />
