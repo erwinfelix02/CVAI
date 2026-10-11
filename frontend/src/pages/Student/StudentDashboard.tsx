@@ -357,7 +357,7 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      <AcademicProgress />
+      <AcademicProgress earnedCredits={totalCredits > 0 ? totalCredits : 98} />
     </>
   );
 }

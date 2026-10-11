@@ -16,9 +16,9 @@
   width: 100%;
   max-width: 420px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-}
-.auth-card {
   border: 1px solid rgba(0, 0, 0, 0.08); /* light border for contrast */
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 .role-selector {
@@ -175,6 +175,7 @@ button,
   font-size: 20px;
   border-radius: 10px;
   border: 1px solid #e3e8ee;
+  box-sizing: border-box;
 }
 
 .code-input:focus,
@@ -281,6 +282,8 @@ button,
   justify-content: center; /* centers the whole row */
   gap: 12px; /* space between each element */
   margin-bottom: 1rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Numbers (a and b) */
@@ -294,6 +297,7 @@ button,
   background: #f8f9fa;
   color: #111827;
   font-size: 0.95rem;
+  box-sizing: border-box;
 }
 
 /* Plus / Equal sign */
@@ -310,12 +314,14 @@ button,
 /* Input box */
 .math-verification input {
   width: 80px;
+  height: 44px;
   padding: 0.5rem 0.75rem;
   font-size: 0.95rem;
   border-radius: 8px;
   border: 1px solid #e3e8ee;
   text-align: center;
   outline: none;
+  box-sizing: border-box;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
@@ -338,18 +344,18 @@ button,
 /* Responsive adjustment */
 @media (max-width: 480px) {
   .math-verification {
-    gap: 8px;
+    gap: 6px;
   }
 
   .math-verification input,
   .math-verification .number-box {
-    width: 60px;
+    width: 56px;
     font-size: 0.85rem;
-    padding: 0.4rem 0.6rem;
+    padding: 0.4rem 0.4rem;
   }
 
   .math-verification span.operator {
-    min-width: 18px;
+    min-width: 16px;
   }
 }
 /* Refresh button */
@@ -363,6 +369,7 @@ button,
   width: 40px;
   height: 40px;
   cursor: pointer;
+  flex-shrink: 0;
   transition:
     background 0.2s,
     color 0.3s;
@@ -392,7 +399,6 @@ input[type="password"]::-webkit-password-toggle-button {
   display: none !important;
 }
 /* Layout */
-
 
 .auth-left h1 {
   font-size: 2.2rem;
@@ -486,6 +492,8 @@ input[type="password"]::-webkit-password-toggle-button {
 .outlined-field {
   position: relative;
   margin-bottom: 1.25rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .outlined-input {
@@ -498,6 +506,7 @@ input[type="password"]::-webkit-password-toggle-button {
   border-radius: 10px;
   background: transparent;
   outline: none;
+  box-sizing: border-box;
 }
 
 /* Focus state */
@@ -590,6 +599,7 @@ input[type="password"]::-webkit-password-toggle-button {
   left: 0;
   font-size: 12px;
   color: #e53935;
+  box-sizing: border-box;
 }
 .outlined-field {
   position: relative;
@@ -682,11 +692,13 @@ input[type="password"]::-webkit-password-toggle-button {
   position: fixed;
   top: 20px;
   left: 50%;
-  border-radius: 8px; 
+  border-radius: 8px;
   transform: translateX(-50%) translateY(-20px);
   z-index: 1050;
   opacity: 0;
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
   pointer-events: none;
 }
 
@@ -736,15 +748,22 @@ input[type="password"]::-webkit-password-toggle-button {
 }
 
 @keyframes dots {
-  0% { content: ""; }
-  33% { content: "."; }
-  66% { content: ".."; }
-  100% { content: "..."; }
+  0% {
+    content: "";
+  }
+  33% {
+    content: ".";
+  }
+  66% {
+    content: "..";
+  }
+  100% {
+    content: "...";
+  }
 }
 :root {
   --brand-primary: #0d5173;
 }
-
 
 /* RIGHT CARD WRAPPER */
 .auth-form-wrap {
@@ -752,11 +771,13 @@ input[type="password"]::-webkit-password-toggle-button {
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .auth-form-max {
   width: 100%;
   max-width: 460px;
+  box-sizing: border-box;
 }
 
 /* CARD LOOK */
@@ -768,6 +789,8 @@ input[type="password"]::-webkit-password-toggle-button {
 .auth-accent {
   height: 6px;
   background: linear-gradient(90deg, var(--brand-primary), #0dcaf0);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
 }
 
 /* ===== SCHOOL PANEL ===== */
@@ -776,9 +799,15 @@ input[type="password"]::-webkit-password-toggle-button {
   padding: 2.5rem;
   color: #fff;
   background-image:
-    radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.35) 1px, transparent 0),
+    radial-gradient(
+      circle at 2px 2px,
+      rgba(255, 255, 255, 0.35) 1px,
+      transparent 0
+    ),
     linear-gradient(135deg, #0dcaf0, #0b5ed7);
-  background-size: 24px 24px, cover;
+  background-size:
+    24px 24px,
+    cover;
   box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
 }
 
@@ -836,15 +865,25 @@ input[type="password"]::-webkit-password-toggle-button {
   min-height: 100vh;
   padding-top: 72px;
   background:
-    radial-gradient(900px 500px at 10% 0%, rgba(13, 202, 240, 0.18), transparent 55%),
-    radial-gradient(900px 500px at 90% 20%, rgba(13, 81, 115, 0.16), transparent 55%),
+    radial-gradient(
+      900px 500px at 10% 0%,
+      rgba(13, 202, 240, 0.18),
+      transparent 55%
+    ),
+    radial-gradient(
+      900px 500px at 90% 20%,
+      rgba(13, 81, 115, 0.16),
+      transparent 55%
+    ),
     linear-gradient(180deg, #ffffff, #f6f8fb);
+  box-sizing: border-box;
 }
 
 /* ===== CENTER CARD WRAPPER ===== */
 .auth-center-wrapper {
   width: 100%;
   padding: 14px 1rem 1rem;
+  box-sizing: border-box;
 }
 
 /* Card max width */
@@ -1022,7 +1061,6 @@ input[type="password"]::-webkit-password-toggle-button {
   min-width: 0;
 }
 
-
 .auth-step.active {
   background: #0b5d7a;
   color: #fff;
@@ -1080,7 +1118,6 @@ input[type="password"]::-webkit-password-toggle-button {
   white-space: nowrap;
   min-width: 0;
 }
-
 
 .auth-step.active {
   background: #0b5d7a;
@@ -1202,11 +1239,11 @@ input[type="password"]::-webkit-password-toggle-button {
   flex: 1;
 }
 .password-hint {
-  margin: 12px 0 16px 0;   /* balanced spacing */
+  margin: 12px 0 16px 0; /* balanced spacing */
   font-size: 0.85rem;
   line-height: 1.4;
   color: #6c757d;
-  text-align: center;      /* centers it cleanly */
+  text-align: center; /* centers it cleanly */
   width: 100%;
 }
 .password-hint {
@@ -1248,6 +1285,7 @@ input[type="password"]::-webkit-password-toggle-button {
   max-width: 1420px;
   margin: 0 auto;
   padding: 0 60px;
+  box-sizing: border-box;
 }
 
 .auth-back-row {

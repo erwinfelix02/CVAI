@@ -36,14 +36,6 @@ export default function useIdleLogout(
       }
     };
 
-    const update = (): void => {
-      localStorage.setItem("lastActivity", Date.now().toString());
-
-      if (isWarningActiveRef.current) {
-        clearWarningCountdown();
-      }
-    };
-
     const logout = (): void => {
       clearWarningCountdown();
       localStorage.removeItem("token");
@@ -51,6 +43,14 @@ export default function useIdleLogout(
       localStorage.removeItem("lastActivity");
       localStorage.removeItem("user");
       window.location.href = "/signin";
+    };
+
+    const update = (): void => {
+      localStorage.setItem("lastActivity", Date.now().toString());
+
+      if (isWarningActiveRef.current) {
+        clearWarningCountdown();
+      }
     };
 
     const startWarningCountdown = (): void => {
@@ -89,6 +89,21 @@ export default function useIdleLogout(
       }
     };
 
+    // --- NEW: Check immediately on mount or when browser tab regains focus ---
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === "visible") {
+        check();
+      }
+    };
+
+    const last = localStorage.getItem("lastActivity");
+    if (!last) {
+      update();
+    } else {
+      // Instantly evaluate if time expired while browser/tab was left alone or closed
+      check();
+    }
+
     const events: Array<keyof WindowEventMap> = [
       "mousemove",
       "keydown",
@@ -97,12 +112,12 @@ export default function useIdleLogout(
       "touchstart",
     ];
 
-    if (!localStorage.getItem("lastActivity")) {
-      update();
-    }
-
     events.forEach((e) => window.addEventListener(e, update));
     checkIntervalRef.current = window.setInterval(check, 1000);
+    
+    // Listen for when user clicks back to the tab or reopens the browser window
+    window.addEventListener("focus", handleVisibilityOrFocus);
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
 
     return () => {
       events.forEach((e) => window.removeEventListener(e, update));
@@ -110,6 +125,9 @@ export default function useIdleLogout(
       if (checkIntervalRef.current) {
         window.clearInterval(checkIntervalRef.current);
       }
+
+      window.removeEventListener("focus", handleVisibilityOrFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
 
       clearWarningCountdown();
     };
