@@ -1,4 +1,3 @@
-//Footer.tsx
 import { useEffect, useState } from "react";
 import "../../styles/footer.css";
 import { MapPin, Phone, Mail, Globe } from "lucide-react";
