@@ -33,7 +33,9 @@ export default function StudentDashboard() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [isWelcomeClosing, setIsWelcomeClosing] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState("");
-  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
+  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(
+    null,
+  );
 
   // Live performance stats from grades endpoint
   const [studentGpa, setStudentGpa] = useState<string>("1.00");
@@ -106,7 +108,8 @@ export default function StudentDashboard() {
   // 2.6. Handle countdown and session destruction just like the Sidebar logout
   const logLogoutActivity = async () => {
     try {
-      const userEmail = studentProfile?.email || parsedUser?.email || "student@example.com";
+      const userEmail =
+        studentProfile?.email || parsedUser?.email || "student@example.com";
       const userRole = studentProfile?.role || parsedUser?.role || "Student";
 
       await fetch(`${API_BASE_URL}/logs`, {
@@ -189,14 +192,19 @@ export default function StudentDashboard() {
           setStudentProfile(userData);
         }
 
-        const gradesRes = await fetch(`${API_BASE_URL}/students/my-grades`, { headers });
+        const gradesRes = await fetch(`${API_BASE_URL}/students/my-grades`, {
+          headers,
+        });
         if (gradesRes.ok) {
           const gradesData = await gradesRes.json();
           if (gradesData.success) {
             if (gradesData.gpa) setStudentGpa(gradesData.gpa);
             if (gradesData.unitsEnrolled !== undefined) {
               setTotalCredits(gradesData.unitsEnrolled);
-              setEnrolledCoursesCount(Object.keys(gradesData.grades || {}).length || gradesData.unitsEnrolled / 3);
+              setEnrolledCoursesCount(
+                Object.keys(gradesData.grades || {}).length ||
+                  gradesData.unitsEnrolled / 3,
+              );
             }
           }
         }
@@ -216,7 +224,9 @@ export default function StudentDashboard() {
         const headers: HeadersInit = { "Content-Type": "application/json" };
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
-        const res = await fetch(`${API_BASE_URL}/registrar-settings`, { headers });
+        const res = await fetch(`${API_BASE_URL}/registrar-settings`, {
+          headers,
+        });
         if (res.ok) {
           const data = await res.json();
           setAcademicSettings({
@@ -236,15 +246,19 @@ export default function StudentDashboard() {
 
   const studentFullName = studentProfile
     ? studentProfile.name ||
-      [studentProfile.firstName, studentProfile.middleName, studentProfile.lastName]
+      [
+        studentProfile.firstName,
+        studentProfile.middleName,
+        studentProfile.lastName,
+      ]
         .filter(Boolean)
         .join(" ")
         .trim() ||
       parsedUser?.firstName ||
       "Student"
     : parsedUser?.firstName
-    ? `${parsedUser.firstName} ${parsedUser.lastName || ""}`.trim()
-    : "Student";
+      ? `${parsedUser.firstName} ${parsedUser.lastName || ""}`.trim()
+      : "Student";
 
   const formattedSemester =
     academicSettings.semester && academicSettings.academicYear
@@ -255,12 +269,15 @@ export default function StudentDashboard() {
     ? studentProfile.enrolledSubjects.length
     : 0;
 
-  const finalCoursesCount = enrolledCoursesCount > 0 ? enrolledCoursesCount : fallbackEnrolledCount;
+  const finalCoursesCount =
+    enrolledCoursesCount > 0 ? enrolledCoursesCount : fallbackEnrolledCount;
 
   return (
     <>
       {showWelcome && (
-        <div className={`welcome-overlay ${isWelcomeClosing ? "fade-out" : ""}`}>
+        <div
+          className={`welcome-overlay ${isWelcomeClosing ? "fade-out" : ""}`}
+        >
           <div className={`welcome-box ${isWelcomeClosing ? "fade-out" : ""}`}>
             <div className="welcome-icon-wrap">
               <CheckCircle2 size={34} />
@@ -288,7 +305,11 @@ export default function StudentDashboard() {
                 className="btn btn-secondary btn-sm"
                 onClick={() => {
                   setShowBackLogoutConfirm(false);
-                  window.history.pushState({ guarded: true }, "", window.location.href);
+                  window.history.pushState(
+                    { guarded: true },
+                    "",
+                    window.location.href,
+                  );
                 }}
               >
                 Cancel
@@ -342,10 +363,10 @@ export default function StudentDashboard() {
       </header>
 
       {/* Pass live GPA, Attendance, Courses, and Credits to StatsGrid */}
-      <StatsGrid 
-        enrolledCoursesCount={finalCoursesCount} 
-        liveGpa={studentGpa} 
-        liveCredits={totalCredits > 0 ? totalCredits : finalCoursesCount * 3} 
+      <StatsGrid
+        enrolledCoursesCount={finalCoursesCount}
+        liveGpa={studentGpa}
+        liveCredits={totalCredits > 0 ? totalCredits : finalCoursesCount * 3}
       />
 
       <div className="row g-3 my-3">
