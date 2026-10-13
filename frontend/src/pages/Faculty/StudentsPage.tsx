@@ -1,17 +1,18 @@
-// ✅ src/pages/Faculty/StudentsPage.tsx
-
 import { useState, useEffect, useMemo } from "react";
 import type { ChangeEvent, JSX } from "react";
+
 import StatsCards from "../../components/Faculty/Student/StatsCards";
 import StudentList from "../../components/Faculty/Student/StudentList";
 import ExportStudentModal from "../../components/Faculty/Student/ExportStudentModal";
 import AddStudentModal from "../../components/Faculty/Student/AddStudentModal";
 import type { AssignedClass } from "../../components/Faculty/Student/AddStudentModal";
 import type { Student } from "../../components/Faculty/Student/types";
+
 import { Download, UserPlus, Search, Filter } from "lucide-react";
 import "../../styles/faculty-students.css";
+
 import { notifyStudentCountUpdate } from "../../utils/studentCount";
-import { API_BASE_URL } from "../../config"; // 🟢 Centralized API Configuration
+import { API_BASE_URL } from "../../config";
 
 interface ScheduleResponse {
   _id: string;
@@ -21,45 +22,142 @@ interface ScheduleResponse {
   faculty: string;
 }
 
+/**
+ * Extract a section value from a student record, checking all possible property variations.
+ */
+function getStudentSection(student: Student): string {
+  const s = student as Record<string, unknown>;
+  const rawSection =
+    student.section ??
+    student.classSection ??
+    student.sectionName ??
+    s.section_name ??
+    s.course ??
+    s.yearAndSection ??
+    s.year_section ??
+    s.assignedSection ??
+    "";
+
+  if (typeof rawSection === "string" || typeof rawSection === "number") {
+    return String(rawSection).trim();
+  }
+
+  if (rawSection && typeof rawSection === "object") {
+    const section = rawSection as Record<string, unknown>;
+
+    const value =
+      section.name ??
+      section.section ??
+      section.sectionName ??
+      section.label ??
+      section.code;
+
+    return value == null ? "" : String(value).trim();
+  }
+
+  return "";
+}
+
+function normalize(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase();
+}
+
 export default function StudentsPage(): JSX.Element {
   const [sectionFilter, setSectionFilter] = useState<string>("All");
   const [search, setSearch] = useState<string>("");
-  const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
-  const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState<boolean>(false);
+
+  const [isExportModalOpen, setIsExportModalOpen] =
+    useState<boolean>(false);
+
+  const [isAddStudentModalOpen, setIsAddStudentModalOpen] =
+    useState<boolean>(false);
 
   const [studentsList, setStudentsList] = useState<Student[]>([]);
   const [assignedClasses, setAssignedClasses] = useState<AssignedClass[]>([]);
+
   const [isLoadingClasses, setIsLoadingClasses] = useState<boolean>(false);
   const [isLoadingStudents, setIsLoadingStudents] = useState<boolean>(false);
 
+  /**
+   * Build section options from BOTH student records and schedules.
+   */
   const sectionsList = useMemo(() => {
-    const activeStudentSections = studentsList
-      .map((s: any) => String(s.section || s.classSection || s.sectionName || "").trim())
-      .filter((sec) => sec !== "" && sec !== "—" && sec !== "null" && sec !== "undefined");
+    const studentSections = studentsList.map(getStudentSection);
+    const scheduleSections = assignedClasses.map((schedule) =>
+      String(schedule.section ?? "").trim()
+    );
 
-    const uniqueSections = Array.from(new Set(activeStudentSections)).sort((a, b) =>
+    console.log("Extracted student sections:", studentSections);
+    console.log("Extracted schedule sections:", scheduleSections);
+
+    const allSections = [...studentSections, ...scheduleSections].filter(
+      (section) => {
+        const value = normalize(section);
+
+        return (
+          value !== "" &&
+          value !== "—" &&
+          value !== "null" &&
+          value !== "undefined"
+        );
+      }
+    );
+
+    const uniqueSections = Array.from(new Set(allSections)).sort((a, b) =>
       a.localeCompare(b)
     );
 
-    return ["All", ...uniqueSections];
-  }, [studentsList]);
+    console.log("Final computed sectionsList:", ["All", ...uniqueSections]);
 
+    return ["All", ...uniqueSections];
+  }, [studentsList, assignedClasses]);
+
+  /**
+   * Filter statistics by the selected section.
+   */
   const activeSectionStudents = useMemo(() => {
-    if (sectionFilter === "All") return studentsList;
-    return studentsList.filter((s: any) => {
-      const studentSection = String(s.section || s.classSection || "").trim().toLowerCase();
-      return studentSection === sectionFilter.trim().toLowerCase();
-    });
+    const selectedSection = normalize(sectionFilter);
+
+    if (!selectedSection || selectedSection === "all") {
+      return studentsList;
+    }
+
+    return studentsList.filter(
+      (student) =>
+        normalize(getStudentSection(student)) === selectedSection
+    );
   }, [studentsList, sectionFilter]);
 
+  /**
+   * Reset only if the selected section no longer exists in either source.
+   */
+  useEffect(() => {
+    if (
+      sectionFilter !== "All" &&
+      !sectionsList.some(
+        (section) => normalize(section) === normalize(sectionFilter)
+      )
+    ) {
+      setSectionFilter("All");
+    }
+  }, [sectionsList, sectionFilter]);
+
+  /**
+   * Fetch students and attendance.
+   */
   const fetchStudentRecords = async (): Promise<void> => {
     setIsLoadingStudents(true);
+
     try {
       const userJson = localStorage.getItem("user");
-      const token = localStorage.getItem("token") || localStorage.getItem("sessionToken");
+      const token =
+        localStorage.getItem("token") ||
+        localStorage.getItem("sessionToken");
+
       const user = userJson ? JSON.parse(userJson) : null;
 
       const facultyId = user?.id || user?._id || "";
+
       const facultyName =
         user?.name ||
         (user?.firstName && user?.lastName
@@ -67,90 +165,143 @@ export default function StudentsPage(): JSX.Element {
           : user?.email || "");
 
       const queryParams = new URLSearchParams();
+
       if (facultyId) queryParams.append("facultyId", facultyId);
       if (facultyName) queryParams.append("facultyName", facultyName);
 
-      const attParams = new URLSearchParams();
-      if (facultyId) attParams.append("facultyId", facultyId);
+      const attendanceParams = new URLSearchParams();
 
-      // 🟢 Uses API_BASE_URL config
-      const [studentsRes, attendanceRes] = await Promise.all([
+      if (facultyId) {
+        attendanceParams.append("facultyId", facultyId);
+      }
+
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
+      const [studentsResponse, attendanceResponse] = await Promise.all([
         fetch(`${API_BASE_URL}/students?${queryParams.toString()}`, {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+          headers,
         }),
-        fetch(`${API_BASE_URL}/attendance?${attParams.toString()}`, {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+        fetch(`${API_BASE_URL}/attendance?${attendanceParams.toString()}`, {
+          headers,
         }).catch(() => null),
       ]);
 
-      if (studentsRes.ok) {
-        const data = await studentsRes.json();
-        const rawStudents: any[] = Array.isArray(data)
-          ? data
-          : data.students || [];
+      if (!studentsResponse.ok) {
+        throw new Error(
+          `Failed to fetch students: ${studentsResponse.status}`
+        );
+      }
 
-        const attendanceMap = new Map<string, { present: number; total: number }>();
+      const responseData = await studentsResponse.json();
 
-        if (attendanceRes && attendanceRes.ok) {
-          const attRecords = await attendanceRes.json();
-          if (Array.isArray(attRecords)) {
-            attRecords.forEach((record: any) => {
-              if (Array.isArray(record.students)) {
-                record.students.forEach((st: any) => {
-                  const sKey = (st.studentId || st.studentNo || "").toString().trim().toLowerCase();
-                  if (!sKey) return;
+      const rawStudents: Student[] = Array.isArray(responseData)
+        ? responseData
+        : Array.isArray(responseData.students)
+          ? responseData.students
+          : [];
 
-                  const prev = attendanceMap.get(sKey) || { present: 0, total: 0 };
-                  const isPresent = st.status === "present" || st.status === "late";
-                  attendanceMap.set(sKey, {
-                    present: prev.present + (isPresent ? 1 : 0),
-                    total: prev.total + 1,
-                  });
-                });
-              }
+      console.log("Student records from API:", rawStudents);
+
+      const attendanceMap = new Map<
+        string,
+        { present: number; total: number }
+      >();
+
+      if (attendanceResponse?.ok) {
+        const attendanceData = await attendanceResponse.json();
+
+        if (Array.isArray(attendanceData)) {
+          attendanceData.forEach((record: any) => {
+            if (!Array.isArray(record.students)) return;
+
+            record.students.forEach((attendanceStudent: any) => {
+              const studentKey = String(
+                attendanceStudent.studentId ??
+                  attendanceStudent.studentNo ??
+                  ""
+              )
+                .trim()
+                .toLowerCase();
+
+              if (!studentKey) return;
+
+              const previous = attendanceMap.get(studentKey) ?? {
+                present: 0,
+                total: 0,
+              };
+
+              const status = normalize(attendanceStudent.status);
+              const isPresent = status === "present" || status === "late";
+
+              attendanceMap.set(studentKey, {
+                present: previous.present + (isPresent ? 1 : 0),
+                total: previous.total + 1,
+              });
             });
+          });
+        }
+      }
+
+      const loadedStudents: Student[] = rawStudents.map((student) => {
+        const possibleIds = [
+          student._id,
+          student.id,
+          student.studentIdNumber,
+          student.studentId,
+        ]
+          .filter(Boolean)
+          .map(normalize);
+
+        let attendancePercentage =
+          typeof student.attendance === "number" ? student.attendance : 100;
+
+        for (const id of possibleIds) {
+          const stats = attendanceMap.get(id);
+
+          if (stats && stats.total > 0) {
+            attendancePercentage = Math.round(
+              (stats.present / stats.total) * 100
+            );
+            break;
           }
         }
 
-        const loadedStudents: Student[] = rawStudents.map((s: any) => {
-          const lookupKey = (s._id || s.id || s.studentIdNumber || s.studentId || "").toString().trim().toLowerCase();
-          const attStats = attendanceMap.get(lookupKey);
+        return {
+          ...student,
+          attendance: attendancePercentage,
+          avatarUrl:
+            student.avatarUrl ||
+            student.avatar ||
+            student.photoUrl ||
+            student.photo ||
+            "",
+        };
+      });
 
-          let calculatedPct = 100;
-          if (attStats && attStats.total > 0) {
-            calculatedPct = Math.round((attStats.present / attStats.total) * 100);
-          } else if (typeof s.attendance === "number") {
-            calculatedPct = s.attendance;
-          }
-
-          return {
-            ...s,
-            avatarUrl: s.avatarUrl || s.avatar || s.photoUrl || s.photo || "",
-            attendance: calculatedPct,
-          };
-        });
-
-        setStudentsList(loadedStudents);
-        notifyStudentCountUpdate(loadedStudents.length);
-      }
-    } catch (err) {
-      console.error("Error fetching student records:", err);
+      setStudentsList(loadedStudents);
+      notifyStudentCountUpdate(loadedStudents.length);
+    } catch (error) {
+      console.error("Error fetching student records:", error);
+      setStudentsList([]);
     } finally {
       setIsLoadingStudents(false);
     }
   };
 
+  /**
+   * Fetch schedules assigned to the faculty.
+   */
   const fetchAssignedSchedules = async (): Promise<void> => {
     setIsLoadingClasses(true);
+
     try {
-      const token = localStorage.getItem("token") || localStorage.getItem("sessionToken");
-      // 🟢 Uses API_BASE_URL config
+      const token =
+        localStorage.getItem("token") ||
+        localStorage.getItem("sessionToken");
+
       const response = await fetch(`${API_BASE_URL}/schedules`, {
         headers: {
           "Content-Type": "application/json",
@@ -159,55 +310,77 @@ export default function StudentsPage(): JSX.Element {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch assigned schedules.");
+        throw new Error(
+          `Failed to fetch assigned schedules: ${response.status}`
+        );
       }
 
-      const data: ScheduleResponse[] = await response.json();
+      const responseData = await response.json();
 
-      const formattedClasses: AssignedClass[] = (Array.isArray(data) ? data : []).map((sch) => ({
-        id: sch._id,
-        code: sch.code,
-        title: sch.title,
-        section: sch.section,
-        label: `${sch.section} - ${sch.code} (${sch.title})`,
+      const schedules: ScheduleResponse[] = Array.isArray(responseData)
+        ? responseData
+        : Array.isArray(responseData.schedules)
+          ? responseData.schedules
+          : [];
+
+      const formattedClasses: AssignedClass[] = schedules.map((schedule) => ({
+        id: schedule._id,
+        code: schedule.code,
+        title: schedule.title,
+        section: schedule.section,
+        label: `${schedule.section} ${schedule.code} (${schedule.title})`,
       }));
 
       setAssignedClasses(formattedClasses);
-    } catch (err) {
-      console.error("Error fetching faculty schedules:", err);
+    } catch (error) {
+      console.error("Error fetching faculty schedules:", error);
+      setAssignedClasses([]);
     } finally {
       setIsLoadingClasses(false);
     }
   };
 
   useEffect(() => {
-    fetchStudentRecords();
-    fetchAssignedSchedules();
+    void fetchStudentRecords();
+    void fetchAssignedSchedules();
   }, []);
 
+  /**
+   * Add a student or update an existing record.
+   */
   const handleStudentAdded = (newStudent: Student): void => {
-    setStudentsList((prev) => {
-      const existsIndex = prev.findIndex(
-        (s) =>
-          s.id === newStudent.id ||
-          (Boolean(s._id) && Boolean(newStudent._id) && s._id === newStudent._id)
+    setStudentsList((previousStudents) => {
+      const existingIndex = previousStudents.findIndex(
+        (student) =>
+          (Boolean(student.id) &&
+            Boolean(newStudent.id) &&
+            student.id === newStudent.id) ||
+          (Boolean(student._id) &&
+            Boolean(newStudent._id) &&
+            student._id === newStudent._id)
       );
 
-      let updatedList: Student[];
-      if (existsIndex > -1) {
-        updatedList = [...prev];
-        updatedList[existsIndex] = { ...updatedList[existsIndex], ...newStudent };
+      let updatedStudents: Student[];
+
+      if (existingIndex >= 0) {
+        updatedStudents = [...previousStudents];
+        updatedStudents[existingIndex] = {
+          ...updatedStudents[existingIndex],
+          ...newStudent,
+        };
       } else {
-        updatedList = [newStudent, ...prev];
+        updatedStudents = [newStudent, ...previousStudents];
       }
 
-      notifyStudentCountUpdate(updatedList.length);
-      return updatedList;
+      notifyStudentCountUpdate(updatedStudents.length);
+      return updatedStudents;
     });
   };
 
-  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>): void => {
-    setSearch(e.target.value);
+  const handleSearchChange = (
+    event: ChangeEvent<HTMLInputElement>
+  ): void => {
+    setSearch(event.target.value);
   };
 
   return (
@@ -217,7 +390,7 @@ export default function StudentsPage(): JSX.Element {
         <div>
           <h3 className="fw-bold mb-1">Student Management</h3>
           <p className="text-muted mb-0">
-            Manage and view your students' information
+            Manage and view your students&apos; information
           </p>
         </div>
 
@@ -242,16 +415,17 @@ export default function StudentsPage(): JSX.Element {
         </div>
       </div>
 
-      {/* STATS */}
+      {/* STATISTICS */}
       <StatsCards studentsList={activeSectionStudents} />
 
-      {/* SEARCH + FILTER */}
+      {/* SEARCH AND SECTION FILTER */}
       <div className="card shadow-sm mb-4">
         <div className="card-body d-flex flex-column flex-md-row gap-3">
           <div className="input-group flex-grow-1">
             <span className="input-group-text bg-white">
               <Search size={16} />
             </span>
+
             <input
               type="text"
               className="form-control"
@@ -261,29 +435,47 @@ export default function StudentsPage(): JSX.Element {
             />
           </div>
 
-          <div className="dropdown w-100 w-md-auto">
+          <div className="dropdown w-100 w-md-auto position-relative">
             <button
               type="button"
               className="btn btn-outline-secondary w-100 d-flex align-items-center gap-2 justify-content-between justify-content-md-start"
-              data-bs-toggle="dropdown"
+              onClick={() => {
+                const dropdownElement = document.getElementById("sectionDropdownMenu");
+                if (dropdownElement) {
+                  dropdownElement.classList.toggle("show");
+                }
+              }}
             >
               <span className="d-flex align-items-center gap-2">
                 <Filter size={16} />
-                {sectionFilter === "All" ? "All Sections" : sectionFilter}
+                {normalize(sectionFilter) === "all"
+                  ? "All Sections"
+                  : sectionFilter}
               </span>
             </button>
 
-            <ul className="dropdown-menu dropdown-menu-end w-100 shadow-sm">
-              {sectionsList.map((s) => (
-                <li key={s}>
+            <ul 
+              id="sectionDropdownMenu"
+              className="dropdown-menu dropdown-menu-end w-100 shadow-sm"
+            >
+              {sectionsList.map((section) => (
+                <li key={section}>
                   <button
                     type="button"
                     className={`dropdown-item ${
-                      sectionFilter === s ? "active" : ""
+                      normalize(sectionFilter) === normalize(section)
+                        ? "active"
+                        : ""
                     }`}
-                    onClick={() => setSectionFilter(s)}
+                    onClick={() => {
+                      setSectionFilter(section);
+                      const dropdownElement = document.getElementById("sectionDropdownMenu");
+                      if (dropdownElement) {
+                        dropdownElement.classList.remove("show");
+                      }
+                    }}
                   >
-                    {s === "All" ? "All Sections" : s}
+                    {section === "All" ? "All Sections" : section}
                   </button>
                 </li>
               ))}
@@ -292,7 +484,7 @@ export default function StudentsPage(): JSX.Element {
         </div>
       </div>
 
-      {/* LIST */}
+      {/* STUDENT LIST */}
       <StudentList
         search={search}
         sectionFilter={sectionFilter}
@@ -300,7 +492,7 @@ export default function StudentsPage(): JSX.Element {
         isLoading={isLoadingStudents}
       />
 
-      {/* EXPORT STUDENT MODAL */}
+      {/* EXPORT MODAL */}
       <ExportStudentModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}

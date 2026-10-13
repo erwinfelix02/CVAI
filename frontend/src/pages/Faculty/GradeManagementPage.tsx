@@ -12,6 +12,7 @@ import {
 import { API_BASE_URL } from "../../config";
 import GradesTable from "../../components/Faculty/Grades/GradesTable";
 import InputGradeModal from "../../components/Faculty/Grades/InputGradeModal";
+import ExportGradesModal from "../../components/Faculty/Grades/ExportGradesModal"; // 👈 Imported Export Modal
 import "../../styles/faculty-grades.css";
 
 export type GradeStatus = "pending" | "complete";
@@ -69,8 +70,9 @@ export default function GradeManagementPage() {
   const [rows, setRows] = useState<GradeRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Modal State
+  // Modal States
   const [editingStudent, setEditingStudent] = useState<GradeRow | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false); // 👈 Export modal state
 
   const currentUser = useMemo(() => {
     try {
@@ -461,7 +463,10 @@ export default function GradeManagementPage() {
         </div>
 
         <div className="d-flex flex-wrap gap-2 grade-actions">
-          <button className="btn btn-light border d-inline-flex align-items-center gap-2 px-3">
+          <button 
+            className="btn btn-light border d-inline-flex align-items-center gap-2 px-3 shadow-sm"
+            onClick={() => setIsExportModalOpen(true)} // 👈 Open Export Modal
+          >
             <Download size={18} /> Export
           </button>
         </div>
@@ -592,6 +597,16 @@ export default function GradeManagementPage() {
         selectedCourseLabel={selectedCourse?.label || courseId}
         gradingSystem={gradingSystem}
         onSaveGrade={handleSaveGradeFromModal}
+      />
+
+     {/* Export Grades Modal */}
+      <ExportGradesModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        rows={filtered}
+        selectedCourseLabel={selectedCourse?.title || courseId}
+        activeTerm={activeTerm}
+        gradingSystem={gradingSystem}
       />
     </div>
   );

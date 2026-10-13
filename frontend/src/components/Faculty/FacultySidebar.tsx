@@ -240,7 +240,6 @@ export default function FacultySidebar({
         label: "Grade Management",
         icon: ClipboardCheck,
         path: "/faculty/grades",
-        badge: 18,
         controlled: true,
       },
       {
