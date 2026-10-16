@@ -1,3 +1,5 @@
+// src/components/Registrar/Applications/RegistrarApplicationRow.tsx
+
 import {
   Eye,
   Send,
@@ -14,20 +16,20 @@ function StatusPill({ status }: { status: ApplicationStatus }) {
   const cls =
     status === "Approved"
       ? "approved"
-      : status === "Rejected"
-      ? "rejected"
+      : status === "Returned"
+      ? "returned"
       : status === "Archived"
       ? "archived"
       : "pending";
 
-  return <span className={`registrar-status ${cls}`}>{status}</span>;
+  const label = status === "Returned" ? "Returned" : status;
+
+  return <span className={`registrar-status ${cls}`}>{label}</span>;
 }
 
 function formatDate(date: string | Date) {
   if (!date) return "";
-
   const d = new Date(date);
-
   return d.toLocaleDateString("en-PH", {
     year: "numeric",
     month: "long",
@@ -70,44 +72,31 @@ export default function RegistrarApplicationRow({
   const archivingRef = useRef(false);
 
   const isApproved = item.status === "Approved";
-  const isRejected = item.status === "Rejected";
+  const isReturned = item.status === "Returned";
   const isArchived = item.status === "Archived";
   const isScheduleSent = Boolean(item.scheduleSent);
 
   const canSelectSchedule = isApproved && !isScheduleSent;
-  
-  // ✅ Fixed condition: Group actions (Archive/Delete bulk actions) should only be available 
-  // for Rejected applications OR Approved applications AFTER their schedule has been sent.
-  // This prevents them from showing up prematurely before scheduling.
-  const canGroupSelect = isRejected || (isApproved && isScheduleSent);
-// Allow delete and archive for Rejected, or Approved applications AFTER schedule is sent
-  const showDeleteButton = isRejected || (isApproved && isScheduleSent);
-  const showArchiveButton = isRejected || (isApproved && isScheduleSent);
+  const canGroupSelect = isReturned || (isApproved && isScheduleSent);
+
+  const showDeleteButton = isReturned || (isApproved && isScheduleSent);
+  const showArchiveButton = isReturned || (isApproved && isScheduleSent);
+
   useEffect(() => {
     if (!deleteConfirmOpen && !archiveConfirmOpen) return;
-
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-
-      if (deleteConfirmOpen && !deleting) {
-        setDeleteConfirmOpen(false);
-      }
-
-      if (archiveConfirmOpen && !archiving) {
-        setArchiveConfirmOpen(false);
-      }
+      if (deleteConfirmOpen && !deleting) setDeleteConfirmOpen(false);
+      if (archiveConfirmOpen && !archiving) setArchiveConfirmOpen(false);
     };
-
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [deleteConfirmOpen, archiveConfirmOpen, deleting, archiving]);
 
   const confirmDelete = async () => {
     if (deletingRef.current) return;
-
     deletingRef.current = true;
     setDeleting(true);
-
     try {
       await onDelete(item.id);
       setDeleteConfirmOpen(false);
@@ -119,10 +108,8 @@ export default function RegistrarApplicationRow({
 
   const confirmArchive = async () => {
     if (archivingRef.current) return;
-
     archivingRef.current = true;
     setArchiving(true);
-
     try {
       await onArchive(item.id);
       setArchiveConfirmOpen(false);
@@ -132,11 +119,21 @@ export default function RegistrarApplicationRow({
     }
   };
 
+  // Helper handler for clicking the individual row's send schedule button
+  const handleIndividualSendSchedule = () => {
+    if (!isApprovedSelected) {
+      onToggleApproved(item.id); // Automatically select this student if not already selected
+    }
+    // Small timeout or direct call depending on state sync, but calling onSendSchedule immediately opens the modal for currently selected IDs
+    setTimeout(() => {
+      onSendSchedule();
+    }, 0);
+  };
+
   return (
     <>
       <div className="registrar-app-card">
         <div className="d-flex align-items-center gap-3 min-w-0">
-          {/* Circular Button for Group Actions (Rejected or Schedule-Sent Approved only) */}
           {canGroupSelect && (
             <button
               type="button"
@@ -147,7 +144,6 @@ export default function RegistrarApplicationRow({
             />
           )}
 
-          {/* Circular Button for Send Schedule (Approved only & not yet sent) */}
           {canSelectSchedule && (
             <button
               type="button"
@@ -163,10 +159,10 @@ export default function RegistrarApplicationRow({
           <div className="min-w-0">
             <div className="fw-semibold text-truncate">{item.name}</div>
             <div className="text-muted text-truncate">
-              {item.program} • {item.yearLevel}
+              {item.program} {item.yearLevel}
             </div>
             <div className="text-muted small text-truncate">
-              {item.id} • Submitted {formatDate(item.submitted)}
+              ID: {item.id} • Submitted {formatDate(item.submitted)}
             </div>
           </div>
         </div>
@@ -178,7 +174,7 @@ export default function RegistrarApplicationRow({
             <button
               type="button"
               className="registrar-icon-btn registrar-icon-btn-primary"
-              onClick={onSendSchedule}
+              onClick={handleIndividualSendSchedule}
               aria-label="Send schedule"
               title="Send Schedule"
             >
@@ -253,17 +249,13 @@ export default function RegistrarApplicationRow({
           className="sec-confirm-backdrop"
           role="dialog"
           aria-modal="true"
-          aria-label="Confirm Archive Application"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget && !archiving) {
               setArchiveConfirmOpen(false);
             }
           }}
         >
-          <div
-            className="sec-confirm-popup"
-            onMouseDown={(e) => e.stopPropagation()}
-          >
+          <div className="sec-confirm-popup" onMouseDown={(e) => e.stopPropagation()}>
             <div className="sec-confirm-header d-flex align-items-center justify-content-between">
               <span>Confirm Archive</span>
               <button
@@ -271,8 +263,6 @@ export default function RegistrarApplicationRow({
                 className="registrar-icon-btn registrar-icon-btn-sm"
                 onClick={() => setArchiveConfirmOpen(false)}
                 disabled={archiving}
-                aria-label="Close"
-                title="Close"
               >
                 <X size={16} />
               </button>
@@ -282,21 +272,6 @@ export default function RegistrarApplicationRow({
               <div className="fw-bold mb-1">Archive this application?</div>
               <div className="text-muted small">
                 You can restore it later from archived records.
-              </div>
-
-              <div className="mt-3 small">
-                <div>
-                  <span className="text-muted">Student:</span>{" "}
-                  <span className="fw-semibold">{item.name}</span>
-                </div>
-                <div>
-                  <span className="text-muted">ID:</span>{" "}
-                  <span className="fw-semibold">{item.id}</span>
-                </div>
-                <div>
-                  <span className="text-muted">Status:</span>{" "}
-                  <span className="fw-semibold">{item.status}</span>
-                </div>
               </div>
             </div>
 
@@ -328,17 +303,13 @@ export default function RegistrarApplicationRow({
           className="sec-confirm-backdrop"
           role="dialog"
           aria-modal="true"
-          aria-label="Confirm Delete Application"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget && !deleting) {
               setDeleteConfirmOpen(false);
             }
           }}
         >
-          <div
-            className="sec-confirm-popup"
-            onMouseDown={(e) => e.stopPropagation()}
-          >
+          <div className="sec-confirm-popup" onMouseDown={(e) => e.stopPropagation()}>
             <div className="sec-confirm-header d-flex align-items-center justify-content-between">
               <span>Confirm Delete</span>
               <button
@@ -346,8 +317,6 @@ export default function RegistrarApplicationRow({
                 className="registrar-icon-btn registrar-icon-btn-sm"
                 onClick={() => setDeleteConfirmOpen(false)}
                 disabled={deleting}
-                aria-label="Close"
-                title="Close"
               >
                 <X size={16} />
               </button>
@@ -355,24 +324,7 @@ export default function RegistrarApplicationRow({
 
             <div className="sec-confirm-body">
               <div className="fw-bold mb-1">Delete this application?</div>
-              <div className="text-muted small">
-                This action cannot be undone.
-              </div>
-
-              <div className="mt-3 small">
-                <div>
-                  <span className="text-muted">Student:</span>{" "}
-                  <span className="fw-semibold">{item.name}</span>
-                </div>
-                <div>
-                  <span className="text-muted">ID:</span>{" "}
-                  <span className="fw-semibold">{item.id}</span>
-                </div>
-                <div>
-                  <span className="text-muted">Status:</span>{" "}
-                  <span className="fw-semibold">{item.status}</span>
-                </div>
-              </div>
+              <div className="text-muted small">This action cannot be undone.</div>
             </div>
 
             <div className="sec-confirm-footer">

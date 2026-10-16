@@ -14,9 +14,7 @@ import type {
   ApplicationStatus,
 } from "../../components/Registrar/Applications/types";
 
-// Import your API configuration (adjust the relative path if your config.ts is located elsewhere)
 import { API_BASE_URL } from "../../config";
-
 import "../../styles/registrar-applications.css";
 
 type FilterStatus = Exclude<ApplicationStatus, "Archived"> | "All";
@@ -37,12 +35,11 @@ export default function ApplicationsPage() {
   const [selectedApp, setSelectedApp] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Group selection IDs strictly for Approved / Rejected applications
+  // Group selection IDs strictly for Approved / Returned applications
   const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(
     new Set<string>(),
   );
 
-  // Selected approved IDs specifically for Send Schedule
   const [selectedApprovedIds, setSelectedApprovedIds] = useState<Set<string>>(
     new Set<string>(),
   );
@@ -53,7 +50,6 @@ export default function ApplicationsPage() {
 
   const showAlert = (message: string, type: "success" | "error") => {
     setAnimateAlert(false);
-
     setTimeout(() => {
       setAlertMessage(message);
       setAlertType(type);
@@ -63,11 +59,9 @@ export default function ApplicationsPage() {
 
   useEffect(() => {
     if (!animateAlert) return;
-
     const t = setTimeout(() => {
       setAnimateAlert(false);
     }, 3000);
-
     return () => clearTimeout(t);
   }, [animateAlert]);
 
@@ -75,7 +69,6 @@ export default function ApplicationsPage() {
     async function fetchApplications() {
       try {
         setLoading(true);
-
         const res = await fetch(`${API_BASE_URL}/preregistrations`);
         if (!res.ok) throw new Error("Failed to fetch applications");
 
@@ -87,7 +80,6 @@ export default function ApplicationsPage() {
             .filter((a) => a.status === "Approved" && !a.scheduleSentAt)
             .map((a) => String(a.registrationId)),
         );
-
         setSelectedApprovedIds(approvedIds);
       } catch (err: any) {
         console.error("Failed to fetch applications", err);
@@ -96,7 +88,6 @@ export default function ApplicationsPage() {
         setLoading(false);
       }
     }
-
     fetchApplications();
   }, []);
 
@@ -133,7 +124,6 @@ export default function ApplicationsPage() {
         !a.scheduleSent &&
         selectedApprovedIds.has(a.id),
     );
-
     return selected.map((a) => ({
       id: a.id,
       name: a.name,
@@ -151,8 +141,8 @@ export default function ApplicationsPage() {
     [mappedApplications],
   );
 
-  const rejectedCount = useMemo(
-    () => mappedApplications.filter((x) => x.status === "Rejected").length,
+  const returnedCount = useMemo(
+    () => mappedApplications.filter((x) => x.status === "Returned").length,
     [mappedApplications],
   );
 
@@ -163,17 +153,13 @@ export default function ApplicationsPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-
     return mappedApplications.filter((a) => {
       if (a.status === "Archived") return false;
-
       const matchesQuery =
         !q ||
         a.name.toLowerCase().includes(q) ||
         a.id.toLowerCase().includes(q);
-
       const matchesStatus = status === "All" ? true : a.status === status;
-
       return matchesQuery && matchesStatus;
     });
   }, [mappedApplications, query, status]);
@@ -186,7 +172,7 @@ export default function ApplicationsPage() {
 
   const toggleGroupSelect = (id: string) => {
     const row = mappedApplications.find((a) => a.id === id);
-    if (!row || (row.status !== "Approved" && row.status !== "Rejected"))
+    if (!row || (row.status !== "Approved" && row.status !== "Returned"))
       return;
 
     setSelectedGroupIds((prev) => {
@@ -211,7 +197,6 @@ export default function ApplicationsPage() {
 
   const deselectAllApproved = () => setSelectedApprovedIds(new Set<string>());
   const deselectAllGroup = () => setSelectedGroupIds(new Set<string>());
-
   const openScheduleModal = () => setScheduleOpen(true);
 
   const handleSendSchedule = async (payload: {
@@ -223,7 +208,6 @@ export default function ApplicationsPage() {
   }) => {
     try {
       setIsSubmitting(true);
-
       const res = await fetch(`${API_BASE_URL}/enrollments/schedule`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -265,7 +249,7 @@ export default function ApplicationsPage() {
 
   const handleStatusUpdated = (
     registrationId: string,
-    newStatus: "Approved" | "Rejected",
+    newStatus: "Approved" | "Returned",
   ) => {
     setApplications((prev: any[]) =>
       prev.map((app: any) =>
@@ -275,8 +259,8 @@ export default function ApplicationsPage() {
               status: newStatus,
               approvedAt:
                 newStatus === "Approved" ? new Date().toISOString() : null,
-              rejectedAt:
-                newStatus === "Rejected" ? new Date().toISOString() : null,
+              returnedAt:
+                newStatus === "Returned" ? new Date().toISOString() : null,
             }
           : app,
       ),
@@ -289,8 +273,8 @@ export default function ApplicationsPage() {
             status: newStatus,
             approvedAt:
               newStatus === "Approved" ? new Date().toISOString() : null,
-            rejectedAt:
-              newStatus === "Rejected" ? new Date().toISOString() : null,
+            returnedAt:
+              newStatus === "Returned" ? new Date().toISOString() : null,
           }
         : prev,
     );
@@ -299,12 +283,9 @@ export default function ApplicationsPage() {
   const handleArchive = async (registrationId: string) => {
     try {
       setIsSubmitting(true);
-
       const res = await fetch(
         `${API_BASE_URL}/preregistrations/${registrationId}/archive`,
-        {
-          method: "POST",
-        },
+        { method: "POST" },
       );
 
       if (!res.ok) {
@@ -350,7 +331,6 @@ export default function ApplicationsPage() {
   const handleBulkArchive = async (registrationIds: string[]) => {
     try {
       setIsSubmitting(true);
-
       const results = await Promise.all(
         registrationIds.map(async (registrationId) => {
           const res = await fetch(
@@ -399,12 +379,9 @@ export default function ApplicationsPage() {
   const handleUnarchive = async (registrationId: string) => {
     try {
       setIsSubmitting(true);
-
       const res = await fetch(
         `${API_BASE_URL}/preregistrations/${registrationId}/unarchive`,
-        {
-          method: "POST",
-        },
+        { method: "POST" },
       );
 
       if (!res.ok) {
@@ -413,7 +390,7 @@ export default function ApplicationsPage() {
       }
 
       const data = await res.json();
-      const restoredStatus = data?.restored?.status || "Rejected";
+      const restoredStatus = data?.restored?.status || "Returned";
 
       setApplications((prev: any[]) =>
         prev.map((app: any) =>
@@ -441,14 +418,10 @@ export default function ApplicationsPage() {
   const handleDelete = async (registrationId: string) => {
     try {
       setIsSubmitting(true);
-
       const res = await fetch(
         `${API_BASE_URL}/preregistrations/${registrationId}`,
-        {
-          method: "DELETE",
-        },
+        { method: "DELETE" },
       );
-
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
@@ -491,24 +464,18 @@ export default function ApplicationsPage() {
   const handleDeleteArchived = async (registrationIds: string[]) => {
     try {
       setIsSubmitting(true);
-
       const results = await Promise.all(
         registrationIds.map(async (registrationId) => {
           const res = await fetch(
             `${API_BASE_URL}/preregistrations/${registrationId}`,
-            {
-              method: "DELETE",
-            },
+            { method: "DELETE" },
           );
-
           const data = await res.json().catch(() => ({}));
-
           if (!res.ok) {
             throw new Error(
               data.message || `Failed to delete ${registrationId}`,
             );
           }
-
           return registrationId;
         }),
       );
@@ -562,7 +529,7 @@ export default function ApplicationsPage() {
         <RegistrarApplicationsHeader
           pendingCount={pendingCount}
           approvedCount={approvedCount}
-          rejectedCount={rejectedCount}
+          returnedCount={returnedCount}
           archivedCount={archivedCount}
           activeStatus={headerStatus}
           onStatusClick={handleHeaderStatusClick}

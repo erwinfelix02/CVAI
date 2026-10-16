@@ -1,7 +1,9 @@
+// src/components/Registrar/Applications/types.ts
+
 export type ApplicationStatus =
   | "Pending"
   | "Approved"
-  | "Rejected"
+  | "Returned"
   | "Archived";
 
 export type ApplicationRow = {

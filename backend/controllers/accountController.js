@@ -2,13 +2,13 @@
 
 import User from "../models/User.js";
 import Student from "../models/Student.js";
-import Enrollment from "../models/Enrollment.js"; // ✅ ADD (for UI button state)
+import Enrollment from "../models/Enrollment.js";
 import sendEmail from "../utils/sendEmail.js";
 import validator from "validator";
+import mongoose from "mongoose"; //  Ensure mongoose is imported
 
 function generateTempPassword(length = 10) {
-  const chars =
-    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$";
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$";
   return Array.from({ length }, () =>
     chars.charAt(Math.floor(Math.random() * chars.length)),
   ).join("");
@@ -22,7 +22,22 @@ export const sendStudentCredentialsBulk = async (req, res) => {
       return res.status(400).json({ message: "studentIds is required." });
     }
 
-    const students = await Student.find({ _id: { $in: studentIds } });
+    //  Separate valid MongoDB ObjectIds from string student ID numbers (like "GIP-2026-011")
+    const objectIds = studentIds.filter((id) =>
+      mongoose.Types.ObjectId.isValid(id),
+    );
+    const stringIds = studentIds.filter(
+      (id) => !mongoose.Types.ObjectId.isValid(id),
+    );
+
+    //  Query using $or to safely match either format without throwing CastErrors
+    const students = await Student.find({
+      $or: [
+        { _id: { $in: objectIds } },
+        { studentIdNumber: { $in: stringIds } },
+      ],
+    });
+
     if (!students.length) {
       return res.status(404).json({ message: "No students found." });
     }
@@ -30,6 +45,12 @@ export const sendStudentCredentialsBulk = async (req, res) => {
     const appName = process.env.APP_NAME || "CVAI Portal";
     const results = [];
     const sentStudentIds = [];
+
+    //  Automatically capture network host / frontend URL for the login button link
+    const host = req.get("host") || "localhost:5000";
+    const frontendHost = host.replace(/:\d+$/, ":5173");
+    const frontendUrl = process.env.FRONTEND_URL || `http://${frontendHost}`;
+    const loginUrl = `${frontendUrl}/signin`;
 
     for (const s of students) {
       try {
@@ -41,7 +62,11 @@ export const sendStudentCredentialsBulk = async (req, res) => {
         const idNumberRaw = (s.studentIdNumber || s.idNumber || "").trim();
 
         if (!emailRaw) {
-          results.push({ studentId: s._id, status: "skipped", reason: "No email" });
+          results.push({
+            studentId: s._id,
+            status: "skipped",
+            reason: "No email",
+          });
           continue;
         }
 
@@ -66,17 +91,21 @@ export const sendStudentCredentialsBulk = async (req, res) => {
 
         const cleanIdNumber = validator.escape(idNumberRaw);
 
-        // phone normalization fallback (User.phone required)
         let cleanPhone = phoneRaw.replace(/\s+/g, "");
-        if (/^09\d{9}$/.test(cleanPhone)) cleanPhone = "+63" + cleanPhone.slice(1);
+        if (/^09\d{9}$/.test(cleanPhone))
+          cleanPhone = "+63" + cleanPhone.slice(1);
         if (/^639\d{9}$/.test(cleanPhone)) cleanPhone = "+" + cleanPhone;
         if (!/^\+639\d{9}$/.test(cleanPhone)) cleanPhone = "+639000000000";
 
-        const cleanDepartment = departmentRaw ? validator.escape(departmentRaw) : "N/A";
+        const cleanDepartment = departmentRaw
+          ? validator.escape(departmentRaw)
+          : "N/A";
 
         const parts = fullNameRaw.split(" ").filter(Boolean);
         const firstName = validator.escape((parts[0] || "Student").trim());
-        const lastName = validator.escape((parts.slice(1).join(" ") || "User").trim());
+        const lastName = validator.escape(
+          (parts.slice(1).join(" ") || "User").trim(),
+        );
 
         const gender = genderRaw || "N/A";
 
@@ -84,7 +113,6 @@ export const sendStudentCredentialsBulk = async (req, res) => {
           (await User.findOne({ email: cleanEmail })) ||
           (await User.findOne({ idNumber: cleanIdNumber }));
 
-        // skip if already sent
         if (user && user.credentialsSent) {
           results.push({
             studentId: s._id,
@@ -93,7 +121,6 @@ export const sendStudentCredentialsBulk = async (req, res) => {
             email: cleanEmail,
           });
 
-          // ✅ keep Enrollment button consistent too
           await Enrollment.updateMany(
             { studentRef: s._id },
             {
@@ -107,7 +134,6 @@ export const sendStudentCredentialsBulk = async (req, res) => {
           continue;
         }
 
-        // create/update user but do NOT mark as sent yet
         if (!user) {
           user = new User({
             firstName,
@@ -141,45 +167,34 @@ export const sendStudentCredentialsBulk = async (req, res) => {
           await user.save();
         }
 
-        // generate temp password (do NOT save as active yet)
         const tempPassword = generateTempPassword(10);
-
         const fullName = `${user.firstName} ${user.middleName ? user.middleName + " " : ""}${user.lastName}`;
         const safeMessage = message ? validator.escape(message) : "";
 
-       const emailHtml = `
+        const emailHtml = `
   <div style="margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, sans-serif;">
     <table width="100%" cellpadding="0" cellspacing="0" style="padding:20px 0; background-color:#f4f6f8;">
       <tr>
         <td align="center">
-
           <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.08);">
-            
-            <!-- Header -->
             <tr>
               <td style="background:#1d4ed8; color:#ffffff; padding:20px; text-align:center;">
                 <h2 style="margin:0; font-size:24px;">Welcome to ${appName}</h2>
               </td>
             </tr>
-
-            <!-- Body -->
             <tr>
               <td style="padding:30px; color:#333333;">
                 <p style="margin-top:0; font-size:16px;">
                   Hello <strong>${fullName}</strong>,
                 </p>
-
                 ${
                   safeMessage
                     ? `<p style="font-size:15px; line-height:1.6;">${safeMessage}</p>`
                     : `<p style="font-size:15px; line-height:1.6;">Your account has been successfully <strong>activated</strong>.</p>`
                 }
-
                 <p style="font-size:15px; line-height:1.6; margin-bottom:20px;">
                   You may now use the following credentials to log in:
                 </p>
-
-                <!-- Credentials Box -->
                 <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:6px; overflow:hidden; margin-bottom:20px;">
                   <tr>
                     <td style="padding:14px; width:35%; background:#f9fafb; font-weight:bold;">Login Email</td>
@@ -195,7 +210,13 @@ export const sendStudentCredentialsBulk = async (req, res) => {
                   </tr>
                 </table>
 
-                <!-- Reminder Box -->
+                <!--  Clickable Login CTA Button -->
+                <div style="text-align:center; margin:25px 0;">
+                  <a href="${loginUrl}" style="display:inline-block; padding:12px 28px; background-color:#1d4ed8; color:#ffffff; border-radius:6px; text-decoration:none; font-weight:bold; font-size:15px;">
+                    Log In to Portal
+                  </a>
+                </div>
+
                 <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px; background:#fff7ed; border:1px solid #fdba74; border-radius:6px;">
                   <tr>
                     <td style="padding:14px; color:#9a3412; font-size:14px; line-height:1.6;">
@@ -203,36 +224,31 @@ export const sendStudentCredentialsBulk = async (req, res) => {
                     </td>
                   </tr>
                 </table>
-
                 <p style="font-size:14px; line-height:1.6; color:#555555; margin-bottom:0;">
                   Keep your login details secure and do not share them with anyone.
                 </p>
               </td>
             </tr>
-
-            <!-- Footer -->
             <tr>
               <td style="background:#f9fafb; text-align:center; padding:15px; font-size:12px; color:#777777;">
                 This is an automated message from ${appName}. Please do not reply directly to this email.
               </td>
             </tr>
-
           </table>
-
         </td>
       </tr>
     </table>
   </div>
 `;
 
-        // ✅ SEND EMAIL FIRST (sendEmail unchanged)
         await sendEmail(
           user.email,
-          subject?.trim() ? subject.trim() : `Your Login Credentials - ${appName}`,
+          subject?.trim()
+            ? subject.trim()
+            : `Your Login Credentials - ${appName}`,
           emailHtml,
         );
 
-        // ✅ update Enrollment FIRST so UI button changes after refresh
         await Enrollment.updateMany(
           { studentRef: s._id },
           {
@@ -243,8 +259,7 @@ export const sendStudentCredentialsBulk = async (req, res) => {
           },
         );
 
-        // ✅ only after email success: activate + save password + mark sent
-        user.password = tempPassword; // hashed by schema
+        user.password = tempPassword;
         user.status = "active";
         user.credentialsSent = true;
         user.isTemporaryPassword = true;
@@ -254,8 +269,6 @@ export const sendStudentCredentialsBulk = async (req, res) => {
         results.push({ studentId: s._id, status: "sent", email: user.email });
       } catch (innerErr) {
         console.error("❌ Bulk credentials error:", s?._id, innerErr);
-
-        // ✅ return useful reason to frontend
         results.push({
           studentId: s?._id,
           status: "failed",

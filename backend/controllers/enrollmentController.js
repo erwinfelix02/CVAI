@@ -1,5 +1,6 @@
 import Enrollment from "../models/Enrollment.js";
 import Student from "../models/Student.js";
+import Course from "../models/Course.js"; // ✅ Make sure Course is imported
 import User from "../models/User.js";
 import { addLog, getClientIp } from "../utils/logActivity.js";
 import { generateId, peekNextId } from "../utils/generateId.js";
@@ -10,15 +11,12 @@ function isISODateString(v) {
 
 function normalizePhone(value = "") {
   let cleanPhone = String(value).trim().replace(/\s+/g, "");
-
   if (/^09\d{9}$/.test(cleanPhone)) {
     cleanPhone = "+63" + cleanPhone.slice(1);
   }
-
   if (/^639\d{9}$/.test(cleanPhone)) {
     cleanPhone = "+" + cleanPhone;
   }
-
   return cleanPhone;
 }
 
@@ -29,10 +27,6 @@ function getStudentIdChecks() {
   ];
 }
 
-/**
- * Preview only.
- * Does NOT reserve anything.
- */
 export const reserveStudentId = async (req, res) => {
   try {
     const { id } = req.params;
@@ -45,7 +39,6 @@ export const reserveStudentId = async (req, res) => {
       return res.status(404).json({ message: "Enrollment not found." });
     }
 
-    // If already enrolled, show real saved student ID
     if (enrollment.studentRef && enrollment.studentIdNumber) {
       return res.status(200).json({
         studentIdNumber: enrollment.studentIdNumber,
@@ -89,7 +82,6 @@ export const evaluateEnrollment = async (req, res) => {
       "guardianPhone",
       "program",
       "yearLevel",
-      "department",
     ];
 
     for (const f of requiredFields) {
@@ -113,6 +105,30 @@ export const evaluateEnrollment = async (req, res) => {
       });
     }
 
+    // ✅ AUTO-RESOLVE DEPARTMENT BY FETCHING COURSES & MATCHING IN MEMORY
+    let resolvedDepartment = String(updatedInfo.department || "").trim();
+    const selectedProgram = String(updatedInfo.program || "").trim();
+
+    if (selectedProgram) {
+      // Fetch all courses (Mongoose getters automatically decrypt `name` for us)
+      const allCourses = await Course.find({});
+      
+      const matchedCourse = allCourses.find((c) => {
+        const courseName = String(c.name || "").trim().toLowerCase();
+        const courseCode = String(c.code || "").trim().toLowerCase();
+        const target = selectedProgram.toLowerCase();
+        return courseName === target || courseCode === target;
+      });
+
+      if (matchedCourse && matchedCourse.department) {
+        resolvedDepartment = matchedCourse.department;
+      }
+    }
+
+    if (!resolvedDepartment) {
+      resolvedDepartment = selectedProgram; // Fallback
+    }
+
     // FINAL ID generation happens only here on save
     const studentIdNumber = await generateId({
       prefix: "GIP",
@@ -134,9 +150,9 @@ export const evaluateEnrollment = async (req, res) => {
       guardian: String(updatedInfo.guardian).trim(),
       guardianPhone: normalizePhone(updatedInfo.guardianPhone),
 
-      program: String(updatedInfo.program).trim(),
+      program: selectedProgram,
       yearLevel: Number(updatedInfo.yearLevel),
-      department: String(updatedInfo.department).trim(),
+      department: resolvedDepartment, // ✅ Correctly resolved department name
 
       notes: String(notes || "").trim(),
       verifiedDocs: Array.isArray(verifiedDocs) ? verifiedDocs : [],
@@ -165,9 +181,9 @@ export const evaluateEnrollment = async (req, res) => {
 
     enrollment.academic = {
       ...(enrollment.academic || {}),
-      program: String(updatedInfo.program).trim(),
+      program: selectedProgram,
       yearLevel: String(updatedInfo.yearLevel).trim(),
-      department: String(updatedInfo.department).trim(),
+      department: resolvedDepartment, // ✅ Correctly resolved department name
     };
 
     await enrollment.save();
@@ -177,7 +193,7 @@ export const evaluateEnrollment = async (req, res) => {
       user: updatedBy,
       role: "Registrar",
       type: "Data",
-      details: `Enrollment evaluated and student enrolled: ${updatedInfo.email} (${studentIdNumber})`,
+      details: `Enrollment evaluated and student enrolled: ${updatedInfo.email} (${studentIdNumber}) under dept: ${resolvedDepartment}`,
       ip: getClientIp(req),
       status: "success",
     });

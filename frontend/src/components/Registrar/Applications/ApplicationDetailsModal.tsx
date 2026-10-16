@@ -1,4 +1,4 @@
-// ✅ src/components/Registrar/Applications/ApplicationDetailsModal.tsx
+// src/components/Registrar/Applications/ApplicationDetailsModal.tsx
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import {
@@ -9,13 +9,11 @@ import {
   Calendar,
   MapPin,
   CheckCircle,
-  AlertTriangle,
   Eye,
+  RotateCcw,
 } from "lucide-react";
 
-// Import your API configuration (adjust the relative path if your config.ts is located elsewhere)
 import { API_BASE_URL } from "../../../config";
-
 import "../../../styles/application-modal.css";
 
 type Props = {
@@ -24,20 +22,19 @@ type Props = {
   application: any | null;
   onStatusUpdated: (
     registrationId: string,
-    newStatus: "Approved" | "Rejected",
+    newStatus: "Approved" | "Returned",
   ) => void;
   showAlert: (message: string, type: "success" | "error") => void;
 };
 
 type TabType = "personal" | "academic" | "documents";
-type ConfirmType = "Approved" | "Rejected" | null;
+type ConfirmType = "Approved" | "Returned" | null;
 
-const PREDEFINED_REJECTION_REASONS = [
-  "Incomplete or unreadable documents uploaded",
-  "Incorrect personal or academic details provided",
-  "Failed to meet admission requirement criteria",
-  "Duplicate registration entry",
-  "Other / Custom reason",
+const PREDEFINED_RETURN_REASONS = [
+  "Incomplete or unreadable documents uploaded. Please re-upload clear copies.",
+  "Incorrect personal or academic details provided. Please review and update.",
+  "Missing required document attachments (e.g., Birth Certificate, Good Moral).",
+  "Other / Custom revision note",
 ];
 
 export default function ApplicationDetailsModal({
@@ -52,19 +49,12 @@ export default function ApplicationDetailsModal({
   const [confirmAction, setConfirmAction] = useState<ConfirmType>(null);
   const [loading, setLoading] = useState(false);
 
-  /* =========================================================
-     REJECTION REASON STATE
-     ========================================================= */
   const [selectedReasonOption, setSelectedReasonOption] = useState<string>("");
-  const [customRejectionReason, setCustomRejectionReason] =
-    useState<string>("");
-  const [rejectionError, setRejectionError] = useState<string | null>(null);
+  const [customReturnReason, setCustomReturnReason] = useState<string>("");
+  const [returnError, setReturnError] = useState<string | null>(null);
 
-  /* =========================================================
-     VIEW TRACKING STATE (Tabs + Document Previews)
-     ========================================================= */
   const [visitedTabs, setVisitedTabs] = useState<Record<TabType, boolean>>({
-    personal: true, // Personal is open by default
+    personal: true,
     academic: false,
     documents: false,
   });
@@ -76,10 +66,8 @@ export default function ApplicationDetailsModal({
     documents: false,
   });
 
-  // Track which specific document files have been previewed by the user
   const [viewedDocFiles, setViewedDocFiles] = useState<Set<string>>(new Set());
 
-  // Derive document list from application state
   const documentList = useMemo(() => {
     if (!application?.documents) return [];
     const docs = application.documents;
@@ -90,14 +78,12 @@ export default function ApplicationDetailsModal({
     ];
   }, [application]);
 
-  // List of uploaded file paths that MUST be previewed
   const uploadedFilesToView = useMemo(() => {
     return documentList
       .filter((doc) => doc.file)
       .map((doc) => doc.file as string);
   }, [documentList]);
 
-  // Reset tab and document review tracking when modal opens
   useEffect(() => {
     if (open) {
       setActiveTab("personal");
@@ -105,29 +91,25 @@ export default function ApplicationDetailsModal({
       setScrolledTabs({ personal: false, academic: false, documents: false });
       setViewedDocFiles(new Set());
       setSelectedReasonOption("");
-      setCustomRejectionReason("");
-      setRejectionError(null);
+      setCustomReturnReason("");
+      setReturnError(null);
     }
   }, [open, application?.registrationId]);
 
-  // Handle Tab Switch
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
     setVisitedTabs((prev) => ({ ...prev, [tab]: true }));
   };
 
-  // Check scroll position of current tab body
   const handleScroll = () => {
     if (!bodyRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = bodyRef.current;
-
     const isAtBottom = scrollHeight - scrollTop <= clientHeight + 20;
     if (isAtBottom) {
       setScrolledTabs((prev) => ({ ...prev, [activeTab]: true }));
     }
   };
 
-  // Auto-detect if content doesn't require scrolling
   useEffect(() => {
     if (!bodyRef.current) return;
     const { scrollHeight, clientHeight } = bodyRef.current;
@@ -136,7 +118,6 @@ export default function ApplicationDetailsModal({
     }
   }, [activeTab, open]);
 
-  // Handle document preview click & mark as viewed
   const handleOpenDocument = (filePath: string) => {
     setPreviewFile(filePath);
     setViewedDocFiles((prev) => {
@@ -146,24 +127,24 @@ export default function ApplicationDetailsModal({
     });
   };
 
-  // Check if ALL uploaded documents have been previewed
-  const allDocumentsViewed = uploadedFilesToView.every((filePath) =>
-    viewedDocFiles.has(filePath),
-  );
-
-  // Check if ALL criteria (Tabs visited + Scrolled + Documents Previewed) are met
-  const allTabsViewed =
-    visitedTabs.personal &&
-    visitedTabs.academic &&
-    visitedTabs.documents &&
-    scrolledTabs.personal &&
-    scrolledTabs.academic &&
-    scrolledTabs.documents &&
-    allDocumentsViewed;
-
   if (!open || !application) return null;
 
   const { personal, academic, status } = application;
+  const isApproved = status === "Approved";
+
+  const allDocumentsViewed =
+    isApproved ||
+    uploadedFilesToView.every((filePath) => viewedDocFiles.has(filePath));
+
+  const allTabsViewed =
+    isApproved ||
+    (visitedTabs.personal &&
+      visitedTabs.academic &&
+      visitedTabs.documents &&
+      scrolledTabs.personal &&
+      scrolledTabs.academic &&
+      scrolledTabs.documents &&
+      allDocumentsViewed);
 
   const formattedBirthDate = personal?.birthDate
     ? new Date(personal.birthDate).toLocaleDateString("en-PH", {
@@ -176,30 +157,29 @@ export default function ApplicationDetailsModal({
   const updateStatus = async () => {
     if (!confirmAction || loading) return;
 
-    // Validate rejection reason if rejecting
-    let finalRejectionReason = "";
-    if (confirmAction === "Rejected") {
+    let finalReturnReason = "";
+    if (confirmAction === "Returned") {
       if (!selectedReasonOption) {
-        setRejectionError("Please select a reason for rejection.");
+        setReturnError("Please select a reason for returning the application.");
         return;
       }
       if (
-        selectedReasonOption === "Other / Custom reason" &&
-        !customRejectionReason.trim()
+        selectedReasonOption === "Other / Custom revision note" &&
+        !customReturnReason.trim()
       ) {
-        setRejectionError("Please provide a custom rejection reason.");
+        setReturnError("Please provide a custom explanation for the student.");
         return;
       }
 
-      finalRejectionReason =
-        selectedReasonOption === "Other / Custom reason"
-          ? customRejectionReason.trim()
+      finalReturnReason =
+        selectedReasonOption === "Other / Custom revision note"
+          ? customReturnReason.trim()
           : selectedReasonOption;
     }
 
     try {
       setLoading(true);
-      setRejectionError(null);
+      setReturnError(null);
 
       const res = await fetch(
         `${API_BASE_URL}/preregistrations/${application.registrationId}/status`,
@@ -208,8 +188,8 @@ export default function ApplicationDetailsModal({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             status: confirmAction,
-            ...(confirmAction === "Rejected" && {
-              rejectionReason: finalRejectionReason,
+            ...(confirmAction === "Returned" && {
+              returnReason: finalReturnReason,
             }),
           }),
         },
@@ -217,9 +197,7 @@ export default function ApplicationDetailsModal({
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(
-          err.message || `Failed to ${confirmAction.toLowerCase()} application`,
-        );
+        throw new Error(err.message || `Failed to update application status`);
       }
 
       onStatusUpdated(String(application.registrationId), confirmAction);
@@ -227,7 +205,7 @@ export default function ApplicationDetailsModal({
       showAlert(
         confirmAction === "Approved"
           ? "Application approved successfully."
-          : "Application rejected successfully.",
+          : "Application returned to student for revision.",
         "success",
       );
 
@@ -241,7 +219,6 @@ export default function ApplicationDetailsModal({
     }
   };
 
-  // Safely derive server root URL (strips trailing /api if present)
   const serverRoot = API_BASE_URL.endsWith("/api")
     ? API_BASE_URL.slice(0, -4)
     : API_BASE_URL;
@@ -278,52 +255,50 @@ export default function ApplicationDetailsModal({
             </div>
           </div>
 
-          {/* TAB NAVIGATION WITH REVIEW INDICATORS */}
           <div className="tab-container">
             <button
               className={`${activeTab === "personal" ? "active" : ""} ${
-                visitedTabs.personal && scrolledTabs.personal
-                  ? "tab-viewed"
-                  : ""
+                isApproved || (visitedTabs.personal && scrolledTabs.personal) ? "tab-viewed" : ""
               }`}
               onClick={() => handleTabChange("personal")}
             >
               Personal
-              {visitedTabs.personal && scrolledTabs.personal && (
+              {(isApproved || (visitedTabs.personal && scrolledTabs.personal)) && (
                 <CheckCircle size={12} className="tab-check-icon ms-1" />
               )}
             </button>
 
             <button
               className={`${activeTab === "academic" ? "active" : ""} ${
-                visitedTabs.academic && scrolledTabs.academic
-                  ? "tab-viewed"
-                  : ""
+                isApproved || (visitedTabs.academic && scrolledTabs.academic) ? "tab-viewed" : ""
               }`}
               onClick={() => handleTabChange("academic")}
             >
               Academic
-              {visitedTabs.academic && scrolledTabs.academic && (
+              {(isApproved || (visitedTabs.academic && scrolledTabs.academic)) && (
                 <CheckCircle size={12} className="tab-check-icon ms-1" />
               )}
             </button>
 
             <button
               className={`${activeTab === "documents" ? "active" : ""} ${
-                visitedTabs.documents &&
-                scrolledTabs.documents &&
-                allDocumentsViewed
+                isApproved ||
+                (visitedTabs.documents &&
+                  scrolledTabs.documents &&
+                  allDocumentsViewed)
                   ? "tab-viewed"
                   : ""
               }`}
               onClick={() => handleTabChange("documents")}
             >
               Documents
-              {visitedTabs.documents &&
+              {isApproved ||
+              (visitedTabs.documents &&
               scrolledTabs.documents &&
-              allDocumentsViewed ? (
+              allDocumentsViewed) ? (
                 <CheckCircle size={12} className="tab-check-icon ms-1" />
               ) : (
+                !isApproved &&
                 uploadedFilesToView.length > 0 && (
                   <span className="badge bg-secondary ms-1 style-doc-count">
                     {viewedDocFiles.size}/{uploadedFilesToView.length}
@@ -333,7 +308,6 @@ export default function ApplicationDetailsModal({
             </button>
           </div>
 
-          {/* SCROLLABLE MODAL BODY */}
           <div className="app-modal-body" ref={bodyRef} onScroll={handleScroll}>
             {activeTab === "personal" && (
               <div className="info-grid">
@@ -401,9 +375,9 @@ export default function ApplicationDetailsModal({
             {activeTab === "documents" && (
               <div className="doc-card-list">
                 {documentList.map((doc) => {
-                  const isViewed = doc.file
+                  const isViewed = isApproved || (doc.file
                     ? viewedDocFiles.has(doc.file)
-                    : false;
+                    : false);
 
                   return (
                     <div
@@ -416,13 +390,7 @@ export default function ApplicationDetailsModal({
                         <span className="d-flex align-items-center gap-1">
                           {doc.label}
                           {doc.optional && (
-                            <span
-                              style={{
-                                marginLeft: 4,
-                                fontSize: 12,
-                                opacity: 0.7,
-                              }}
-                            >
+                            <span style={{ marginLeft: 4, fontSize: 12, opacity: 0.7 }}>
                               (Optional)
                             </span>
                           )}
@@ -457,15 +425,16 @@ export default function ApplicationDetailsModal({
                   );
                 })}
 
-                <div className="text-muted mt-2" style={{ fontSize: 13 }}>
-                  * All uploaded documents must be clicked and viewed before
-                  unlocking approval or rejection actions.
-                </div>
+                {!isApproved && (
+                  <div className="text-muted mt-2" style={{ fontSize: 13 }}>
+                    * All uploaded documents must be clicked and viewed before
+                    unlocking approval or revision options.
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* FOOTER */}
           {status === "Pending" && (
             <div className="app-modal-footer d-flex align-items-center justify-content-between">
               {!allTabsViewed ? (
@@ -477,11 +446,11 @@ export default function ApplicationDetailsModal({
               ) : (
                 <div className="d-flex gap-2 ms-auto">
                   <button
-                    className="btn btn-outline-danger"
-                    onClick={() => setConfirmAction("Rejected")}
+                    className="btn btn-outline-warning text-dark fw-semibold"
+                    onClick={() => setConfirmAction("Returned")}
                     disabled={loading}
                   >
-                    Reject
+                    Return for Revision
                   </button>
 
                   <button
@@ -498,7 +467,6 @@ export default function ApplicationDetailsModal({
         </div>
       </div>
 
-      {/* DOCUMENT PREVIEW MODAL */}
       {previewFile && (
         <div className="preview-overlay" onClick={() => setPreviewFile(null)}>
           <div className="preview-modal" onClick={(e) => e.stopPropagation()}>
@@ -538,26 +506,25 @@ export default function ApplicationDetailsModal({
         </div>
       )}
 
-      {/* ACTION MODAL (APPROVE OR REJECT WITH REASON FORM) */}
       {confirmAction && (
         <div
           className="app-modal-backdrop"
           onClick={() => {
             if (!loading) {
               setConfirmAction(null);
-              setRejectionError(null);
+              setReturnError(null);
             }
           }}
         >
           <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
             <div className="confirm-modal-header">
               <h4 className="confirm-modal-title d-flex align-items-center gap-2">
-                {confirmAction === "Rejected" && (
-                  <AlertTriangle className="text-danger" size={20} />
+                {confirmAction === "Returned" && (
+                  <RotateCcw className="text-warning" size={20} />
                 )}
                 {confirmAction === "Approved"
                   ? "Approve Application?"
-                  : "Reject Application"}
+                  : "Return Application for Revision"}
               </h4>
 
               <button
@@ -566,7 +533,7 @@ export default function ApplicationDetailsModal({
                 onClick={() => {
                   if (!loading) {
                     setConfirmAction(null);
-                    setRejectionError(null);
+                    setReturnError(null);
                   }
                 }}
                 disabled={loading}
@@ -587,31 +554,30 @@ export default function ApplicationDetailsModal({
               ) : (
                 <div className="rejection-form-wrapper">
                   <p className="text-muted small mb-3">
-                    Please specify a reason for rejecting the registration for{" "}
+                    Specify what the student needs to revise or resubmit for{" "}
                     <strong>
                       {personal.firstName} {personal.lastName}
                     </strong>
-                    . This will help inform the student regarding their status.
+                    . They will receive this feedback to update their registration.
                   </p>
 
                   <div className="mb-3">
                     <label className="form-label fw-semibold small">
-                      Select Rejection Reason{" "}
-                      <span className="text-danger">*</span>
+                      Select Revision Feedback <span className="text-danger">*</span>
                     </label>
                     <select
                       className="form-select form-select-sm"
                       value={selectedReasonOption}
                       onChange={(e) => {
                         setSelectedReasonOption(e.target.value);
-                        setRejectionError(null);
+                        setReturnError(null);
                       }}
                       disabled={loading}
                     >
                       <option value="" disabled>
-                        -- Select a reason --
+                        -- Select feedback / reason --
                       </option>
-                      {PREDEFINED_REJECTION_REASONS.map((reason) => (
+                      {PREDEFINED_RETURN_REASONS.map((reason) => (
                         <option key={reason} value={reason}>
                           {reason}
                         </option>
@@ -619,29 +585,28 @@ export default function ApplicationDetailsModal({
                     </select>
                   </div>
 
-                  {selectedReasonOption === "Other / Custom reason" && (
+                  {selectedReasonOption === "Other / Custom revision note" && (
                     <div className="mb-3">
                       <label className="form-label fw-semibold small">
-                        Detailed Explanation{" "}
-                        <span className="text-danger">*</span>
+                        Detailed Instructions <span className="text-danger">*</span>
                       </label>
                       <textarea
                         className="form-control form-control-sm"
                         rows={3}
-                        placeholder="Provide specific reason for rejection..."
-                        value={customRejectionReason}
+                        placeholder="Provide specific notes on what needs to be fixed..."
+                        value={customReturnReason}
                         onChange={(e) => {
-                          setCustomRejectionReason(e.target.value);
-                          setRejectionError(null);
+                          setCustomReturnReason(e.target.value);
+                          setReturnError(null);
                         }}
                         disabled={loading}
                       />
                     </div>
                   )}
 
-                  {rejectionError && (
+                  {returnError && (
                     <div className="alert alert-danger py-2 px-3 small mb-0">
-                      {rejectionError}
+                      {returnError}
                     </div>
                   )}
                 </div>
@@ -655,7 +620,7 @@ export default function ApplicationDetailsModal({
                 onClick={() => {
                   if (!loading) {
                     setConfirmAction(null);
-                    setRejectionError(null);
+                    setReturnError(null);
                   }
                 }}
                 disabled={loading}
@@ -668,7 +633,7 @@ export default function ApplicationDetailsModal({
                 className={
                   confirmAction === "Approved"
                     ? "btn btn-primary btn-sm"
-                    : "btn btn-danger btn-sm"
+                    : "btn btn-warning btn-sm text-dark fw-semibold"
                 }
                 onClick={updateStatus}
                 disabled={loading}
@@ -677,7 +642,7 @@ export default function ApplicationDetailsModal({
                   ? "Processing..."
                   : confirmAction === "Approved"
                   ? "Confirm Approval"
-                  : "Confirm Rejection"}
+                  : "Confirm Return for Revision"}
               </button>
             </div>
           </div>

@@ -6,6 +6,7 @@ type CourseOption = {
   id: string;
   code: string;
   name: string;
+  department: string;
   yearLevels: number;
   status: "Active" | "Inactive";
 };
@@ -52,7 +53,8 @@ export default function AddSectionModal({
   courses,
   maxCapacity,
 }: Props) {
-  const isEdit = !!initial;
+  const isApproval = !!(initial && (initial as any)._isRequestApproval);
+  const isEdit = !!initial && !isApproval;
 
   const courseList = useMemo(() => {
     const list = Array.isArray(courses) ? courses : [];
@@ -101,7 +103,7 @@ export default function AddSectionModal({
 
     let nextForm: Payload;
 
-    if (isEdit && initial) {
+    if (initial) {
       const safeProgram =
         courseList.find((c) => c.name === initial.program)?.name ?? "";
 
@@ -112,7 +114,7 @@ export default function AddSectionModal({
         : [];
 
       const initialYear = (initial as any).yearLevel ?? "";
-      const safeYear = safeYearOptions.includes(initialYear) ? initialYear : "";
+      const safeYear = safeYearOptions.includes(initialYear) ? initialYear : (safeYearOptions[0] || "");
 
       nextForm = {
         code: initial.code ?? "",
@@ -142,7 +144,7 @@ export default function AddSectionModal({
     setConfirmOpen(false);
     setDiscardOpen(false);
     confirmingRef.current = false;
-  }, [open, isEdit, initial, courseList, maxCapacity]);
+  }, [open, initial, courseList, maxCapacity]);
 
   useEffect(() => {
     if (!open) return;
@@ -275,7 +277,7 @@ export default function AddSectionModal({
     setForm((prev) => {
       const nextYear = nextYearOptions.includes(prev.yearLevel)
         ? prev.yearLevel
-        : "";
+        : (nextYearOptions[0] || "");
 
       const next = {
         ...prev,
@@ -319,12 +321,14 @@ export default function AddSectionModal({
     const code = normalizeCode(form.code);
     const capRaw = Number(form.capacity);
     const cap = Math.min(Math.max(capRaw, 1), maxCapacity);
+    const departmentName = selectedCourse?.department || "";
 
     if (isEdit && initial) {
       const updated: SectionItem = {
         ...initial,
         code,
         program: form.program,
+        department: departmentName,
         room: form.room.trim(),
         capacity: cap,
       };
@@ -343,7 +347,7 @@ export default function AddSectionModal({
       id: makeId(code) + "-" + Date.now(),
       code,
       program: form.program,
-      adviser: "TBA",
+      department: departmentName,
       room: form.room.trim(),
       enrolled: 0,
       capacity: cap,
@@ -367,7 +371,7 @@ export default function AddSectionModal({
       className="sec-modal-backdrop"
       role="dialog"
       aria-modal="true"
-      aria-label={isEdit ? "Edit Section" : "Add New Section"}
+      aria-label={isEdit ? "Edit Section" : isApproval ? "Approve Section Request" : "Add New Section"}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && !confirmOpen && !discardOpen) {
           requestClose();
@@ -377,7 +381,7 @@ export default function AddSectionModal({
       <div className="sec-modal" onMouseDown={(e) => e.stopPropagation()}>
         <div className="sec-modal-header">
           <div className="sec-modal-title">
-            {isEdit ? "Edit Section" : "Add New Section"}
+            {isEdit ? "Edit Section" : isApproval ? "Approve Section Request" : "Add New Section"}
           </div>
 
           <button
@@ -453,7 +457,7 @@ export default function AddSectionModal({
                     <option value="">Select course</option>
                     {courseList.map((c) => (
                       <option key={c.id} value={c.name}>
-                        {c.name}
+                        {c.name} ({c.department})
                       </option>
                     ))}
                   </>
@@ -521,7 +525,7 @@ export default function AddSectionModal({
             Cancel
           </button>
           <button type="button" className="btn btn-primary" onClick={onSubmit}>
-            {isEdit ? "Save Changes" : "Create Section"}
+            {isEdit ? "Save Changes" : isApproval ? "Approve & Create" : "Create Section"}
           </button>
         </div>
 
@@ -541,7 +545,7 @@ export default function AddSectionModal({
             >
               <div className="sec-confirm-header">
                 <div className="sec-confirm-title">
-                  {isEdit ? "Confirm Update" : "Confirm Creation"}
+                  {isEdit ? "Confirm Update" : isApproval ? "Confirm Approval" : "Confirm Creation"}
                 </div>
 
                 <button
@@ -557,11 +561,13 @@ export default function AddSectionModal({
 
               <div className="sec-confirm-body">
                 <div className="fw-bold mb-1">
-                  {isEdit ? "Save changes?" : "Create this section?"}
+                  {isEdit ? "Save changes?" : isApproval ? "Approve and create section?" : "Create this section?"}
                 </div>
                 <div className="text-muted small">
                   {isEdit
                     ? "This will update the section details."
+                    : isApproval
+                    ? "This will approve the request and provision the new section."
                     : "This will add a new section to the list."}
                 </div>
               </div>
@@ -574,7 +580,7 @@ export default function AddSectionModal({
                   Cancel
                 </button>
                 <button className="btn btn-primary" onClick={onConfirm}>
-                  Yes, {isEdit ? "Save" : "Create"}
+                  Yes, {isEdit ? "Save" : isApproval ? "Approve" : "Create"}
                 </button>
               </div>
             </div>

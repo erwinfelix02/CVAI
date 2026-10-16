@@ -1,3 +1,5 @@
+// src/components/Registrar/Applications/SendScheduleModal.tsx
+
 import { X, Calendar, Clock, MapPin, Info } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 
@@ -19,7 +21,8 @@ type Props = {
 const DEFAULT_NOTES = `Please bring the following required documents during your scheduled visit:
 - Original Birth Certificate (PSA)
 - Original Good Moral Certificate
-- 2x2 ID Photo`;
+- 2x2 ID Photo`
+;
 
 export default function SendScheduleModal({
   open,
@@ -38,6 +41,42 @@ export default function SendScheduleModal({
   const count = students.length;
   const title = useMemo(() => "Send Enrollment Schedule", []);
 
+  // Get tomorrow's date string in YYYY-MM-DD format as the minimum allowed date
+  const minDateStr = useMemo(() => {
+    const now = new Date();
+    now.setDate(now.getDate() + 1); // Add 1 day so today cannot be selected
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  // Generate 30-minute time options strictly from 07:30 to 17:00 (5:00 PM)
+  const timeOptions = useMemo(() => {
+    const options: { label: string; value: string }[] = [];
+
+    // 7:30 AM (07:30)
+    options.push({ label: "07:30 AM", value: "07:30" });
+
+    // From 8:00 AM (08:00) to 5:00 PM (17:00)
+    for (let hour = 8; hour <= 17; hour++) {
+      for (const minute of [0, 30]) {
+        if (hour === 17 && minute > 0) break; // Don't go past 17:00
+
+        const hourStr = String(hour).padStart(2, "0");
+        const minuteStr = String(minute).padStart(2, "0");
+        const value = `${hourStr}:${minuteStr}`;
+
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+        const ampm = hour >= 12 ? "PM" : "AM";
+        const label = `${String(displayHour).padStart(2, "0")}:${minuteStr} ${ampm}`;
+
+        options.push({ label, value });
+      }
+    }
+    return options;
+  }, []);
+
   useEffect(() => {
     if (open) {
       setDate("");
@@ -53,6 +92,13 @@ export default function SendScheduleModal({
 
   const handleSend = async () => {
     if (!date || !time || !location || students.length === 0 || sending) return;
+
+    // Validate against past dates or times
+    const selectedDateTime = new Date(`${date}T${time}`);
+    if (selectedDateTime < new Date()) {
+      setError("Cannot schedule an appointment in the past.");
+      return;
+    }
 
     try {
       setSending(true);
@@ -134,6 +180,7 @@ export default function SendScheduleModal({
               <input
                 className="rs-input"
                 type="date"
+                min={minDateStr}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 disabled={sending}
@@ -142,15 +189,23 @@ export default function SendScheduleModal({
 
             <div className="rs-field">
               <label className="rs-label">
-                <Clock size={16} /> Time
+                <Clock size={16} /> Time (7:30 AM - 5:00 PM)
               </label>
-              <input
+              <select
                 className="rs-input"
-                type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
                 disabled={sending}
-              />
+              >
+                <option value="" disabled>
+                  Select Time Slot
+                </option>
+                {timeOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

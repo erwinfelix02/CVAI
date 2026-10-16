@@ -3,7 +3,7 @@ dotenv.config();
 import path from "path";
 import express from "express";
 import cors from "cors";
-import nocache from "nocache"; // ✅ 1. Import nocache
+import nocache from "nocache";
 import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -37,6 +37,8 @@ import verificationRoutes from "./routes/verificationRoutes.js";
 import todoRoutes from "./routes/todoRoutes.js";
 import { checkUpcomingTasks } from "./utils/taskReminderService.js";
 import ticketRouter from "./routes/ticketRoutes.js";
+import sectionRequestsRouter from "./routes/sectionRequests.js";
+import auditRoutes from "./routes/auditRoutes.js";
 
 const app = express();
 
@@ -45,9 +47,6 @@ initArchiveCleanupTask();
 app.use(cors());
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ limit: "25mb", extended: true }));
-
-// Apply nocache specifically to your API routes so browsers 
-// never cache authenticated API responses/sessions when going back
 app.use("/api", nocache());
 
 app.use(
@@ -55,7 +54,6 @@ app.use(
   express.static(path.join(process.cwd(), "uploads"), {
     setHeaders: (res, filePath) => {
       res.setHeader("Content-Disposition", "inline");
-
       if (filePath.endsWith(".pdf")) {
         res.setHeader("Content-Type", "application/pdf");
       } else if (filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) {
@@ -76,45 +74,49 @@ app.use(
   })
 );
 
-// ✅ Start server only after DB is connected
+// ✅ 1. REGISTER ALL ROUTES IMMEDIATELY UPFRONT
+// Express will safely queue requests even if DB connection is still initializing
+app.use("/api/users", userRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/faqs", faqRoutes);
+app.use("/api/subjects", subjectRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/preregistrations", preregistrationRoutes);
+app.use("/api/enrollments", enrollmentsRoute);
+app.use("/api/aiinsight", aiInsightRoutes);
+app.use("/api/enrollment", enrollmentRoutes);
+app.use("/api/sections", sectionRoutes);
+app.use("/api/section-requests", sectionRequestsRouter);
+app.use("/api/audit-logs", auditRoutes);
+app.use("/api/courses", courseRoutes);
+app.use("/api/students", studentRoutes);
+app.use("/api/accounts", accountRoutes);
+app.use("/api/registrar/settings", registrarSettingsRoutes);
+app.use("/api/settings", settingsRoutes);
+app.use("/api/security-settings", securitySettingsRoutes);
+app.use("/api/rooms", roomRoutes);
+app.use("/api/roles", roleRoutes);
+app.use("/api/materials", materialRoutes);
+app.use("/api/departments", departmentRoutes);
+app.use("/api/schedules", scheduleRoutes);
+app.use("/api/logs", logRoutes);
+app.use("/api/announcements", announcementsRouter);
+app.use("/api/attendance", attendanceRoutes);
+app.use("/api/verification", verificationRoutes);
+app.use("/api/todos", todoRoutes);
+app.use("/api/tickets", ticketRouter);
+
+// ✅ 2. Start server and database tasks
 const startServer = async () => {
   try {
-    await connectDB(); // ✅ wait for mongo connect
-    await seedRolesIfMissing(); // ✅ seed after connect
+    await connectDB(); 
+    await seedRolesIfMissing(); 
     await startArchiveScheduler();
 
     setInterval(() => {
       checkUpcomingTasks();
     }, 60 * 1000);
 
-    app.use("/api/users", userRoutes);
-    app.use("/api/auth", authRoutes);
-    app.use("/api/faqs", faqRoutes);
-    app.use("/api/subjects", subjectRoutes);
-    app.use("/api/ai", aiRoutes);
-    app.use("/api/preregistrations", preregistrationRoutes);
-    app.use("/api/enrollments", enrollmentsRoute);
-    app.use("/api/aiinsight", aiInsightRoutes);
-    app.use("/api/enrollment", enrollmentRoutes);
-    app.use("/api/sections", sectionRoutes);
-    app.use("/api/courses", courseRoutes);
-    app.use("/api/students", studentRoutes);
-    app.use("/api/accounts", accountRoutes);
-    app.use("/api/registrar/settings", registrarSettingsRoutes);
-    app.use("/api/settings", settingsRoutes);
-    app.use("/api/security-settings", securitySettingsRoutes);
-    app.use("/api/rooms", roomRoutes);
-    app.use("/api/roles", roleRoutes);
-    app.use("/api/materials", materialRoutes);
-    app.use("/api/departments", departmentRoutes);
-    app.use("/api/schedules", scheduleRoutes);
-    app.use("/api/logs", logRoutes);
-    app.use("/api/announcements", announcementsRouter);
-    app.use("/api/attendance", attendanceRoutes);
-    app.use("/api/verification", verificationRoutes);
-    app.use("/api/todos", todoRoutes);
-    app.use('/api/tickets', ticketRouter);
-    
     app.listen(5000, () => {
       console.log("🚀 Server running on http://localhost:5000");
     });

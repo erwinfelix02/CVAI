@@ -1,3 +1,5 @@
+// src/components/Registrar/Applications/RegistrarApplicationsFilters.tsx
+
 import { Search, ChevronDown, Calendar, Filter } from "lucide-react";
 import type { ApplicationStatus } from "./types";
 
@@ -52,7 +54,7 @@ export default function RegistrarApplicationsFilters({
                 <option value="All">All Status</option>
                 <option value="Pending">Pending</option>
                 <option value="Approved">Approved</option>
-                <option value="Rejected">Rejected</option>
+                <option value="Returned">Returned</option>
               </select>
 
               <ChevronDown size={16} className="registrar-select-caret" />

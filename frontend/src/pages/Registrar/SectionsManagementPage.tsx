@@ -8,14 +8,18 @@ import SectionsGrid from "../../components/Registrar/Sections/SectionsGrid";
 import AddSectionModal from "../../components/Registrar/Sections/AddSectionModal";
 import ViewStudentsModal from "../../components/Registrar/Sections/ViewStudentsModal";
 import ExportSectionsModal from "../../components/Registrar/Sections/ExportSectionsModal";
+import SectionRequestsCard from "../../components/Registrar/Sections/SectionRequestsCard";
 
-import type { SectionItem } from "../../components/Registrar/Sections/types";
+import type { SectionItem, SectionRequest } from "../../components/Registrar/Sections/types";
 
 import {
   getSections,
   createSection,
   updateSection,
   deleteSection,
+  getSectionRequests,
+  approveSectionRequest,
+  rejectSectionRequest,
 } from "../../api/sectionService";
 
 import { getCourses } from "../../api/courseService";
@@ -27,6 +31,7 @@ type CourseOption = {
   id: string;
   code: string;
   name: string;
+  department: string;
   yearLevels: number;
   status: "Active" | "Inactive";
 };
@@ -38,10 +43,12 @@ export default function SectionsManagementPage() {
   const [openAdd, setOpenAdd] = useState(false);
   const [openExport, setOpenExport] = useState(false);
   const [editing, setEditing] = useState<SectionItem | null>(null);
+  const [approvingRequest, setApprovingRequest] = useState<SectionRequest | null>(null);
 
   const [viewingStudentsSection, setViewingStudentsSection] = useState<SectionItem | null>(null);
 
   const [sections, setSections] = useState<SectionItem[]>([]);
+  const [requests, setRequests] = useState<SectionRequest[]>([]);
   const [courses, setCourses] = useState<CourseOption[]>([]);
 
   const [maxCapacity, setMaxCapacity] = useState<number>(45);
@@ -96,6 +103,7 @@ export default function SectionsManagementPage() {
             id: c._id,
             code: c.code,
             name: c.name,
+            department: c.department || "",
             yearLevels: Number(c.yearLevels ?? 4),
             status,
           };
@@ -123,7 +131,7 @@ export default function SectionsManagementPage() {
             typeof s.program === "object"
               ? s.program.name
               : s.program,
-          adviser: s.adviser && s.adviser.trim() !== "" ? s.adviser : "TBA",
+          department: s.department || "",
           room: s.room,
           enrolled: s.enrolled ?? 0,
           capacity: s.capacity,
@@ -141,11 +149,26 @@ export default function SectionsManagementPage() {
     }
   };
 
+  const loadRequests = async () => {
+    try {
+      const data = await getSectionRequests();
+      setRequests(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to load section requests:", err);
+      setRequests([]);
+    }
+  };
+
   useEffect(() => {
     (async () => {
       try {
         setIsLoading(true);
-        await Promise.all([loadRegistrarSettings(), loadCourses(), loadSections()]);
+        await Promise.all([
+          loadRegistrarSettings(),
+          loadCourses(),
+          loadSections(),
+          loadRequests(),
+        ]);
       } finally {
         setIsLoading(false);
       }
@@ -154,11 +177,19 @@ export default function SectionsManagementPage() {
 
   const openCreate = () => {
     setEditing(null);
+    setApprovingRequest(null);
     setOpenAdd(true);
   };
 
   const openEdit = (item: SectionItem) => {
     setEditing(item);
+    setApprovingRequest(null);
+    setOpenAdd(true);
+  };
+
+  const handleOpenApproveFromRequest = (req: SectionRequest) => {
+    setApprovingRequest(req);
+    setEditing(null);
     setOpenAdd(true);
   };
 
@@ -172,18 +203,23 @@ export default function SectionsManagementPage() {
     try {
       setIsLoading(true);
 
-      await createSection({
-        code: newItem.code,
-        yearLevel: (newItem as any).yearLevel,
-        program: newItem.program,
-        capacity: clampCapacity(newItem.capacity),
-        room: newItem.room,
-        adviser: newItem.adviser ?? "TBA",
-        enrolled: newItem.enrolled ?? 0,
-      });
-
-      await loadSections();
-      showAlert("Section created successfully!", "success");
+      if (approvingRequest) {
+        await approveSectionRequest(approvingRequest.id, newItem.room);
+        await Promise.all([loadSections(), loadRequests()]);
+        showAlert("Section request approved and created successfully!", "success");
+      } else {
+        await createSection({
+          code: newItem.code,
+          yearLevel: (newItem as any).yearLevel,
+          program: newItem.program,
+          department: newItem.department,
+          capacity: clampCapacity(newItem.capacity),
+          room: newItem.room,
+          enrolled: newItem.enrolled ?? 0,
+        });
+        await loadSections();
+        showAlert("Section created successfully!", "success");
+      }
     } catch (err: any) {
       showAlert(
         err.response?.data?.message || "Failed to create section.",
@@ -191,6 +227,7 @@ export default function SectionsManagementPage() {
       );
     } finally {
       setIsLoading(false);
+      setApprovingRequest(null);
     }
   };
 
@@ -202,9 +239,9 @@ export default function SectionsManagementPage() {
         code: updated.code,
         yearLevel: (updated as any).yearLevel,
         program: updated.program,
+        department: updated.department,
         capacity: clampCapacity(updated.capacity),
         room: updated.room,
-        adviser: updated.adviser ?? "TBA",
         enrolled: updated.enrolled ?? 0,
       });
 
@@ -236,6 +273,19 @@ export default function SectionsManagementPage() {
     }
   };
 
+  const handleRejectRequest = async (requestId: string, feedback: string) => {
+    try {
+      setIsLoading(true);
+      await rejectSectionRequest(requestId, feedback);
+      await loadRequests();
+      showAlert("Section request returned/rejected.", "success");
+    } catch (err: any) {
+      showAlert(err.response?.data?.message || "Failed to reject request.", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const onViewStudents = (item: SectionItem) => {
     setViewingStudentsSection(item);
   };
@@ -255,7 +305,7 @@ export default function SectionsManagementPage() {
       const matchQuery =
         query.length === 0
           ? true
-          : `${s.code} ${s.program} ${s.adviser}`.toLowerCase().includes(query);
+          : `${s.code} ${s.program} ${s.department || ""}`.toLowerCase().includes(query);
 
       return matchCourse && matchQuery;
     });
@@ -275,7 +325,31 @@ export default function SectionsManagementPage() {
     return { totalSections, totalEnrolled, totalCapacity, utilization };
   }, [sections]);
 
-  const hasCourses = courses.length > 0; // 👈 Properly declared here
+  const hasCourses = courses.length > 0;
+
+  const modalInitialData = useMemo(() => {
+    if (editing) return editing;
+    if (approvingRequest) {
+      const yNum = Number(approvingRequest.yearLevel) || 1;
+      const suffix = yNum === 1 ? "st" : yNum === 2 ? "nd" : yNum === 3 ? "rd" : "th";
+      const yearLabelStr = `${yNum}${suffix} Year`;
+
+      const matchingCourse = courses.find((c) => c.name === approvingRequest.program);
+
+      return {
+        id: approvingRequest.id,
+        code: approvingRequest.sectionName || approvingRequest.code || "",
+        program: approvingRequest.program || "",
+        department: matchingCourse?.department || "",
+        yearLevel: yearLabelStr,
+        capacity: approvingRequest.requestedCapacity || approvingRequest.capacity || 45,
+        room: approvingRequest.preferredRoom || approvingRequest.room || "",
+        enrolled: 0,
+        _isRequestApproval: true, // <--- Flag to mark this as an approval action
+      } as unknown as SectionItem;
+    }
+    return null;
+  }, [editing, approvingRequest, courses]);
 
   return (
     <>
@@ -286,14 +360,14 @@ export default function SectionsManagementPage() {
         loading={isLoading}
       />
 
-      <div className="registrar-sections-page">
+      <div className="registrar-sections-page container-fluid px-3 px-md-4 py-4">
         <div className="d-flex flex-column flex-md-row align-items-md-start justify-content-md-between gap-3 mb-3 mb-md-4">
           <div>
             <h2 className="fw-bold mb-1">Sections Management</h2>
             <p className="text-muted mb-0">Create and manage class sections</p>
           </div>
 
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center gap-2 flex-wrap">
             <button
               className="btn btn-outline-secondary btn-lg d-flex align-items-center"
               onClick={() => setOpenExport(true)}
@@ -315,6 +389,12 @@ export default function SectionsManagementPage() {
           </div>
         </div>
 
+        <SectionRequestsCard
+          requests={requests}
+          onApproveClick={handleOpenApproveFromRequest}
+          onReject={handleRejectRequest}
+        />
+
         <SectionStatsRow
           totalSections={totals.totalSections}
           totalEnrolled={totals.totalEnrolled}
@@ -330,7 +410,7 @@ export default function SectionsManagementPage() {
           courseOptions={courseOptions}
         />
 
-        {isLoading ? (
+        {isLoading && sections.length === 0 ? (
           <div className="card shadow-sm border-0">
             <div className="card-body p-4 text-center text-muted">
               Loading sections...
@@ -346,8 +426,8 @@ export default function SectionsManagementPage() {
         ) : !hasCourses ? (
           <div className="card shadow-sm border-0">
             <div className="card-body p-4">
-              <div className="users-empty-state">
-                <div className="users-empty-icon">📚</div>
+              <div className="users-empty-state text-center py-5">
+                <div className="users-empty-icon fs-1 mb-2">📚</div>
                 <h5 className="fw-semibold mb-1">No courses available</h5>
                 <p className="text-muted mb-0">
                   Please add courses first. Sections require a course and its year levels.
@@ -358,8 +438,8 @@ export default function SectionsManagementPage() {
         ) : (
           <div className="card shadow-sm border-0">
             <div className="card-body p-4">
-              <div className="users-empty-state">
-                <div className="users-empty-icon">📭</div>
+              <div className="users-empty-state text-center py-5">
+                <div className="users-empty-icon fs-1 mb-2">📭</div>
                 <h5 className="fw-semibold mb-1">No sections found</h5>
                 <p className="text-muted mb-0">
                   Try adjusting your search/filters or click <b>Add Section</b>.
@@ -370,10 +450,13 @@ export default function SectionsManagementPage() {
         )}
 
         <AddSectionModal
-          key={editing ? `edit-${editing.id}` : "create"}
+          key={editing ? `edit-${editing.id}` : approvingRequest ? `approve-${approvingRequest.id}` : "create"}
           open={openAdd}
-          onClose={() => setOpenAdd(false)}
-          initial={editing}
+          onClose={() => {
+            setOpenAdd(false);
+            setApprovingRequest(null);
+          }}
+          initial={modalInitialData}
           onCreate={onCreateSection}
           onUpdate={onUpdateSection}
           courses={courses}

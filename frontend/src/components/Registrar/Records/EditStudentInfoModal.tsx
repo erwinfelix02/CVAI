@@ -38,7 +38,6 @@ type StudentDetails = {
   initials?: string;
   avatarUrl?: string;
 
-  gpa?: string;
   verifiedDocs?: string[];
 };
 
@@ -322,7 +321,6 @@ export default function EditStudentInfoModal({
   if (!open || !student) return null;
 
   const enrolledDate = student.enrolledDate || "—";
-  const gpa = student.gpa || "—";
 
   const handleOpenConfirmSave = () => {
     setConfirmSaveOpen(true);
@@ -654,13 +652,6 @@ export default function EditStudentInfoModal({
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div>
-                <div className="info-label">
-                  <GraduationCap size={16} /> GPA
-                </div>
-                <div className="info-value">{gpa}</div>
               </div>
             </div>
           )}

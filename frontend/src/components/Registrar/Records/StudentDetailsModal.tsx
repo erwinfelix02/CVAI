@@ -37,7 +37,6 @@ type StudentDetails = {
   initials?: string;
   avatarUrl?: string;
 
-  gpa?: string;
   verifiedDocs?: string[];
 };
 
@@ -143,7 +142,6 @@ export default function StudentDetailsModal({
 
   const enrolledDate = student.enrolledDate || "—";
   const birthdate = student.birthdate || "—";
-  const gpa = student.gpa || "—";
 
   const studentDocs = student.verifiedDocs || [];
 
@@ -315,13 +313,6 @@ export default function StudentDetailsModal({
                   <Building2 size={16} /> Department
                 </div>
                 <div className="info-value">{student.department || "—"}</div>
-              </div>
-
-              <div>
-                <div className="info-label">
-                  <GraduationCap size={16} /> GPA
-                </div>
-                <div className="info-value">{gpa}</div>
               </div>
             </div>
           )}

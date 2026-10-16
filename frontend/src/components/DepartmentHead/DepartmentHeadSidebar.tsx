@@ -6,17 +6,16 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import {
   LayoutDashboard,
-  Users,
-  BookOpen,
-  CalendarDays,
   DoorOpen,
   GraduationCap,
   ChevronLeft,
   ChevronRight,
   X,
+  Megaphone,
   Settings,
   HelpCircle,
   LogOut,
+  Layers,
 } from "lucide-react";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
@@ -163,22 +162,14 @@ export default function DepartmentHeadSidebar({
         path: "/dept-head",
       },
       {
-        label: "Faculty",
-        icon: Users,
-        path: "/dept-head/faculty",
-        badge: facultyCount !== null ? facultyCount : undefined,
-        controlled: true,
-      },
-      {
-        label: "Subjects",
-        icon: BookOpen,
-        path: "/dept-head/subjects",
-      },
-      {
-        label: "Schedules",
-        icon: CalendarDays,
-        path: "/dept-head/schedules",
-        controlled: true,
+      label: "Sections", // <--- ADDED SECTIONS LINK
+      icon: Layers, // Make sure Layers is imported from lucide-react
+      path: "/dept-head/sections",
+    },
+    {
+        label: "Announcements", 
+        icon: Megaphone,
+        path: "/dept-head/announcements",
       },
       {
         label: "Rooms",

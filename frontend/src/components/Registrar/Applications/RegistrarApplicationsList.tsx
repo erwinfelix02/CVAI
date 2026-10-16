@@ -9,7 +9,7 @@ import {
   X,
   ChevronDown,
   CheckCircle,
-  XCircle,
+  RotateCcw,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -55,23 +55,21 @@ export default function RegistrarApplicationsList({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Filter items eligible for group actions (Only show group selections if approved with schedule sent, or rejected)
   const approvedEligibleItems = items.filter(
     (a) => a.status === "Approved" && Boolean(a.scheduleSent),
   );
-  const rejectedItems = items.filter((a) => a.status === "Rejected");
-  const eligibleGroupItems = [...approvedEligibleItems, ...rejectedItems];
+  const returnedItems = items.filter((a) => a.status === "Returned");
+  const eligibleGroupItems = [...approvedEligibleItems, ...returnedItems];
 
   const selectedGroupCount = items.filter(
     (a) =>
       ((a.status === "Approved" && Boolean(a.scheduleSent)) ||
-        a.status === "Rejected") &&
+        a.status === "Returned") &&
       selectedGroupIds.has(a.id),
   ).length;
 
-  // Selective group helpers
   const selectOnlyByStatus = (
-    statusTarget: "Approved" | "Rejected" | "Both",
+    statusTarget: "Approved" | "Returned" | "Both",
   ) => {
     setSelectedGroupIds((prev) => {
       const next = new Set(prev);
@@ -84,10 +82,10 @@ export default function RegistrarApplicationsList({
           if (allApprovedSelected) next.delete(a.id);
           else next.add(a.id);
         });
-      } else if (statusTarget === "Rejected") {
-        const allRejectedSelected = rejectedItems.every((a) => next.has(a.id));
-        rejectedItems.forEach((a) => {
-          if (allRejectedSelected) next.delete(a.id);
+      } else if (statusTarget === "Returned") {
+        const allReturnedSelected = returnedItems.every((a) => next.has(a.id));
+        returnedItems.forEach((a) => {
+          if (allReturnedSelected) next.delete(a.id);
           else next.add(a.id);
         });
       } else {
@@ -189,12 +187,12 @@ export default function RegistrarApplicationsList({
                       <button
                         type="button"
                         className="dropdown-item d-flex align-items-center gap-2 rounded-2 py-2 small fw-semibold"
-                        onClick={() => selectOnlyByStatus("Rejected")}
-                        disabled={rejectedItems.length === 0}
+                        onClick={() => selectOnlyByStatus("Returned")}
+                        disabled={returnedItems.length === 0}
                       >
-                        <XCircle size={15} className="text-danger" />
+                        <RotateCcw size={15} className="text-warning" />
                         <span>
-                          Select All Rejected ({rejectedItems.length})
+                          Select All Returned ({returnedItems.length})
                         </span>
                       </button>
 
@@ -256,7 +254,6 @@ export default function RegistrarApplicationsList({
             </div>
           </div>
 
-          {/* Fully responsive flex container that fills available viewport space with smooth scrolling */}
           <div 
             className="d-flex flex-column gap-3 overflow-y-auto pe-2 flex-grow-1"
             style={{ minHeight: 0 }}
@@ -278,7 +275,7 @@ export default function RegistrarApplicationsList({
                     onToggleApproved={onToggleApproved}
                     isGroupSelected={
                       ((a.status === "Approved" && Boolean(a.scheduleSent)) ||
-                        a.status === "Rejected") &&
+                        a.status === "Returned") &&
                       selectedGroupIds.has(a.id)
                     }
                     onToggleGroupSelect={onToggleGroupSelect}
@@ -299,7 +296,6 @@ export default function RegistrarApplicationsList({
         </div>
       </div>
 
-      {/* BULK ARCHIVE MODAL */}
       {bulkArchiveOpen && (
         <div className="sec-confirm-backdrop" role="dialog" aria-modal="true">
           <div className="sec-confirm-popup">
@@ -344,7 +340,6 @@ export default function RegistrarApplicationsList({
         </div>
       )}
 
-      {/* BULK DELETE MODAL */}
       {bulkDeleteOpen && (
         <div className="sec-confirm-backdrop" role="dialog" aria-modal="true">
           <div className="sec-confirm-popup">

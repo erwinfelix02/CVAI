@@ -7,7 +7,32 @@ import { addLog, getClientIp } from "../utils/logActivity.js";
 
 const router = express.Router();
 
-// POST schedule + send email + save enrollment
+// Helper to format date into readable text (e.g., "Monday, October 19, 2026")
+const formatReadableDate = (dateString) => {
+  try {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const [year, month, day] = String(dateString).split("-").map(Number);
+    const localDate = new Date(year, month - 1, day);
+    return localDate.toLocaleDateString('en-US', options);
+  } catch {
+    return dateString; // Fallback if parsing fails
+  }
+};
+
+// Helper to format time to 12-hour AM/PM (e.g., "08:30" -> "08:30 AM")
+const formatReadableTime = (timeString) => {
+  try {
+    const [hourStr, minuteStr] = String(timeString).split(":");
+    let hour = parseInt(hourStr, 10);
+    if (isNaN(hour)) return timeString;
+    const ampm = hour >= 12 ? "PM" : "AM";
+    hour = hour % 12 || 12;
+    return `${String(hour).padStart(2, "0")}:${minuteStr || "00"} ${ampm}`;
+  } catch {
+    return timeString;
+  }
+};
+
 router.post("/schedule", async (req, res) => {
   const updatedBy = req.body?.updatedBy || "registrar";
 
@@ -37,6 +62,10 @@ router.post("/schedule", async (req, res) => {
     const results = [];
     const sentIds = [];
 
+    // Pre-calculate human-readable strings for the email
+    const readableDate = formatReadableDate(date);
+    const readableTime = formatReadableTime(time);
+
     for (const p of preregs) {
       const to = p.personal?.email;
       const studentName = `${p.personal?.firstName ?? ""} ${p.personal?.lastName ?? ""}`.trim();
@@ -59,7 +88,7 @@ router.post("/schedule", async (req, res) => {
         continue;
       }
 
-     const html = `
+      const html = `
   <div style="margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, sans-serif;">
     <table width="100%" cellpadding="0" cellspacing="0" style="padding:20px 0; background-color:#f4f6f8;">
       <tr>
@@ -86,11 +115,11 @@ router.post("/schedule", async (req, res) => {
                 <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:6px; overflow:hidden; margin-bottom:20px;">
                   <tr>
                     <td style="padding:14px; width:35%; background:#f9fafb; font-weight:bold;">Date</td>
-                    <td style="padding:14px;">${date}</td>
+                    <td style="padding:14px;">${readableDate}</td>
                   </tr>
                   <tr>
                     <td style="padding:14px; width:35%; background:#f9fafb; font-weight:bold; border-top:1px solid #e5e7eb;">Time</td>
-                    <td style="padding:14px; border-top:1px solid #e5e7eb;">${time}</td>
+                    <td style="padding:14px; border-top:1px solid #e5e7eb;">${readableTime}</td>
                   </tr>
                   <tr>
                     <td style="padding:14px; width:35%; background:#f9fafb; font-weight:bold; border-top:1px solid #e5e7eb;">Location</td>
@@ -166,24 +195,24 @@ router.post("/schedule", async (req, res) => {
         email: to,
 
         personal: {
-  firstName: p.personal?.firstName || "",
-  middleName: p.personal?.middleName || "",
-  lastName: p.personal?.lastName || "",
-  email: p.personal?.email || "",
-  phone: p.personal?.phone || "",
-  address: p.personal?.address || "",
-  birthDate: p.personal?.birthDate || p.personal?.birthdate || "",
-  guardian: p.personal?.guardian || "",
-  guardianPhone: p.personal?.guardianPhone || "",
-  gender: p.personal?.gender || "",
-},
+          firstName: p.personal?.firstName || "",
+          middleName: p.personal?.middleName || "",
+          lastName: p.personal?.lastName || "",
+          email: p.personal?.email || "",
+          phone: p.personal?.phone || "",
+          address: p.personal?.address || "",
+          birthDate: p.personal?.birthDate || p.personal?.birthdate || "",
+          guardian: p.personal?.guardian || "",
+          guardianPhone: p.personal?.guardianPhone || "",
+          gender: p.personal?.gender || "",
+        },
         academic: {
-  program: p.academic?.course || "",
-  yearLevel: p.academic?.yearLevel || "",
-  department: p.academic?.course || "",
-  applicantType: p.academic?.applicantType || "",
-  previousSchool: p.academic?.previousSchool || "",
-},
+          program: p.academic?.course || "",
+          yearLevel: p.academic?.yearLevel || "",
+          department: p.academic?.course || "",
+          applicantType: p.academic?.applicantType || "",
+          previousSchool: p.academic?.previousSchool || "",
+        },
         documents: p.documents,
 
         credentials: {

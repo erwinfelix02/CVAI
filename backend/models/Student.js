@@ -83,6 +83,7 @@ const studentSchema = new mongoose.Schema(
     program: { type: String, required: true, trim: true },
     yearLevel: { type: Number, required: true },
     section: { type: String, default: "", trim: true },
+    assignedAt: { type: String, default: "—" }, // 👈 Added assignedAt field
     department: { type: String, required: true, trim: true },
     enrolledSubjects: { type: [String], default: [] },
     
@@ -95,9 +96,9 @@ const studentSchema = new mongoose.Schema(
         finals: termGradeSchema,
         finalGrade: { type: mongoose.Schema.Types.Mixed, default: "—" },
         status: { type: String, default: "pending" },
-        academicYear: { type: String, default: "" },       // 👈 Added field
-        semester: { type: String, default: "" },           // 👈 Added field
-        studentYearLevel: { type: Number, default: 1 },    // 👈 Added field
+        academicYear: { type: String, default: "" },
+        semester: { type: String, default: "" },
+        studentYearLevel: { type: Number, default: 1 },
         updatedByFaculty: String,
         updatedAt: { type: Date, default: Date.now },
       }, { _id: false }),

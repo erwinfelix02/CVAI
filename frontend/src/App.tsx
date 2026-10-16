@@ -68,6 +68,8 @@ import DepartmentHeadSubjects from "./pages/DepartmentHead/DepartmentHeadSubject
 import DepartmentHeadRooms from "./pages/DepartmentHead/DepartmentHeadRooms";
 import DepartmentHeadSettings from "./pages/DepartmentHead/DepartmentHeadSettings";
 import DepartmentHeadHelpSupport from "./pages/DepartmentHead/DepartmentHeadHelpSupport";
+import DepartmentHeadSections from "./pages/DepartmentHead/DepartmentHeadSections";
+import DepartmentAnnouncementsPage from "./pages/DepartmentHead/DepartmentAnnouncementsPage";
 
 export default function App() {
   return (
@@ -78,6 +80,7 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/verify-code" element={<VerifyCode />} />
       <Route path="/prereg" element={<StudentPreRegistrationPage />} />
+      <Route path="/preregistration/revise" element={<StudentPreRegistrationPage />} />
 
       {/* Student */}
       <Route
@@ -194,6 +197,8 @@ export default function App() {
         <Route path="rooms" element={<DepartmentHeadRooms />} />
         <Route path="settings" element={<DepartmentHeadSettings />} />
         <Route path="help" element={<DepartmentHeadHelpSupport />} />
+        <Route path="sections" element={<DepartmentHeadSections />} />
+        <Route path="announcements" element={<DepartmentAnnouncementsPage />} />
       </Route>
     </Routes>
   );

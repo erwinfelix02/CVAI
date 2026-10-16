@@ -15,6 +15,9 @@ type Props = {
     enrollmentId: string;
     updatedInfo: {
       fullName: string;
+      firstName: string;
+      middleName: string;
+      lastName: string;
       studentId: string;
       email: string;
       phone: string;
@@ -32,10 +35,6 @@ type Props = {
   }) => Promise<void> | void;
 };
 
-/* =========================================================
-   UPDATED REQUIRED DOCUMENTS
-   - Removed: Medical Certificate & Entrance Exam Results
-========================================================= */
 const requiredDocs = [
   "Form 137 / Report Card",
   "PSA Birth Certificate",
@@ -97,7 +96,9 @@ function normalizePHPhone(value: string) {
 }
 
 type InitialSnapshot = {
-  fullName: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
   studentId: string;
   program: string;
   yearLevel: string;
@@ -112,10 +113,6 @@ type InitialSnapshot = {
   docsChecked: Record<string, boolean>;
 };
 
-/* =========================================================
-   UPDATED INITIAL DOCS STATE
-   - All required documents are now pre-selected (true)
-========================================================= */
 function makeEmptyDocsState() {
   const next: Record<string, boolean> = {};
   requiredDocs.forEach((d) => {
@@ -134,7 +131,9 @@ export default function EnrollmentEvaluationModal({
 }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [studentId, setStudentId] = useState("");
   const [program, setProgram] = useState("");
   const [yearLevel, setYearLevel] = useState("");
@@ -161,7 +160,9 @@ export default function EnrollmentEvaluationModal({
   const [idError, setIdError] = useState("");
 
   const [initialSnapshot, setInitialSnapshot] = useState<InitialSnapshot>({
-    fullName: "",
+    firstName: "",
+    middleName: "",
+    lastName: "",
     studentId: "",
     program: "",
     yearLevel: "",
@@ -219,11 +220,10 @@ export default function EnrollmentEvaluationModal({
     setShowStep2Errors(false);
     setShowStep3Errors(false);
 
-    const computedName =
-      student.studentName ||
-      `${student.personal?.firstName ?? ""} ${student.personal?.lastName ?? ""}`.trim();
+    const nextFirstName = student.personal?.firstName || "";
+    const nextMiddleName = student.personal?.middleName || "";
+    const nextLastName = student.personal?.lastName || "";
 
-    const nextFullName = computedName;
     const nextEmail = student.email || student.personal?.email || "";
     const nextPhone = normalizePHPhone(student.personal?.phone || "");
     const nextAddress = student.personal?.address || "";
@@ -235,7 +235,9 @@ export default function EnrollmentEvaluationModal({
     const nextProgram = student.academic?.program || student.academic?.course || "";
     const nextYearLevel = student.academic?.yearLevel?.toString() || "";
 
-    setFullName(nextFullName);
+    setFirstName(nextFirstName);
+    setMiddleName(nextMiddleName);
+    setLastName(nextLastName);
     setEmail(nextEmail);
     setPhone(nextPhone);
     setAddress(nextAddress);
@@ -254,7 +256,9 @@ export default function EnrollmentEvaluationModal({
     setDocsChecked(initialDocs);
 
     setInitialSnapshot({
-      fullName: nextFullName,
+      firstName: nextFirstName,
+      middleName: nextMiddleName,
+      lastName: nextLastName,
       studentId: "",
       program: nextProgram,
       yearLevel: nextYearLevel,
@@ -338,7 +342,9 @@ export default function EnrollmentEvaluationModal({
     );
 
     return (
-      fullName !== initialSnapshot.fullName ||
+      firstName !== initialSnapshot.firstName ||
+      middleName !== initialSnapshot.middleName ||
+      lastName !== initialSnapshot.lastName ||
       studentId !== initialSnapshot.studentId ||
       program !== initialSnapshot.program ||
       yearLevel !== initialSnapshot.yearLevel ||
@@ -353,7 +359,9 @@ export default function EnrollmentEvaluationModal({
       docsChanged
     );
   }, [
-    fullName,
+    firstName,
+    middleName,
+    lastName,
     studentId,
     program,
     yearLevel,
@@ -431,10 +439,19 @@ export default function EnrollmentEvaluationModal({
   );
 
   const step1Errors = {
-    fullName: !fullName.trim()
-      ? "Full Name is required."
-      : !isValidName(fullName.trim())
-        ? "Full Name contains invalid characters. Use letters, spaces, apostrophes, commas, periods, or hyphens only."
+    firstName: !firstName.trim()
+      ? "First Name is required."
+      : !isValidName(firstName.trim())
+        ? "First Name contains invalid characters."
+        : "",
+    middleName:
+      middleName.trim() && !isValidName(middleName.trim())
+        ? "Middle Name contains invalid characters."
+        : "",
+    lastName: !lastName.trim()
+      ? "Last Name is required."
+      : !isValidName(lastName.trim())
+        ? "Last Name contains invalid characters."
         : "",
     studentId: idLoading
       ? ""
@@ -470,7 +487,7 @@ export default function EnrollmentEvaluationModal({
     guardian: !guardian.trim()
       ? "Guardian is required."
       : !isValidName(guardian.trim())
-        ? "Guardian name contains invalid characters. Use letters, spaces, apostrophes, commas, periods, or hyphens only."
+        ? "Guardian name contains invalid characters."
         : "",
     guardianPhone: !guardianPhone.trim()
       ? "Guardian Phone is required."
@@ -483,8 +500,12 @@ export default function EnrollmentEvaluationModal({
   const step2Valid = verifiedCount > 0;
   const step3Valid = finalConfirm;
 
-  const fullNameError =
-    showStep1Errors || fullName.trim() ? step1Errors.fullName : "";
+  const firstNameError =
+    showStep1Errors || firstName.trim() ? step1Errors.firstName : "";
+  const middleNameError =
+    showStep1Errors || middleName.trim() ? step1Errors.middleName : "";
+  const lastNameError =
+    showStep1Errors || lastName.trim() ? step1Errors.lastName : "";
   const studentIdError = showStep1Errors ? step1Errors.studentId : "";
   const programError =
     showStep1Errors || program.trim() ? step1Errors.program : "";
@@ -542,11 +563,18 @@ export default function EnrollmentEvaluationModal({
       .filter(([, v]) => v)
       .map(([k]) => k);
 
+    const computedFullName = [firstName.trim(), middleName.trim(), lastName.trim()]
+      .filter(Boolean)
+      .join(" ");
+
     try {
       await onEnroll({
         enrollmentId: student._id,
         updatedInfo: {
-          fullName: fullName.trim(),
+          fullName: computedFullName,
+          firstName: firstName.trim(),
+          middleName: middleName.trim(),
+          lastName: lastName.trim(),
           studentId: studentId.trim(),
           email: email.trim(),
           phone: normalizePHPhone(phone.trim()),
@@ -577,6 +605,17 @@ export default function EnrollmentEvaluationModal({
       role="dialog"
       aria-modal="true"
       aria-label="Enrollment Evaluation"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 1050,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1rem",
+        overflowY: "auto",
+      }}
       onMouseDown={(e) => {
         if (
           e.target === e.currentTarget &&
@@ -590,14 +629,25 @@ export default function EnrollmentEvaluationModal({
       }}
     >
       <div
-        className="enroll-eval-modal"
+        className="enroll-eval-modal container-fluid"
+        style={{
+          width: "100%",
+          maxWidth: "900px",
+          maxHeight: "90vh",
+          background: "#fff",
+          borderRadius: "0.5rem",
+          display: "flex",
+          flexDirection: "column",
+          boxShadow: "0 0.5rem 1rem rgba(0, 0, 0, 0.15)",
+          overflow: "hidden",
+        }}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="enroll-eval-header">
+        <div className="enroll-eval-header p-3 border-bottom d-flex align-items-center justify-content-between">
           <div className="fw-bold fs-4">Enrollment Evaluation</div>
           <button
             type="button"
-            className="enroll-icon-btn enroll-icon-btn-sm"
+            className="enroll-icon-btn enroll-icon-btn-sm btn btn-light btn-sm"
             onClick={requestClose}
             aria-label="Close"
             title="Close"
@@ -607,7 +657,7 @@ export default function EnrollmentEvaluationModal({
           </button>
         </div>
 
-        <div className="enroll-stepper">
+        <div className="enroll-stepper px-3 py-2 bg-light border-bottom d-flex align-items-center justify-content-between">
           <StepItem
             icon={<User size={18} />}
             label="Student Info"
@@ -630,12 +680,11 @@ export default function EnrollmentEvaluationModal({
           />
         </div>
 
-        <div className="enroll-eval-body">
+        <div className="enroll-eval-body p-3 p-md-4 flex-grow-1" style={{ overflowY: "auto" }}>
           {step === 1 && (
             <>
               <div className="text-muted mb-3">
-                Fill in missing info (required) and verify everything is
-                correct.
+                Fill in missing info (required) and verify everything is correct.
               </div>
 
               <div className="text-muted small mb-3">
@@ -646,17 +695,49 @@ export default function EnrollmentEvaluationModal({
               <div className="card border-0 shadow-sm">
                 <div className="card-body">
                   <div className="row g-3">
-                    <FieldInput
-                      label="Full Name"
-                      value={fullName}
-                      onChange={setFullName}
-                      required
-                      error={fullNameError}
-                    />
-
-                    <div className="col-12 col-md-6">
+                    {/* First Name, Middle Name, Last Name, and Student ID Number in the same responsive row */}
+                    <div className="col-12 col-sm-6 col-md-3">
                       <label className="form-label fw-semibold">
-                        Student ID Number <span className="text-danger">*</span>
+                        First Name <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        className={`form-control ${firstNameError ? "is-invalid" : ""}`}
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        placeholder="First Name"
+                      />
+                      {firstNameError ? <div className="text-danger small mt-1">{firstNameError}</div> : null}
+                    </div>
+
+                    <div className="col-12 col-sm-6 col-md-3">
+                      <label className="form-label fw-semibold">
+                        Middle Name <span className="text-muted">(Opt)</span>
+                      </label>
+                      <input
+                        className={`form-control ${middleNameError ? "is-invalid" : ""}`}
+                        value={middleName}
+                        onChange={(e) => setMiddleName(e.target.value)}
+                        placeholder="Middle Name"
+                      />
+                      {middleNameError ? <div className="text-danger small mt-1">{middleNameError}</div> : null}
+                    </div>
+
+                    <div className="col-12 col-sm-6 col-md-3">
+                      <label className="form-label fw-semibold">
+                        Last Name <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        className={`form-control ${lastNameError ? "is-invalid" : ""}`}
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        placeholder="Last Name"
+                      />
+                      {lastNameError ? <div className="text-danger small mt-1">{lastNameError}</div> : null}
+                    </div>
+
+                    <div className="col-12 col-sm-6 col-md-3">
+                      <label className="form-label fw-semibold">
+                        Student ID <span className="text-danger">*</span>
                       </label>
                       <input
                         className={`form-control ${studentIdError ? "is-invalid" : ""}`}
@@ -670,8 +751,8 @@ export default function EnrollmentEvaluationModal({
                         }}
                         placeholder={`${studentIdPrefix}001`}
                       />
-                      <div className="text-muted small mt-1">
-                        Auto-generated preview only. Final ID is assigned on save.
+                      <div className="text-muted small mt-1" style={{ fontSize: "0.75rem" }}>
+                        Auto-generated preview.
                       </div>
                       {studentIdError ? (
                         <div className="text-danger small mt-1">
@@ -848,15 +929,14 @@ export default function EnrollmentEvaluationModal({
           {step === 2 && (
             <>
               <div className="text-muted mb-3">
-                Check that all required documents have been submitted and are
-                valid.
+                Check that all required documents have been submitted and are valid.
               </div>
 
               <div className="d-flex flex-column gap-2">
                 {requiredDocs.map((d) => {
                   const checked = !!docsChecked[d];
                   return (
-                    <div key={d} className="enroll-doc-row">
+                    <div key={d} className="enroll-doc-row p-2 border rounded d-flex align-items-center justify-content-between">
                       <div className="d-flex align-items-center gap-3">
                         <input
                           type="checkbox"
@@ -886,7 +966,7 @@ export default function EnrollmentEvaluationModal({
                 <div className="text-muted small">
                   {verifiedCount} / {requiredDocs.length} documents verified
                 </div>
-                <div className="progress" style={{ height: 8 }}>
+                <div className="progress mt-1" style={{ height: 8 }}>
                   <div
                     className="progress-bar"
                     role="progressbar"
@@ -952,7 +1032,7 @@ export default function EnrollmentEvaluationModal({
           )}
         </div>
 
-        <div className="enroll-eval-footer">
+        <div className="enroll-eval-footer p-3 border-top d-flex align-items-center justify-content-between bg-light">
           <div>
             {step > 1 ? (
               <button
@@ -1000,19 +1080,30 @@ export default function EnrollmentEvaluationModal({
             role="dialog"
             aria-modal="true"
             aria-label="Confirm Enrollment"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 1060,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "1rem",
+            }}
             onMouseDown={(e) => {
               if (e.target === e.currentTarget) setConfirmOpen(false);
             }}
           >
             <div
-              className="enroll-confirm-popup"
+              className="enroll-confirm-popup bg-white p-4 rounded shadow w-100"
+              style={{ maxWidth: "400px" }}
               onMouseDown={(e) => e.stopPropagation()}
             >
-              <div className="enroll-confirm-header d-flex align-items-center justify-content-between">
-                <div className="enroll-confirm-title mb-0">Confirm Enrollment</div>
+              <div className="enroll-confirm-header d-flex align-items-center justify-content-between mb-2">
+                <div className="enroll-confirm-title fw-bold mb-0">Confirm Enrollment</div>
                 <button
                   type="button"
-                  className="enroll-icon-btn enroll-icon-btn-sm"
+                  className="enroll-icon-btn enroll-icon-btn-sm btn btn-light btn-sm"
                   onClick={() => setConfirmOpen(false)}
                   aria-label="Close"
                   title="Close"
@@ -1022,17 +1113,16 @@ export default function EnrollmentEvaluationModal({
                 </button>
               </div>
 
-              <div className="enroll-confirm-body">
+              <div className="enroll-confirm-body mb-3">
                 <div className="fw-semibold mb-1">
                   Are you sure you want to enroll this student?
                 </div>
                 <div className="text-muted small">
-                  This will submit the evaluation, save the verified details,
-                  and mark the student as enrolled.
+                  This will submit the evaluation, save the verified details, and mark the student as enrolled.
                 </div>
               </div>
 
-              <div className="enroll-confirm-actions">
+              <div className="enroll-confirm-actions d-flex justify-content-end gap-2">
                 <button
                   className="btn btn-light"
                   onClick={() => setConfirmOpen(false)}
@@ -1058,19 +1148,30 @@ export default function EnrollmentEvaluationModal({
             role="dialog"
             aria-modal="true"
             aria-label="Confirm Discard Enrollment Changes"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 1060,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "1rem",
+            }}
             onMouseDown={(e) => {
               if (e.target === e.currentTarget) setDiscardOpen(false);
             }}
           >
             <div
-              className="enroll-confirm-popup"
+              className="enroll-confirm-popup bg-white p-4 rounded shadow w-100"
+              style={{ maxWidth: "400px" }}
               onMouseDown={(e) => e.stopPropagation()}
             >
-              <div className="enroll-confirm-header d-flex align-items-center justify-content-between">
-                <div className="enroll-confirm-title mb-0">Discard changes?</div>
+              <div className="enroll-confirm-header d-flex align-items-center justify-content-between mb-2">
+                <div className="enroll-confirm-title fw-bold mb-0">Discard changes?</div>
                 <button
                   type="button"
-                  className="enroll-icon-btn enroll-icon-btn-sm"
+                  className="enroll-icon-btn enroll-icon-btn-sm btn btn-light btn-sm"
                   onClick={() => setDiscardOpen(false)}
                   aria-label="Close"
                   title="Close"
@@ -1080,7 +1181,7 @@ export default function EnrollmentEvaluationModal({
                 </button>
               </div>
 
-              <div className="enroll-confirm-body">
+              <div className="enroll-confirm-body mb-3">
                 <div className="fw-semibold mb-1">
                   You have unsaved input in this evaluation.
                 </div>
@@ -1089,7 +1190,7 @@ export default function EnrollmentEvaluationModal({
                 </div>
               </div>
 
-              <div className="enroll-confirm-actions">
+              <div className="enroll-confirm-actions d-flex justify-content-end gap-2">
                 <button
                   className="btn btn-light"
                   onClick={() => setDiscardOpen(false)}
@@ -1130,16 +1231,16 @@ function StepItem({
 }) {
   return (
     <div
-      className={`enroll-step ${active ? "active" : ""} ${done ? "done" : ""}`}
+      className={`enroll-step d-flex align-items-center gap-1 ${active ? "text-primary fw-bold" : "text-muted"} ${done ? "text-success" : ""}`}
     >
       <div className="enroll-step-icon">{icon}</div>
-      <div className="enroll-step-label">{label}</div>
+      <div className="enroll-step-label d-none d-sm-block">{label}</div>
     </div>
   );
 }
 
 function StepLine({ active }: { active: boolean }) {
-  return <div className={`enroll-step-line ${active ? "active" : ""}`} />;
+  return <div className={`enroll-step-line flex-grow-1 mx-2 border-top ${active ? "border-primary" : ""}`} />;
 }
 
 function FieldInput({

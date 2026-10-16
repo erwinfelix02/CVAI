@@ -34,12 +34,12 @@ function ensureEncrypted(doc, paths) {
 
 const sectionSchema = new mongoose.Schema(
   {
-    code: { type: String, required: true, unique: true, trim: true }, // Unencrypted unique reference key
-    yearLevel: { type: String, required: true }, // Unencrypted for grouping/filtering
-    program: { type: String, required: true }, // Unencrypted for program filtering
+    code: { type: String, required: true, trim: true },
+    yearLevel: { type: String, required: true },
+    program: { type: String, required: true },
+    department: { type: String, required: true, trim: true },
     capacity: { type: Number, required: true, min: 1 },
-    room: { type: String, required: true }, // Unencrypted for room assignments/scheduling
-    adviser: encryptedField("adviser"), // Encrypted adviser/faculty name
+    room: encryptedField("room"),
     enrolled: { type: Number, default: 0 },
   },
   {
@@ -62,22 +62,21 @@ const sectionSchema = new mongoose.Schema(
 );
 
 sectionSchema.virtual("id").get(function () {
-  return this._id.toHexString();
+  const hexId = this._id?.toHexString ? this._id.toHexString() : String(this._id || "");
+  return hexId;
 });
 
-// Middleware to ensure plain text fields are encrypted on save
 sectionSchema.pre("save", function () {
-  const encryptedPaths = ["adviser"];
+  const encryptedPaths = ["room"];
   ensureEncrypted(this, encryptedPaths);
 });
 
-// Middleware to handle updates safely
 function applyEncryptedUpdate(update) {
   if (!update || typeof update !== "object") return;
 
   const target = update.$set || update;
   const encryptMap = {
-    adviser: "adviser",
+    room: "room",
   };
 
   for (const [path, fieldName] of Object.entries(encryptMap)) {
@@ -94,6 +93,15 @@ for (const hook of ["findOneAndUpdate", "updateOne", "updateMany"]) {
     applyEncryptedUpdate(this.getUpdate());
   });
 }
+
+sectionSchema.post("aggregate", function (docs) {
+  if (!Array.isArray(docs)) return;
+  for (const doc of docs) {
+    if (doc.room && typeof doc.room === "string" && isEncrypted(doc.room)) {
+      doc.room = decrypt(doc.room);
+    }
+  }
+});
 
 const Section = mongoose.models.Section || mongoose.model("Section", sectionSchema);
 

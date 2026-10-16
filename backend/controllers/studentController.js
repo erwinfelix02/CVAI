@@ -61,6 +61,7 @@ const buildStudentFilter = (query) => {
     exportStatus = "All",
     facultyId = "",
     facultyName = "",
+    department = "",
   } = query;
 
   const filter = {};
@@ -70,6 +71,18 @@ const buildStudentFilter = (query) => {
   } else if (facultyName) {
     filter.facultyName = String(facultyName).trim();
   }
+
+if (
+    department &&
+    department !== "All" &&
+    department !== "undefined" &&
+    department !== "null"
+  ) {
+    filter.department = {
+      $regex: new RegExp(`^${String(department).trim()}$`, "i"),
+    };
+  }
+  
 
   const effectiveStatus = exportStatus !== "All" ? exportStatus : status;
 
@@ -167,6 +180,7 @@ const mapStudentRow = (s) => {
     attendance: s.attendance ?? 100,
     facultyId: s.facultyId || "",
     facultyName: s.facultyName || "",
+    assignedAt: s.assignedAt || "—",
   };
 };
 
@@ -174,7 +188,12 @@ export const getStudentRecords = async (req, res) => {
   try {
     const filter = buildStudentFilter(req.query);
 
+   console.log("🔍 Incoming Query Params:", req.query);
+    console.log("🔍 Built MongoDB Filter:", JSON.stringify(filter, null, 2));
+
     const students = await Student.find(filter).sort({ createdAt: -1 }).lean();
+    console.log(`📊 Found ${students.length} students matching filter.`);
+    
 
     if (!students.length) {
       return res.json([]);
@@ -432,15 +451,40 @@ export const updateStudentInfo = async (req, res) => {
       department,
       verifiedDocs,
       enrolledSubjects,
+      section,
+      assignedAt,
     } = req.body || {};
 
-    const student = await Student.findOne({ studentIdNumber: id });
+    const student = await Student.findOne({
+      $or: [
+        { studentIdNumber: id },
+        { _id: mongoose.Types.ObjectId.isValid(id) ? id : null }
+      ]
+    });
 
     if (!student) {
       return res.status(404).json({ message: "Student not found" });
     }
 
     const changes = [];
+
+   if (section !== undefined) {
+      const cleanSection = section === "Unassigned" || section === "—" || !section ? "" : String(section).trim();
+      if (String(student.section || "") !== cleanSection) {
+        changes.push(`section: "${student.section || ""}" -> "${cleanSection || "—"}"`);
+        student.section = cleanSection;
+        
+        // 👈 Update assignedAt timestamp upon assignment, or reset to "—" if unassigned
+        student.assignedAt = cleanSection ? (assignedAt || new Date().toLocaleString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        })) : "—";
+      }
+    }
 
     if (Array.isArray(enrolledSubjects)) {
       const cleanSubjects = enrolledSubjects
@@ -580,7 +624,7 @@ export const updateStudentInfo = async (req, res) => {
     addLog({
       action: "Edit Student Record",
       user: updatedBy,
-      role: "Registrar",
+      role: "Registrar / Department Head",
       type: "Data",
       details:
         changes.length > 0
@@ -612,6 +656,7 @@ export const updateStudentInfo = async (req, res) => {
         year: student.yearLevel ?? 1,
         yearLevel: formatYearLevel(student.yearLevel),
         section: student.section || "—",
+        assignedAt: student.assignedAt || "—",
         department: student.department || "",
         enrolledSubjects: student.enrolledSubjects || [],
         guardian: student.guardian || "",
@@ -624,16 +669,6 @@ export const updateStudentInfo = async (req, res) => {
     });
   } catch (err) {
     console.error("updateStudentInfo error:", err);
-    addLog({
-      action: "Edit Student Record",
-      user: updatedBy,
-      role: "Registrar",
-      type: "Data",
-      details: `Failed to update student record: ${err.message}`,
-      ip: getClientIp(req),
-      status: "error",
-    });
-
     return res.status(500).json({ message: "Server error" });
   }
 };
@@ -777,6 +812,7 @@ export const createStudent = async (req, res) => {
       program: defaultProgram,
       yearLevel: yearLevel ? Number(yearLevel) : 1,
       section: cleanSection,
+      assignedAt: cleanSection ? timestamp : "—",
       department: department || "College of Computer Studies",
       enrolledSubjects: Array.isArray(enrolledSubjects)
         ? Array.from(new Set(enrolledSubjects.map((s) => String(s).trim())))

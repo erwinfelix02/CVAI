@@ -35,9 +35,7 @@ function ensureEncrypted(doc, paths) {
 const AnnouncementSchema = new mongoose.Schema(
   {
     title: encryptedField("title"),
-    course: encryptedField("course"), 
-    subjectCode: { type: String, required: true, index: true }, 
-    section: { type: String, default: "", index: true }, 
+    targetAudience: { type: String, default: "All Department Students", index: true },
     priority: { type: String, enum: ["low", "medium", "high"], default: "medium" },
     message: encryptedField("message"),
     scheduledDate: { type: String, default: "" },
@@ -50,12 +48,13 @@ const AnnouncementSchema = new mongoose.Schema(
     sendPush: { type: Boolean, default: true },
     sendEmail: { type: Boolean, default: false },
     recipients: { type: Number, default: 0 },
-    facultyId: { type: String, required: true, index: true }, 
+    facultyId: { type: String, default: "department-admin", index: true }, 
     author: encryptedField("author"),
     department: { type: String, required: true, index: true }, 
   },
   {
     timestamps: true,
+    toObject: { getters: true, versionKey: false },
     toJSON: {
       virtuals: true,
       getters: true,
@@ -68,10 +67,6 @@ const AnnouncementSchema = new mongoose.Schema(
         delete ret.__v;
       },
     },
-    toObject: {
-      getters: true,
-      versionKey: false,
-    },
   }
 );
 
@@ -80,7 +75,7 @@ AnnouncementSchema.virtual("id").get(function () {
 });
 
 AnnouncementSchema.pre("save", function () {
-  const encryptedPaths = ["title", "course", "message", "author"];
+  const encryptedPaths = ["title", "message", "author"];
   ensureEncrypted(this, encryptedPaths);
 });
 
@@ -90,7 +85,6 @@ function applyEncryptedUpdate(update) {
   const target = update.$set || update;
   const encryptMap = {
     title: "title",
-    course: "course",
     message: "message",
     author: "author",
   };

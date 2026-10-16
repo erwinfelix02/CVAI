@@ -15,9 +15,7 @@ export default function AuthAlert({
 
   return (
     <div className={`auth-alert ${type} ${visible ? "show" : ""}`}>
-      <span className="auth-alert-icon">
-        {type === "error" ? "⚠️" : "⏳"}
-      </span>
+      <span className="auth-alert-icon">{type === "error" ? "⚠️" : "⏳"}</span>
 
       <span className="auth-alert-text">
         {message}

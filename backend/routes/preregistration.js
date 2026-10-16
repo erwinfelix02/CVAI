@@ -1,15 +1,17 @@
+// routes/preregistrations.js
+
 import express from "express";
+import crypto from "crypto";
 import multer from "multer";
 import Preregistration from "../models/Preregistration.js";
 import ArchivedPreregistration from "../models/ArchivedPreregistration.js";
 import RegistrarSettings from "../models/RegistrarSettings.js";
-import User from "../models/User.js"; // Import User model to check existing accounts
+import User from "../models/User.js";
 import { otpStore } from "../controllers/verificationController.js";
 import sendEmail from "../utils/sendEmail.js";
 import contract from "../utils/blockchain.js";
 
 const router = express.Router();
-
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
 const storage = multer.diskStorage({
@@ -24,11 +26,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: {
-    fileSize: MAX_FILE_SIZE,
-  },
+  limits: { fileSize: MAX_FILE_SIZE },
   fileFilter: (req, file, cb) => {
-    // ✅ Allow JPEG, PNG, or PDF for ID photos; restrict others strictly to PDF
     if (file.fieldname === "idPhoto") {
       if (!["image/jpeg", "image/png", "application/pdf"].includes(file.mimetype)) {
         return cb(new Error("ID photo must be a JPEG, PNG, or PDF file."));
@@ -44,25 +43,14 @@ const upload = multer({
 
 function normalizePHPhone(phone) {
   const digits = String(phone || "").replace(/\D/g, "");
-
-  if (digits.startsWith("639") && digits.length >= 12) {
-    return `+${digits.slice(0, 12)}`;
-  }
-
-  if (digits.startsWith("09") && digits.length >= 11) {
-    return `+63${digits.slice(1, 11)}`;
-  }
-
-  if (digits.startsWith("9") && digits.length >= 10) {
-    return `+63${digits.slice(0, 10)}`;
-  }
-
+  if (digits.startsWith("639") && digits.length >= 12) return `+${digits.slice(0, 12)}`;
+  if (digits.startsWith("09") && digits.length >= 11) return `+63${digits.slice(1, 11)}`;
+  if (digits.startsWith("9") && digits.length >= 10) return `+63${digits.slice(0, 10)}`;
   return String(phone || "").trim();
 }
 
 // ── RETENTION SETTINGS ENDPOINTS ──────────────────────────────
 
-// GET retention settings
 router.get("/settings/retention", async (req, res) => {
   try {
     let settings = await RegistrarSettings.findOne();
@@ -76,7 +64,6 @@ router.get("/settings/retention", async (req, res) => {
   }
 });
 
-// UPDATE retention settings
 router.patch("/settings/retention", async (req, res) => {
   try {
     const { archiveRetentionDays } = req.body;
@@ -119,7 +106,6 @@ router.get("/recent", async (req, res) => {
     const applications = await Preregistration.find()
       .sort({ createdAt: -1 })
       .limit(5);
-
     res.json(applications);
   } catch (err) {
     console.error(err);
@@ -129,13 +115,10 @@ router.get("/recent", async (req, res) => {
 
 // ── COLLECTION ENDPOINTS ──────────────────────────────────────
 
-// GET all active + archived preregistrations
 router.get("/", async (req, res) => {
   try {
     const active = await Preregistration.find().sort({ createdAt: -1 });
-    const archived = await ArchivedPreregistration.find().sort({
-      createdAt: -1,
-    });
+    const archived = await ArchivedPreregistration.find().sort({ createdAt: -1 });
 
     const combined = [
       ...active.map((doc) => doc.toObject()),
@@ -152,7 +135,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST submit new preregistration
+// SUBMIT NEW PREREGISTRATION
 router.post(
   "/",
   upload.fields([
@@ -163,20 +146,13 @@ router.post(
   async (req, res) => {
     try {
       const settings = await RegistrarSettings.findOne();
-
       if (settings && !settings.enrollmentOpen) {
-        return res.status(403).json({
-          message: "Registration is not open.",
-        });
+        return res.status(403).json({ message: "Registration is not open." });
       }
 
       const data = JSON.parse(req.body.data);
+      const email = String(data?.personal?.email || "").trim().toLowerCase();
 
-      const email = String(data?.personal?.email || "")
-        .trim()
-        .toLowerCase();
-
-      // Enforce Email OTP verification check
       const otpRecord = otpStore.get(email);
       if (!otpRecord || !otpRecord.verified) {
         return res.status(400).json({
@@ -196,53 +172,33 @@ router.post(
       const province = String(data?.personal?.province || "").trim();
       const postalCode = String(data?.personal?.postalCode || "").trim();
       const provinceCode = String(data?.personal?.provinceCode || "").trim();
-      const municipalityCode = String(
-        data?.personal?.municipalityCode || "",
-      ).trim();
+      const municipalityCode = String(data?.personal?.municipalityCode || "").trim();
       const barangayCode = String(data?.personal?.barangayCode || "").trim();
       const applicantType = String(data?.academic?.applicantType || "").trim();
       const course = String(data?.academic?.course || "").trim();
-      const previousSchool = String(
-        data?.academic?.previousSchool || "",
-      ).trim();
+      const previousSchool = String(data?.academic?.previousSchool || "").trim();
 
-      // =========================================================
-      // 🔒 DUPLICATE CHECK: Check Users, Active Prereg, & Archived Prereg
-      // =========================================================
-      
-      // 1. Check if email already exists as a registered user
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         return res.status(409).json({
-          message:
-            "An active account with this email address already exists in the system. Pre-registration is not allowed.",
+          message: "An active account with this email address already exists. Pre-registration is not allowed.",
         });
       }
 
-      // 2. Check active and archived pre-registrations for duplicate email or phone
       const existingActive = await Preregistration.findOne({
-        $or: [
-          { "personal.email": email },
-          { "personal.phone": phone },
-        ],
+        $or: [{ "personal.email": email }, { "personal.phone": phone }],
       });
-
       const existingArchived = await ArchivedPreregistration.findOne({
-        $or: [
-          { "personal.email": email },
-          { "personal.phone": phone },
-        ],
+        $or: [{ "personal.email": email }, { "personal.phone": phone }],
       });
 
       if (existingActive || existingArchived) {
         return res.status(409).json({
-          message:
-            "Duplicate application detected. An applicant with this email or phone number already exists.",
+          message: "Duplicate application detected. An applicant with this email or phone number already exists.",
         });
       }
 
       let txHash = null;
-
       try {
         const tx = await contract.registerStudent(
           `${firstName} ${lastName}`,
@@ -257,115 +213,22 @@ router.post(
 
       const newApp = new Preregistration({
         personal: {
-          firstName,
-          middleName,
-          lastName,
-          email,
-          phone,
-          birthDate,
-          gender,
-          address,
-          barangay,
-          municipality,
-          province,
-          postalCode,
-          provinceCode,
-          municipalityCode,
-          barangayCode,
+          firstName, middleName, lastName, email, phone, birthDate, gender,
+          address, barangay, municipality, province, postalCode,
+          provinceCode, municipalityCode, barangayCode,
         },
-        academic: {
-          applicantType,
-          course,
-          previousSchool,
-        },
+        academic: { applicantType, course, previousSchool },
         status: "Pending",
         blockchainTxHash: txHash,
         documents: {
-          birthCert: req.files?.birthCert?.[0]
-            ? `/uploads/${req.files.birthCert[0].filename}`
-            : null,
-          goodMoral: req.files?.goodMoral?.[0]
-            ? `/uploads/${req.files.goodMoral[0].filename}`
-            : null,
-          idPhoto: req.files?.idPhoto?.[0]
-            ? `/uploads/${req.files.idPhoto[0].filename}`
-            : null,
+          birthCert: req.files?.birthCert?.[0] ? `/uploads/${req.files.birthCert[0].filename}` : null,
+          goodMoral: req.files?.goodMoral?.[0] ? `/uploads/${req.files.goodMoral[0].filename}` : null,
+          idPhoto: req.files?.idPhoto?.[0] ? `/uploads/${req.files.idPhoto[0].filename}` : null,
         },
       });
 
       await newApp.save();
-
-      // Clear the verified OTP record after successful save
       otpStore.delete(email);
-
-      try {
-        const fullName = [firstName, middleName, lastName]
-          .filter(Boolean)
-          .join(" ");
-
-        const appName = process.env.APP_NAME || "CVAI Portal";
-
-        const emailHtml = `
-  <div style="margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, sans-serif;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="padding:20px 0;">
-      <tr>
-        <td align="center">
-          <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.1);">
-            <tr>
-              <td style="background:#1a73e8; color:#ffffff; padding:20px; text-align:center;">
-                <h2 style="margin:0;">Pre-Registration Submitted</h2>
-              </td>
-            </tr>
-
-            <tr>
-              <td style="padding:30px; color:#333;">
-                <p style="margin-top:0;">Hello <strong>${fullName}</strong>,</p>
-
-                <p>Your pre-registration application has been successfully submitted.</p>
-
-                <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0; border:1px solid #eee; border-radius:6px;">
-                  <tr>
-                    <td style="padding:12px;"><strong>Registration ID:</strong></td>
-                    <td style="padding:12px;">${newApp.registrationId}</td>
-                  </tr>
-                  <tr style="background:#f9fafb;">
-                    <td style="padding:12px;"><strong>Course:</strong></td>
-                    <td style="padding:12px;">${course || "N/A"}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding:12px;"><strong>Status:</strong></td>
-                    <td style="padding:12px; color:#f59e0b;"><strong>Pending</strong></td>
-                  </tr>
-                </table>
-
-                <p>Please keep your Registration ID for future reference.</p>
-
-                <hr style="border:none; border-top:1px solid #eee; margin:20px 0;" />
-
-                <p style="margin-bottom:0;">Thank you for applying to <strong>${appName}</strong>.</p>
-              </td>
-            </tr>
-
-            <tr>
-              <td style="background:#f4f6f8; text-align:center; padding:15px; font-size:12px; color:#777;">
-                © ${new Date().getFullYear()} ${appName}. All rights reserved.
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </div>
-`;
-
-        await sendEmail(
-          email,
-          `Pre-Registration Confirmation - ${appName}`,
-          emailHtml,
-        );
-      } catch (emailErr) {
-        console.error("Failed to send preregistration email:", emailErr);
-      }
 
       return res.status(201).json({
         message: "Application saved successfully",
@@ -373,44 +236,141 @@ router.post(
       });
     } catch (err) {
       console.error(err);
-
       if (err?.code === 11000) {
-        return res.status(409).json({
-          message:
-            "Duplicate application detected (email or phone number already exists).",
-        });
+        return res.status(409).json({ message: "Duplicate application detected." });
+      }
+      return res.status(500).json({ message: "Server error" });
+    }
+  },
+);
+
+// ── REVISION TOKEN VERIFICATION ENDPOINT ───────────────────────
+
+
+// ── REVISION TOKEN VERIFICATION ENDPOINT ───────────────────────
+
+router.get("/verify-revision", async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) {
+      return res.status(400).json({ message: "Missing revision token." });
+    }
+
+    // Fetch the document and include select fields
+    const application = await Preregistration.findOne({
+      revisionToken: token,
+      revisionTokenExpires: { $gt: Date.now() },
+    }).select("+revisionToken +revisionTokenExpires");
+
+    if (!application) {
+      return res.status(400).json({ message: "Revision link is invalid or has expired." });
+    }
+
+    // Call .toJSON() to explicitly invoke schema getters (decrypting all encrypted fields)
+    const jsonApp = application.toJSON();
+
+    res.json({
+      registrationId: jsonApp.registrationId,
+      personal: jsonApp.personal,
+      academic: jsonApp.academic,
+      returnReason: jsonApp.returnReason,
+    });
+  } catch (err) {
+    console.error("Verify revision error:", err);
+    res.status(500).json({ message: "Server error verifying revision link" });
+  }
+});
+// ── RESUBMISSION ENDPOINT ──────────────────────────────────────
+
+router.post(
+  "/resubmit",
+  upload.fields([
+    { name: "birthCert", maxCount: 1 },
+    { name: "goodMoral", maxCount: 1 },
+    { name: "idPhoto", maxCount: 1 },
+  ]),
+  async (req, res) => {
+    try {
+      const { token, firstName, middleName, lastName, phone, course } = req.body;
+      if (!token) {
+        return res.status(400).json({ message: "Missing revision token." });
       }
 
-      return res.status(500).json({ message: "Server error" });
+      const application = await Preregistration.findOne({
+        revisionToken: token,
+        revisionTokenExpires: { $gt: Date.now() },
+      }).select("+revisionToken +revisionTokenExpires");
+
+      if (!application) {
+        return res.status(400).json({ message: "Revision link is invalid or has expired." });
+      }
+
+      if (firstName) application.personal.firstName = firstName;
+      if (middleName !== undefined) application.personal.middleName = middleName;
+      if (lastName) application.personal.lastName = lastName;
+      if (phone) application.personal.phone = phone;
+      if (course) application.academic.course = course;
+
+      if (req.files) {
+        if (req.files.birthCert) {
+          application.documents.birthCert = `/uploads/${req.files.birthCert[0].filename}`;
+        }
+        if (req.files.goodMoral) {
+          application.documents.goodMoral = `/uploads/${req.files.goodMoral[0].filename}`;
+        }
+        if (req.files.idPhoto) {
+          application.documents.idPhoto = `/uploads/${req.files.idPhoto[0].filename}`;
+        }
+      }
+
+      application.status = "Pending";
+      application.returnReason = null;
+      application.revisionToken = null;
+      application.revisionTokenExpires = null;
+
+      await application.save();
+
+      res.json({ message: "Application successfully resubmitted for review." });
+    } catch (err) {
+      console.error("Resubmission error:", err);
+      res.status(500).json({ message: "Server error handling resubmission" });
     }
   },
 );
 
 // ── PARAMETERIZED ID ENDPOINTS ────────────────────────────────
 
-// Approve or Reject active application
+// UPDATE STATUS (Approved or Returned)
 router.patch("/:id/status", async (req, res) => {
   try {
-    const { status, rejectionReason } = req.body;
+    const { status, returnReason } = req.body;
 
-    if (!["Approved", "Rejected"].includes(status)) {
+    if (!["Approved", "Returned"].includes(status)) {
       return res.status(400).json({ message: "Invalid status value" });
     }
 
-    const updateData =
-      status === "Approved"
-        ? {
-            status,
-            approvedAt: new Date(),
-            rejectedAt: null,
-            rejectionReason: null,
-          }
-        : {
-            status,
-            rejectedAt: new Date(),
-            approvedAt: null,
-            rejectionReason: rejectionReason || "Not specified",
-          };
+    let updateData = {};
+
+    if (status === "Approved") {
+      updateData = {
+        status,
+        approvedAt: new Date(),
+        returnedAt: null,
+        returnReason: null,
+        revisionToken: null,
+        revisionTokenExpires: null,
+      };
+    } else if (status === "Returned") {
+      const token = crypto.randomBytes(32).toString("hex");
+      updateData = {
+        status,
+        returnedAt: new Date(),
+        approvedAt: null,
+        returnReason: returnReason || "Please update your application details.",
+        revisionToken: token,
+        revisionTokenExpires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days expiration
+      };
+    }
 
     const updated = await Preregistration.findOneAndUpdate(
       { registrationId: req.params.id },
@@ -421,6 +381,12 @@ router.patch("/:id/status", async (req, res) => {
     if (!updated) {
       return res.status(404).json({ message: "Application not found" });
     }
+
+    // Automatically capture network host from request so it uses your IP instead of localhost
+    const host = req.get("host") || "localhost:5000";
+    const frontendHost = host.replace(/:\d+$/, ":5173");
+    const frontendUrl = process.env.FRONTEND_URL || `http://${frontendHost}`;
+    const revisionLink = `${frontendUrl}/preregistration/revise?token=${updateData.revisionToken}`;
 
     const emailHtml = `
 <div style="margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, sans-serif;">
@@ -437,21 +403,11 @@ router.patch("/:id/status", async (req, res) => {
           <tr>
             <td style="padding:30px; color:#333; text-align:center;">
               <p style="margin:0 0 10px;">Your Registration ID</p>
-              <h3 style="margin:0; color:#1a73e8;">
-                ${updated.registrationId}
-              </h3>
+              <h3 style="margin:0; color:#1a73e8;">${updated.registrationId}</h3>
 
               <div style="margin:25px 0;">
-                <span style="
-                  display:inline-block;
-                  padding:10px 20px;
-                  border-radius:20px;
-                  font-size:14px;
-                  font-weight:bold;
-                  background:${status === "Approved" ? "#dcfce7" : "#fee2e2"};
-                  color:${status === "Approved" ? "#166534" : "#991b1b"};
-                ">
-                  ${status}
+                <span style="display:inline-block; padding:10px 20px; border-radius:20px; font-size:14px; font-weight:bold; background:${status === "Approved" ? "#dcfce7" : "#fef9c3"}; color:${status === "Approved" ? "#166534" : "#854d0e"};">
+                  ${status === "Returned" ? "Returned for Revision" : status}
                 </span>
               </div>
 
@@ -464,34 +420,30 @@ router.patch("/:id/status", async (req, res) => {
                   <p style="margin:8px 0 0; font-size:14px;">
                     Please wait for the official schedule of your school visit or orientation.
                   </p>
-                  <p style="margin:5px 0 0; font-size:13px; color:#555;">
-                    You will receive another email with the exact date and instructions.
-                  </p>
                   `
                   : `
-                  <p style="margin:15px 0 0; font-size:14px; color:#991b1b; font-weight:bold;">
-                    We regret to inform you that your application was not approved.
+                  <p style="margin:15px 0 0; font-size:14px; color:#854d0e; font-weight:bold;">
+                    Your application requires revisions before it can be processed further.
                   </p>
                   
-                  <!-- REJECTION REASON CARD -->
-                  <div style="margin: 20px 0; padding: 15px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; text-align: left;">
-                    <p style="margin: 0 0 5px; font-size: 12px; font-weight: bold; color: #991b1b; text-transform: uppercase; letter-spacing: 0.5px;">
-                      Reason for Rejection:
+                  <div style="margin: 20px 0; padding: 15px; background-color: #fefce8; border: 1px solid #fde047; border-radius: 6px; text-align: left;">
+                    <p style="margin: 0 0 5px; font-size: 12px; font-weight: bold; color: #854d0e; text-transform: uppercase;">
+                      Registrar Feedback:
                     </p>
-                    <p style="margin: 0; font-size: 14px; color: #7f1d1d; line-height: 1.4;">
-                      ${updated.rejectionReason}
+                    <p style="margin: 0; font-size: 14px; color: #713f12; line-height: 1.4;">
+                      ${updated.returnReason}
                     </p>
                   </div>
 
-                  <p style="margin:5px 0 0; font-size:13px; color:#555;">
-                    If you believe this is an error or need clarification, you may contact the admissions office.
+                  <p style="margin:20px 0 10px; font-size:14px;">
+                    Click the button below to update your information and re-upload documents:
                   </p>
+
+                  <a href="${revisionLink}" style="display:inline-block; padding:12px 24px; background-color:#1a73e8; color:#ffffff; border-radius:6px; text-decoration:none; font-weight:bold; font-size:14px;">
+                    Update & Resubmit Application
+                  </a>
                   `
               }
-
-              <p style="margin:20px 0 0;">
-                Please keep your registration ID for future reference.
-              </p>
             </td>
           </tr>
 
@@ -507,11 +459,7 @@ router.patch("/:id/status", async (req, res) => {
 </div>
 `;
 
-    await sendEmail(
-      updated.personal.email,
-      "Application Status Update",
-      emailHtml,
-    );
+    await sendEmail(updated.personal.email, "Application Status Update", emailHtml);
 
     res.json({ message: "Status updated successfully", updated });
   } catch (err) {
@@ -520,19 +468,13 @@ router.patch("/:id/status", async (req, res) => {
   }
 });
 
-// Archive: move from active collection to archived collection
+// ARCHIVE ENDPOINT
 router.post("/:id/archive", async (req, res) => {
   try {
-    const app = await Preregistration.findOne({
-      registrationId: req.params.id,
-    });
-
-    if (!app) {
-      return res.status(404).json({ message: "Application not found" });
-    }
+    const app = await Preregistration.findOne({ registrationId: req.params.id });
+    if (!app) return res.status(404).json({ message: "Application not found" });
 
     const plain = app.toObject();
-
     const archivedDoc = new ArchivedPreregistration({
       ...plain,
       _id: undefined,
@@ -544,100 +486,63 @@ router.post("/:id/archive", async (req, res) => {
     await archivedDoc.save();
     await Preregistration.deleteOne({ registrationId: req.params.id });
 
-    res.json({
-      message: "Application archived successfully",
-      archived: archivedDoc,
-    });
+    res.json({ message: "Application archived successfully", archived: archivedDoc });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// Unarchive: move back from archived collection to active collection
+// UNARCHIVE ENDPOINT
 router.post("/:id/unarchive", async (req, res) => {
   try {
-    const archived = await ArchivedPreregistration.findOne({
-      registrationId: req.params.id,
-    });
-
-    if (!archived) {
-      return res
-        .status(404)
-        .json({ message: "Archived application not found" });
-    }
+    const archived = await ArchivedPreregistration.findOne({ registrationId: req.params.id });
+    if (!archived) return res.status(404).json({ message: "Archived application not found" });
 
     const plain = archived.toObject();
-
     const restored = new Preregistration({
       ...plain,
       _id: undefined,
-      status: plain.originalStatus || "Rejected",
+      status: plain.originalStatus || "Returned",
     });
 
     await restored.save();
     await ArchivedPreregistration.deleteOne({ registrationId: req.params.id });
 
-    res.json({
-      message: "Application unarchived successfully",
-      restored,
-    });
+    res.json({ message: "Application unarchived successfully", restored });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// Delete application permanently (from Active or Archived collections)
+// DELETE ENDPOINT
 router.delete("/:id", async (req, res) => {
   try {
-    // 1. Try deleting from active Preregistrations first
-    let target = await Preregistration.findOneAndDelete({
-      registrationId: req.params.id,
-    });
-
-    // 2. If not found in active, try deleting from ArchivedPreregistrations
+    let target = await Preregistration.findOneAndDelete({ registrationId: req.params.id });
     if (!target) {
-      target = await ArchivedPreregistration.findOneAndDelete({
-        registrationId: req.params.id,
-      });
+      target = await ArchivedPreregistration.findOneAndDelete({ registrationId: req.params.id });
     }
+    if (!target) return res.status(404).json({ message: "Application not found" });
 
-    // 3. If neither found, return 404
-    if (!target) {
-      return res.status(404).json({ message: "Application not found" });
-    }
-
-    res.json({
-      message: "Application deleted successfully",
-    });
+    res.json({ message: "Application deleted successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// ── ERROR HANDLING MIDDLEWARE ─────────────────────────────────
-
+// ERROR HANDLING MIDDLEWARE
 router.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
-      return res.status(400).json({
-        message: "Each file must not exceed 2MB.",
-      });
+      return res.status(400).json({ message: "Each file must not exceed 2MB." });
     }
-
-    return res.status(400).json({
-      message: err.message,
-    });
+    return res.status(400).json({ message: err.message });
   }
-
   if (err) {
-    return res.status(400).json({
-      message: err.message || "Upload error",
-    });
+    return res.status(400).json({ message: err.message || "Upload error" });
   }
-
   next();
 });
 

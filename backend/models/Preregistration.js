@@ -1,3 +1,5 @@
+// models/Preregistration.js
+
 import mongoose from "mongoose";
 import {
   encrypt,
@@ -108,13 +110,16 @@ const preregSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Pending", "Approved", "Rejected"],
+      enum: ["Pending", "Approved", "Returned"],
       default: "Pending",
     },
 
-    rejectionReason: encryptedField("rejectionReason"),
+    returnReason: encryptedField("returnReason"),
+    revisionToken: { type: String, select: false },
+    revisionTokenExpires: { type: Date, select: false },
+
     approvedAt: { type: Date, default: null },
-    rejectedAt: { type: Date, default: null },
+    returnedAt: { type: Date, default: null },
     scheduleSentAt: { type: Date, default: null },
   },
   {
@@ -151,7 +156,7 @@ preregSchema.pre("save", function () {
     "academic.applicantType",
     "academic.course",
     "academic.previousSchool",
-    "rejectionReason",
+    "returnReason",
   ];
 
   ensureEncryptedNested(this, encryptedPaths);
@@ -211,7 +216,7 @@ function applyEncryptedUpdate(update) {
     "academic.applicantType": "academic.applicantType",
     "academic.course": "academic.course",
     "academic.previousSchool": "academic.previousSchool",
-    rejectionReason: "rejectionReason",
+    returnReason: "returnReason",
   };
 
   for (const [path, fieldName] of Object.entries(encryptMap)) {

@@ -58,7 +58,7 @@ export default function CoursesManagementPage() {
 
       const mapped: CourseItem[] = (Array.isArray(data) ? data : []).map(
         (c: any) => ({
-          id: c._id,
+          id: c._id || c.id,
           code: c.code,
           name: c.name,
           yearLevels: c.yearLevels,
@@ -173,6 +173,11 @@ export default function CoursesManagementPage() {
   };
 
   const onUpdate = async (item: CourseItem) => {
+    if (!item.id) {
+      showAlert("Course ID is missing. Cannot update.", "error");
+      return;
+    }
+
     try {
       setIsLoading(true);
 
@@ -281,7 +286,8 @@ export default function CoursesManagementPage() {
                 <div className="users-empty-icon">📭</div>
                 <h5 className="fw-semibold mb-1">No courses found</h5>
                 <p className="text-muted mb-0">
-                  Try adjusting your search or filters, or click <b>Add Course</b>.
+                  Try adjusting your search or filters, or click{" "}
+                  <b>Add Course</b>.
                 </p>
               </div>
             )}

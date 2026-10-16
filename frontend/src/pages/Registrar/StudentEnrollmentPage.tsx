@@ -471,6 +471,9 @@ export default function StudentEnrollmentPage() {
     subject?: string;
     message?: string;
   }) => {
+    console.log("🌐 Calling API endpoint:", `${API_BASE_URL}/accounts/send-credentials`);
+    console.log("📦 Request body payload:", { studentIds, subject, message, updatedBy: registrarEmail });
+
     const res = await fetch(
       `${API_BASE_URL}/accounts/send-credentials`,
       {
@@ -485,10 +488,17 @@ export default function StudentEnrollmentPage() {
       },
     );
 
-    const data = await res.json().catch(() => null);
+    console.log("📥 Response status:", res.status, res.statusText);
+
+    const data = await res.json().catch((jsonErr) => {
+      console.error("⚠️ Failed to parse response JSON:", jsonErr);
+      return null;
+    });
+
+    console.log("📥 Response JSON data:", data);
 
     if (!res.ok) {
-      throw new Error(data?.message || "Failed to send credentials.");
+      throw new Error(data?.message || `Failed to send credentials (Status: ${res.status})`);
     }
 
     setEnrolledStudents((prev) =>
@@ -509,7 +519,7 @@ export default function StudentEnrollmentPage() {
 
     return data;
   };
-
+  
   return (
     <>
       <AuthAlert

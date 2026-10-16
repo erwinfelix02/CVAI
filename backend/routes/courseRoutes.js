@@ -17,11 +17,15 @@ const getRegistrarForLog = async () => {
 /** GET all (optional status filter) */
 router.get("/", async (req, res) => {
   try {
-    const { status } = req.query;
+    const { status, department } = req.query;
 
     const filter = {};
     if (status && ["Active", "Inactive"].includes(status)) {
       filter.status = status;
+    }
+    if (department) {
+      // Case-insensitive or direct match depending on your setup
+      filter.department = { $regex: new RegExp(`^${department}$`, "i") };
     }
 
     const courses = await Course.find(filter).sort({ createdAt: -1 });

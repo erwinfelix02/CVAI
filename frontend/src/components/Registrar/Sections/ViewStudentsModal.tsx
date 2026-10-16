@@ -128,7 +128,7 @@ export default function ViewStudentsModal({
           <div className="d-flex align-items-center gap-2">
             <Users size={22} className="text-primary" />
             <h5 className="fw-bold mb-0 text-dark">
-              {section.code} - Student List
+              {section.code} Student List
             </h5>
           </div>
           <button
@@ -146,19 +146,13 @@ export default function ViewStudentsModal({
           {/* Metadata Banner */}
           <div className="student-list-meta-box mb-3 p-3 rounded-3">
             <div className="row g-2">
-              <div className="col-12 col-sm-5">
+              <div className="col-12 col-sm-8">
                 <span className="meta-label">Course</span>
                 <div className="meta-value text-truncate">
                   {section.program}
                 </div>
               </div>
               <div className="col-12 col-sm-4">
-                <span className="meta-label">Adviser</span>
-                <div className="meta-value text-truncate">
-                  {section.adviser || "TBA"}
-                </div>
-              </div>
-              <div className="col-12 col-sm-3">
                 <span className="meta-label">Enrolled</span>
                 <div className="meta-value">
                   {students.length}/{section.capacity}

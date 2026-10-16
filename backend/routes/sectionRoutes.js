@@ -18,6 +18,11 @@ const getRegistrarForLog = async () => {
   };
 };
 
+const normalizeText = (str) => {
+  if (!str) return "";
+  return String(str).replace(/\s+/g, "").toUpperCase();
+};
+
 const getDepartmentProgramPatterns = async (departmentInput) => {
   if (!departmentInput) return [];
 
@@ -49,6 +54,27 @@ router.post("/", async (req, res) => {
   const ip = getClientIp(req);
 
   try {
+    const newCodeNorm = normalizeText(req.body.code);
+    const newRoomNorm = normalizeText(req.body.room);
+
+    const allSections = await Section.find({});
+
+    const codeConflict = allSections.find((s) => normalizeText(s.code) === newCodeNorm);
+    if (codeConflict) {
+      return res.status(400).json({
+        message: `Section code "${req.body.code}" already exists.`,
+      });
+    }
+
+    if (newRoomNorm) {
+      const roomConflict = allSections.find((s) => normalizeText(s.room) === newRoomNorm);
+      if (roomConflict) {
+        return res.status(400).json({
+          message: `Room "${req.body.room}" is already assigned to section ${roomConflict.code}.`,
+        });
+      }
+    }
+
     const created = await Section.create(req.body);
     const registrar = await getRegistrarForLog();
 
@@ -70,17 +96,7 @@ router.post("/", async (req, res) => {
     }));
 
     if (err.code === 11000) {
-      addLog({
-        action: "Section Creation Failed",
-        user: registrar.email,
-        role: registrar.role,
-        type: "Data",
-        details: `Duplicate section code: ${req.body?.code}`,
-        ip,
-        status: "warning",
-      });
-
-      return res.status(400).json({ message: "Section code already exists." });
+      return res.status(400).json({ message: "Section code or room already exists." });
     }
 
     addLog({
@@ -102,9 +118,6 @@ router.post("/", async (req, res) => {
 // READ ALL OR FILTER BY DEPARTMENT / COURSE PROGRAM
 router.get("/", async (req, res) => {
   try {
-    console.log("==========================================");
-    console.log("🔍 [DEBUG] GET /api/sections called with query:", req.query);
-
     const { department, program } = req.query;
     const targetDept = department || program;
 
@@ -112,17 +125,16 @@ router.get("/", async (req, res) => {
 
     if (targetDept) {
       const patterns = await getDepartmentProgramPatterns(targetDept);
-      matchStage.$or = patterns.map((p) => ({ program: p }));
+      matchStage.$or = patterns.map((p) => ({$or: [
+          { department: p },
+          { program: p }
+        ]
+      }));
     }
 
-    console.log("👉 Section Match Stage Query:", JSON.stringify(matchStage, null, 2));
-
-    // Aggregation pipeline:
-    // 1. Matches rooms to Schedules for Faculty lookup.
-    // 2. Matches Section code to Students for dynamic active student count.
     const sectionsWithFaculty = await Section.aggregate([
-      { $match: matchStage },
-      { $sort: { createdAt: -1 } },       {$lookup: {
+      ...(Object.keys(matchStage).length > 0 ? [{ $match: matchStage }] : []),
+      { $sort: { createdAt: -1 } }, {$lookup: {
           from: "schedules",
           let: { sectionRoom: "$room" },
           pipeline: [
@@ -183,7 +195,6 @@ router.get("/", async (req, res) => {
               },
             },
           },
-          // Dynamically override stored 'enrolled' with the actual matched student document count
           enrolled: { $size: "$matchedStudents" },
         },
       },
@@ -197,6 +208,7 @@ router.get("/", async (req, res) => {
           code: 1,
           yearLevel: 1,
           program: 1,
+          department: 1,
           capacity: 1,
           room: 1,
           enrolled: 1,
@@ -212,7 +224,7 @@ router.get("/", async (req, res) => {
                   initialValue: "",
                   in: {
                     $cond: [
-                      { $eq: ["$$value", ""] },                       "$$this",
+                      { $eq: ["$$value", ""] }, "$$this",
                       { $concat: ["$$value", ", ", "$$this"] },
                     ],
                   },
@@ -225,18 +237,9 @@ router.get("/", async (req, res) => {
       },
     ]);
 
-    sectionsWithFaculty.forEach((sec, idx) => {
-      console.log(`--- Section [${idx + 1}] Code: ${sec.code} ---`);
-      console.log(`    Room: ${sec.room}`);
-      console.log(`    Dynamic Enrolled Count:`, sec.enrolled);
-      console.log(`    Matched Schedules Count:`, sec.matchedSchedules?.length || 0);
-      console.log(`    Resolved Faculty (Adviser):`, sec.adviser);
-    });
-
-    console.log("==========================================");
     res.json(sectionsWithFaculty);
   } catch (err) {
-    console.error("❌ Error fetching sections with assigned faculty & student count:", err);
+    console.error("Error fetching sections:", err);
     res.status(500).json({ message: "Failed to load sections." });
   }
 });
@@ -251,11 +254,15 @@ router.get("/rooms", async (req, res) => {
 
     if (targetDept) {
       const patterns = await getDepartmentProgramPatterns(targetDept);
-      matchQuery.$or = patterns.map((p) => ({ program: p }));
+      matchQuery.$or = patterns.map((p) => ({$or: [
+          { department: p },
+          { program: p }
+        ]
+      }));
     }
 
     const roomsFromSections = await Section.aggregate([
-      { $match: matchQuery },
+      ...(Object.keys(matchQuery).length > 0 ? [{ $match: matchQuery }] : []),
       {
         $lookup: {
           from: "students",
@@ -282,7 +289,8 @@ router.get("/rooms", async (req, res) => {
       },
       {
         $group: {
-          _id: "$room",
+          _id: { $toUpper: { $trim: { input: "$room" } } },
+          originalRoom: { $first: "$room" },
           classes: { $sum: 1 },
           totalCapacity: { $sum: "$capacity" },
           totalEnrolled: { $sum: "$enrolledCount" },
@@ -290,8 +298,8 @@ router.get("/rooms", async (req, res) => {
       },
       {
         $project: {
-          _id: 1,
-          name: "$_id",
+          _id: 0,
+          name: "$originalRoom",
           building: { $literal: "Main Building" },
           type: { $literal: "Lecture" },
           seats: {
@@ -302,14 +310,14 @@ router.get("/rooms", async (req, res) => {
             $cond: [
               { $gt: ["$totalCapacity", 0] },
               {
-                $min: [                   100,                   {$round: [
+                $min: [ 100, {$round: [
                       {
                         $multiply: [
                           { $divide: ["$totalEnrolled", "$totalCapacity"] },
                           100,
                         ],
                       },
-                      100,
+                      0,
                     ],
                   },
                 ],
@@ -352,6 +360,28 @@ router.put("/:id", async (req, res) => {
       return res.status(404).json({ message: "Section not found." });
     }
 
+    const otherSections = await Section.find({ _id: { $ne: req.params.id } });
+
+    if (req.body.code) {
+      const newCodeNorm = normalizeText(req.body.code);
+      const codeConflict = otherSections.find((s) => normalizeText(s.code) === newCodeNorm);
+      if (codeConflict) {
+        return res.status(400).json({
+          message: `Section code "${req.body.code}" already exists.`,
+        });
+      }
+    }
+
+    if (req.body.room) {
+      const newRoomNorm = normalizeText(req.body.room);
+      const roomConflict = otherSections.find((s) => normalizeText(s.room) === newRoomNorm);
+      if (roomConflict) {
+        return res.status(400).json({
+          message: `Room "${req.body.room}" is already assigned to section ${roomConflict.code}.`,
+        });
+      }
+    }
+
     const updated = await Section.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
@@ -377,17 +407,7 @@ router.put("/:id", async (req, res) => {
     }));
 
     if (err.code === 11000) {
-      addLog({
-        action: "Section Update Failed",
-        user: registrar.email,
-        role: registrar.role,
-        type: "Data",
-        details: `Duplicate section code: ${req.body?.code}`,
-        ip,
-        status: "warning",
-      });
-
-      return res.status(400).json({ message: "Section code already exists." });
+      return res.status(400).json({ message: "Section code or room already exists." });
     }
 
     addLog({

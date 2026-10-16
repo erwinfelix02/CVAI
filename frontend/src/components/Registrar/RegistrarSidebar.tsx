@@ -71,7 +71,6 @@ const nav: NavItem[] = [
   { label: "Sections", icon: Layers, path: "/registrar/sections" },
   { label: "Courses", icon: BookOpen, path: "/registrar/courses" },
   { label: "Departments", icon: Building2, path: "/registrar/departments" },
-  { label: "Faculty Accounts", icon: Users, path: "/registrar/faculty" },
 ];
 
 const CONTROLLED_PERM: Record<string, string> = {

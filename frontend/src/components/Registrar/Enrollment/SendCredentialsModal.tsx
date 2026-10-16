@@ -47,7 +47,7 @@ export default function SendCredentialsModal({
   // Exit confirmation state
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
 
-  const studentIds = useMemo(() => students.map((s) => s._id), [students]);
+ const studentIds = useMemo(() => students.map((s) => s._id || s.studentIdNumber), [students]);
   const count = students.length;
 
   // Check if form was edited
@@ -114,14 +114,23 @@ export default function SendCredentialsModal({
   if (!open) return null;
 
   const doSend = async () => {
-    if (studentIds.length === 0) return;
+    if (studentIds.length === 0) {
+      console.log("❌ doSend aborted: studentIds is empty", studentIds);
+      return;
+    }
+
     try {
       setSending(true);
+      console.log("📤 Sending credentials payload:", { studentIds, subject, message });
+
       await onSend({ studentIds, subject, message });
+
+      console.log("✅ Credentials sent successfully via modal wrapper!");
       setConfirmOpen(false);
       onClose();
     } catch (e: any) {
-      console.error(e);
+      console.error("❌ Catch error in doSend:", e);
+      console.error("Error message:", e?.message);
       alert(e?.message || "Failed to send account credentials.");
     } finally {
       setSending(false);
@@ -129,7 +138,11 @@ export default function SendCredentialsModal({
   };
 
   const handleSend = () => {
-    if (studentIds.length === 0) return;
+    if (studentIds.length === 0) {
+      console.log("⚠️ handleSend aborted: No student IDs available.");
+      return;
+    }
+    console.log("🟡 Opening confirmation popup for studentIds:", studentIds);
     setConfirmOpen(true);
   };
 
@@ -184,8 +197,8 @@ export default function SendCredentialsModal({
 
             {/* Student List */}
             <div className="selected-students-box">
-              {students.map((s) => (
-                <div key={s._id} className="selected-student-row">
+              {students.map((s, index) => (
+                <div key={s._id || index} className="selected-student-row">
                   <div className="d-flex flex-column">
                     <div className="fw-semibold">{s.fullName}</div>
                     <div className="text-muted small">{s.studentIdNumber}</div>
@@ -218,7 +231,7 @@ export default function SendCredentialsModal({
                   <InfoItem
                     icon={<GraduationCap size={16} />}
                     label="Program / Year"
-                    value={`${students[0].program} • Year ${students[0].yearLevel}`}
+                    value={`${students[0].program} Year ${students[0].yearLevel}`}
                   />
                 </div>
               </div>

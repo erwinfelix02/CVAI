@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CheckCircle2, Info, X, Loader2 } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft, ArrowRight, CheckCircle2, Info, X, Loader2, AlertCircle } from "lucide-react";
 import { API_BASE_URL } from "../../config"; // Adjust import path as needed
 
 import AuthAlert from "../../components/Authentication/AuthAlert";
@@ -122,7 +122,7 @@ const steps: {
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validatePersonal(v: PersonalInfo): PersonalErrors {
+function validatePersonal(v: PersonalInfo, isRevision: boolean = false): PersonalErrors {
   const e: PersonalErrors = {};
 
   const req = (k: keyof PersonalInfo, msg: string) => {
@@ -134,26 +134,19 @@ function validatePersonal(v: PersonalInfo): PersonalErrors {
   };
 
   req("firstName", "First name is required.");
-
   req("lastName", "Last name is required.");
-
   req("email", "Email is required.");
-
   req("phone", "Phone number is required.");
-
   req("birthDate", "Birth date is required.");
-
   req("gender", "Gender is required.");
-
-  /*
-   * Address itself is required.
-   */
   req("address", "Please select your complete address.");
 
   if (!v.email.trim()) {
     e.email = "Email is required.";
   } else if (!emailRegex.test(v.email.trim())) {
     e.email = "Enter a valid email (example@gmail.com).";
+  } else if (!isRevision && !v.isEmailVerified) {
+    e.email = "Please verify your email address before proceeding.";
   }
 
   if (v.phone.trim()) {
@@ -164,42 +157,14 @@ function validatePersonal(v: PersonalInfo): PersonalErrors {
 
   if (v.birthDate) {
     const chosen = new Date(v.birthDate);
-
     const today = new Date();
-
     today.setHours(0, 0, 0, 0);
 
     if (chosen > today) {
       e.birthDate = "Birth date cannot be in the future.";
     }
   }
-  
-   if (!v.email.trim()) {
-  e.email = "Email is required.";
-} else if (!emailRegex.test(v.email.trim())) {
-  e.email = "Enter a valid email (example@gmail.com).";
-} else if (!v.isEmailVerified) {
-  e.email = "Please verify your email address before proceeding.";
-}
-  /*
-   * =======================================================
-   * IMPORTANT ADDRESS VALIDATION
-   *
-   * Postal code is intentionally NOT required.
-   *
-   * A Philippine address is considered complete when:
-   *
-   * - Barangay exists
-   * - Municipality/City exists
-   * - Province exists
-   * - Province PSGC code exists
-   * - Municipality PSGC code exists
-   * - Barangay PSGC code exists
-   *
-   * Postal code may be empty because the PSGC API
-   * does not provide one for every location.
-   * =======================================================
-   */
+
   if (v.address) {
     if (
       !v.barangay ||
@@ -234,15 +199,18 @@ function validateAcademic(v: AcademicInfo): AcademicErrors {
   return e;
 }
 
-function validateDocs(v: DocumentsState): DocsErrors {
+function validateDocs(v: DocumentsState, isRevision: boolean = false): DocsErrors {
   const e: DocsErrors = {};
 
-  if (!v.birthCert) {
-    e.birthCert = "Birth Certificate is required.";
-  }
-
-  if (!v.idPhoto) {
-    e.idPhoto = "2x2 ID Photo is required.";
+  // During revisions, documents might already be uploaded on the server side unless replaced, 
+  // but if it's a fresh app they are required. You can adjust this rule if updating docs is optional during revision.
+  if (!isRevision) {
+    if (!v.birthCert) {
+      e.birthCert = "Birth Certificate is required.";
+    }
+    if (!v.idPhoto) {
+      e.idPhoto = "2x2 ID Photo is required.";
+    }
   }
 
   return e;
@@ -257,19 +225,24 @@ function hasErrors(obj: Record<string, unknown>) {
 ========================================================= */
 
 export default function StudentPreRegistrationPage() {
+  const [searchParams] = useSearchParams();
+  const revisionToken = searchParams.get("token");
+  const isRevision = Boolean(revisionToken);
+
   const [activeStep, setActiveStep] = useState<StepKey>("personal");
 
   const navigate = useNavigate();
 
   const [alertMessage, setAlertMessage] = useState("");
-
   const [alertType, setAlertType] = useState<"success" | "error">("success");
-
   const [showAlert, setShowAlert] = useState(false);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+
+  // Revision specific state
+  const [revisionLoading, setRevisionLoading] = useState(false);
+  const [returnReason, setReturnReason] = useState("");
+  const [registrationId, setRegistrationId] = useState("");
 
   /* =========================================================
      TERMS
@@ -335,8 +308,54 @@ export default function StudentPreRegistrationPage() {
   ========================================================= */
 
   const [courseOptions, setCourseOptions] = useState<CourseOption[]>([]);
-
   const [coursesLoading, setCoursesLoading] = useState(false);
+
+  /* =========================================================
+     LOAD REVISION DATA IF TOKEN EXISTS
+  ========================================================= */
+
+  useEffect(() => {
+    if (!revisionToken) return;
+
+    (async () => {
+      try {
+        setRevisionLoading(true);
+        const res = await fetch(`${API_BASE_URL}/preregistrations/verify-revision?token=${revisionToken}`);
+        
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error(body?.message || "Revision link is invalid or has expired.");
+        }
+
+        const data = await res.json();
+        setRegistrationId(data.registrationId || "");
+        setReturnReason(data.returnReason || "Please update your application details.");
+
+        if (data.personal) {
+          setPersonal((prev) => ({
+            ...prev,
+            ...data.personal,
+            isEmailVerified: true, // Already verified if returning application
+          }));
+        }
+
+        if (data.academic) {
+          setAcademic((prev) => ({
+            ...prev,
+            ...data.academic,
+          }));
+        }
+
+        setAgreedToTerms(true); // Automatically accept terms for revisions since they already agreed
+      } catch (err: any) {
+        setAlertMessage(err?.message || "Failed to load revision data.");
+        setAlertType("error");
+        setShowAlert(true);
+      } finally {
+        setRevisionLoading(false);
+      }
+    })();
+  }, [revisionToken]);
 
   /* =========================================================
      LOAD SETTINGS
@@ -346,7 +365,6 @@ export default function StudentPreRegistrationPage() {
     (async () => {
       try {
         setSettingsLoading(true);
-
         const res = await fetch(`${API_BASE_URL}/registrar/settings`);
 
         if (!res.ok) {
@@ -354,11 +372,9 @@ export default function StudentPreRegistrationPage() {
         }
 
         const data = await res.json();
-
         setRegistrarSettings(data);
       } catch (e) {
         console.error("Failed to load registrar settings:", e);
-
         setRegistrarSettings({
           academicYear: "",
           semester: "",
@@ -383,31 +399,21 @@ export default function StudentPreRegistrationPage() {
     (async () => {
       try {
         setCoursesLoading(true);
-
-        const res = await fetch(
-          `${API_BASE_URL}/courses?status=Active`,
-        );
+        const res = await fetch(`${API_BASE_URL}/courses?status=Active`);
 
         if (!res.ok) {
           throw new Error("Failed to load courses");
         }
 
         const data = await res.json();
-
         const list: CourseOption[] = (Array.isArray(data) ? data : [])
           .filter((c: any) => (c.status ?? "Active") === "Active")
           .map(
             (c: any): CourseOption => ({
-              code: String(c.code || "")
-                .trim()
-                .toUpperCase(),
-
+              code: String(c.code || "").trim().toUpperCase(),
               name: String(c.name || "").trim(),
-
               yearLevels: Number(c.yearLevels || 0),
-
               department: String(c.department || "").trim(),
-
               status: c.status === "Inactive" ? "Inactive" : "Active",
             }),
           )
@@ -420,7 +426,6 @@ export default function StudentPreRegistrationPage() {
         setCourseOptions(unique);
       } catch (e) {
         console.error("Failed to load courses:", e);
-
         setCourseOptions([]);
       } finally {
         setCoursesLoading(false);
@@ -439,9 +444,7 @@ export default function StudentPreRegistrationPage() {
   });
 
   const [personalErrors, setPersonalErrors] = useState<PersonalErrors>({});
-
   const [academicErrors, setAcademicErrors] = useState<AcademicErrors>({});
-
   const [docsErrors, setDocsErrors] = useState<DocsErrors>({});
 
   /* =========================================================
@@ -488,9 +491,9 @@ export default function StudentPreRegistrationPage() {
 
   useEffect(() => {
     if (submitted.personal) {
-      setPersonalErrors(validatePersonal(personal));
+      setPersonalErrors(validatePersonal(personal, isRevision));
     }
-  }, [personal, submitted.personal]);
+  }, [personal, submitted.personal, isRevision]);
 
   useEffect(() => {
     if (submitted.academic) {
@@ -500,9 +503,9 @@ export default function StudentPreRegistrationPage() {
 
   useEffect(() => {
     if (submitted.documents) {
-      setDocsErrors(validateDocs(docs));
+      setDocsErrors(validateDocs(docs, isRevision));
     }
-  }, [docs, submitted.documents]);
+  }, [docs, submitted.documents, isRevision]);
 
   /* =========================================================
      ALERT AUTO HIDE
@@ -511,7 +514,6 @@ export default function StudentPreRegistrationPage() {
   useEffect(() => {
     if (showAlert) {
       const timer = setTimeout(() => setShowAlert(false), 3000);
-
       return () => clearTimeout(timer);
     }
   }, [showAlert]);
@@ -525,17 +527,15 @@ export default function StudentPreRegistrationPage() {
       if (!hasUnsavedInput || isSubmitting) {
         return;
       }
-
       e.preventDefault();
       e.returnValue = "";
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
-
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedInput, isSubmitting]);
 
-  const enrollmentOpen = registrarSettings?.enrollmentOpen ?? true;
+  const enrollmentOpen = isRevision || (registrarSettings?.enrollmentOpen ?? true);
 
   /* =========================================================
      VALIDATE CURRENT STEP
@@ -543,41 +543,23 @@ export default function StudentPreRegistrationPage() {
 
   function validateCurrentStep(): boolean {
     if (activeStep === "personal") {
-      setSubmitted((s) => ({
-        ...s,
-        personal: true,
-      }));
-
-      const e = validatePersonal(personal);
-
+      setSubmitted((s) => ({ ...s, personal: true }));
+      const e = validatePersonal(personal, isRevision);
       setPersonalErrors(e);
-
       return !hasErrors(e as Record<string, unknown>);
     }
 
     if (activeStep === "academic") {
-      setSubmitted((s) => ({
-        ...s,
-        academic: true,
-      }));
-
+      setSubmitted((s) => ({ ...s, academic: true }));
       const e = validateAcademic(academic);
-
       setAcademicErrors(e);
-
       return !hasErrors(e as Record<string, unknown>);
     }
 
     if (activeStep === "documents") {
-      setSubmitted((s) => ({
-        ...s,
-        documents: true,
-      }));
-
-      const e = validateDocs(docs);
-
+      setSubmitted((s) => ({ ...s, documents: true }));
+      const e = validateDocs(docs, isRevision);
       setDocsErrors(e);
-
       return !hasErrors(e as Record<string, unknown>);
     }
 
@@ -590,11 +572,9 @@ export default function StudentPreRegistrationPage() {
 
   function goNext() {
     const ok = validateCurrentStep();
-
     if (!ok) return;
 
     const next = steps[stepIndex + 1]?.key;
-
     if (next) {
       setActiveStep(next);
     }
@@ -606,7 +586,6 @@ export default function StudentPreRegistrationPage() {
 
   function goPrev() {
     const prev = steps[stepIndex - 1]?.key;
-
     if (prev) {
       setActiveStep(prev);
     }
@@ -619,10 +598,8 @@ export default function StudentPreRegistrationPage() {
   function handleBackAttempt() {
     if (hasUnsavedInput && !isSubmitting) {
       setShowLeaveConfirm(true);
-
       return;
     }
-
     navigate("/");
   }
 
@@ -632,12 +609,11 @@ export default function StudentPreRegistrationPage() {
 
   function handleConfirmLeave() {
     setShowLeaveConfirm(false);
-
     navigate("/");
   }
 
   /* =========================================================
-     SUBMIT
+     SUBMIT / RESUBMIT
   ========================================================= */
 
   async function handleSubmit() {
@@ -646,31 +622,19 @@ export default function StudentPreRegistrationPage() {
     }
 
     if (!agreedToTerms) {
-      setAlertMessage(
-        "Please read and agree to the Terms and Conditions before submitting your application.",
-      );
-
+      setAlertMessage("Please read and agree to the Terms and Conditions before submitting your application.");
       setAlertType("error");
       setShowAlert(true);
-
       return;
     }
 
     setIsSubmitting(true);
-
-    setSubmitted({
-      personal: true,
-      academic: true,
-      documents: true,
-    });
-
+    setSubmitted({ personal: true, academic: true, documents: true });
     setShowAlert(false);
 
-    const pe = validatePersonal(personal);
-
+    const pe = validatePersonal(personal, isRevision);
     const ae = validateAcademic(academic);
-
-    const de = validateDocs(docs);
+    const de = validateDocs(docs, isRevision);
 
     setPersonalErrors(pe);
     setAcademicErrors(ae);
@@ -688,84 +652,83 @@ export default function StudentPreRegistrationPage() {
       } else {
         setActiveStep("documents");
       }
-
       setIsSubmitting(false);
-
       return;
     }
 
     try {
       const formData = new FormData();
 
-      formData.append(
-        "data",
-        JSON.stringify({
-          personal,
-          academic,
-          termsAccepted: agreedToTerms,
-          termsAcceptedAt: new Date().toISOString(),
-        }),
-      );
+      if (isRevision && revisionToken) {
+        formData.append("token", revisionToken);
+        formData.append("firstName", personal.firstName);
+        if (personal.middleName) formData.append("middleName", personal.middleName);
+        formData.append("lastName", personal.lastName);
+        formData.append("phone", personal.phone);
+        formData.append("course", academic.course);
+      } else {
+        formData.append(
+          "data",
+          JSON.stringify({
+            personal,
+            academic,
+            termsAccepted: agreedToTerms,
+            termsAcceptedAt: new Date().toISOString(),
+          }),
+        );
+      }
 
       if (docs.birthCert) {
         formData.append("birthCert", docs.birthCert);
       }
-
       if (docs.goodMoral) {
         formData.append("goodMoral", docs.goodMoral);
       }
-
       if (docs.idPhoto) {
         formData.append("idPhoto", docs.idPhoto);
       }
 
-      const response = await fetch(
-        `${API_BASE_URL}/preregistrations`,
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
+      const endpoint = isRevision
+        ? `${API_BASE_URL}/preregistrations/resubmit`
+        : `${API_BASE_URL}/preregistrations`;
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        body: formData,
+      });
 
       if (response.status === 403) {
         const body = await response.json().catch(() => null);
-
         setAlertMessage(body?.message || "Registration is not open.");
-
         setAlertType("error");
         setShowAlert(true);
-
         return;
       }
 
       if (response.status === 409) {
         const body = await response.json().catch(() => null);
-
         setAlertMessage(body?.message || "Duplicate application found.");
-
         setAlertType("error");
         setShowAlert(true);
-
         return;
       }
 
       if (!response.ok) {
         const body = await response.json().catch(() => null);
-
         throw new Error(body?.message || "Submission failed");
       }
 
-      setAlertMessage("Application submitted successfully!");
-
+      setAlertMessage(
+        isRevision
+          ? "Application successfully resubmitted for review!"
+          : "Application submitted successfully!"
+      );
       setAlertType("success");
       setShowAlert(true);
 
       setTimeout(() => navigate("/"), 2500);
     } catch (err: any) {
-      setAlertMessage(
-        err?.message || "Something went wrong. Please try again.",
-      );
-
+      setAlertMessage(err?.message || "Something went wrong. Please try again.");
       setAlertType("error");
       setShowAlert(true);
     } finally {
@@ -779,17 +742,13 @@ export default function StudentPreRegistrationPage() {
 
   function handleStepChange(nextKey: StepKey) {
     const nextIndex = steps.findIndex((s) => s.key === nextKey);
-
     if (nextIndex <= stepIndex) {
       setActiveStep(nextKey);
-
       return;
     }
 
     const ok = validateCurrentStep();
-
     if (!ok) return;
-
     setActiveStep(nextKey);
   }
 
@@ -827,7 +786,9 @@ export default function StudentPreRegistrationPage() {
               >
                 <Loader2 size={28} className="spinner-border border-0" />
               </div>
-              <h5 className="fw-bold text-dark mb-1">Submitting Application</h5>
+              <h5 className="fw-bold text-dark mb-1">
+                {isRevision ? "Resubmitting Application" : "Submitting Application"}
+              </h5>
               <p className="text-muted small mb-0">
                 Please wait while we upload your information and documents...
               </p>
@@ -845,45 +806,60 @@ export default function StudentPreRegistrationPage() {
             disabled={isSubmitting}
           >
             <ArrowLeft size={18} />
-
             <span>Back</span>
           </button>
         </div>
 
         <div className="container prereg-page">
           <div className="text-center prereg-hero">
-            <h1 className="fw-bold prereg-title">Student Pre-Registration</h1>
+            <h1 className="fw-bold prereg-title">
+              {isRevision ? "Update & Resubmit Application" : "Student Pre-Registration"}
+            </h1>
+
+            {/* Registrar Feedback Banner for Revisions */}
+            {isRevision && returnReason && (
+              <div className="alert alert-warning text-start mx-auto mt-3 shadow-sm" style={{ maxWidth: 700 }}>
+                <div className="d-flex align-items-start gap-2">
+                  <AlertCircle size={20} className="text-warning flex-shrink-0 mt-1" />
+                  <div>
+                    <strong className="d-block mb-1 text-dark">Registrar Feedback & Required Revisions:</strong>
+                    <p className="mb-0 text-muted small">{returnReason}</p>
+                    {registrationId && (
+                      <span className="badge bg-secondary mt-2">Registration ID: {registrationId}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {settingsLoading ? null : enrollmentOpen ? (
               <p className="text-muted mb-0">
-                Complete the form below to submit your enrollment application
+                {isRevision 
+                  ? "Modify your details below based on the registrar's feedback and resubmit." 
+                  : "Complete the form below to submit your enrollment application"}
               </p>
             ) : null}
           </div>
 
           <div className="card prereg-card">
             <div className="card-body prereg-card-body">
-              {settingsLoading ? (
+              {settingsLoading || revisionLoading ? (
                 <div className="text-center py-5">
                   <div
                     className="spinner-border text-primary mb-3"
                     role="status"
                   />
-
                   <p className="mb-0 text-muted">
-                    Loading registration settings...
+                    {revisionLoading ? "Loading application revision data..." : "Loading registration settings..."}
                   </p>
                 </div>
               ) : !enrollmentOpen ? (
                 <div className="prereg-closed-state">
                   <Info size={52} className="mb-3 text-info" />
-
                   <h3 className="fw-bold mb-2">Registration is not open</h3>
-
                   <p className="text-muted mb-1">
                     Pre-registration is currently closed by the registrar.
                   </p>
-
                   {(registrarSettings?.academicYear ||
                     registrarSettings?.semester) && (
                     <p className="text-muted mb-0">
@@ -954,7 +930,6 @@ export default function StudentPreRegistrationPage() {
                           disabled={isSubmitting}
                         >
                           <ArrowLeft size={16} />
-
                           <span>Previous</span>
                         </button>
                       )}
@@ -969,7 +944,6 @@ export default function StudentPreRegistrationPage() {
                           disabled={isSubmitting}
                         >
                           <span>Next</span>
-
                           <ArrowRight size={16} />
                         </button>
                       ) : (
@@ -989,18 +963,18 @@ export default function StudentPreRegistrationPage() {
                             title={
                               !agreedToTerms
                                 ? "Please agree to the Terms and Conditions first."
-                                : "Submit Application"
+                                : isRevision ? "Resubmit Application" : "Submit Application"
                             }
                           >
                             {isSubmitting ? (
                               <>
                                 <Loader2 size={16} className="spinner-border spinner-border-sm" />
-                                <span>Submitting...</span>
+                                <span>{isRevision ? "Resubmitting..." : "Submitting..."}</span>
                               </>
                             ) : (
                               <>
                                 <CheckCircle2 size={16} />
-                                <span>Submit Application</span>
+                                <span>{isRevision ? "Resubmit Application" : "Submit Application"}</span>
                               </>
                             )}
                           </button>
@@ -1033,7 +1007,6 @@ export default function StudentPreRegistrationPage() {
           >
             <div className="prereg-confirm-header">
               <h5 className="mb-0 fw-bold">Go back?</h5>
-
               <button
                 type="button"
                 className="app-icon-btn app-icon-btn-sm"
@@ -1049,7 +1022,6 @@ export default function StudentPreRegistrationPage() {
               <div className="prereg-confirm-icon">
                 <Info size={22} />
               </div>
-
               <p className="text-muted text-center mb-0">
                 You have unsaved input in the pre-registration form. If you go
                 back now, your entered information will be lost.
@@ -1064,7 +1036,6 @@ export default function StudentPreRegistrationPage() {
               >
                 Stay
               </button>
-
               <button
                 type="button"
                 className="btn btn-danger"

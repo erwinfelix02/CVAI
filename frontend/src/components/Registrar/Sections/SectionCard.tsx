@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   MoreVertical,
   BookOpen,
-  UserCheck,
   MapPin,
   GraduationCap,
   Eye,
@@ -68,7 +67,9 @@ export default function SectionCard({
     };
 
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+    };
   }, [confirmDelete]);
 
   return (
@@ -161,15 +162,7 @@ export default function SectionCard({
             />
           </div>
 
-          {/* Assigned Faculty Display */}
-          <div className="d-flex align-items-center gap-2 mt-3 sections-meta" title={`Assigned Faculty: ${item.adviser}`}>
-            <UserCheck size={16} className="text-primary flex-shrink-0" />
-            <span className="text-truncate fw-medium">
-              {item.adviser ?? "TBA"}
-            </span>
-          </div>
-
-          <div className="d-flex align-items-center justify-content-between gap-3 mt-2 sections-meta">
+          <div className="d-flex align-items-center justify-content-between gap-3 mt-3 sections-meta">
             <div className="d-flex align-items-center gap-2 min-w-0">
               <MapPin size={16} />
               <span className="text-truncate">{item.room}</span>

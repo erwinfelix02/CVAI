@@ -257,7 +257,7 @@ export default function AddCourseModal({
     setConfirming(true);
 
     const payload: CourseItem = {
-      id: isEdit && initial ? initial.id : crypto.randomUUID(),
+      id: isEdit && initial ? initial.id : "",
       code: normalizeCode(form.code),
       name: form.name.trim(),
       yearLevels: Number(form.yearLevels),
@@ -266,8 +266,11 @@ export default function AddCourseModal({
     };
 
     try {
-      if (isEdit && initial) await onUpdate(payload);
-      else await onCreate(payload);
+      if (isEdit && initial) {
+        await onUpdate(payload);
+      } else {
+        await onCreate(payload);
+      }
 
       setConfirmOpen(false);
       setDiscardOpen(false);
