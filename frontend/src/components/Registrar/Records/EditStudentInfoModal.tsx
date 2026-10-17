@@ -13,6 +13,7 @@ import {
   TriangleAlert,
   AlertTriangle,
   CheckCircle2,
+  Lock,
 } from "lucide-react";
 import { API_BASE_URL } from "../../../config";
 
@@ -61,6 +62,7 @@ type Props = {
   open: boolean;
   onClose: () => void;
   student: StudentDetails | null;
+  transferRequest?: any | null;
   courseOptions: CourseOption[];
   departmentOptions: DepartmentOption[];
   onSave: (payload: {
@@ -138,6 +140,7 @@ export default function EditStudentInfoModal({
   open,
   onClose,
   student,
+  transferRequest,
   courseOptions,
   departmentOptions,
   onSave,
@@ -157,6 +160,15 @@ export default function EditStudentInfoModal({
   const [year, setYear] = useState<number>(1);
   const [department, setDepartment] = useState("");
   const [verifiedDocs, setVerifiedDocs] = useState<string[]>([]);
+
+  // Helper to resolve course code/id to full course name
+  const resolveCourseName = (courseVal: string) => {
+    if (!courseVal) return "";
+    const matched = courseOptions.find(
+      (c) => c.code === courseVal || c.id === courseVal || c.name === courseVal
+    );
+    return matched ? matched.name : courseVal;
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -185,11 +197,14 @@ export default function EditStudentInfoModal({
     setGuardian(student.guardian || "");
     setGuardianPhoneDigits(extractSubsequentDigits(student.guardianPhone));
     setBirthdate(toInputDate(student.birthdate));
-    setCourse(student.course || "");
+    
+    const rawTargetCourse = transferRequest?.targetCourse || transferRequest?.course || student.course || "";
+    setCourse(resolveCourseName(rawTargetCourse));
+    setDepartment(transferRequest?.targetDepartment || student.department || "");
+    
     setYear(student.year || 1);
-    setDepartment(student.department || "");
     setVerifiedDocs(student.verifiedDocs || []);
-  }, [student]);
+  }, [student, transferRequest, courseOptions]);
 
   const initials = useMemo(
     () => getInitials(student?.name, student?.initials),
@@ -214,7 +229,7 @@ export default function EditStudentInfoModal({
   const showAvatar = Boolean(resolvedAvatarUrl) && !imageError;
 
   const selectedCourse = useMemo(
-    () => courseOptions.find((c) => c.name === course || c.code === course),
+    () => courseOptions.find((c) => c.name === course || c.code === course || c.id === course),
     [courseOptions, course],
   );
 
@@ -230,7 +245,7 @@ export default function EditStudentInfoModal({
   }, [availableYears, year]);
 
   useEffect(() => {
-    if (!selectedCourse) return;
+    if (!selectedCourse || transferRequest) return;
 
     const matchedDepartment = departmentOptions.find(
       (d) =>
@@ -241,7 +256,7 @@ export default function EditStudentInfoModal({
     if (matchedDepartment) {
       setDepartment(matchedDepartment.name);
     }
-  }, [selectedCourse, departmentOptions]);
+  }, [selectedCourse, departmentOptions, transferRequest]);
 
   const fullPhone = phoneDigits ? `+639${phoneDigits}` : "";
   const fullGuardianPhone = guardianPhoneDigits ? `+639${guardianPhoneDigits}` : "";
@@ -251,6 +266,10 @@ export default function EditStudentInfoModal({
 
   const isDirty = useMemo(() => {
     if (!student) return false;
+
+    if (transferRequest) {
+      return true;
+    }
 
     const originalDocs = [...(student.verifiedDocs || [])].sort().join(",");
     const currentDocs = [...verifiedDocs].sort().join(",");
@@ -275,9 +294,11 @@ export default function EditStudentInfoModal({
     department,
     verifiedDocs,
     student,
+    transferRequest,
   ]);
 
   const toggleDocument = (docName: string) => {
+    if (transferRequest) return;
     setVerifiedDocs((prev) =>
       prev.some((d) => d.toLowerCase() === docName.toLowerCase())
         ? prev.filter((d) => d.toLowerCase() !== docName.toLowerCase())
@@ -288,7 +309,7 @@ export default function EditStudentInfoModal({
   const handleAttemptClose = () => {
     if (loading) return;
 
-    if (isDirty) {
+    if (isDirty && !transferRequest) {
       setConfirmDiscardOpen(true);
     } else {
       onClose();
@@ -316,7 +337,7 @@ export default function EditStudentInfoModal({
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, loading, confirmSaveOpen, confirmDiscardOpen, isDirty]);
+  }, [open, loading, confirmSaveOpen, confirmDiscardOpen, isDirty, transferRequest]);
 
   if (!open || !student) return null;
 
@@ -332,15 +353,16 @@ export default function EditStudentInfoModal({
   };
 
   const handleConfirmSave = async () => {
+    const rawTarget = transferRequest?.targetCourse || transferRequest?.course || student.course;
     await onSave({
       email: email.trim(),
       phone: fullPhone,
       guardian: guardian.trim(),
       guardianPhone: fullGuardianPhone,
       birthdate,
-      course,
-      year,
-      department,
+      course: resolveCourseName(rawTarget),
+      year: student.year,
+      department: transferRequest ? transferRequest.targetDepartment : student.department,
       verifiedDocs,
     });
     setConfirmSaveOpen(false);
@@ -371,7 +393,9 @@ export default function EditStudentInfoModal({
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="app-modal-header">
-          <h4>Edit Student Information</h4>
+          <div className="d-flex align-items-center gap-2">
+            <h4>{transferRequest ? "Review & Approve Transfer Request" : "Edit Student Information"}</h4>
+          </div>
 
           <div className="header-right">
             <button
@@ -387,6 +411,17 @@ export default function EditStudentInfoModal({
           </div>
         </div>
 
+        {transferRequest && (
+          <div className="px-4 pt-3">
+            <div className="alert alert-primary d-flex align-items-center justify-content-between mb-0 py-2 small" role="alert">
+              <div className="d-flex align-items-center gap-2">
+                <Lock size={16} className="flex-shrink-0" />
+                <span>Reviewing student transfer request. General profile and year level are locked.</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="tab-container">
           <button
             type="button"
@@ -394,7 +429,7 @@ export default function EditStudentInfoModal({
             onClick={() => setActiveTab("overview")}
             disabled={loading}
           >
-            Overview
+            Overview {transferRequest && <Lock size={12} className="ms-1 text-muted" />}
           </button>
 
           <button
@@ -403,7 +438,7 @@ export default function EditStudentInfoModal({
             onClick={() => setActiveTab("academic")}
             disabled={loading}
           >
-            Academic
+            Academic {transferRequest ? <span className="ms-1">(Transfer Target)</span> : <Lock size={12} className="ms-1 text-muted" />}
           </button>
 
           <button
@@ -412,13 +447,19 @@ export default function EditStudentInfoModal({
             onClick={() => setActiveTab("documents")}
             disabled={loading}
           >
-            Documents
+            Documents {transferRequest && <Lock size={12} className="ms-1 text-muted" />}
           </button>
         </div>
 
         <div className="app-modal-body">
           {activeTab === "overview" && (
             <>
+              {transferRequest && (
+                <div className="mb-3 p-2 bg-light border rounded small text-muted">
+                  <Lock size={14} className="me-1" /> General profile details (Phone, Birthdate, Guardian) are locked while reviewing a transfer request.
+                </div>
+              )}
+
               <div className="student-profile-card">
                 <div
                   className="student-profile-avatar overflow-hidden d-flex align-items-center justify-content-center p-0"
@@ -478,7 +519,6 @@ export default function EditStudentInfoModal({
                     value={email}
                     disabled={true}
                     readOnly
-                    title="Email cannot be changed"
                   />
                 </div>
 
@@ -501,15 +541,10 @@ export default function EditStudentInfoModal({
                         const val = e.target.value.replace(/\D/g, "").slice(0, 9);
                         setPhoneDigits(val);
                       }}
-                      disabled={loading}
+                      disabled={loading || Boolean(transferRequest)}
                       placeholder="XXXXXXXXX"
                     />
                   </div>
-                  {!isPhoneValid && (
-                    <small className="text-danger d-block mt-1">
-                      Phone number must have exactly 9 digits after +639.
-                    </small>
-                  )}
                 </div>
 
                 <div>
@@ -525,7 +560,7 @@ export default function EditStudentInfoModal({
                     className="form-control"
                     value={birthdate}
                     onChange={(e) => setBirthdate(e.target.value)}
-                    disabled={loading}
+                    disabled={loading || Boolean(transferRequest)}
                   />
                 </div>
 
@@ -546,7 +581,7 @@ export default function EditStudentInfoModal({
                     className="form-control"
                     value={guardian}
                     onChange={(e) => setGuardian(e.target.value)}
-                    disabled={loading}
+                    disabled={loading || Boolean(transferRequest)}
                   />
                 </div>
 
@@ -572,86 +607,77 @@ export default function EditStudentInfoModal({
                         const val = e.target.value.replace(/\D/g, "").slice(0, 9);
                         setGuardianPhoneDigits(val);
                       }}
-                      disabled={loading}
+                      disabled={loading || Boolean(transferRequest)}
                       placeholder="XXXXXXXXX"
                     />
                   </div>
-                  {!isGuardianPhoneValid && (
-                    <small className="text-danger d-block mt-1">
-                      Guardian phone must have exactly 9 digits after +639.
-                    </small>
-                  )}
                 </div>
               </div>
             </>
           )}
 
           {activeTab === "academic" && (
-            <div className="info-grid">
-              <div>
-                <label className="info-label" htmlFor="edit-student-course">
-                  <BookOpen size={16} /> Course
-                </label>
-                <select
-                  id="edit-student-course"
-                  className="form-select"
-                  value={course}
-                  onChange={(e) => setCourse(e.target.value)}
-                  disabled={loading}
-                >
-                  <option value="">Select course</option>
-                  {courseOptions.map((item) => (
-                    <option key={item.id} value={item.name}>
-                      {item.code} - {item.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <div className="info-label">
-                  <School size={16} /> Section
+            <div>
+              {!transferRequest && (
+                <div className="mb-3 p-2 bg-light border rounded small text-muted">
+                  <Lock size={14} className="me-1" /> Course and department changes require a submitted student transfer request.
                 </div>
-                <div className="info-value">{student.section || "—"}</div>
-              </div>
+              )}
+              
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div>
+                  <label className="info-label" htmlFor="edit-student-course">
+                    <BookOpen size={16} /> Course / Program
+                    {transferRequest && <span className="text-primary ms-1">(Requested Transfer Target)</span>}
+                  </label>
+                  <div className="form-control bg-light text-dark fw-semibold d-flex align-items-center justify-content-between" style={{ minHeight: "38px" }}>
+                    <span>{resolveCourseName(transferRequest ? (transferRequest.targetCourse || transferRequest.course) : student.course)}</span>
+                    <span className="badge bg-secondary-subtle text-secondary border small"><Lock size={10} className="me-1" />Locked</span>
+                  </div>
+                </div>
 
-              <div>
-                <label className="info-label" htmlFor="edit-student-year">
-                  <GraduationCap size={16} /> Year Level
-                </label>
-                <select
-                  id="edit-student-year"
-                  className="form-select"
-                  value={year}
-                  onChange={(e) => setYear(Number(e.target.value))}
-                  disabled={loading}
-                >
-                  {availableYears.map((value) => (
-                    <option key={value} value={value}>
-                      Year {value}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                <div>
+                  <label className="info-label" htmlFor="edit-student-section">
+                    <School size={16} /> Section
+                  </label>
+                  <div className="form-control bg-light text-dark fw-semibold d-flex align-items-center" style={{ minHeight: "38px" }}>
+                    <span>{student.section || "—"}</span>
+                  </div>
+                </div>
 
-              <div>
-                <label className="info-label" htmlFor="edit-student-department">
-                  <Building2 size={16} /> Department
-                </label>
-                <select
-                  id="edit-student-department"
-                  className="form-select"
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  disabled={loading}
-                >
-                  <option value="">Select department</option>
-                  {departmentOptions.map((item) => (
-                    <option key={item.id} value={item.name}>
-                      {item.code} - {item.name}
-                    </option>
-                  ))}
-                </select>
+                <div>
+                  <label className="info-label" htmlFor="edit-student-year">
+                    <GraduationCap size={16} /> Year Level
+                  </label>
+                  <select
+                    id="edit-student-year"
+                    className="form-select"
+                    value={year}
+                    onChange={(e) => setYear(Number(e.target.value))}
+                    disabled={loading || Boolean(transferRequest)}
+                  >
+                    {availableYears.map((value) => (
+                      <option key={value} value={value}>
+                        Year {value}
+                      </option>
+                    ))}
+                  </select>
+                  {transferRequest && (
+                    <small className="text-muted d-block mt-1">
+                      Year level is locked during transfer review.
+                    </small>
+                  )}
+                </div>
+
+                <div>
+                  <label className="info-label" htmlFor="edit-student-department">
+                    <Building2 size={16} /> Department
+                  </label>
+                  <div className="form-control bg-light text-dark fw-semibold d-flex align-items-center justify-content-between" style={{ minHeight: "38px" }}>
+                    <span>{transferRequest ? transferRequest.targetDepartment : student.department}</span>
+                    <span className="badge bg-secondary-subtle text-secondary border small"><Lock size={10} className="me-1" />Locked</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -659,7 +685,11 @@ export default function EditStudentInfoModal({
           {activeTab === "documents" && (
             <div className="d-flex flex-column gap-3">
               <div className="text-muted small mb-1">
-                Check or uncheck admission requirements to update student status.
+                {transferRequest ? (
+                  <span className="text-secondary"><Lock size={14} className="me-1" /> Admission documents are locked during transfer review.</span>
+                ) : (
+                  "Check or uncheck admission requirements to update student status."
+                )}
               </div>
 
               {REQUIRED_DOCUMENTS.map((docName, idx) => {
@@ -670,17 +700,17 @@ export default function EditStudentInfoModal({
                 return (
                   <div
                     key={idx}
-                    onClick={() => !loading && toggleDocument(docName)}
-                    className="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-light cursor-pointer user-select-none"
-                    style={{ cursor: loading ? "not-allowed" : "pointer" }}
+                    onClick={() => !loading && !transferRequest && toggleDocument(docName)}
+                    className="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-light user-select-none"
+                    style={{ cursor: loading || transferRequest ? "not-allowed" : "pointer" }}
                   >
                     <div className="d-flex align-items-center gap-3">
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => {}}
-                        disabled={loading}
-                        className="form-check-input m-0 cursor-pointer"
+                        disabled={loading || Boolean(transferRequest)}
+                        className="form-check-input m-0"
                         style={{ width: "1.2rem", height: "1.2rem" }}
                       />
                       <span className="fw-medium text-dark">{docName}</span>
@@ -720,14 +750,14 @@ export default function EditStudentInfoModal({
             onClick={handleOpenConfirmSave}
             disabled={
               loading ||
-              !isDirty ||
+              (!transferRequest && !isDirty) ||
               !isPhoneValid ||
               !isGuardianPhoneValid ||
               (phoneDigits !== "" && phoneDigits.length !== 9) ||
               (guardianPhoneDigits !== "" && guardianPhoneDigits.length !== 9)
             }
           >
-            Save Changes
+            {transferRequest ? "Approve & Complete Transfer" : "Save Changes"}
           </button>
         </div>
 
@@ -744,7 +774,9 @@ export default function EditStudentInfoModal({
               onMouseDown={(e) => e.stopPropagation()}
             >
               <div className="registrar-confirm-header">
-                <div className="registrar-confirm-title">Confirm Update</div>
+                <div className="registrar-confirm-title">
+                  {transferRequest ? "Approve Transfer Request?" : "Confirm Update"}
+                </div>
 
                 <button
                   type="button"
@@ -764,7 +796,9 @@ export default function EditStudentInfoModal({
                 </div>
 
                 <p className="text-muted text-center mb-0">
-                  Are you sure you want to save the updated student information?
+                  {transferRequest
+                    ? `Are you sure you want to approve this transfer to ${resolveCourseName(transferRequest.targetCourse || transferRequest.course)}?`
+                    : "Are you sure you want to save the updated student information?"}
                 </p>
               </div>
 
@@ -784,7 +818,7 @@ export default function EditStudentInfoModal({
                   onClick={handleConfirmSave}
                   disabled={loading}
                 >
-                  {loading ? "Saving..." : "Yes, Save"}
+                  {loading ? "Processing..." : transferRequest ? "Yes, Approve Transfer" : "Yes, Save"}
                 </button>
               </div>
             </div>

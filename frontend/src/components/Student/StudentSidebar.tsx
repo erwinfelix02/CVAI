@@ -6,9 +6,6 @@ import {
   Home,
   Bot,
   User,
-  Calendar,
-  Book,
-  CheckCircle,
   Bell,
   LogOut,
   ChevronLeft,
@@ -130,30 +127,11 @@ export default function StudentSidebar({
       permission: "ai_assistant", // Controlled by database permission
     },
     { label: "My Profile", icon: User, path: "/student/profile", permission: null },
-    { 
-      label: "Schedule", 
-      icon: Calendar, 
-      path: "/student/schedule", 
-      permission: "view_schedule" // Controlled by database permission
-    },
-    { 
-      label: "Grades", 
-      icon: Book, 
-      path: "/student/grades", 
-      permission: "view_grades" // Controlled by database permission
-    },
-    { label: "Attendance", icon: CheckCircle, path: "/student/attendance", permission: null },
     {
       label: "Announcements",
       icon: Bell,
       badge: announcementCount > 0 ? announcementCount : undefined,
       path: "/student/announcements",
-      permission: null,
-    },
-    {
-      label: "My Courses",
-      icon: Book,
-      path: "/student/courses",
       permission: null,
     },
   ];

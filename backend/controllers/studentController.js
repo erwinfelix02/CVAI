@@ -8,6 +8,7 @@ import validator from "validator";
 import Subject from "../models/Subject.js";
 import { hashLookup, decrypt } from "../utils/fieldCrypto.js";
 import { addLog, getClientIp } from "../utils/logActivity.js";
+import { createDropRequestRecord } from "./transferController.js";
 import Section from "../models/Section.js";
 
 const formatYearLevel = (year) => {
@@ -167,6 +168,9 @@ const mapStudentRow = (s) => {
     phone: s.phone || "",
     avatarUrl: s.avatarUrl || "",
     address: s.address || "N/A",
+    birthdate: s.birthdate || "N/A",
+  gender: s.gender || "N/A",
+  guardian: s.guardian || "Not Specified",
     course: s.program || "—",
     program: s.program || "—",
     section: s.section || "—",
@@ -177,6 +181,7 @@ const mapStudentRow = (s) => {
     grades: gradesObj,
     status: s.status === "Active" ? "good" : "warning",
     gpa: computedGpa, // 👈 Return computed GPA
+    workflowState: s.workflowState || "None",
     attendance: s.attendance ?? 100,
     facultyId: s.facultyId || "",
     facultyName: s.facultyName || "",
@@ -433,6 +438,8 @@ export const getStudentById = async (req, res) => {
   }
 };
 
+// backend/controllers/studentController.js
+
 export const updateStudentInfo = async (req, res) => {
   const updatedBy = req.body?.updatedBy || "registrar";
 
@@ -449,10 +456,10 @@ export const updateStudentInfo = async (req, res) => {
       course,
       yearLevel,
       department,
-      verifiedDocs,
       enrolledSubjects,
       section,
       assignedAt,
+      workflowState, // 🟢 Handle separate workflow state updates
     } = req.body || {};
 
     const student = await Student.findOne({
@@ -468,13 +475,22 @@ export const updateStudentInfo = async (req, res) => {
 
     const changes = [];
 
-   if (section !== undefined) {
+    // 🟢 Block section assignment if student has an active transfer or drop workflow
+    if (section !== undefined && section !== "" && section !== "Unassigned" && section !== "—") {
+      if (student.workflowState === "Transfer Pending" || student.workflowState === "Drop Requested") {
+        return res.status(400).json({
+          message: `Cannot assign section. Student has an active workflow state: "${student.workflowState}".`
+        });
+      }
+    }
+
+    if (section !== undefined) {
       const cleanSection = section === "Unassigned" || section === "—" || !section ? "" : String(section).trim();
       if (String(student.section || "") !== cleanSection) {
         changes.push(`section: "${student.section || ""}" -> "${cleanSection || "—"}"`);
         student.section = cleanSection;
         
-        // 👈 Update assignedAt timestamp upon assignment, or reset to "—" if unassigned
+        // Update assignedAt timestamp upon assignment, or reset to "—" if unassigned
         student.assignedAt = cleanSection ? (assignedAt || new Date().toLocaleString("en-US", {
           month: "long",
           day: "numeric",
@@ -483,6 +499,18 @@ export const updateStudentInfo = async (req, res) => {
           minute: "2-digit",
           hour12: true,
         })) : "—";
+      }
+    }
+
+   if (workflowState !== undefined) {
+      if (student.workflowState !== workflowState) {
+        changes.push(`workflowState: "${student.workflowState}" -> "${workflowState}"`);
+        student.workflowState = workflowState;
+        
+        // 🟢 Log into unified Transfer/Request history if Drop Requested
+        if (workflowState === "Drop Requested") {
+          await createDropRequestRecord(student._id, req.body.reason || "Department Head initiated drop request.");
+        }
       }
     }
 
@@ -515,7 +543,7 @@ export const updateStudentInfo = async (req, res) => {
       }
 
       if (String(student.email || "") !== cleanEmail) {
-        changes.push(`email: "${student.email || ""}" -> "${cleanEmail}"`);
+        changes.push(`email updated`);
         student.email = cleanEmail;
       }
     }
@@ -587,9 +615,7 @@ export const updateStudentInfo = async (req, res) => {
     if (targetProgram !== undefined) {
       const cleanProgram = String(targetProgram).trim();
       if (String(student.program || "") !== cleanProgram) {
-        changes.push(
-          `program: "${student.program || ""}" -> "${cleanProgram}"`,
-        );
+        changes.push(`program updated`);
         student.program = cleanProgram;
       }
     }
@@ -602,9 +628,7 @@ export const updateStudentInfo = async (req, res) => {
       }
 
       if (Number(student.yearLevel || 0) !== parsedYearLevel) {
-        changes.push(
-          `yearLevel: "${student.yearLevel ?? ""}" -> "${parsedYearLevel}"`,
-        );
+        changes.push(`yearLevel updated`);
         student.yearLevel = parsedYearLevel;
       }
     }
@@ -612,9 +636,7 @@ export const updateStudentInfo = async (req, res) => {
     if (department !== undefined) {
       const cleanDepartment = String(department).trim();
       if (String(student.department || "") !== cleanDepartment) {
-        changes.push(
-          `department: "${student.department || ""}" -> "${cleanDepartment}"`,
-        );
+        changes.push(`department updated`);
         student.department = cleanDepartment;
       }
     }
@@ -629,7 +651,7 @@ export const updateStudentInfo = async (req, res) => {
       details:
         changes.length > 0
           ? `Student record updated (${student.email || student.studentIdNumber}). Changes: ${changes.join(", ")}`
-          : `Student record saved with no detected changes (${student.email || student.studentIdNumber}).`,
+          : `Student record saved with no detected changes.`,
       ip: getClientIp(req),
       status: "success",
     });
@@ -655,7 +677,7 @@ export const updateStudentInfo = async (req, res) => {
         program: student.program || "",
         year: student.yearLevel ?? 1,
         yearLevel: formatYearLevel(student.yearLevel),
-        section: student.section || "—",
+        section: student.section || "",
         assignedAt: student.assignedAt || "—",
         department: student.department || "",
         enrolledSubjects: student.enrolledSubjects || [],
@@ -665,6 +687,7 @@ export const updateStudentInfo = async (req, res) => {
         enrolledDate: formatDate(student.createdAt),
         verifiedDocs: student.verifiedDocs || [],
         status: student.status || "Active",
+        workflowState: student.workflowState || "None",
       },
     });
   } catch (err) {
@@ -674,8 +697,6 @@ export const updateStudentInfo = async (req, res) => {
 };
 
 export const createStudent = async (req, res) => {
-  const createdBy = req.body?.createdBy || req.body?.facultyName || "Faculty";
-
   try {
     const {
       name,
@@ -705,12 +726,18 @@ export const createStudent = async (req, res) => {
 
     if (!cleanName || !cleanIdNumber || !cleanSection) {
       return res.status(400).json({
-        message:
-          "Full name, Student ID number, and Class/Section are required.",
+        message: "Full name, Student ID number, and Class/Section are required.",
       });
     }
 
     let student = await Student.findOne({ studentIdNumber: cleanIdNumber });
+
+    // 🟢 Block section assignment during creation if workflow state is active
+    if (student && student.workflowState && student.workflowState !== "None") {
+      return res.status(400).json({
+        message: `Cannot assign section. Student has an active workflow state: "${student.workflowState}".`,
+      });
+    }
 
     if (student && student.section === cleanSection) {
       return res.status(400).json({
@@ -757,10 +784,11 @@ export const createStudent = async (req, res) => {
           initials,
           name: student.fullName,
           id: student.studentIdNumber,
-          section: student.section || "—",
+          section: student.section || "",
           gpa: 3.5,
           attendance: 100,
           status: "good",
+          workflowState: student.workflowState || "None",
           course: student.program,
           program: student.program,
           year: student.yearLevel ?? 1,
@@ -812,7 +840,7 @@ export const createStudent = async (req, res) => {
       program: defaultProgram,
       yearLevel: yearLevel ? Number(yearLevel) : 1,
       section: cleanSection,
-      assignedAt: cleanSection ? timestamp : "—",
+      assignedAt: cleanSection ? new Date().toLocaleString() : "—",
       department: department || "College of Computer Studies",
       enrolledSubjects: Array.isArray(enrolledSubjects)
         ? Array.from(new Set(enrolledSubjects.map((s) => String(s).trim())))
@@ -820,6 +848,7 @@ export const createStudent = async (req, res) => {
       facultyId: facultyId || "",
       facultyName: facultyName || "",
       status: "Active",
+      workflowState: "None",
     });
 
     const savedStudent = await student.save();
@@ -838,10 +867,11 @@ export const createStudent = async (req, res) => {
         initials,
         name: savedStudent.fullName,
         id: savedStudent.studentIdNumber,
-        section: savedStudent.section || "—",
+        section: savedStudent.section || "",
         gpa: 3.5,
         attendance: 100,
         status: "good",
+        workflowState: savedStudent.workflowState || "None",
         course: savedStudent.program,
         program: savedStudent.program,
         year: savedStudent.yearLevel ?? 1,

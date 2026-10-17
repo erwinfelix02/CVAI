@@ -129,6 +129,11 @@ const studentSchema = new mongoose.Schema(
       enum: ["Active", "Inactive", "Dropped", "Graduated"],
       default: "Active",
     },
+    workflowState: {
+      type: String,
+      enum: ["None", "Transfer Pending", "Drop Requested"],
+      default: "None",
+    },
   },
   {
     timestamps: true,

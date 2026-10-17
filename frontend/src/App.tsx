@@ -70,6 +70,7 @@ import DepartmentHeadSettings from "./pages/DepartmentHead/DepartmentHeadSetting
 import DepartmentHeadHelpSupport from "./pages/DepartmentHead/DepartmentHeadHelpSupport";
 import DepartmentHeadSections from "./pages/DepartmentHead/DepartmentHeadSections";
 import DepartmentAnnouncementsPage from "./pages/DepartmentHead/DepartmentAnnouncementsPage";
+import DepartmentHeadStudentsPage from "./pages/DepartmentHead/DepartmentHeadStudentsPage";
 
 export default function App() {
   return (
@@ -199,6 +200,7 @@ export default function App() {
         <Route path="help" element={<DepartmentHeadHelpSupport />} />
         <Route path="sections" element={<DepartmentHeadSections />} />
         <Route path="announcements" element={<DepartmentAnnouncementsPage />} />
+        <Route path="students" element={<DepartmentHeadStudentsPage />} />
       </Route>
     </Routes>
   );

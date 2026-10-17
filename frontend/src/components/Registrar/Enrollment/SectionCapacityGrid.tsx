@@ -27,7 +27,7 @@ export default function SectionCapacityGrid({ sections, loading }: Props) {
           <div className="text-muted">No official sections found.</div>
         ) : (
           <div className="row g-3">
-            {sections.map((s) => {
+            {sections.map((s: any) => {
               const used = s.enrolled ?? 0;
               const total = s.capacity ?? 0;
 
@@ -58,7 +58,7 @@ export default function SectionCapacityGrid({ sections, loading }: Props) {
                     </div>
 
                     <div className="text-muted small">
-                      Adviser: {s.adviser ?? "TBA"}
+                      Department: {s.department ?? "General Department"}
                     </div>
                   </div>
                 </div>

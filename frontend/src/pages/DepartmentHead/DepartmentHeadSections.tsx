@@ -1,6 +1,7 @@
 // ✅ src/pages/DepartmentHead/DepartmentHeadSections.tsx
 
 import { useState, useMemo, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { API_BASE_URL } from "../../config";
 
@@ -34,6 +35,7 @@ export interface StudentAssignment {
   program: string;
   section: string;
   assignedAt: string;
+  workflowState: string;
 }
 
 export interface SectionRequest {
@@ -57,12 +59,13 @@ export interface AuditLog {
 }
 
 export default function DepartmentHeadSections() {
-  const [activeTab, setActiveTab] = useState<"bulk" | "requests" | "audit">(
-    "bulk",
-  );
+  const location = useLocation();
+
+  const initialTab = (location.state as any)?.activeTab || "bulk";
+  const [activeTab, setActiveTab] = useState<"bulk" | "requests" | "audit">(initialTab);
+  
   const [showRequestModal, setShowRequestModal] = useState(false);
 
-  // AuthAlert states
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState<"error" | "success">("error");
   const [alertVisible, setAlertVisible] = useState(false);
@@ -81,6 +84,7 @@ export default function DepartmentHeadSections() {
   const [yearFilter, setYearFilter] = useState("All Years");
   const [programFilter, setProgramFilter] = useState("All Programs");
   const [statusFilter, setStatusFilter] = useState("All Students");
+  const [workflowFilter, setWorkflowFilter] = useState("All Workflows"); // 🟢 Added workflow filter state
 
   // Selection State
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
@@ -95,7 +99,6 @@ export default function DepartmentHeadSections() {
   const [requests, setRequests] = useState<SectionRequest[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 
-  // 👇 Compute only pending requests count for the tab badge
   const pendingRequestsCount = useMemo(() => {
     return requests.filter((r) => r.status === "Pending").length;
   }, [requests]);
@@ -168,7 +171,6 @@ export default function DepartmentHeadSections() {
         console.error("Error reading user session", e);
       }
 
-      // 1. Fetch Audit Logs
       try {
         const auditUrl = userDepartment
           ? `${API_BASE_URL}/audit-logs?department=${encodeURIComponent(userDepartment)}`
@@ -191,7 +193,6 @@ export default function DepartmentHeadSections() {
         console.error("Failed to load audit logs:", err);
       }
 
-      // 2. Fetch Section Requests
       try {
         const requestUrl = userDepartment
           ? `${API_BASE_URL}/section-requests?department=${encodeURIComponent(userDepartment)}`
@@ -221,7 +222,6 @@ export default function DepartmentHeadSections() {
         console.error("Failed to load section requests:", err);
       }
 
-      // 3. Fetch Students filtered by Department
       try {
         const studentUrl = userDepartment
           ? `${API_BASE_URL}/students?department=${encodeURIComponent(userDepartment)}`
@@ -243,6 +243,7 @@ export default function DepartmentHeadSections() {
             program: st.program || st.course || "—",
             section: st.section && st.section !== "" ? st.section : "—",
             assignedAt: st.assignedAt || "—",
+            workflowState: st.workflowState || "None",
           }));
           setStudents(mappedStudents);
         }
@@ -264,13 +265,22 @@ export default function DepartmentHeadSections() {
     filteredIds: string[],
   ) => {
     if (e.target.checked) {
-      setSelectedStudents(filteredIds);
+      const validIds = filteredIds.filter((id) => {
+        const s = students.find((st) => st.id === id);
+        return s && s.workflowState === "None";
+      });
+      setSelectedStudents(validIds);
     } else {
       setSelectedStudents([]);
     }
   };
 
   const handleSelectStudent = (id: string) => {
+    const studentObj = students.find((s) => s.id === id);
+    if (studentObj && studentObj.workflowState !== "None") {
+      showAlert(`Cannot select student. Active workflow state: "${studentObj.workflowState}".`, "error");
+      return;
+    }
     setSelectedStudents((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
@@ -296,7 +306,8 @@ export default function DepartmentHeadSections() {
       (s) =>
         s.program === selectedSec.program &&
         s.year === selectedSec.year &&
-        s.status === "Unassigned",
+        s.status === "Unassigned" &&
+        s.workflowState === "None",
     );
 
     const targetIds = matchingUnassigned
@@ -356,7 +367,8 @@ export default function DepartmentHeadSections() {
         statusFilter === "All Students"
           ? s.status === "Unassigned"
           : s.status.toLowerCase() === statusFilter.toLowerCase();
-      return matchesProg && matchesYear && matchesStatus;
+      const matchesWorkflow = s.workflowState === "None";
+      return matchesProg && matchesYear && matchesStatus && matchesWorkflow;
     });
 
     if (matchingStudents.length === 0) {
@@ -408,11 +420,18 @@ export default function DepartmentHeadSections() {
         const studentObj = students.find((s) => s.id === studentId);
         if (!studentObj) continue;
 
+        if (studentObj.workflowState !== "None") {
+          throw new Error(`Cannot assign ${studentObj.name}. Active workflow state: "${studentObj.workflowState}".`);
+        }
+
         const res = await fetch(
           `${API_BASE_URL}/students/${encodeURIComponent(studentObj.studentNo)}`,
           {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token") || sessionStorage.getItem("token") || ""}`,
+            },
             body: JSON.stringify({
               section: targetSection,
               updatedBy: "Department Head",
@@ -430,7 +449,10 @@ export default function DepartmentHeadSections() {
 
         const auditRes = await fetch(`${API_BASE_URL}/audit-logs`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || sessionStorage.getItem("token") || ""}`,
+          },
           body: JSON.stringify({
             department: userDepartment || "General Department",
             student: studentObj.name,
@@ -501,7 +523,10 @@ export default function DepartmentHeadSections() {
           `${API_BASE_URL}/students/${encodeURIComponent(studentObj.studentNo)}`,
           {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token") || sessionStorage.getItem("token") || ""}`,
+            },
             body: JSON.stringify({
               section: "",
               updatedBy: "Department Head",
@@ -519,7 +544,10 @@ export default function DepartmentHeadSections() {
 
         const auditRes = await fetch(`${API_BASE_URL}/audit-logs`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || sessionStorage.getItem("token") || ""}`,
+          },
           body: JSON.stringify({
             department: userDepartment || "General Department",
             student: studentObj.name,
@@ -594,7 +622,10 @@ export default function DepartmentHeadSections() {
 
       const res = await fetch(`${API_BASE_URL}/section-requests`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || sessionStorage.getItem("token") || ""}`,
+        },
         body: JSON.stringify(payload),
       });
 
@@ -641,9 +672,14 @@ export default function DepartmentHeadSections() {
         statusFilter === "All Students" ||
         s.status.toLowerCase() === statusFilter.toLowerCase();
 
-      return matchesSearch && matchesYear && matchesProgram && matchesStatus;
+      // 🟢 Matches workflow filter logic
+      const matchesWorkflow =
+        workflowFilter === "All Workflows" ||
+        s.workflowState === workflowFilter;
+
+      return matchesSearch && matchesYear && matchesProgram && matchesStatus && matchesWorkflow;
     });
-  }, [students, searchQuery, yearFilter, programFilter, statusFilter]);
+  }, [students, searchQuery, yearFilter, programFilter, statusFilter, workflowFilter]);
 
   return (
     <div
@@ -678,6 +714,7 @@ export default function DepartmentHeadSections() {
             </p>
           </div>
           <button
+            type="button"
             className="btn text-white d-flex align-items-center gap-2 align-self-start align-self-md-auto text-nowrap border-0 shadow-sm"
             style={{ backgroundColor: "#0d5173" }}
             onClick={() => setShowRequestModal(true)}
@@ -721,6 +758,8 @@ export default function DepartmentHeadSections() {
             uniquePrograms={uniquePrograms}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
+            workflowFilter={workflowFilter} // 🟢 Passed workflowFilter
+            onWorkflowFilterChange={setWorkflowFilter} // 🟢 Passed handler
             selectedStudents={selectedStudents}
             targetSection={targetSection}
             onTargetSectionChange={handleTargetSectionChange}

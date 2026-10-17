@@ -67,7 +67,6 @@ export default function RecordsFilters({
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
                 <option value="Dropped">Dropped</option>
-                <option value="Graduated">Graduated</option>
               </select>
               <ChevronDown size={16} className="caret" />
             </div>

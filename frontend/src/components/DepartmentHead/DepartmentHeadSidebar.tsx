@@ -6,7 +6,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import {
   LayoutDashboard,
-  DoorOpen,
   GraduationCap,
   ChevronLeft,
   ChevronRight,
@@ -15,6 +14,7 @@ import {
   Settings,
   HelpCircle,
   LogOut,
+  Users,
   Layers,
 } from "lucide-react";
 
@@ -162,6 +162,11 @@ export default function DepartmentHeadSidebar({
         path: "/dept-head",
       },
       {
+        label: "Students",
+        icon: Users,
+        path: "/dept-head/students",
+      },
+      {
       label: "Sections", // <--- ADDED SECTIONS LINK
       icon: Layers, // Make sure Layers is imported from lucide-react
       path: "/dept-head/sections",
@@ -170,12 +175,6 @@ export default function DepartmentHeadSidebar({
         label: "Announcements", 
         icon: Megaphone,
         path: "/dept-head/announcements",
-      },
-      {
-        label: "Rooms",
-        icon: DoorOpen,
-        path: "/dept-head/rooms",
-        controlled: true,
       },
     ],
     [facultyCount],

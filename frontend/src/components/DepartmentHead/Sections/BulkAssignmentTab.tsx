@@ -17,6 +17,8 @@ interface BulkAssignmentTabProps {
   uniquePrograms: string[];
   statusFilter: string;
   onStatusFilterChange: (s: string) => void;
+  workflowFilter: string; // 🟢 Added to interface
+  onWorkflowFilterChange: (wf: string) => void; // 🟢 Added to interface
   selectedStudents: string[];
   targetSection: string;
   onTargetSectionChange: (sec: string) => void;
@@ -40,6 +42,8 @@ export default function BulkAssignmentTab({
   uniquePrograms,
   statusFilter,
   onStatusFilterChange,
+  workflowFilter,
+  onWorkflowFilterChange,
   selectedStudents,
   targetSection,
   onTargetSectionChange,
@@ -53,9 +57,11 @@ export default function BulkAssignmentTab({
   onUnassignSelected,
 }: BulkAssignmentTabProps) {
   const [isHoveredAuto, setIsHoveredAuto] = useState(false);
+  
+  const selectableFiltered = filteredStudents.filter(s => s.workflowState === "None");
   const allSelected =
-    filteredStudents.length > 0 &&
-    selectedStudents.length === filteredStudents.length;
+    selectableFiltered.length > 0 &&
+    selectedStudents.length === selectableFiltered.length;
 
   const availableSections = useMemo(() => {
     if (selectedStudents.length === 0) {
@@ -103,7 +109,7 @@ export default function BulkAssignmentTab({
           boxSizing: "border-box",
         }}
       >
-        <div className="col-12 col-md-3 px-1">
+        <div className="col-12 col-md-3 px-1 mb-2 mb-md-0">
           <div className="input-group">
             <span className="input-group-text bg-white border-end-0">
               <Search size={16} className="text-muted" />
@@ -117,7 +123,7 @@ export default function BulkAssignmentTab({
             />
           </div>
         </div>
-        <div className="col-6 col-md-3 px-1">
+        <div className="col-6 col-md-2 px-1">
           <select
             className="form-select shadow-none"
             value={programFilter}
@@ -131,7 +137,7 @@ export default function BulkAssignmentTab({
             ))}
           </select>
         </div>
-        <div className="col-6 col-md-3 px-1">
+        <div className="col-6 col-md-2 px-1">
           <select
             className="form-select shadow-none"
             value={yearFilter}
@@ -144,7 +150,7 @@ export default function BulkAssignmentTab({
             <option>Year 4</option>
           </select>
         </div>
-        <div className="col-12 col-md-3 px-1">
+        <div className="col-6 col-md-2 px-1">
           <select
             className="form-select shadow-none"
             value={statusFilter}
@@ -153,6 +159,18 @@ export default function BulkAssignmentTab({
             <option>All Students</option>
             <option>Assigned</option>
             <option>Unassigned</option>
+          </select>
+        </div>
+        <div className="col-6 col-md-3 px-1">
+          <select
+            className="form-select shadow-none border-warning-subtle"
+            value={workflowFilter}
+            onChange={(e) => onWorkflowFilterChange(e.target.value)}
+          >
+            <option value="All Workflows">All Workflows</option>
+            <option value="Transfer Pending">Transfer Pending</option>
+            <option value="Drop Requested">Drop Requested</option>
+            <option value="None">Normal / None</option>
           </select>
         </div>
       </div>
@@ -308,43 +326,57 @@ export default function BulkAssignmentTab({
             ) : (
               filteredStudents.map((st) => {
                 const isSelected = selectedStudents.includes(st.id);
+                const hasActiveWorkflow = st.workflowState && st.workflowState !== "None";
+
                 return (
                   <tr
                     key={st.id}
-                    onClick={() => onSelectStudent(st.id)}
+                    onClick={() => !hasActiveWorkflow && onSelectStudent(st.id)}
                     style={{
-                      cursor: "pointer",
+                      cursor: hasActiveWorkflow ? "not-allowed" : "pointer",
+                      opacity: hasActiveWorkflow ? 0.75 : 1,
                       transition: "background-color 0.15s ease-in-out",
                     }}
                     onMouseEnter={(e) =>
-                      (e.currentTarget.style.backgroundColor = "#f8f9fa")
+                      !hasActiveWorkflow && (e.currentTarget.style.backgroundColor = "#f8f9fa")
                     }
                     onMouseLeave={(e) =>
                       (e.currentTarget.style.backgroundColor = "transparent")
                     }
                   >
                     <td onClick={(e) => e.stopPropagation()}>
-                      <div
-                        className="rounded-circle d-flex align-items-center justify-content-center"
-                        style={{
-                          width: "20px",
-                          height: "20px",
-                          border: isSelected
-                            ? "2px solid #0d5173"
-                            : "2px solid #cbd5e1",
-                          backgroundColor: isSelected ? "#0d5173" : "#fff",
-                          cursor: "pointer",
-                          transition: "all 0.15s ease",
-                        }}
-                        onClick={() => onSelectStudent(st.id)}
-                      >
-                        {isSelected && (
-                          <Check size={12} color="#fff" strokeWidth={3} />
-                        )}
-                      </div>
+                      {!hasActiveWorkflow ? (
+                        <div
+                          className="rounded-circle d-flex align-items-center justify-content-center"
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            border: isSelected
+                              ? "2px solid #0d5173"
+                              : "2px solid #cbd5e1",
+                            backgroundColor: isSelected ? "#0d5173" : "#fff",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                          onClick={() => onSelectStudent(st.id)}
+                        >
+                          {isSelected && (
+                            <Check size={12} color="#fff" strokeWidth={3} />
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted small" title="Locked due to active workflow">🔒</span>
+                      )}
                     </td>
                     <td>
-                      <div className="fw-semibold">{st.name}</div>
+                      <div className="fw-semibold d-flex align-items-center gap-2">
+                        {st.name}
+                        {hasActiveWorkflow && (
+                          <span className="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-0.5" style={{ fontSize: "10px" }}>
+                            {st.workflowState}
+                          </span>
+                        )}
+                      </div>
                       <small className="text-muted">{st.studentNo}</small>
                     </td>
                     <td>{st.year}</td>

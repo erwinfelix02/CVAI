@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Users, X, CalendarCheck } from "lucide-react";
+import { Users, X } from "lucide-react";
 import type { SectionItem } from "./types";
 import { getStudentsBySection } from "../../../api/studentService";
 import { API_BASE_URL } from "../../../config";
@@ -12,7 +12,6 @@ interface Student {
   avatarText?: string;
   avatarUrl?: string;
   email?: string;
-  attendance?: number;
 }
 
 interface ViewStudentsModalProps {
@@ -76,7 +75,6 @@ export default function ViewStudentsModal({
               avatarText: initials || "S",
               avatarUrl: s.avatarUrl || s.photo || s.image || "",
               email: s.email || "",
-              attendance: s.attendance !== undefined ? Number(s.attendance) : 100,
             };
           });
 
@@ -161,13 +159,10 @@ export default function ViewStudentsModal({
             </div>
           </div>
 
-          {/* List Section Header with Attendance Label */}
+          {/* List Section Header */}
           {!isLoading && students.length > 0 && (
             <div className="d-flex align-items-center justify-content-between px-2 mb-2">
               <span className="text-muted small fw-semibold text-uppercase">Student Information</span>
-              <span className="text-muted small fw-semibold text-uppercase d-flex align-items-center gap-1">
-                <CalendarCheck size={14} /> Attendance Rate
-              </span>
             </div>
           )}
 
@@ -181,14 +176,6 @@ export default function ViewStudentsModal({
               students.map((std) => {
                 const resolvedAvatarUrl = getFullAvatarUrl(std.avatarUrl);
                 const showAvatar = Boolean(resolvedAvatarUrl) && !imageErrors[std.id];
-                const attendanceVal = std.attendance ?? 100;
-
-                const attendanceBadgeClass =
-                  attendanceVal >= 90
-                    ? "bg-success-subtle text-success"
-                    : attendanceVal >= 75
-                    ? "bg-warning-subtle text-warning"
-                    : "bg-danger-subtle text-danger";
 
                 return (
                   <div
@@ -234,17 +221,6 @@ export default function ViewStudentsModal({
                           {std.studentId} {std.email ? `• ${std.email}` : ""}
                         </div>
                       </div>
-                    </div>
-
-                    {/* Attendance Pill with Title context */}
-                    <div className="flex-shrink-0 ms-2 text-end">
-                      <span
-                        className={`badge ${attendanceBadgeClass} d-inline-flex align-items-center gap-1 px-2.5 py-1.5 fw-semibold`}
-                        title="Student Attendance Rate"
-                      >
-                        <CalendarCheck size={13} />
-                        {attendanceVal}%
-                      </span>
                     </div>
                   </div>
                 );

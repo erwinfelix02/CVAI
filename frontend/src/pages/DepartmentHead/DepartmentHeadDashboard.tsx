@@ -7,26 +7,29 @@ import StatCardsRow, {
   type StatCardItem,
 } from "../../components/DepartmentHead/Dashboard/StatCard";
 
-import TeachingLoadsCard, {
-  type TeachingLoadRow,
-} from "../../components/DepartmentHead/Dashboard/TeachingLoadsCard";
+import SectionEnrollmentCard, {
+  type SectionEnrollmentRow,
+} from "../../components/DepartmentHead/Dashboard/SectionEnrollmentCard";
 
-import ScheduleConflictsCard, {
-  type ConflictRow,
-} from "../../components/DepartmentHead/Dashboard/ScheduleConflictsCard";
+import NeedsAttentionCard, {
+  type AttentionRow,
+} from "../../components/DepartmentHead/Dashboard/NeedsAttentionCard";
 
-import RecentAssignmentsCard, {
-  type AssignmentRow,
-} from "../../components/DepartmentHead/Dashboard/RecentAssignmentsCard";
+import MySectionRequestsCard, {
+  type SectionRequestRow,
+} from "../../components/DepartmentHead/Dashboard/MySectionRequestsCard";
 
-import ResolveConflictsModal from "../../components/DepartmentHead/Dashboard/ResolveConflictsModal";
+import RecentSectionAssignmentsCard, {
+  type SectionAssignmentRow,
+} from "../../components/DepartmentHead/Dashboard/RecentSectionAssignmentsCard";
+
 import { API_BASE_URL } from "../../config";
 
 import {
   Users,
-  BookOpen,
-  CalendarDays,
-  DoorOpen,
+  UserCheck,
+  UserX,
+  Layers,
   AlertTriangle,
   CheckCircle2,
   Loader2,
@@ -40,16 +43,9 @@ export default function DepartmentHeadDashboard() {
   /* =========================================================
      WELCOME MESSAGE
      ========================================================= */
-
   const [showWelcome, setShowWelcome] = useState(false);
   const [isWelcomeClosing, setIsWelcomeClosing] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState("");
-
-  /* =========================================================
-     RESOLVE CONFLICTS MODAL STATE
-     ========================================================= */
-
-  const [isResolveModalOpen, setIsResolveModalOpen] = useState(false);
 
   /* =========================================================
      BACK NAVIGATION LOGOUT & COUNTDOWN STATES
@@ -61,23 +57,21 @@ export default function DepartmentHeadDashboard() {
   /* =========================================================
      DYNAMIC DATA STATES & LOADING
      ========================================================= */
+  const [totalStudentsCount, setTotalStudentsCount] = useState<number>(0);
+  const [assignedStudentsCount, setAssignedStudentsCount] = useState<number>(0);
+  const [unassignedStudentsCount, setUnassignedStudentsCount] = useState<number>(0);
+  const [activeSectionsCount, setActiveSectionsCount] = useState<number>(0);
 
-  const [facultyCount, setFacultyCount] = useState<number>(0);
-  const [subjectCount, setSubjectCount] = useState<number>(0);
-  const [activeScheduleCount, setActiveScheduleCount] = useState<number>(0);
-  const [availableRoomsCount, setAvailableRoomsCount] = useState<number>(0);
-
-  const [schedulesList, setSchedulesList] = useState<any[]>([]);
-  const [teachingLoads, setTeachingLoads] = useState<TeachingLoadRow[]>([]);
-  const [conflictsList, setConflictsList] = useState<ConflictRow[]>([]);
-  const [recentAssignments, setRecentAssignments] = useState<AssignmentRow[]>([]);
+  const [sectionEnrollments, setSectionEnrollments] = useState<SectionEnrollmentRow[]>([]);
+  const [attentionList, setAttentionList] = useState<AttentionRow[]>([]);
+  const [sectionRequests, setSectionRequests] = useState<SectionRequestRow[]>([]);
+  const [recentAssignments, setRecentAssignments] = useState<SectionAssignmentRow[]>([]);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   /* =========================================================
      GET SIGNED-IN USER'S DEPARTMENT & PROFILE
      ========================================================= */
-
   const currentUser = useMemo(() => {
     try {
       const userJson = localStorage.getItem("user");
@@ -92,7 +86,6 @@ export default function DepartmentHeadDashboard() {
   /* =========================================================
      SHOW WELCOME MESSAGE AFTER LOGIN
      ========================================================= */
-
   useEffect(() => {
     const message = localStorage.getItem("welcomeMessage");
 
@@ -108,7 +101,6 @@ export default function DepartmentHeadDashboard() {
   /* =========================================================
      AUTO CLOSE WELCOME MESSAGE
      ========================================================= */
-
   useEffect(() => {
     if (!showWelcome) return;
 
@@ -192,7 +184,6 @@ export default function DepartmentHeadDashboard() {
       async function finalizeLogout() {
         await logLogoutActivity();
 
-        // Clear session tokens
         localStorage.removeItem("token");
         localStorage.removeItem("sessionToken");
         localStorage.removeItem("user");
@@ -214,153 +205,196 @@ export default function DepartmentHeadDashboard() {
   }, [isLoggingOut, logoutCountdown, navigate]);
 
   /* =========================================================
-     DYNAMIC DATA FETCHING BASED ON DEPARTMENT
+     DYNAMIC DATA FETCHING (Unified Section & Student Count Alignment)
      ========================================================= */
-
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
 
-    const queryParam = userDepartment
-      ? `?department=${encodeURIComponent(userDepartment)}`
-      : "";
-
     try {
-      const [facultyRes, subjectsRes, schedulesRes, roomsRes, conflictsRes] =
-        await Promise.all([
-          fetch(`${API_BASE_URL}/users/faculty${queryParam}`),
-          fetch(`${API_BASE_URL}/subjects${queryParam}`),
-          fetch(`${API_BASE_URL}/schedules${queryParam}`),
-          fetch(`${API_BASE_URL}/rooms${queryParam}`),
-          fetch(`${API_BASE_URL}/schedules/conflicts${queryParam}`),
-        ]);
+      const [studentsRes, sectionsRes, requestsRes, attentionRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/students`),
+        fetch(`${API_BASE_URL}/sections`),
+        fetch(`${API_BASE_URL}/section-requests`),
+        fetch(`${API_BASE_URL}/students/attention`),
+      ]);
 
-      const rawFaculty = facultyRes.ok ? await facultyRes.json() : [];
-      const rawSubjects = subjectsRes.ok ? await subjectsRes.json() : [];
-      const rawSchedules = schedulesRes.ok ? await schedulesRes.json() : [];
-      const rawRooms = roomsRes.ok ? await roomsRes.json() : [];
-      const rawConflicts = conflictsRes.ok ? await conflictsRes.json() : [];
+      const rawStudents = studentsRes.ok ? await studentsRes.json() : [];
+      const rawSections = sectionsRes.ok ? await sectionsRes.json() : [];
+      const rawRequests = requestsRes.ok ? await requestsRes.json() : [];
+      const rawAttention = attentionRes.ok ? await attentionRes.json() : [];
 
-      const facultyList = Array.isArray(rawFaculty) ? rawFaculty : [];
-      const subjectsList = Array.isArray(rawSubjects) ? rawSubjects : [];
-      const parsedSchedulesList = Array.isArray(rawSchedules) ? rawSchedules : [];
-      const roomsList = Array.isArray(rawRooms) ? rawRooms : [];
+      const allStudents = Array.isArray(rawStudents) ? rawStudents : [];
+      const allSections = Array.isArray(rawSections) ? rawSections : [];
+      const allRequests = Array.isArray(rawRequests) ? rawRequests : [];
+      const allAttention = Array.isArray(rawAttention) ? rawAttention : [];
 
-      setSchedulesList(parsedSchedulesList);
+      // 1. Filter students strictly by the signed-in user's department
+      const studentsList = userDepartment
+        ? allStudents.filter(
+            (s: any) =>
+              s.department &&
+              s.department.trim().toLowerCase() === userDepartment.trim().toLowerCase()
+          )
+        : allStudents;
 
-      setFacultyCount(facultyList.length);
-      setSubjectCount(subjectsList.length);
-      setActiveScheduleCount(parsedSchedulesList.length);
-      setAvailableRoomsCount(
-        roomsList.filter(
-          (r: any) => r.status?.toLowerCase() === "available" || r.isAvailable,
-        ).length || roomsList.length,
-      );
+      // 2. Filter sections strictly by department
+      const sectionsListParsed = userDepartment
+        ? allSections.filter(
+            (sec: any) =>
+              !sec.department ||
+              sec.department.trim().toLowerCase() === userDepartment.trim().toLowerCase()
+          )
+        : allSections;
 
-      const subjectUnitsMap = new Map<string, number>();
-      subjectsList.forEach((sub: any) => {
-        if (sub.code) {
-          subjectUnitsMap.set(sub.code.trim().toUpperCase(), sub.units || 3);
-        }
-      });
+      setActiveSectionsCount(sectionsListParsed.length);
+      setTotalStudentsCount(studentsList.length);
 
-      const mappedLoads: TeachingLoadRow[] = facultyList.map((member: any) => {
-        const facultyName =
-          member.name ||
-          `${member.firstName || ""} ${member.lastName || ""}`.trim();
+      // 3. Map Section Enrollments and robustly compute student matches
+      const mappedSections: SectionEnrollmentRow[] = sectionsListParsed.map((sec: any) => {
+        const secName = (sec.name || sec.code || "").trim().toLowerCase();
+        const secCode = (sec.code || "").trim().toLowerCase();
+        const secId = String(sec._id || sec.id || "").trim();
 
-        const assignedSchedules = parsedSchedulesList.filter(
-          (sch: any) =>
-            sch.faculty?.trim().toLowerCase() ===
-            facultyName.trim().toLowerCase(),
-        );
+        const currentEnrolled = studentsList.filter((s: any) => {
+          const studentSection = (s.section || "").trim().toLowerCase();
+          const studentSectionName = (s.sectionName || "").trim().toLowerCase();
+          const studentSectionCode = (s.sectionCode || "").trim().toLowerCase();
+          const studentSectionId = String(s.sectionId || s.sectionRef || "").trim();
 
-        const currentUnits = assignedSchedules.reduce(
-          (acc: number, sch: any) => {
-            const units =
-              subjectUnitsMap.get(sch.code?.trim().toUpperCase()) || 3;
-            return acc + units;
-          },
-          0,
-        );
-
-        const maxUnits = member.maxLoad || 21;
+          return (
+            (secName && (studentSection === secName || studentSectionName === secName)) ||
+            (secCode && studentSectionCode === secCode) ||
+            (secId && studentSectionId === secId)
+          );
+        }).length;
 
         return {
-          name: facultyName,
-          dept:
-            member.specialization ||
-            member.department ||
-            userDepartment ||
-            "General",
-          current: currentUnits,
-          max: maxUnits,
-          tone: currentUnits >= maxUnits ? "danger" : "ok",
+          name: sec.code || sec.name || "Section",
+          room: sec.room || "",
+          schedule: sec.schedule || "",
+          current: currentEnrolled,
+          max: sec.capacity || 40,
         };
       });
 
-      setTeachingLoads(mappedLoads);
+      setSectionEnrollments(mappedSections);
 
-      if (Array.isArray(rawConflicts) && rawConflicts.length > 0) {
-        setConflictsList(
-          rawConflicts.map((c: any) => ({
-            room: c.room,
-            time: c.time,
-            details: c.details,
-            schedules: c.schedules,
-          })),
-        );
-      } else {
-        const roomTimeMap = new Map<string, any[]>();
-        parsedSchedulesList.forEach((sch: any) => {
-          if (sch.room && (sch.days || sch.time)) {
-            const timeSlot = `${sch.days || ""} ${sch.time || ""}`.trim();
-            const key = `${sch.room.trim().toLowerCase()}__${timeSlot.toLowerCase()}`;
-            if (!roomTimeMap.has(key)) {
-              roomTimeMap.set(key, []);
-            }
-            roomTimeMap.get(key)!.push(sch);
-          }
+      // 4. Compute exact assigned vs unassigned student counts
+      const assignedStudentsCountTotal = studentsList.filter((s: any) => {
+        const sec = (s.section || s.sectionName || "").trim();
+        return sec && sec !== "" && sec !== "—";
+      }).length;
+
+      setAssignedStudentsCount(assignedStudentsCountTotal);
+      setUnassignedStudentsCount(Math.max(0, studentsList.length - assignedStudentsCountTotal));
+
+      // 5. Map Attention Items for unassigned students & Transfer/Drop Pending workflows
+      const formattedAttention: AttentionRow[] = [];
+
+      // A. Check for workflow-pending students (Transfer Pending / Drop Requested)
+      const workflowPendingStudents = studentsList.filter((s: any) => {
+        const wf = s.workflowState || "None";
+        return wf === "Transfer Pending" || wf === "Drop Requested";
+      });
+
+      workflowPendingStudents.forEach((student: any, idx: number) => {
+        const studentName = student.fullName || student.name || `${student.firstName || ""} ${student.lastName || ""}`.trim() || "Student";
+        const studentId = student.studentIdNumber || student.id || student.studentNo || "2024-0000";
+        const wfState = student.workflowState;
+
+        formattedAttention.push({
+          id: `workflow-${student._id || student.id || idx}`,
+          type: "student-card",
+          studentName: studentName,
+          studentNo: studentId,
+          year: `Year ${student.year || student.yearLevel || 1} · ${student.program || "Program"}`,
+          reason: wfState === "Transfer Pending" ? "Student requested a department/section transfer" : "Student requested course drop",
+          badgeTone: "warning",
+          badgeText: wfState,
+          onAction: () => navigate("/dept-head/sections", { state: { activeTab: "bulk" } }),
+        });
+      });
+
+      // B. Check for unassigned students
+      const unassignedStudents = studentsList.filter((s: any) => {
+        const sec = (s.section || s.sectionName || "").trim();
+        const wf = s.workflowState || "None";
+        return (!sec || sec === "" || sec === "—") && wf === "None";
+      });
+
+      unassignedStudents.forEach((student: any, idx: number) => {
+        const studentName = student.fullName || student.name || `${student.firstName || ""} ${student.lastName || ""}`.trim() || "Student";
+        const studentId = student.studentIdNumber || student.id || student.studentNo || "2024-0000";
+
+        formattedAttention.push({
+          id: `unassigned-${student._id || student.id || idx}`,
+          type: "warning-banner",
+          title: `${studentName} (${studentId})`,
+          subtitle: "Needs section assignment",
+          actionLabel: "Assign",
+          onAction: () => navigate("/dept-head/sections", { state: { activeTab: "bulk" } }),
+        });
+      });
+
+      allAttention
+        .filter(
+          (att: any) =>
+            !userDepartment ||
+            att.department?.trim().toLowerCase() === userDepartment.trim().toLowerCase()
+        )
+        .forEach((att: any, idx: number) => {
+          formattedAttention.push({
+            id: `att-${idx}`,
+            type: "student-card",
+            studentName: att.name || `${att.firstName || ""} ${att.lastName || ""}`.trim(),
+            studentNo: att.studentNo || att.idNumber || "2024-0000",
+            year: att.year || "Year 1",
+            reason: att.reason || "Prerequisites incomplete",
+            badgeTone: att.badgeTone || "danger",
+            badgeText: att.badgeText || "Blocked",
+          });
         });
 
-        const fallbackConflicts: ConflictRow[] = [];
-        roomTimeMap.forEach((schedules) => {
-          if (schedules.length > 1) {
-            const roomName = schedules[0].room;
-            const timeSlot =
-              `${schedules[0].days || ""} ${schedules[0].time || ""}`.trim();
-            const subjectCodes = Array.from(
-              new Set(schedules.map((s: any) => s.code || s.title)),
-            ).join(" & ");
+      setAttentionList(formattedAttention);
 
-            fallbackConflicts.push({
-              room: roomName,
-              time: timeSlot,
-              details: `Conflicting subjects: ${subjectCodes}`,
-              schedules,
-            });
-          }
-        });
+      // 6. Map Section Requests with clean naming to show section names instead of IDs
+      setSectionRequests(
+        allRequests
+          .filter(
+            (req: any) =>
+              !userDepartment ||
+              (req.department && req.department.trim().toLowerCase() === userDepartment.trim().toLowerCase())
+          )
+          .map((req: any) => ({
+            id: req._id || req.id,
+            student: req.sectionName || req.name || "New Section",
+            requestedSection: `${req.program || "Program"} · Year ${req.yearLevel || req.year || 1} (Cap: ${req.requestedCapacity || req.capacity || 40})`,
+            status: req.status || "Pending",
+          }))
+      );
 
-        setConflictsList(fallbackConflicts);
-      }
-
-      const mappedRecent: AssignmentRow[] = parsedSchedulesList
-        .slice(-5)
-        .reverse()
-        .map((sch: any) => ({
-          subject: `${sch.code || "SUBJ"} ${sch.title || "Subject"}`,
-          instructor: sch.faculty || "Unassigned",
-          room: sch.room || "TBA",
-          schedule: `${sch.days || ""} ${sch.time || ""}`.trim() || "TBA",
-        }));
-
-      setRecentAssignments(mappedRecent);
+      // 7. Map Recent Assignments
+      setRecentAssignments(
+        studentsList
+          .filter((s: any) => {
+            const sec = (s.section || s.sectionName || "").trim();
+            return sec && sec !== "" && sec !== "—";
+          })
+          .slice(-5)
+          .reverse()
+          .map((s: any) => ({
+            student: `${s.firstName || ""} ${s.lastName || ""}`.trim() || s.name || "Student",
+            studentNo: s.studentIdNumber || s.studentNo || s.id || "2024-0000",
+            section: s.section || s.sectionName,
+            assignedDate: s.assignedDate || s.updatedAt || "Today",
+          }))
+      );
     } catch (err) {
-      console.error("Error fetching department dashboard data:", err);
+      console.error("Error fetching dashboard data:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [userDepartment]);
+  }, [userDepartment, navigate]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -369,47 +403,43 @@ export default function DepartmentHeadDashboard() {
   const stats = useMemo<StatCardItem[]>(
     () => [
       {
-        label: "Total Faculty",
-        value: facultyCount,
+        label: "Students in Department",
+        value: totalStudentsCount,
         icon: Users,
         tone: "purple",
       },
       {
-        label: "Subjects",
-        value: subjectCount,
-        icon: BookOpen,
-        tone: "blue",
-      },
-      {
-        label: "Active Schedules",
-        value: activeScheduleCount,
-        icon: CalendarDays,
+        label: "Assigned to Sections",
+        value: assignedStudentsCount,
+        icon: UserCheck,
         tone: "green",
       },
       {
-        label: "Available Rooms",
-        value: availableRoomsCount,
-        icon: DoorOpen,
+        label: "Unassigned Students",
+        value: unassignedStudentsCount,
+        icon: UserX,
         tone: "orange",
       },
+      {
+        label: "Active Sections",
+        value: activeSectionsCount,
+        icon: Layers,
+        tone: "purple-light",
+      },
     ],
-    [facultyCount, subjectCount, activeScheduleCount, availableRoomsCount],
+    [totalStudentsCount, assignedStudentsCount, unassignedStudentsCount, activeSectionsCount]
   );
 
   return (
     <>
       {/* WELCOME OVERLAY */}
       {showWelcome && (
-        <div
-          className={`welcome-overlay ${isWelcomeClosing ? "fade-out" : ""}`}
-        >
+        <div className={`welcome-overlay ${isWelcomeClosing ? "fade-out" : ""}`}>
           <div className={`welcome-box ${isWelcomeClosing ? "fade-out" : ""}`}>
             <div className="welcome-icon-wrap">
               <CheckCircle2 size={34} />
             </div>
-
             <h4>{welcomeMessage}</h4>
-
             <p>You have successfully signed in.</p>
           </div>
         </div>
@@ -417,14 +447,9 @@ export default function DepartmentHeadDashboard() {
 
       {/* BACK NAVIGATION LOGOUT CONFIRMATION MODAL */}
       {showBackLogoutConfirm && (
-        <div
-          className="logout-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="back-logout-title"
-        >
+        <div className="logout-overlay" role="dialog" aria-modal="true">
           <div className="logout-modal">
-            <h6 id="back-logout-title">Confirm Log Out</h6>
+            <h6>Confirm Log Out</h6>
             <p>Going back will log you out of your session. Are you sure?</p>
             <div className="d-flex gap-2 justify-content-end">
               <button
@@ -468,11 +493,10 @@ export default function DepartmentHeadDashboard() {
         <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-3 mb-md-4">
           <div>
             <h2 className="fw-bold mb-1">Department Head Dashboard</h2>
-
             <p className="text-muted mb-0">
               {userDepartment
-                ? `Department of ${userDepartment} — Overview of faculty, schedules, and rooms`
-                : "Manage faculty assignments, schedules, and room allocations"}
+                ? `Department of ${userDepartment} — Student enrollment and section placement at a glance`
+                : "Student enrollment and section placement at a glance"}
             </p>
           </div>
         </div>
@@ -480,13 +504,8 @@ export default function DepartmentHeadDashboard() {
         {isLoading ? (
           <div className="card border-0 shadow-sm rounded-4 p-5 text-center text-muted my-4">
             <div className="d-flex align-items-center justify-content-center gap-2">
-              <Loader2
-                className="spinner-border spinner-border-sm text-primary"
-                size={22}
-              />
-              <span className="fw-medium">
-                Loading department dashboard insights...
-              </span>
+              <Loader2 className="spinner-border spinner-border-sm text-primary" size={22} />
+              <span className="fw-medium">Loading section placement insights...</span>
             </div>
           </div>
         ) : (
@@ -497,33 +516,41 @@ export default function DepartmentHeadDashboard() {
 
             <div className="row g-3 g-md-4 mb-3 mb-md-4">
               <div className="col-12 col-xl-6">
-                <TeachingLoadsCard
-                  title="Faculty Teaching Loads"
-                  rows={teachingLoads}
+                <SectionEnrollmentCard
+                  title="Section Enrollment"
+                  actionLabel="Manage"
+                  onManageClick={() => navigate("/dept-head/sections")}
+                  rows={sectionEnrollments}
                 />
               </div>
 
               <div className="col-12 col-xl-6">
-                <ScheduleConflictsCard
-                  title="Schedule Conflicts"
-                  badgeLabel={
-                    conflictsList.length > 0
-                      ? `${conflictsList.length} ${conflictsList.length === 1 ? "Issue" : "Issues"}`
-                      : "0 Issues"
-                  }
-                  badgeTone={conflictsList.length > 0 ? "warning" : "info"}
+                <NeedsAttentionCard
+                  title="Needs Attention"
+                  badgeLabel={`${attentionList.length} ${attentionList.length === 1 ? "Item" : "Items"}`}
+                  badgeTone="warning"
                   icon={AlertTriangle}
-                  rows={conflictsList}
-                  actionLabel="Resolve Conflicts"
-                  onResolveClick={() => setIsResolveModalOpen(true)}
+                  rows={attentionList}
+                  actionPath="/dept-head/sections"
                 />
               </div>
             </div>
 
             <div className="row g-3 g-md-4">
-              <div className="col-12">
-                <RecentAssignmentsCard
-                  title="Recent Schedule Assignments"
+              <div className="col-12 col-xl-6">
+                <MySectionRequestsCard
+                  title="My Section Requests"
+                  actionLabel="View All"
+                  onViewAllClick={() => navigate("/dept-head/sections", { state: { activeTab: "requests" } })}
+                  rows={sectionRequests}
+                />
+              </div>
+
+              <div className="col-12 col-xl-6">
+                <RecentSectionAssignmentsCard
+                  title="Recent Section Assignments"
+                  actionLabel="View Students"
+                  onViewStudentsClick={() => navigate("/dept-head/sections", { state: { activeTab: "bulk" } })}
                   rows={recentAssignments}
                 />
               </div>
@@ -531,14 +558,6 @@ export default function DepartmentHeadDashboard() {
           </>
         )}
       </div>
-
-      <ResolveConflictsModal
-        isOpen={isResolveModalOpen}
-        onClose={() => setIsResolveModalOpen(false)}
-        rawConflicts={conflictsList}
-        allSchedules={schedulesList}
-        onResolutionsApplied={fetchDashboardData}
-      />
     </>
   );
 }

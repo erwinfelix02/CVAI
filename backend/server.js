@@ -39,6 +39,7 @@ import { checkUpcomingTasks } from "./utils/taskReminderService.js";
 import ticketRouter from "./routes/ticketRoutes.js";
 import sectionRequestsRouter from "./routes/sectionRequests.js";
 import auditRoutes from "./routes/auditRoutes.js";
+import transferRoutes from "./routes/transferRoutes.js";
 
 const app = express();
 
@@ -104,6 +105,7 @@ app.use("/api/announcements", announcementsRouter);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/verification", verificationRoutes);
 app.use("/api/todos", todoRoutes);
+app.use("/api/transfers", transferRoutes);
 app.use("/api/tickets", ticketRouter);
 
 // ✅ 2. Start server and database tasks

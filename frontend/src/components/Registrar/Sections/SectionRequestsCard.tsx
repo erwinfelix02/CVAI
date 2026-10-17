@@ -1,24 +1,47 @@
 import { useState } from "react";
-import { FileText, Check, X, User, Building } from "lucide-react";
+import {
+  FileText,
+  CheckCircle,
+  User,
+  Building,
+  TriangleAlert,
+  Eye,
+  RotateCcw,
+  X,
+} from "lucide-react";
+import { createPortal } from "react-dom";
 import type { SectionRequest } from "./types";
 
 type Props = {
   requests: SectionRequest[];
   onApproveClick: (request: SectionRequest) => void;
   onReject: (requestId: string, feedback: string) => Promise<void>;
+  onViewClick?: (request: SectionRequest) => void;
+};
+
+const backdropBlurStyle: React.CSSProperties = {
+  backgroundColor: "rgba(15, 23, 42, 0.45)",
+  backdropFilter: "blur(4px)",
+  WebkitBackdropFilter: "blur(4px)",
 };
 
 export default function SectionRequestsCard({
   requests,
   onApproveClick,
   onReject,
+  onViewClick,
 }: Props) {
-  const [selectedRejectReq, setSelectedRejectReq] = useState<SectionRequest | null>(null);
+  const [selectedRejectReq, setSelectedRejectReq] =
+    useState<SectionRequest | null>(null);
+  const [selectedApproveReq, setSelectedApproveReq] =
+    useState<SectionRequest | null>(null);
   const [rejectFeedback, setRejectFeedback] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const activeRequests = Array.isArray(requests) ? requests : [];
-  const pendingRequests = activeRequests.filter((r) => !r.status || r.status === "Pending");
+  const pendingRequests = activeRequests.filter(
+    (r) => !r.status || r.status === "Pending",
+  );
   const pendingCount = pendingRequests.length;
 
   const handleOpenReject = (req: SectionRequest) => {
@@ -35,6 +58,12 @@ export default function SectionRequestsCard({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const confirmApprove = () => {
+    if (!selectedApproveReq) return;
+    onApproveClick(selectedApproveReq);
+    setSelectedApproveReq(null);
   };
 
   // Helper function to format the date into readable text
@@ -68,7 +97,8 @@ export default function SectionRequestsCard({
               </span>
             </h5>
             <small className="text-muted">
-              Check room availability and capacity before officially opening a section
+              Check room availability and capacity before officially opening a
+              section
             </small>
           </div>
         </div>
@@ -76,10 +106,12 @@ export default function SectionRequestsCard({
 
       {pendingCount === 0 ? (
         <div className="text-center py-4 text-muted bg-light rounded-3 border border-dashed">
-          <p className="mb-0 small">No pending section requests from departments at this time.</p>
+          <p className="mb-0 small">
+            No pending section requests from departments at this time.
+          </p>
         </div>
       ) : (
-        <div 
+        <div
           className="d-flex flex-column gap-3 pe-1"
           style={{
             maxHeight: "220px",
@@ -89,8 +121,17 @@ export default function SectionRequestsCard({
         >
           {pendingRequests.map((req) => {
             const displayCode = req.sectionName || req.code || req.program;
-            const suffix = req.yearLevel === 1 ? "st" : req.yearLevel === 2 ? "nd" : req.yearLevel === 3 ? "rd" : "th";
-            const yearStr = req.yearLevel ? `${req.yearLevel}${suffix} Year` : "";
+            const suffix =
+              req.yearLevel === 1
+                ? "st"
+                : req.yearLevel === 2
+                  ? "nd"
+                  : req.yearLevel === 3
+                    ? "rd"
+                    : "th";
+            const yearStr = req.yearLevel
+              ? `${req.yearLevel}${suffix} Year`
+              : "";
             const capacityVal = req.requestedCapacity ?? req.capacity ?? 40;
             const roomVal = req.preferredRoom || req.room || "TBA";
             const formattedDate = formatReadableDate(req.createdAt);
@@ -102,13 +143,17 @@ export default function SectionRequestsCard({
               >
                 <div className="min-w-0">
                   <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                    <span className="fw-bold text-dark fs-6">{displayCode}</span>
+                    <span className="fw-bold text-dark fs-6">
+                      {displayCode}
+                    </span>
                     <span className="badge bg-warning-subtle text-warning border border-warning-subtle">
                       {req.status || "Pending"}
                     </span>
                   </div>
                   <div className="text-muted small d-flex align-items-center gap-3 flex-wrap">
-                    <span>{req.program} {yearStr ? `• ${yearStr}` : ""}</span>
+                    <span>
+                      {req.program} {yearStr ? `• ${yearStr}` : ""}
+                    </span>
                     <span>Capacity: {capacityVal}</span>
                     <span className="d-flex align-items-center gap-1">
                       <Building size={13} /> Preferred Room: {roomVal}
@@ -126,18 +171,37 @@ export default function SectionRequestsCard({
                   )}
                 </div>
 
-                <div className="d-flex align-items-center gap-2 flex-shrink-0">
+                <div className="d-flex align-items-center gap-2 flex-nowrap flex-shrink-0 justify-content-end">
+                  {onViewClick && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-primary p-2 d-flex align-items-center justify-content-center rounded-3"
+                      style={{ width: "38px", height: "38px" }}
+                      onClick={() => onViewClick(req)}
+                      title="View request details"
+                    >
+                      <Eye size={16} />
+                    </button>
+                  )}
+
                   <button
-                    className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1 px-4 py-2 rounded-pill fw-medium"
+                    type="button"
+                    className="btn btn-sm btn-outline-danger p-2 d-flex align-items-center justify-content-center rounded-3"
+                    style={{ width: "38px", height: "38px" }}
                     onClick={() => handleOpenReject(req)}
+                    title="Return request back to department"
                   >
-                    <X size={15} /> Return
+                    <RotateCcw size={16} />
                   </button>
+
                   <button
-                    className="btn btn-primary btn-sm d-flex align-items-center gap-1 px-4 py-2 rounded-pill fw-medium"
-                    onClick={() => onApproveClick(req)}
+                    type="button"
+                    className="btn btn-sm btn-primary p-2 d-flex align-items-center justify-content-center rounded-3"
+                    style={{ width: "38px", height: "38px" }}
+                    onClick={() => setSelectedApproveReq(req)}
+                    title="Approve section request"
                   >
-                    <Check size={15} /> Approve
+                    <CheckCircle size={18} />
                   </button>
                 </div>
               </div>
@@ -146,42 +210,132 @@ export default function SectionRequestsCard({
         </div>
       )}
 
+      {/* APPROVE CONFIRMATION MODAL */}
+      {selectedApproveReq &&
+        createPortal(
+          <div
+            className="registrar-confirm-backdrop"
+            style={backdropBlurStyle}
+            onClick={() => setSelectedApproveReq(null)}
+          >
+            <div
+              className="registrar-confirm-modal bg-white rounded-4 shadow-lg p-4 mx-3"
+              style={{ maxWidth: 420, width: "100%" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="registrar-confirm-header d-flex align-items-center justify-content-between mb-2">
+                <div className="registrar-confirm-title fw-bold fs-5">
+                  Approve Section Request?
+                </div>
+                <button
+                  type="button"
+                  className="app-icon-btn app-icon-btn-sm text-muted"
+                  onClick={() => setSelectedApproveReq(null)}
+                  aria-label="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="registrar-confirm-body text-center py-3">
+                <div className="registrar-confirm-icon bg-primary-subtle text-primary d-inline-flex p-3 rounded-circle mb-3">
+                  <TriangleAlert size={24} />
+                </div>
+                <p className="text-muted mb-0">
+                  Are you sure you want to approve the section request for{" "}
+                  <strong>
+                    {selectedApproveReq.sectionName ||
+                      selectedApproveReq.code ||
+                      selectedApproveReq.program}
+                  </strong>
+                  ?
+                </p>
+              </div>
+
+              <div className="registrar-confirm-actions d-flex justify-content-end gap-2 mt-3">
+                <button
+                  type="button"
+                  className="btn btn-light px-4 rounded-pill fw-medium"
+                  onClick={() => setSelectedApproveReq(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary px-4 rounded-pill fw-medium"
+                  onClick={confirmApprove}
+                >
+                  Yes, Approve
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
       {/* RETURN / REJECT MODAL */}
-      {selectedRejectReq && (
-        <div className="sec-confirm-backdrop" onClick={() => setSelectedRejectReq(null)}>
-          <div className="sec-confirm-popup p-4 rounded-4 bg-white shadow-lg mx-3" style={{ maxWidth: 480, width: "100%" }} onClick={(e) => e.stopPropagation()}>
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <h5 className="fw-bold mb-0">Return Request ({selectedRejectReq.sectionName || selectedRejectReq.code})</h5>
-              <button className="btn btn-link p-0 text-muted" onClick={() => setSelectedRejectReq(null)}>
-                <X size={18} />
-              </button>
-            </div>
-            <p className="text-muted small mb-3">
-              Provide feedback explaining why this section request is being returned or rejected.
-            </p>
+      {selectedRejectReq &&
+        createPortal(
+          <div
+            className="sec-confirm-backdrop"
+            style={backdropBlurStyle}
+            onClick={() => setSelectedRejectReq(null)}
+          >
+            <div
+              className="sec-confirm-popup p-4 rounded-4 bg-white shadow-lg mx-3"
+              style={{ maxWidth: 480, width: "100%" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <h5 className="fw-bold mb-0">
+                  Return Request (
+                  {selectedRejectReq.sectionName || selectedRejectReq.code})
+                </h5>
+                <button
+                  className="btn btn-link p-0 text-muted"
+                  onClick={() => setSelectedRejectReq(null)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="text-muted small mb-3">
+                Provide feedback explaining why this section request is being
+                returned or rejected.
+              </p>
 
-            <div className="mb-3">
-              <label className="form-label fw-semibold small">Feedback to department</label>
-              <textarea
-                className="form-control"
-                rows={3}
-                value={rejectFeedback}
-                onChange={(e) => setRejectFeedback(e.target.value)}
-                placeholder="e.g., Room capacity is insufficient or schedule conflict"
-              />
-            </div>
+              <div className="mb-3">
+                <label className="form-label fw-semibold small">
+                  Feedback to department
+                </label>
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  value={rejectFeedback}
+                  onChange={(e) => setRejectFeedback(e.target.value)}
+                  placeholder="e.g., Room capacity is insufficient or schedule conflict"
+                />
+              </div>
 
-            <div className="d-flex justify-content-end gap-2 mt-4">
-              <button className="btn btn-light px-4 rounded-pill fw-medium" onClick={() => setSelectedRejectReq(null)} disabled={isSubmitting}>
-                Cancel
-              </button>
-              <button className="btn btn-danger px-4 rounded-pill fw-medium" onClick={confirmReject} disabled={isSubmitting}>
-                {isSubmitting ? "Returning..." : "Return Request"}
-              </button>
+              <div className="d-flex justify-content-end gap-2 mt-4">
+                <button
+                  className="btn btn-light px-4 rounded-pill fw-medium"
+                  onClick={() => setSelectedRejectReq(null)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-danger px-4 rounded-pill fw-medium"
+                  onClick={confirmReject}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Returning..." : "Return Request"}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

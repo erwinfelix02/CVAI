@@ -14,16 +14,14 @@ type Props = {
   onError: (message: string) => void;
 };
 
-type ColumnKey = "name" | "section" | "adviser" | "email" | "phone" | "gender" | "attendance" | "age" | "birthdate";
+type ColumnKey = "name" | "section" |"email" | "phone" | "gender" | "age" | "birthdate";
 
 const STUDENT_EXPORT_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "name", label: "Student Name" },
   { key: "section", label: "Section" },
-  { key: "adviser", label: "Adviser Name" },
   { key: "email", label: "Email Address" },
   { key: "phone", label: "Phone Number" },
   { key: "gender", label: "Gender" },
-  { key: "attendance", label: "Attendance" },
   { key: "age", label: "Age" },
   { key: "birthdate", label: "Birthdate" },
 ];
@@ -41,11 +39,9 @@ export default function ExportSectionsModal({
   const [activeColumns, setActiveColumns] = useState<ColumnKey[]>([
     "name",
     "section",
-    "adviser",
     "email",
     "phone",
     "gender",
-    "attendance",
     "age",
     "birthdate",
   ]);
@@ -146,14 +142,12 @@ export default function ExportSectionsModal({
           }
         }
 
-        const adviserName = sanitize(sec.adviser || "TBA");
 
         for (const s of matchingStudents) {
           const rawName = s.name || s.fullName || s.user?.name || `${s.firstName || s.user?.firstName || ""} ${s.lastName || s.user?.lastName || ""}`.trim();
           const rawEmail = s.email || s.user?.email;
           const rawPhone = s.phone || s.contactNumber || s.mobileNumber || s.user?.phone;
           const rawGender = s.gender || s.sex || s.user?.gender || s.user?.sex || s.profile?.gender;
-          const rawAttendance = s.attendance ?? s.attendancePercentage ?? 100;
           const rawBirthdate = s.birthdate || s.birthDate || s.dob || s.user?.birthdate || s.user?.birthDate;
           const rawAge = s.age || s.user?.age;
 
@@ -173,11 +167,9 @@ export default function ExportSectionsModal({
           exportedRows.push({
             name: sanitize(rawName),
             section: sanitize(sec.code || s.section),
-            adviser: adviserName,
             email: sanitize(rawEmail),
             phone: sanitize(rawPhone),
             gender: sanitize(rawGender),
-            attendance: sanitize(rawAttendance),
             age: calculateAge(rawBirthdate, rawAge),
             birthdate: formattedBirthdate,
           });
@@ -194,11 +186,9 @@ export default function ExportSectionsModal({
       const columnMap: Record<ColumnKey, string> = {
         name: "Student Name",
         section: "Section",
-        adviser: "Adviser Name",
         email: "Email Address",
         phone: "Phone Number",
         gender: "Gender",
-        attendance: "Attendance",
         age: "Age",
         birthdate: "Birthdate",
       };

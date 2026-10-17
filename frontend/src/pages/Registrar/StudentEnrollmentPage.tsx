@@ -36,7 +36,9 @@ export default function StudentEnrollmentPage() {
   const [enrolledLoading, setEnrolledLoading] = useState(true);
 
   const [enrollments, setEnrollments] = useState<EnrollmentItem[]>([]);
-  const [enrolledStudents, setEnrolledStudents] = useState<EnrollmentItem[]>([]);
+  const [enrolledStudents, setEnrolledStudents] = useState<EnrollmentItem[]>(
+    [],
+  );
 
   const [stats, setStats] = useState<{
     pending: number;
@@ -146,7 +148,11 @@ export default function StudentEnrollmentPage() {
           code: s.code,
           yearLevel: s.yearLevel,
           program: s.program,
-          adviser: s.adviser ?? "TBA",
+          department:
+            s.department ||
+            s.dept ||
+            s.programDepartment ||
+            "General Department",
           room: s.room,
           schedule: s.schedule,
           enrolled: s.enrolled ?? 0,
@@ -272,10 +278,7 @@ export default function StudentEnrollmentPage() {
         throw new Error(err?.message || "Failed to archive enrollment.");
       }
 
-      await Promise.all([
-        loadPending(query),
-        fetchStats(),
-      ]);
+      await Promise.all([loadPending(query), fetchStats()]);
 
       showAlert("Enrollment moved to archives.", "success");
     } catch (e: any) {
@@ -298,10 +301,7 @@ export default function StudentEnrollmentPage() {
         throw new Error(err?.message || "Failed to restore enrollment.");
       }
 
-      await Promise.all([
-        loadPending(query),
-        fetchStats(),
-      ]);
+      await Promise.all([loadPending(query), fetchStats()]);
 
       showAlert("Enrollment restored successfully.", "success");
     } catch (e: any) {
@@ -471,22 +471,27 @@ export default function StudentEnrollmentPage() {
     subject?: string;
     message?: string;
   }) => {
-    console.log("🌐 Calling API endpoint:", `${API_BASE_URL}/accounts/send-credentials`);
-    console.log("📦 Request body payload:", { studentIds, subject, message, updatedBy: registrarEmail });
-
-    const res = await fetch(
+    console.log(
+      "🌐 Calling API endpoint:",
       `${API_BASE_URL}/accounts/send-credentials`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studentIds,
-          subject,
-          message,
-          updatedBy: registrarEmail,
-        }),
-      },
     );
+    console.log("📦 Request body payload:", {
+      studentIds,
+      subject,
+      message,
+      updatedBy: registrarEmail,
+    });
+
+    const res = await fetch(`${API_BASE_URL}/accounts/send-credentials`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        studentIds,
+        subject,
+        message,
+        updatedBy: registrarEmail,
+      }),
+    });
 
     console.log("📥 Response status:", res.status, res.statusText);
 
@@ -498,7 +503,9 @@ export default function StudentEnrollmentPage() {
     console.log("📥 Response JSON data:", data);
 
     if (!res.ok) {
-      throw new Error(data?.message || `Failed to send credentials (Status: ${res.status})`);
+      throw new Error(
+        data?.message || `Failed to send credentials (Status: ${res.status})`,
+      );
     }
 
     setEnrolledStudents((prev) =>
@@ -519,7 +526,7 @@ export default function StudentEnrollmentPage() {
 
     return data;
   };
-  
+
   return (
     <>
       <AuthAlert
