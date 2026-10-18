@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   RotateCcw,
   Eye,
+  UserX,
 } from "lucide-react";
 import {
   getStudentById,
@@ -62,6 +63,7 @@ type StudentDetails = {
 
   gpa?: string;
   verifiedDocs?: string[];
+  dropReason?: string;
 };
 
 type ExportStatus = "All" | "Active" | "Dropped";
@@ -114,7 +116,7 @@ export default function StudentRecordsPage() {
   const [editLoading, setEditLoading] = useState(false);
   const [editStudent, setEditStudent] = useState<StudentDetails | null>(null);
 
-  // Transfer requests state & active transfer review context
+  // Transfer & Drop requests state & active review context
   const [transferRequests, setTransferRequests] = useState<any[]>([]);
   const [transferHistory, setTransferHistory] = useState<any[]>([]);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
@@ -125,6 +127,9 @@ export default function StudentRecordsPage() {
   const [droppingStudent, setDroppingStudent] = useState<StudentDetails | null>(null);
   const [dropReason, setDropReason] = useState("");
   const [dropping, setDropping] = useState(false);
+
+  // Dropped students modal state
+  const [droppedModalOpen, setDroppedModalOpen] = useState(false);
 
   const [courseOptions, setCourseOptions] = useState<CourseOption[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<
@@ -238,6 +243,7 @@ export default function StudentRecordsPage() {
       status: s.status || "Active",
       avatarUrl: rawAvatar,
       verifiedDocs: s.verifiedDocs || s.documents || [],
+      dropReason: s.dropReason || s.reason || "",
     };
   };
 
@@ -312,25 +318,45 @@ export default function StudentRecordsPage() {
 
   const loadTransferRequests = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/transfers`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("sessionToken") || ""}`,
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const allTransfers = Array.isArray(data) ? data : [];
-        const active = allTransfers.filter(
-          (t: any) => t.status === "Pending" || t.status === "Under Review" || !t.status
-        );
-        const history = allTransfers.filter(
-          (t: any) => t.status === "Approved" || t.status === "Returned" || t.status === "Completed"
-        );
-        setTransferRequests(active);
-        setTransferHistory(history);
+      const [transfersRes, dropsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/transfers`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("sessionToken") || ""}` },
+        }),
+        fetch(`${API_BASE_URL}/students/drop-requests`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("sessionToken") || ""}` },
+        }).catch(() => ({ ok: false, json: async () => [] }))
+      ]);
+
+      let allRequests: any[] = [];
+      if (transfersRes.ok) {
+        const tData = await transfersRes.json();
+        const formattedTransfers = (Array.isArray(tData) ? tData : []).map(t => ({ ...t, requestType: t.requestType || "transfer" }));
+        allRequests.push(...formattedTransfers);
       }
+      if ('ok' in dropsRes && dropsRes.ok) {
+        const dData = await (dropsRes as Response).json();
+        const formattedDrops = (Array.isArray(dData) ? dData : []).map(d => ({
+          ...d,
+          requestType: "drop",
+          transferType: "Drop",
+          currentCourse: d.course || d.student?.course,
+          targetCourse: "Dropped",
+          targetDepartment: "Unassigned"
+        }));
+        allRequests.push(...formattedDrops);
+      }
+
+      const active = allRequests.filter(
+        (r: any) => r.status === "Pending" || r.status === "Under Review" || !r.status
+      );
+      const history = allRequests.filter(
+        (r: any) => r.status === "Approved" || r.status === "Returned" || r.status === "Completed" || r.status === "Rejected"
+      );
+
+      setTransferRequests(active);
+      setTransferHistory(history);
     } catch (err) {
-      console.error("Failed to load transfer requests", err);
+      console.error("Failed to load requests", err);
     }
   };
 
@@ -411,6 +437,64 @@ export default function StudentRecordsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, status, course, year, section, courseOptions]);
 
+  // Filter out dropped students from the main view table rows
+  const activeDisplayRows = useMemo(() => {
+    return rows.filter((s) => {
+      const st = (s.status || "").trim().toLowerCase();
+      return st !== "dropped" && st !== "warning" && st !== "inactive";
+    });
+  }, [rows]);
+
+  // Get list of dropped students for the modal list
+  const droppedStudentsList = useMemo(() => {
+    return rows.filter((s) => {
+      const st = (s.status || "").trim().toLowerCase();
+      return st === "dropped" || st === "warning" || st === "inactive";
+    });
+  }, [rows]);
+
+ const handleExportDroppedStudents = () => {
+    if (droppedStudentsList.length === 0) {
+      showAlert("No dropped students records to export.", "error");
+      return;
+    }
+
+    try {
+      const headers = ["Student ID", "Full Name", "Email", "Phone", "Course", "Year Level", "Drop Reason"];
+      const csvRows = [headers.join(",")];
+
+      droppedStudentsList.forEach((studentItem) => {
+        // Cast as any to safely access optional/extended properties
+        const item = studentItem as any;
+
+        const id = `"${(item.id || item._id || "").replace(/"/g, '""')}"`;
+        const name = `"${(item.name || "").replace(/"/g, '""')}"`;
+        const email = `"${(item.email || item.user?.email || "").replace(/"/g, '""')}"`;
+        const phone = `"${(item.phone || item.contactNumber || "").replace(/"/g, '""')}"`;
+        const courseName = `"${(item.course || "").replace(/"/g, '""')}"`;
+        const yearLvl = `"${(item.year || item.yearLevel || "").toString().replace(/"/g, '""')}"`;
+        const reason = `"${(item.dropReason || item.reason || "").replace(/"/g, '""')}"`;
+
+        csvRows.push([id, name, email, phone, courseName, yearLvl, reason].join(","));
+      });
+
+      const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `dropped-students-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      showAlert("Dropped students records exported successfully.", "success");
+    } catch (err) {
+      console.error("Failed to export dropped students", err);
+      showAlert("Failed to export dropped students records.", "error");
+    }
+  };
+
   const handleAttemptCloseExportModal = () => {
     if (exporting) return;
 
@@ -458,15 +542,15 @@ export default function StudentRecordsPage() {
   ]);
 
   const courses = useMemo<string[]>(() => {
-    const values = rows
+    const values = activeDisplayRows
       .map((s) => s.course)
       .filter((value): value is string => Boolean(value) && value !== "—");
 
     return ["All", ...Array.from(new Set(values)).sort()];
-  }, [rows]);
+  }, [activeDisplayRows]);
 
   const years = useMemo<Array<number | "All">>(() => {
-    const values = rows
+    const values = activeDisplayRows
       .map((s) => s.year)
       .filter(
         (value): value is number =>
@@ -474,29 +558,29 @@ export default function StudentRecordsPage() {
       );
 
     return ["All", ...Array.from(new Set(values)).sort((a, b) => a - b)];
-  }, [rows]);
+  }, [activeDisplayRows]);
 
   const sections = useMemo<string[]>(() => {
-    const values = rows
+    const values = activeDisplayRows
       .map((s) => s.section)
       .filter((value): value is string => Boolean(value) && value !== "—");
 
     return ["All", ...Array.from(new Set(values)).sort()];
-  }, [rows]);
+  }, [activeDisplayRows]);
 
   const stats = useMemo(() => {
-    const total = rows.length;
+    const total = activeDisplayRows.length;
     const active = rows.filter((s) => {
       const st = (s.status || "").trim().toLowerCase();
       return st === "active" || st === "good";
     }).length;
     const dropped = rows.filter((s) => {
       const st = (s.status || "").trim().toLowerCase();
-      return st === "dropped";
+      return st === "dropped" || st === "warning" || st === "inactive";
     }).length;
 
     return { total, active, dropped };
-  }, [rows]);
+  }, [rows, activeDisplayRows]);
 
   const handleViewDetails = async (id: string) => {
     try {
@@ -535,10 +619,12 @@ export default function StudentRecordsPage() {
     }
   };
 
-  const handleApproveTransfer = async (requestId: string) => {
+  const handleApproveRequest = async (request: any) => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/transfers/${requestId}/approve`, {
+      const endpoint = `${API_BASE_URL}/transfers/${request.id}/approve`;
+
+      const res = await fetch(endpoint, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -547,22 +633,24 @@ export default function StudentRecordsPage() {
         body: JSON.stringify({ updatedBy: registrarEmail }),
       });
 
-      if (!res.ok) throw new Error("Failed to approve transfer request.");
+      if (!res.ok) throw new Error("Failed to process request approval.");
 
-      showAlert("Transfer request approved successfully.", "success");
+      showAlert(`${request.requestType === "drop" ? "Drop request approved. Account deactivated and email notification sent." : "Transfer request approved successfully."}`, "success");
       await loadTransferRequests();
       await load();
     } catch (err: any) {
-      showAlert(err?.message || "Error approving transfer.", "error");
+      showAlert(err?.message || "Error approving request.", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleReturnTransfer = async (requestId: string) => {
+  const handleReturnRequest = async (request: any) => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/transfers/${requestId}/return`, {
+      const endpoint = `${API_BASE_URL}/transfers/${request.id}/return`;
+
+      const res = await fetch(endpoint, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -571,13 +659,13 @@ export default function StudentRecordsPage() {
         body: JSON.stringify({ updatedBy: registrarEmail }),
       });
 
-      if (!res.ok) throw new Error("Failed to return transfer request.");
+      if (!res.ok) throw new Error("Failed to return request.");
 
-      showAlert("Transfer request returned to student successfully.", "success");
+      showAlert("Request returned successfully.", "success");
       await loadTransferRequests();
       await load();
     } catch (err: any) {
-      showAlert(err?.message || "Error returning transfer request.", "error");
+      showAlert(err?.message || "Error returning request.", "error");
     } finally {
       setLoading(false);
     }
@@ -600,7 +688,9 @@ export default function StudentRecordsPage() {
       setEditLoading(true);
 
       if (activeTransferReq) {
-        const res = await fetch(`${API_BASE_URL}/transfers/${activeTransferReq.id}/approve`, {
+        const endpoint = `${API_BASE_URL}/transfers/${activeTransferReq.id}/approve`;
+
+        const res = await fetch(endpoint, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
@@ -610,7 +700,7 @@ export default function StudentRecordsPage() {
         });
 
         if (!res.ok) {
-          let errorMsg = "Failed to finalize transfer request.";
+          let errorMsg = "Failed to finalize request.";
           try {
             const errData = await res.json();
             errorMsg = errData?.message || errorMsg;
@@ -649,7 +739,7 @@ export default function StudentRecordsPage() {
 
       showAlert(
         activeTransferReq
-          ? "Transfer request approved and completed successfully."
+          ? "Request approved and completed successfully."
           : "Student information updated successfully.",
         "success"
       );
@@ -715,7 +805,7 @@ export default function StudentRecordsPage() {
       setDropModalOpen(false);
       setDroppingStudent(null);
       setDropReason("");
-      showAlert(`Student ${droppingStudent.name} has been marked as dropped and notified via email.`, "success");
+      showAlert(`Student ${droppingStudent.name} has been marked as dropped, account deactivated, and notified via email.`, "success");
     } catch (err: any) {
       console.error(err);
       showAlert(err?.message || "Failed to drop student.", "error");
@@ -815,7 +905,6 @@ export default function StudentRecordsPage() {
     }
   };
 
-  // Export Request History Handler
   const handleExportHistory = () => {
     if (transferHistory.length === 0) {
       showAlert("No request history records to export.", "error");
@@ -865,7 +954,6 @@ export default function StudentRecordsPage() {
       />
 
       <div className="registrar-records">
-        {/* Header Section: Title/Subtitle on the left, Export & Request History buttons grouped side-by-side on the right */}
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
           <div>
             <h2 className="mb-1 fw-bold fs-4">Student Records</h2>
@@ -907,12 +995,20 @@ export default function StudentRecordsPage() {
         <TransferRequestsSection
           requests={transferRequests}
           onOpenEditModal={handleOpenEditFromTransfer}
-          onApprove={handleApproveTransfer}
-          onReturn={handleReturnTransfer}
+          onApprove={handleApproveRequest}
+          onReturn={handleReturnRequest}
           loading={loading}
         />
 
-        <RecordsStats stats={stats} />
+        {/* Clickable Dropped Stats Card */}
+        <RecordsStats 
+          stats={stats} 
+          onCardClick={(type) => {
+            if (type === "dropped") {
+              setDroppedModalOpen(true);
+            }
+          }} 
+        />
 
         <RecordsFilters
           query={query}
@@ -930,9 +1026,11 @@ export default function StudentRecordsPage() {
           courses={courses}
         />
 
+        {/* Main table filtered to exclude dropped students */}
         <StudentsTable
-          title={`Students (${rows.length})`}
-          rows={rows}
+          title={`Students (${activeDisplayRows.length})`}
+          rows={activeDisplayRows}
+          transferRequests={transferRequests}
           onViewDetails={handleViewDetails}
           onEditInfo={handleEditInfo}
           onMarkDropped={handleMarkDroppedClick}
@@ -962,7 +1060,125 @@ export default function StudentRecordsPage() {
           loading={editLoading}
         />
 
-        {/* REQUESTS HISTORY MODAL (Unified for Transfers & Drops) */}
+        {/* DROPPED STUDENTS LIST POPUP MODAL */}
+        {droppedModalOpen &&
+          createPortal(
+            <div
+              className="students-modal-backdrop"
+              style={{
+                ...backdropBlurStyle,
+                position: "fixed",
+                top: 0,
+                left: 0,
+                width: "100vw",
+                height: "100vh",
+                zIndex: 2050,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "clamp(0.75rem, 3vw, 1.5rem)",
+                overflowY: "auto",
+              }}
+              onClick={() => setDroppedModalOpen(false)}
+            >
+              <div
+                className="students-modal-card p-4 shadow-lg"
+                style={{
+                  maxWidth: "750px",
+                  width: "100%",
+                  maxHeight: "85vh",
+                  overflowY: "auto",
+                  borderRadius: "0.75rem",
+                  backgroundColor: "#fff",
+                  margin: "auto",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+                onClick={(e) => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+              >
+                <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                  <div className="d-flex align-items-center gap-2">
+                    <UserX size={20} className="text-danger" />
+                    <h5 className="mb-0 fw-bold">Dropped Students Records</h5>
+                  </div>
+                  <button
+                    type="button"
+                    className="app-icon-btn app-icon-btn-sm"
+                    onClick={() => setDroppedModalOpen(false)}
+                    aria-label="Close modal"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <p className="text-muted small mb-0">
+                    List of all students who have been officially dropped from active enrollment.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1 flex-shrink-0"
+                    onClick={handleExportDroppedStudents}
+                    disabled={droppedStudentsList.length === 0}
+                  >
+                    <Download size={14} />
+                    <span>Export Dropped</span>
+                  </button>
+                </div>
+
+                <div style={{ flex: 1, overflowY: "auto", maxHeight: "55vh" }}>
+                  {droppedStudentsList.length === 0 ? (
+                    <div className="text-center py-5 text-muted">
+                      <UserX size={36} className="mb-2 opacity-50" />
+                      <p className="mb-0">No dropped students found.</p>
+                    </div>
+                  ) : (
+                    <div className="d-flex flex-column gap-3">
+                      {droppedStudentsList.map((item: any) => (
+                        <div
+                          key={item.id}
+                          className="p-3 border rounded-3 bg-light d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3"
+                        >
+                          <div className="d-flex flex-column gap-1">
+                            <div className="d-flex align-items-center gap-2 flex-wrap">
+                              <span className="fw-semibold text-dark">{item.name}</span>
+                              <span className="badge bg-danger-subtle text-danger">Dropped</span>
+                              <span className="text-muted small">({item.id})</span>
+                            </div>
+                            <div className="text-muted small">
+                              Course: <span className="text-dark fw-medium">{item.course || "—"}</span> | Year: <span className="text-dark fw-medium">{item.year || "—"}</span>
+                            </div>
+                            {(item.dropReason || item.reason) && (
+                              <div className="text-muted small fst-italic mt-1">
+                                Reason: "{item.dropReason || item.reason}"
+                              </div>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            className="btn btn-outline-primary btn-sm d-flex align-items-center justify-content-center gap-1 flex-shrink-0"
+                            onClick={() => {
+                              setDroppedModalOpen(false);
+                              handleViewDetails(item.id);
+                            }}
+                          >
+                            <Eye size={14} />
+                            <span>View Profile</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )}
+
+        {/* REQUESTS HISTORY MODAL */}
         {historyModalOpen &&
           createPortal(
             <div
@@ -1131,7 +1347,7 @@ export default function StudentRecordsPage() {
             document.body,
           )}
 
-        {/* DROP STUDENT CONFIRMATION & EMAIL REASON MODAL */}
+        {/* DROP STUDENT CONFIRMATION MODAL */}
         {dropModalOpen && droppingStudent &&
           createPortal(
             <div
@@ -1184,7 +1400,7 @@ export default function StudentRecordsPage() {
                 </div>
 
                 <p className="text-muted small mb-3">
-                  You are about to drop <span className="fw-semibold text-dark">{droppingStudent.name}</span> ({droppingStudent.email}). An email notification detailing the reason will be sent to the student.
+                  You are about to drop <span className="fw-semibold text-dark">{droppingStudent.name}</span> ({droppingStudent.email}). Their portal account will be deactivated and an email notification detailing the reason will be sent.
                 </p>
 
                 <div className="mb-3">
@@ -1229,7 +1445,7 @@ export default function StudentRecordsPage() {
             document.body,
           )}
 
-        {/* 1. EXPORT OPTIONS MODAL */}
+        {/* EXPORT OPTIONS MODAL */}
         {exportModalOpen &&
           createPortal(
             <div
@@ -1340,7 +1556,7 @@ export default function StudentRecordsPage() {
             document.body,
           )}
 
-        {/* 2. CONFIRM EXPORT MODAL */}
+        {/* CONFIRM EXPORT MODAL */}
         {confirmModalOpen &&
           createPortal(
             <div
@@ -1406,7 +1622,7 @@ export default function StudentRecordsPage() {
             document.body,
           )}
 
-        {/* 3. EXIT CONFIRMATION MODAL */}
+        {/* EXIT CONFIRMATION MODAL */}
         {exitConfirmModalOpen &&
           createPortal(
             <div

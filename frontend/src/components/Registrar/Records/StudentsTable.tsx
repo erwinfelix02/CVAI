@@ -23,6 +23,7 @@ function StatusPill({ status }: { status: StudentStatus | string }) {
 type Props = {
   title: string;
   rows: StudentRow[];
+  transferRequests?: any[];
   onRowAction?: (id: string) => void;
   onViewDetails?: (id: string) => void;
   onEditInfo?: (id: string) => void;
@@ -38,6 +39,7 @@ type MenuState = {
 export default function StudentsTable({
   title,
   rows,
+  transferRequests = [],
   onRowAction,
   onViewDetails,
   onEditInfo,
@@ -95,13 +97,22 @@ export default function StudentsTable({
 
       const rect = button.getBoundingClientRect();
       const menuWidth = 196;
-      const menuHeight = 130; // Approximate height of the 3 action items
+      
+      const targetStudent = rows.find(r => r.id === id);
+      const isAlreadyDropped = targetStudent?.status?.toLowerCase() === "dropped";
+      const hasDropRequest = transferRequests.some(
+        (r) =>
+          r.requestType === "drop" &&
+          (r.student?.id === id || r.studentId === id || r.student === id)
+      );
+      
+      const showDropOption = !isAlreadyDropped && hasDropRequest;
+      const menuHeight = showDropOption ? 130 : 90; 
       const gap = 8;
 
       let left = rect.right - menuWidth;
       if (left < 8) left = 8;
 
-      // Check if menu overflows the bottom of the viewport; if so, flip it above the button
       let top = rect.bottom + gap;
       if (top + menuHeight > window.innerHeight) {
         top = rect.top - menuHeight - gap;
@@ -141,6 +152,17 @@ export default function StudentsTable({
     const origin = API_BASE_URL.replace(/\/api\/?$/, "");
     return `${origin}${url.startsWith("/") ? "" : "/"}${url}`;
   };
+
+  const selectedStudentObj = menu ? rows.find(r => r.id === menu.id) : null;
+  const isSelectedDropped = selectedStudentObj?.status?.toLowerCase() === "dropped";
+
+  const selectedStudentHasDropRequest = menu && !isSelectedDropped
+    ? transferRequests.some(
+        (r) =>
+          r.requestType === "drop" &&
+          (r.student?.id === menu.id || r.studentId === menu.id || r.student === menu.id)
+      )
+    : false;
 
   return (
     <>
@@ -293,14 +315,16 @@ export default function StudentsTable({
               <span>Edit Info</span>
             </button>
 
-            <button
-              type="button"
-              className="student-actions-item student-actions-item-danger"
-              onClick={() => handleDropped(menu.id)}
-            >
-              <UserX size={16} className="student-actions-icon" />
-              <span>Mark as Dropped</span>
-            </button>
+            {selectedStudentHasDropRequest && (
+              <button
+                type="button"
+                className="student-actions-item student-actions-item-danger"
+                onClick={() => handleDropped(menu.id)}
+              >
+                <UserX size={16} className="student-actions-icon" />
+                <span>Mark as Dropped</span>
+              </button>
+            )}
           </div>,
           document.body,
         )}

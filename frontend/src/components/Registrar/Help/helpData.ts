@@ -6,7 +6,7 @@ export type QuickGuideStep = {
 
 export type QuickGuideItem = {
   id: string;
-  icon: "book" | "users" | "file" | "userplus" | "shield" | "settings";
+  icon: "layout-dashboard" | "file-text" | "users" | "book-open" | "layers" | "book" | "building" | "settings";
   title: string;
   subtitle: string;
   steps: QuickGuideStep[];
@@ -15,57 +15,57 @@ export type QuickGuideItem = {
 
 export const quickGuides: QuickGuideItem[] = [
   {
-    id: "guide-enrollment",
-    icon: "book",
-    title: "Enrollment Guide",
-    subtitle: "Step-by-step enrollment process",
+    id: "guide-dashboard",
+    icon: "layout-dashboard",
+    title: "Dashboard Overview",
+    subtitle: "Monitoring key metrics and quick actions",
     steps: [
       {
         step: 1,
-        title: "Open Enrollment Page",
-        description: "Navigate to the Enrollment section from the sidebar.",
+        title: "Access Dashboard",
+        description: "Land on the Dashboard immediately after logging into the Registrar Portal.",
       },
       {
         step: 2,
-        title: "Search for Student",
-        description:
-          "Use the search bar to find a student by name or ID with 'Pending' enrollment status.",
+        title: "Review Key Metrics",
+        description: "Check summary widgets for total students, pending applications, active sections, and pending document requests.",
       },
       {
         step: 3,
-        title: "Click Evaluate",
-        description:
-          "Click the 'Evaluate' button to start the enrollment evaluation process.",
-      },
-      {
-        step: 4,
-        title: "Verify Student Info",
-        description:
-          "Review the student's personal information, contact details, and guardian info. Check the verification box.",
-      },
-      {
-        step: 5,
-        title: "Check Documents",
-        description:
-          "Verify all required documents (Form 137, PSA Birth Certificate, Good Moral, 2x2 photos). Mark each as verified.",
-      },
-      {
-        step: 6,
-        title: "Assign Section",
-        description:
-          "Select an available section for the student's course and year level.",
-      },
-      {
-        step: 7,
-        title: "Confirm Enrollment",
-        description:
-          "Add any evaluation notes and click 'Enroll Student' to finalize.",
+        title: "Use Quick Actions",
+        description: "Click shortcut buttons to quickly jump to processing new student enrollments or reviewing pending requests.",
       },
     ],
     tips: [
-      "All required documents must be verified before proceeding to section assignment.",
-      "Double-check the student's course and year level before assigning a section.",
-      "Add notes for any missing follow-up requirements.",
+      "Check the dashboard daily to stay updated on pending registration backlogs.",
+      "Use system indicators to see if enrollment is currently open or closed.",
+    ],
+  },
+  {
+    id: "guide-applications",
+    icon: "file-text",
+    title: "Application Processing",
+    subtitle: "Reviewing and approving pre-registrations",
+    steps: [
+      {
+        step: 1,
+        title: "Open Applications",
+        description: "Navigate to the Applications page from the sidebar to view incoming submissions.",
+      },
+      {
+        step: 2,
+        title: "Review Applicant Details",
+        description: "Click on an application to review student records, contact information, and initial credentials.",
+      },
+      {
+        step: 3,
+        title: "Approve or Reject",
+        description: "Approve valid applications to allow subsequent account provisioning and enrollment evaluation.",
+      },
+    ],
+    tips: [
+      "Ensure all required pre-registration data is complete before approving an applicant.",
+      "Rejected applications should include notes explaining why for future follow-up.",
     ],
   },
   {
@@ -77,32 +77,27 @@ export const quickGuides: QuickGuideItem[] = [
       {
         step: 1,
         title: "Access Students Page",
-        description:
-          "Go to Students from the sidebar to view all student records.",
+        description: "Go to Students from the sidebar to view all student records.",
       },
       {
         step: 2,
         title: "Search & Filter",
-        description:
-          "Use search by name/ID and filter by course, year level, or status.",
+        description: "Use search by name/ID and filter by course, year level, or status.",
       },
       {
         step: 3,
         title: "View Student Profile",
-        description:
-          "Click on a student to see their complete profile, enrollment history, and documents.",
+        description: "Click on a student to see their complete profile, enrollment history, and documents.",
       },
       {
         step: 4,
         title: "Update Information",
-        description:
-          "Edit student details like contact info, address, or guardian information.",
+        description: "Edit student details like contact info, address, or guardian information.",
       },
       {
         step: 5,
         title: "Transfer Section",
-        description:
-          "Use the Transfer Section option to move a student, providing a reason for the transfer.",
+        description: "Use the Transfer Section option to move a student, providing a reason for the transfer.",
       },
     ],
     tips: [
@@ -112,94 +107,56 @@ export const quickGuides: QuickGuideItem[] = [
     ],
   },
   {
-    id: "guide-docs",
-    icon: "file",
-    title: "Document Processing",
-    subtitle: "Handling document requests",
+    id: "guide-enrollment",
+    icon: "book-open",
+    title: "Enrollment Guide",
+    subtitle: "Step-by-step enrollment process",
     steps: [
       {
         step: 1,
-        title: "View Requests",
-        description:
-          "Go to Documents to see all pending, processing, and completed document requests.",
+        title: "Open Enrollment Page",
+        description: "Navigate to the Enrollment section from the sidebar.",
       },
       {
         step: 2,
-        title: "Start Processing",
-        description:
-          "Click 'Start Processing' on a pending request to begin preparation.",
+        title: "Search for Student",
+        description: "Use the search bar to find a student by name or ID with 'Pending' enrollment status.",
       },
       {
         step: 3,
-        title: "Prepare Document",
-        description:
-          "Generate or prepare the requested document based on student records.",
+        title: "Click Evaluate",
+        description: "Click the 'Evaluate' button to start the enrollment evaluation process.",
       },
       {
         step: 4,
-        title: "Mark as Ready",
-        description:
-          "Once prepared, mark the document as 'Ready for Pickup' — the student will be notified.",
+        title: "Verify Student Info",
+        description: "Review the student's personal information, contact details, and guardian info. Check the verification box.",
       },
       {
         step: 5,
-        title: "Release Document",
-        description:
-          "When the student claims the document, click 'Release' and have them sign the logbook.",
+        title: "Check Documents",
+        description: "Verify all required documents (Form 137, PSA Birth Certificate, Good Moral, 2x2 photos). Mark each as verified.",
+      },
+      {
+        step: 6,
+        title: "Assign Section",
+        description: "Select an available section for the student's course and year level.",
+      },
+      {
+        step: 7,
+        title: "Confirm Enrollment",
+        description: "Add any evaluation notes and click 'Enroll Student' to finalize.",
       },
     ],
     tips: [
-      "TOR requests may take 3-5 working days. Certificates are usually ready within 1-2 days.",
-      "Document fees: TOR ₱75/copy, Certificates ₱50/copy, Diploma replacement ₱200.",
-      "Rush processing is available for an additional ₱100 fee.",
-    ],
-  },
-  {
-    id: "guide-accounts",
-    icon: "userplus",
-    title: "Account Provisioning",
-    subtitle: "Creating student & faculty accounts",
-    steps: [
-      {
-        step: 1,
-        title: "Approve Application",
-        description:
-          "First approve the student's pre-registration application from the Applications page.",
-      },
-      {
-        step: 2,
-        title: "Create Account",
-        description:
-          "Go to the approved student and click 'Create Account' to generate credentials.",
-      },
-      {
-        step: 3,
-        title: "Review Credentials",
-        description:
-          "A unique Student ID and temporary password will be generated automatically.",
-      },
-      {
-        step: 4,
-        title: "Dispatch Credentials",
-        description:
-          "Click 'Send Credentials' to send login details to the student via email/SMS.",
-      },
-      {
-        step: 5,
-        title: "Verify Activation",
-        description:
-          "The account starts as 'Inactive' and becomes 'Active' once credentials are dispatched.",
-      },
-    ],
-    tips: [
-      "Faculty accounts follow the same process — create from Faculty Accounts page.",
-      "Students must change their temporary password on first login.",
-      "Keep credential dispatch records for audit purposes.",
+      "All required documents must be verified before proceeding to section assignment.",
+      "Double-check the student's course and year level before assigning a section.",
+      "Add notes for any missing follow-up requirements.",
     ],
   },
   {
     id: "guide-sections",
-    icon: "shield",
+    icon: "layers",
     title: "Section Management",
     subtitle: "Creating and managing sections",
     steps: [
@@ -211,32 +168,76 @@ export const quickGuides: QuickGuideItem[] = [
       {
         step: 2,
         title: "Create Section",
-        description:
-          "Click 'Add Section', select the course, year level, and set the section name and capacity.",
+        description: "Click 'Add Section', select the course, year level, and set the section name and capacity.",
       },
       {
         step: 3,
         title: "Assign Adviser",
-        description:
-          "Select a faculty member as the class adviser for the section.",
+        description: "Select a faculty member as the class adviser for the section.",
       },
       {
         step: 4,
         title: "Assign Room",
-        description:
-          "Choose an available room for the section's homeroom assignment.",
+        description: "Choose an available room for the section's homeroom assignment.",
       },
       {
         step: 5,
         title: "Monitor Capacity",
-        description:
-          "Track enrolled vs. maximum students to manage section availability.",
+        description: "Track enrolled vs. maximum students to manage section availability.",
       },
     ],
     tips: [
       "Section names typically follow the format: Course-YearLevel-Letter (e.g., BSIT-1A).",
       "Maximum capacity is usually 40 students per section.",
       "Coordinate with Department Heads before creating sections for their courses.",
+    ],
+  },
+  {
+    id: "guide-courses",
+    icon: "book",
+    title: "Course Management",
+    subtitle: "Setting up and updating course catalogs",
+    steps: [
+      {
+        step: 1,
+        title: "Access Courses",
+        description: "Click on Courses from the sidebar navigation.",
+      },
+      {
+        step: 2,
+        title: "Add New Course",
+        description: "Click 'Add Course' and provide the course code, descriptive title, units, and assign it to the correct department.",
+      },
+      {
+        step: 3,
+        title: "Modify Curriculum Details",
+        description: "Update pre-requisites and year level availability when curriculum changes happen.",
+      },
+    ],
+    tips: [
+      "Ensure course codes match standard institutional guidelines before saving.",
+      "Verify that courses are correctly mapped to active departments.",
+    ],
+  },
+  {
+    id: "guide-departments",
+    icon: "building",
+    title: "Department Management",
+    subtitle: "Organizing institutional departments",
+    steps: [
+      {
+        step: 1,
+        title: "Open Departments Page",
+        description: "Navigate to Departments from the sidebar.",
+      },
+      {
+        step: 2,
+        title: "Create or Edit Department",
+        description: "Add a new department name, code, and assign a department head or dean.",
+      },
+    ],
+    tips: [
+      "Deactivating old departments is preferred over deleting to preserve historical course and student mappings.",
     ],
   },
   {
@@ -253,64 +254,56 @@ export const quickGuides: QuickGuideItem[] = [
       {
         step: 2,
         title: "Academic Period",
-        description:
-          "Set the current academic year and semester for enrollment processing.",
+        description: "Set the current academic year and semester for enrollment processing.",
       },
       {
         step: 3,
         title: "Enrollment Status",
-        description:
-          "Toggle enrollment open/closed to control when students can be enrolled.",
+        description: "Toggle enrollment open/closed to control when students can be enrolled.",
       },
       {
         step: 4,
-        title: "Document Settings",
-        description:
-          "Configure document types, fees, and processing time estimates.",
-      },
-      {
-        step: 5,
         title: "Notification Preferences",
-        description:
-          "Set up email and SMS notification templates and preferences.",
+        description: "Set up email and SMS notification templates and preferences.",
       },
     ],
     tips: [
       "Always close enrollment before changing the academic period.",
       "Notify all departments before opening a new enrollment period.",
-      "Review document fee schedules at the start of each academic year.",
     ],
   },
 ];
 
 export const faqSections = [
   {
+    id: "faq-dashboard",
+    title: "Dashboard & General",
+    items: [
+      {
+        id: "dash-1",
+        question: "What information does the dashboard display?",
+        answer: "The dashboard summarizes active metrics such as total student population, pending applications, open sections, and alerts that require registrar action.",
+      },
+    ],
+  },
+  {
     id: "faq-enrollment",
-    title: "Enrollment",
+    title: "Enrollment & Students",
     items: [
       {
         id: "enroll-1",
         question: "How do I enroll a student to a section?",
-        answer:
-          "Open the student’s enrollment evaluation, review the submitted details and documents, then assign the student to an available section before confirming enrollment.",
+        answer: "Open the student’s enrollment evaluation, review submitted details and documents, then assign the student to an available section before confirming enrollment.",
       },
       {
         id: "enroll-2",
         question: "What if a section is full?",
-        answer:
-          "If a section has reached its maximum capacity, assign the student to another available section or update section capacity in registrar settings if permitted.",
+        answer: "If a section has reached maximum capacity, assign the student to another available section or update section capacity in settings if permitted.",
       },
       {
         id: "enroll-3",
         question: "How do I transfer a student to another section?",
-        answer:
-          "Locate the student record, open the section assignment controls, choose the new section, and save the changes. Make sure the destination section still has available slots.",
-      },
-      {
-        id: "enroll-4",
-        question: "What is the enrollment evaluation process?",
-        answer:
-          "The evaluation process usually includes checking the student’s application details, validating submitted documents, confirming eligibility, and assigning the proper section and academic details.",
+        answer: "Locate the student record, open section assignment controls, choose the new section, and save the changes. Ensure slots are available.",
       },
     ],
   },
@@ -321,50 +314,12 @@ export const faqSections = [
       {
         id: "app-1",
         question: "How do I review a student application?",
-        answer:
-          "Go to the applications or pending enrollment list, open the student profile, verify all submitted information and attachments, then proceed with approval, scheduling, or enrollment evaluation.",
+        answer: "Go to the Applications page, open the applicant profile, verify submitted information and attachments, then proceed with approval.",
       },
       {
         id: "app-2",
         question: "What documents are required for enrollment?",
-        answer:
-          "Required documents may include a birth certificate, Form 137 or transcript, good moral certificate, and ID photo, depending on your school’s enrollment policy.",
-      },
-      {
-        id: "app-3",
-        question: "How do I create a student account?",
-        answer:
-          "After the student is officially enrolled, use the account provisioning or send credentials feature to generate and send login details to the student’s registered email.",
-      },
-      {
-        id: "app-4",
-        question: "Why is a student account showing as 'Inactive'?",
-        answer:
-          "An account may appear inactive if it has not been activated yet, credentials were not sent successfully, or the student record has not been fully processed in the system.",
-      },
-    ],
-  },
-  {
-    id: "faq-documents",
-    title: "Documents",
-    items: [
-      {
-        id: "docs-1",
-        question: "How do I process a document request?",
-        answer:
-          "Open the document request queue, review the request details, confirm payment or approval if needed, then mark the request as processing, completed, or ready for release.",
-      },
-      {
-        id: "docs-2",
-        question: "How are document fees calculated?",
-        answer:
-          "Document fees are based on the request type and the fee structure configured by the registrar. Some documents may also include rush or additional copy charges.",
-      },
-      {
-        id: "docs-3",
-        question: "How long does document processing take?",
-        answer:
-          "Processing time depends on the configured number of processing days in registrar settings and the complexity of the document request.",
+        answer: "Required documents typically include a birth certificate, Form 137 or transcript, good moral certificate, and ID photo based on school policy.",
       },
     ],
   },
@@ -375,20 +330,12 @@ export const faqSections = [
       {
         id: "course-1",
         question: "How do I add a new course?",
-        answer:
-          "Go to the course management area, create a new course record, fill in the code, title, department, and other required details, then save it.",
+        answer: "Go to the Courses page, click add course, fill in the code, title, units, and department, then save.",
       },
       {
         id: "course-2",
-        question: "How do I manage departments?",
-        answer:
-          "Use the departments module to create, update, activate, or organize departments according to the academic structure of your institution.",
-      },
-      {
-        id: "course-3",
-        question: "Can I deactivate a department?",
-        answer:
-          "Yes, if your system supports it. Deactivating a department is recommended instead of deleting it when existing records are already linked to that department.",
+        question: "Can I deactivate a department instead of deleting it?",
+        answer: "Yes. Deactivating a department is recommended to keep historical data intact for existing student and course logs.",
       },
     ],
   },

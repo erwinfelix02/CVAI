@@ -4,8 +4,6 @@ import { useState, useMemo } from "react";
 import {
   Search,
   Megaphone,
-  BookOpen,
-  Calendar,
   User,
   ChevronRight,
   LifeBuoy,
@@ -109,108 +107,6 @@ export default function HelpCenterPage() {
                 "Scan the bottom edge of the announcement card for a 'Read More' or 'Expand' button.",
                 "Click anywhere on the truncated text or the button to open the full announcement view.",
                 "Close the expanded view by clicking outside the card or selecting the 'Show Less' button.",
-              ],
-            },
-          },
-        ],
-      },
-      {
-        key: "courses",
-        title: "Courses & Materials",
-        icon: BookOpen,
-        topics: [
-          {
-            id: "c1",
-            title: "My teacher's material is not showing",
-            description: "Why an upload may not appear under your course",
-            content: {
-              overview:
-                "If an instructor uploads lecture notes, slides, or assignments, they usually appear immediately under your enrolled course page. Delays or missing files are typically permission or caching related.",
-              steps: [
-                "Refresh your browser page (or press Ctrl+F5 / Cmd+Shift+R) to clear stale cache data.",
-                "Verify that you are viewing the correct semester and section under 'My Courses'.",
-                "Check with your instructor to confirm whether the material has been officially published or is still in draft mode.",
-              ],
-              note: "Draft materials are only visible to instructors until officially published to the student portal.",
-            },
-          },
-          {
-            id: "c2",
-            title: "Download is not working",
-            description: "What to do when a file won't download",
-            content: {
-              overview:
-                "File download errors can occur due to strict browser popup blockers, expired secure tokens, or interrupted network connections.",
-              steps: [
-                "Check your browser's address bar for blocked download or popup indicators and allow downloads from the portal.",
-                "Try opening the file in a new browser tab rather than direct download.",
-                "Switch to a modern browser like Google Chrome, Mozilla Firefox, or Microsoft Edge if you are using an outdated client.",
-                "Clear your browser cookies and site data for the portal domain and log back in.",
-              ],
-            },
-          },
-          {
-            id: "c3",
-            title: "A subject is missing from My Courses",
-            description: "Why a subject may not be listed",
-            content: {
-              overview:
-                "Enrolled subjects are synchronized automatically with the registrar's official enrollment database. A missing subject usually points to registration processing status.",
-              steps: [
-                "Review your official enrollment assessment form (EAF) to confirm the subject code is officially listed.",
-                "Check if add/drop or shifting adjustments are still being finalized by the Registrar's Office.",
-                "Submit a support ticket attaching your valid EAF so our technical team can manually map the course to your account.",
-              ],
-            },
-          },
-        ],
-      },
-      {
-        key: "attendance",
-        title: "Attendance",
-        icon: Calendar,
-        topics: [
-          {
-            id: "at1",
-            title: "How to excuse an absence",
-            description: "Submit a request for an absence to be excused",
-            content: {
-              overview:
-                "Students can formally submit excuse letters and valid documentation (such as medical certificates or official letters) through the portal for instructor review.",
-              steps: [
-                "Go to your Attendance tracker tab under your student dashboard.",
-                "Locate the specific date and subject where you were marked absent.",
-                "Click on the 'Request Excuse' button next to the attendance log.",
-                "Fill out the reason, attach a scanned copy or clear photo of your medical certificate/supporting document, and click Submit.",
-              ],
-              note: "Excuse requests must typically be submitted within 3 school days following your return.",
-            },
-          },
-          {
-            id: "at2",
-            title: "My attendance record looks wrong",
-            description: "What to do when a mark doesn't match reality",
-            content: {
-              overview:
-                "Attendance logs are recorded by instructors during class sessions. Discrepancies can happen due to system synchronization delays or manual entry errors.",
-              steps: [
-                "Take note of the exact date, time, and subject code with the incorrect record.",
-                "Reach out directly to your subject instructor during consultation hours to verify your presence.",
-                "If the instructor confirms the correction, they can update the register from their faculty dashboard.",
-              ],
-            },
-          },
-          {
-            id: "at3",
-            title: "I was marked late but I wasn't",
-            description: "Fixing a wrong 'Late' mark",
-            content: {
-              overview:
-                "Late marks are often triggered automatically if attendance scanning or manual roll-call occurs after the class start threshold.",
-              steps: [
-                "Verify the exact timestamp you logged into the classroom or virtual session.",
-                "Contact your instructor politely before or after class to review the attendance timestamp log.",
-                "Ask the instructor to adjust your status from 'Late' to 'Present' if verified.",
               ],
             },
           },

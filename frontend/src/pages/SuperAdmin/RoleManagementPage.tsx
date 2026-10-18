@@ -107,18 +107,22 @@ export default function RoleManagementPage() {
       setLoading(true);
 
       const rolesData = await getRoles();
-      const mappedRoles: RoleCardItem[] = (
-        Array.isArray(rolesData) ? rolesData : []
-      )
-        .filter((r: any) => r.roleId !== "superadmin" && r.roleId !== "finance") // 👈 removed superadmin and finance
-        .map((r: any) => ({
-          id: r.roleId,
-          name: r.name ?? ROLE_UI[r.roleId]?.nameFallback ?? r.roleId,
-          users: 0,
-          tone: ROLE_UI[r.roleId]?.tone ?? "indigo",
-          icon: ROLE_UI[r.roleId]?.icon ?? Shield,
-          permissions: Array.isArray(r.permissions) ? r.permissions : [],
-        }));
+const mappedRoles: RoleCardItem[] = (
+  Array.isArray(rolesData) ? rolesData : []
+)
+  .filter((r: any) => 
+    r.roleId !== "superadmin" && 
+    r.roleId !== "finance" && 
+    r.roleId !== "faculty" // 👈 Added this to filter out faculty
+  )
+  .map((r: any) => ({
+    id: r.roleId,
+    name: r.name ?? ROLE_UI[r.roleId]?.nameFallback ?? r.roleId,
+    users: 0,
+    tone: ROLE_UI[r.roleId]?.tone ?? "indigo",
+    icon: ROLE_UI[r.roleId]?.icon ?? Shield,
+    permissions: Array.isArray(r.permissions) ? r.permissions : [],
+  }));
 
       setRoles(mappedRoles);
 

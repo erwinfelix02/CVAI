@@ -7,6 +7,7 @@ import Preregistration from "../models/Preregistration.js";
 import ArchivedPreregistration from "../models/ArchivedPreregistration.js";
 import RegistrarSettings from "../models/RegistrarSettings.js";
 import User from "../models/User.js";
+import Student from "../models/Student.js";
 import { otpStore } from "../controllers/verificationController.js";
 import sendEmail from "../utils/sendEmail.js";
 import contract from "../utils/blockchain.js";
@@ -178,25 +179,37 @@ router.post(
       const course = String(data?.academic?.course || "").trim();
       const previousSchool = String(data?.academic?.previousSchool || "").trim();
 
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        return res.status(409).json({
-          message: "An active account with this email address already exists. Pre-registration is not allowed.",
-        });
-      }
+     // In routes/preregistrations.js (inside router.post("/", ...))
 
-      const existingActive = await Preregistration.findOne({
-        $or: [{ "personal.email": email }, { "personal.phone": phone }],
-      });
-      const existingArchived = await ArchivedPreregistration.findOne({
-        $or: [{ "personal.email": email }, { "personal.phone": phone }],
-      });
+// Check if an active user account exists that is NOT inactive or dropped
+const existingUser = await User.findOne({ email });
+if (existingUser && existingUser.status === "active") {
+  return res.status(409).json({
+    message: "An active account with this email address already exists. Pre-registration is not allowed.",
+  });
+}
 
-      if (existingActive || existingArchived) {
-        return res.status(409).json({
-          message: "Duplicate application detected. An applicant with this email or phone number already exists.",
-        });
-      }
+// Check for existing active/pending applications (ignoring archived or dropped ones if needed)
+const existingActive = await Preregistration.findOne({
+  $or: [{ "personal.email": email }, { "personal.phone": phone }],
+  status: { $nin: ["Archived", "Dropped"] }
+});
+
+const existingArchived = await ArchivedPreregistration.findOne({
+  $or: [{ "personal.email": email }, { "personal.phone": phone }],
+});
+
+// Also check if there is an active student record who is NOT dropped
+const existingActiveStudent = await Student.findOne({
+  email: email,
+  status: { $ne: "Dropped" }
+});
+
+if (existingActive || existingActiveStudent) {
+  return res.status(409).json({
+    message: "Duplicate application detected. An active student or application with this email already exists.",
+  });
+}
 
       let txHash = null;
       try {

@@ -40,6 +40,7 @@ import ticketRouter from "./routes/ticketRoutes.js";
 import sectionRequestsRouter from "./routes/sectionRequests.js";
 import auditRoutes from "./routes/auditRoutes.js";
 import transferRoutes from "./routes/transferRoutes.js";
+import taskRoutes from "./routes/taskRoutes.js";
 
 const app = express();
 
@@ -107,6 +108,7 @@ app.use("/api/verification", verificationRoutes);
 app.use("/api/todos", todoRoutes);
 app.use("/api/transfers", transferRoutes);
 app.use("/api/tickets", ticketRouter);
+app.use("/api/tasks", taskRoutes);
 
 // ✅ 2. Start server and database tasks
 const startServer = async () => {

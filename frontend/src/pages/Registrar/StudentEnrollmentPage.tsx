@@ -36,9 +36,8 @@ export default function StudentEnrollmentPage() {
   const [enrolledLoading, setEnrolledLoading] = useState(true);
 
   const [enrollments, setEnrollments] = useState<EnrollmentItem[]>([]);
-  const [enrolledStudents, setEnrolledStudents] = useState<EnrollmentItem[]>(
-    [],
-  );
+  const [enrolledStudents, setEnrolledStudents] = useState<EnrollmentItem[]>([]);
+  const [totalEnrolledCount, setTotalEnrolledCount] = useState<number>(0);
 
   const [stats, setStats] = useState<{
     pending: number;
@@ -103,6 +102,18 @@ export default function StudentEnrollmentPage() {
     } catch (e) {
       console.error("Failed to load enrollment stats", e);
       showAlert("Failed to load enrollment statistics.", "error");
+    }
+  };
+
+  const fetchTotalEnrolledStudents = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/students/count`);
+      const data = await res.json();
+      if (res.ok && typeof data?.total === "number") {
+        setTotalEnrolledCount(data.total);
+      }
+    } catch (e) {
+      console.error("Failed to fetch total enrolled students count", e);
     }
   };
 
@@ -220,6 +231,7 @@ export default function StudentEnrollmentPage() {
 
   useEffect(() => {
     fetchStats();
+    fetchTotalEnrolledStudents();
     fetchRegistrarSettingsSemester();
     fetchRegistrarAccount();
     loadSections();
@@ -251,7 +263,6 @@ export default function StudentEnrollmentPage() {
     setEvalOpen(true);
   };
 
-  // 🟢 Fetch Archived Evaluations List
   const fetchArchivedEnrollments = async (): Promise<EnrollmentItem[]> => {
     try {
       const res = await fetch(`${API_BASE_URL}/enrollments?status=Archived`);
@@ -264,7 +275,6 @@ export default function StudentEnrollmentPage() {
     }
   };
 
-  // 🟢 Archive Enrollment Handler
   const handleArchive = async (id: string) => {
     try {
       const res = await fetch(`${API_BASE_URL}/enrollment/${id}/archive`, {
@@ -279,7 +289,6 @@ export default function StudentEnrollmentPage() {
       }
 
       await Promise.all([loadPending(query), fetchStats()]);
-
       showAlert("Enrollment moved to archives.", "success");
     } catch (e: any) {
       console.error(e);
@@ -287,7 +296,6 @@ export default function StudentEnrollmentPage() {
     }
   };
 
-  // 🟢 Restore Enrollment Handler
   const handleRestore = async (id: string) => {
     try {
       const res = await fetch(`${API_BASE_URL}/enrollment/${id}/restore`, {
@@ -302,7 +310,6 @@ export default function StudentEnrollmentPage() {
       }
 
       await Promise.all([loadPending(query), fetchStats()]);
-
       showAlert("Enrollment restored successfully.", "success");
     } catch (e: any) {
       console.error(e);
@@ -310,7 +317,6 @@ export default function StudentEnrollmentPage() {
     }
   };
 
-  // 🟢 Permanently Delete Archived Handler
   const handleDeleteArchived = async (id: string) => {
     try {
       const res = await fetch(`${API_BASE_URL}/enrollment/${id}`, {
@@ -383,6 +389,7 @@ export default function StudentEnrollmentPage() {
         loadEnrolled(enrolledQuery),
         loadSections(),
         fetchStats(),
+        fetchTotalEnrolledStudents(),
       ]);
 
       showAlert("Student enrolled successfully.", "success");
@@ -396,9 +403,10 @@ export default function StudentEnrollmentPage() {
     ? enrollments.length
     : (stats?.pending ?? enrollments.length);
 
-  const enrolledCount = enrolledQuery.trim()
-    ? enrolledStudents.length
-    : (stats?.enrolled ?? enrolledStudents.length);
+  const finalEnrolledCount =
+    totalEnrolledCount > 0
+      ? totalEnrolledCount
+      : stats?.enrolled ?? enrolledStudents.length;
 
   const toggleSelectEnrolled = (id: string) => {
     setSelectedEnrolledIds((prev) =>
@@ -471,17 +479,6 @@ export default function StudentEnrollmentPage() {
     subject?: string;
     message?: string;
   }) => {
-    console.log(
-      "🌐 Calling API endpoint:",
-      `${API_BASE_URL}/accounts/send-credentials`,
-    );
-    console.log("📦 Request body payload:", {
-      studentIds,
-      subject,
-      message,
-      updatedBy: registrarEmail,
-    });
-
     const res = await fetch(`${API_BASE_URL}/accounts/send-credentials`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -493,14 +490,7 @@ export default function StudentEnrollmentPage() {
       }),
     });
 
-    console.log("📥 Response status:", res.status, res.statusText);
-
-    const data = await res.json().catch((jsonErr) => {
-      console.error("⚠️ Failed to parse response JSON:", jsonErr);
-      return null;
-    });
-
-    console.log("📥 Response JSON data:", data);
+    const data = await res.json().catch(() => null);
 
     if (!res.ok) {
       throw new Error(
@@ -517,6 +507,7 @@ export default function StudentEnrollmentPage() {
     );
 
     await loadEnrolled(enrolledQuery);
+    await fetchTotalEnrolledStudents();
 
     const sent = (data?.results || []).filter(
       (r: any) => r.status === "sent",
@@ -544,7 +535,7 @@ export default function StudentEnrollmentPage() {
 
         <EnrollmentStats
           pending={pendingCount}
-          enrolled={stats?.enrolled ?? 0}
+          enrolled={finalEnrolledCount}
           availableSections={sections.length}
           semesterLabel={settingsSemesterLabel}
         />
@@ -578,7 +569,7 @@ export default function StudentEnrollmentPage() {
         </div>
 
         <EnrolledStudentsCard
-          enrolledCount={enrolledCount}
+          enrolledCount={enrolledStudents.length}
           enrolledQuery={enrolledQuery}
           setEnrolledQuery={setEnrolledQuery}
           loading={enrolledLoading || credLoading}

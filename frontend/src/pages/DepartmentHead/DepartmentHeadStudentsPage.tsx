@@ -214,7 +214,7 @@ export default function DepartmentHeadStudentsPage() {
 
       const matchesYear =
         selectedYear === "All" || student.year?.toString() === selectedYear;
-      
+
       const matchesSection =
         selectedSection === "All" || student.section === selectedSection;
 
@@ -225,10 +225,15 @@ export default function DepartmentHeadStudentsPage() {
       if (selectedStatus !== "All") {
         if (selectedStatus === "Unassigned") {
           matchesStatus = student.section === "Unassigned" || !student.section;
-        } else if (selectedStatus === "Drop Requested" || selectedStatus === "Transfer Pending") {
+        } else if (
+          selectedStatus === "Drop Requested" ||
+          selectedStatus === "Transfer Pending"
+        ) {
           matchesStatus = student.workflowState === selectedStatus;
         } else {
-          matchesStatus = student.status === selectedStatus && student.workflowState === "None";
+          matchesStatus =
+            student.status === selectedStatus &&
+            student.workflowState === "None";
         }
       }
 
@@ -250,7 +255,7 @@ export default function DepartmentHeadStudentsPage() {
   ]);
 
   const totalStudentsCount = students.length;
-  
+
   const enrolledInSectionCount = students.filter(
     (s) =>
       s.section &&
@@ -414,7 +419,10 @@ export default function DepartmentHeadStudentsPage() {
   const handleConfirmTransferRequest = async () => {
     if (!studentToTransfer) return;
     if (!transferReason.trim()) {
-      triggerAlert("Please provide a reason for the program transfer.", "error");
+      triggerAlert(
+        "Please provide a reason for the program transfer.",
+        "error",
+      );
       return;
     }
 
@@ -474,21 +482,40 @@ export default function DepartmentHeadStudentsPage() {
     }
 
     try {
-      const headers = ["Student Name", "Request Type", "Transfer Type", "Target Course / Reason", "Department", "Status"];
+      const headers = [
+        "Student Name",
+        "Request Type",
+        "Transfer Type",
+        "Target Course / Reason",
+        "Department",
+        "Status",
+      ];
       const csvRows = [headers.join(",")];
 
       transferHistory.forEach((item) => {
         const studentName = `"${(item.studentName || item.student?.name || "Student").replace(/"/g, '""')}"`;
-        const reqType = item.requestType === "drop" ? "Official Drop" : "Transfer";
+        const reqType =
+          item.requestType === "drop" ? "Official Drop" : "Transfer";
         const transferType = `"${(item.transferType || "N/A").replace(/"/g, '""')}"`;
-        const targetOrReason = `"${(item.requestType === 'drop' ? item.reason : item.targetCourse || "").replace(/"/g, '""')}"`;
-        const dept = `"${(item.requestType === 'drop' ? "Registrar Drop Request" : item.targetDepartment || "").replace(/"/g, '""')}"`;
+        const targetOrReason = `"${(item.requestType === "drop" ? item.reason : item.targetCourse || "").replace(/"/g, '""')}"`;
+        const dept = `"${(item.requestType === "drop" ? "Registrar Drop Request" : item.targetDepartment || "").replace(/"/g, '""')}"`;
         const status = `"${(item.status || "").replace(/"/g, '""')}"`;
 
-        csvRows.push([studentName, reqType, transferType, targetOrReason, dept, status].join(","));
+        csvRows.push(
+          [
+            studentName,
+            reqType,
+            transferType,
+            targetOrReason,
+            dept,
+            status,
+          ].join(","),
+        );
       });
 
-      const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const blob = new Blob([csvRows.join("\n")], {
+        type: "text/csv;charset=utf-8;",
+      });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -604,7 +631,11 @@ export default function DepartmentHeadStudentsPage() {
           <div className="modal-dialog modal-dialog-centered modal-lg">
             <div
               className="modal-content border-0 shadow-lg rounded-4 overflow-hidden"
-              style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
+              style={{
+                maxHeight: "85vh",
+                display: "flex",
+                flexDirection: "column",
+              }}
             >
               <div className="modal-header border-bottom px-4 py-3 bg-white">
                 <div className="d-flex align-items-center gap-3">
@@ -616,8 +647,8 @@ export default function DepartmentHeadStudentsPage() {
                       Requests History
                     </h5>
                     <p className="text-muted small mb-0">
-                      Track status updates, returns, and approvals for department
-                      transfers and drops
+                      Track status updates, returns, and approvals for
+                      department transfers and drops
                     </p>
                   </div>
                 </div>
@@ -715,8 +746,8 @@ export default function DepartmentHeadStudentsPage() {
                             req.status === "Approved"
                               ? "bg-success-subtle text-success"
                               : req.status === "Returned"
-                              ? "bg-danger-subtle text-danger"
-                              : "bg-warning-subtle text-warning-emphasis";
+                                ? "bg-danger-subtle text-danger"
+                                : "bg-warning-subtle text-warning-emphasis";
 
                           return (
                             <tr key={req.id || req._id}>
@@ -732,19 +763,27 @@ export default function DepartmentHeadStudentsPage() {
                                 </div>
                               </td>
                               <td className="text-capitalize">
-                                <span className={`badge ${req.requestType === 'drop' ? 'bg-danger-subtle text-danger' : 'bg-primary-subtle text-primary'}`}>
-                                  {req.requestType === 'drop' ? 'Official Drop' : `Transfer (${req.transferType})`}
+                                <span
+                                  className={`badge ${req.requestType === "drop" ? "bg-danger-subtle text-danger" : "bg-primary-subtle text-primary"}`}
+                                >
+                                  {req.requestType === "drop"
+                                    ? "Official Drop"
+                                    : `Transfer (${req.transferType})`}
                                 </span>
                               </td>
                               <td>
                                 <div className="fw-medium text-primary">
-                                  {req.requestType === 'drop' ? req.reason : req.targetCourse}
+                                  {req.requestType === "drop"
+                                    ? req.reason
+                                    : req.targetCourse}
                                 </div>
                                 <div
                                   className="text-muted"
                                   style={{ fontSize: "11px" }}
                                 >
-                                  {req.requestType === 'drop' ? 'Registrar Drop Request' : req.targetDepartment}
+                                  {req.requestType === "drop"
+                                    ? "Registrar Drop Request"
+                                    : req.targetDepartment}
                                 </div>
                               </td>
                               <td>
@@ -953,7 +992,8 @@ export default function DepartmentHeadStudentsPage() {
                 </p>
                 <div className="mb-3">
                   <label className="form-label small fw-semibold text-dark">
-                    Reason for Drop Request <span className="text-danger">*</span>
+                    Reason for Drop Request{" "}
+                    <span className="text-danger">*</span>
                   </label>
                   <textarea
                     className="form-control rounded-3 shadow-none"
@@ -1048,7 +1088,8 @@ export default function DepartmentHeadStudentsPage() {
                     className="form-label small fw-bold text-uppercase text-secondary mb-1"
                     style={{ fontSize: "11px", letterSpacing: "0.5px" }}
                   >
-                    Reason for Program Transfer <span className="text-danger">*</span>
+                    Reason for Program Transfer{" "}
+                    <span className="text-danger">*</span>
                   </label>
                   <textarea
                     className="form-control rounded-3 shadow-none"
@@ -1176,7 +1217,8 @@ export default function DepartmentHeadStudentsPage() {
                       onChange={(e) => setTargetCourse(e.target.value)}
                     >
                       {departmentCourses.filter((crs) => {
-                        const fullName = `${crs.code} ${crs.name}`.toLowerCase();
+                        const fullName =
+                          `${crs.code} ${crs.name}`.toLowerCase();
                         const current = studentToTransfer.course.toLowerCase();
                         return (
                           !fullName.includes(current) &&

@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react";
 import {
+  LayoutDashboard,
   Users,
-  CalendarDays,
-  DoorOpen,
-  BookOpen,
+  Layers,
+  Megaphone,
   Search,
   LifeBuoy,
   X,
@@ -56,95 +56,80 @@ export default function DepartmentHeadHelpSupport() {
   };
 
   /* =========================================================
-     HELP TOPICS WITH RICH INSTRUCTIONAL CONTENT
+     HELP TOPICS FOR EXISTING MODULES ONLY
      ========================================================= */
 
   const helpTopics = useMemo<DetailedHelpTopic[]>(
     () => [
       {
         id: 1,
-        title: "Managing Faculty Loads",
-        description: "Balance teaching units and monitor faculty assignments",
-        icon: Users,
+        title: "Using the Dashboard",
+        description: "Monitor department metrics, stats, and quick overview",
+        icon: LayoutDashboard,
         details: {
-          overview: "Faculty load management helps you ensure that instructors are assigned within their contractual unit capacities without overloading.",
+          overview: "The Dashboard serves as your main command center to view high-level summaries and statistics for your department.",
           steps: [
-            "Navigate to the Faculty Load section from your department dashboard.",
-            "Review current lecture and laboratory units assigned to each instructor.",
-            "Verify that total units do not exceed the institutional maximum limit (default: 21 units).",
-            "Reassign subjects if an instructor is over-allocated."
+            "Click on 'Dashboard' in the sidebar to load your main overview.",
+            "Review key summary cards including total students and active sections.",
+            "Use quick action widgets to navigate directly to critical management tasks."
           ],
-          proTip: "Check your department settings if you need to adjust the maximum teaching load thresholds.",
+          proTip: "Check the dashboard daily for important notifications and summary updates.",
         }
       },
       {
         id: 2,
-        title: "Creating Schedules",
-        description: "Assign subjects, faculty, rooms, and time slots",
-        icon: CalendarDays,
+        title: "Managing Students",
+        description: "View student profiles, records, and department enrollment",
+        icon: Users,
         details: {
-          overview: "Create and organize class timetables efficiently while avoiding double-booking rooms or faculty.",
+          overview: "The Students module allows you to view, search, and manage student lists enrolled under your department.",
           steps: [
-            "Go to Schedule Management and click 'Create Schedule'.",
-            "Select the target subject code and curriculum year section.",
-            "Assign an available faculty member with matching expertise.",
-            "Choose an unreserved room and designate the meeting days and time slots."
+            "Navigate to the 'Students' page from the sidebar navigation.",
+            "Use the search bar or filters to find specific student records or IDs.",
+            "Click on a student profile to inspect their detailed information and status."
           ],
-          proTip: "The system automatically flags conflicting time slots or room overlaps upon creation.",
+          proTip: "Use clear search keywords like student names or ID numbers for faster lookups.",
         }
       },
       {
         id: 3,
-        title: "Allocating Rooms",
-        description: "Track utilization, schedules, and free room slots",
-        icon: DoorOpen,
+        title: "Managing Sections",
+        description: "Organize class sections, rosters, and groupings",
+        icon: Layers,
         details: {
-          overview: "Monitor room capacity, lecture/laboratory types, and real-time weekly utilization percentages.",
+          overview: "Section management helps you oversee class groupings, track section capacities, and review assigned students.",
           steps: [
-            "Open the Room Allocation page to see all department-assigned rooms.",
-            "Click 'View Schedule' on any room card to inspect active class timetables.",
-            "Check the progress bar indicator to spot under-utilized or overcrowded spaces."
+            "Open the 'Sections' page from the main menu.",
+            "Browse through available sections or search by section code.",
+            "Click on any section card or row to view its detailed roster and breakdown."
           ],
-          proTip: "Rooms with utilization rates above 85% are highlighted in red to indicate high demand.",
+          proTip: "Ensure student counts match allocated section capacities to prevent overcrowding.",
         }
       },
       {
         id: 4,
-        title: "Managing Subject Offerings",
-        description: "Maintain the curriculum and course catalog",
-        icon: BookOpen,
+        title: "Publishing Announcements",
+        description: "Broadcast updates and notices to your department",
+        icon: Megaphone,
         details: {
-          overview: "Keep your program's curriculum updated with active courses, prerequisites, and unit distributions.",
+          overview: "Keep faculty and students informed by posting and broadcasting official department announcements.",
           steps: [
-            "Access the Subject Offerings module in your department portal.",
-            "Review semester course lists for BSIT or associated programs.",
-            "Add newly approved subjects or update existing course descriptions."
+            "Go to the 'Announcements' module from the sidebar.",
+            "Click on the option to create or publish a new announcement.",
+            "Fill in your announcement title, target audience, and message content before posting."
           ],
+          proTip: "Important notices pinned to the top ensure higher visibility among users.",
         }
       },
       {
         id: 5,
-        title: "Resolving Conflicts",
-        description: "Detect and fix overlapping room or faculty schedules",
-        icon: CalendarDays,
-        details: {
-          overview: "Quickly pinpoint scheduling clashes where two classes occupy the same room or instructor simultaneously.",
-          steps: [
-            "Check the Schedule Conflicts tab on your dashboard.",
-            "Review the conflicting time slots, rooms, and competing subject codes.",
-            "Select a resolution option such as moving the class to another room or altering the time slot."
-          ],
-        }
-      },
-      {
-        id: 6,
         title: "Submitting Support Tickets",
         description: "Report technical issues or administrative requests",
         icon: LifeBuoy,
         details: {
           overview: "Need technical assistance or system adjustments? Submit a support ticket directly to IT administrators.",
           steps: [
-            "Click the 'Submit a Ticket' button at the top of the Help page.",
+            "Click the 'Submit a Ticket' button at the top right of the Help page.",
             "Fill out your subject, issue category, and detailed description.",
             "Submit the form to receive confirmation and tracking updates."
           ],
@@ -158,33 +143,23 @@ export default function DepartmentHeadHelpSupport() {
     () => [
       {
         id: 1,
-        question: "How do I resolve a schedule conflict?",
-        answer: "Review the conflicting faculty, room, subject, and time slot in the schedule. Adjust the assignment to an available room or time slot, then save the updated schedule.",
+        question: "How do I view student records?",
+        answer: "Navigate to the 'Students' page from the left sidebar to browse or search for specific student records within your department.",
       },
       {
         id: 2,
-        question: "What is the maximum teaching load?",
-        answer: "The maximum teaching load is based on the department preference configured in Settings. The default maximum teaching load is 21 units.",
+        question: "Where can I check active sections?",
+        answer: "You can view and manage all department sections by clicking on the 'Sections' module in the sidebar.",
       },
       {
         id: 3,
-        question: "Can I add a new room?",
-        answer: "Yes. Open Room Allocation and use the room request option to submit a new room request. The room can then be reviewed and added to the available rooms.",
+        question: "How do I post an announcement?",
+        answer: "Go to the 'Announcements' page using the sidebar navigation and select the option to publish a new announcement.",
       },
       {
         id: 4,
-        question: "How do I assign a faculty member to a subject?",
-        answer: "Open the schedule management page, select the subject, and choose an available faculty member. Make sure the faculty member's teaching load does not exceed the configured maximum.",
-      },
-      {
-        id: 5,
-        question: "How do I create a new schedule?",
-        answer: "Open Schedule Management and create a schedule by selecting the subject, faculty member, room, meeting days, and time slot.",
-      },
-      {
-        id: 6,
-        question: "Where can I view faculty teaching loads?",
-        answer: "Faculty teaching loads can be viewed from the Department Head Dashboard or the faculty load management page.",
+        question: "How do I contact technical support?",
+        answer: "Click the 'Submit a Ticket' button at the top right of the Help & Support page to report issues directly to IT administrators.",
       },
     ],
     []
@@ -292,69 +267,47 @@ export default function DepartmentHeadHelpSupport() {
         </div>
 
         {/* =====================================================
-            TOPIC DETAILS POPUP MODAL (Clean Single-Row Header)
+            TOPIC DETAILS POPUP MODAL
             ===================================================== */}
         {selectedTopic && (
           <div 
             className="room-modal-overlay" 
             onClick={() => setSelectedTopic(null)}
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              backgroundColor: "rgba(0,0,0,0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1050,
-              padding: "1rem"
-            }}
           >
             <div 
-              className="bg-white p-4 rounded shadow-lg"
+              className="room-modal-content bg-white p-4 rounded shadow-lg"
               onClick={(e) => e.stopPropagation()}
-              style={{ maxWidth: "550px", width: "100%", maxHeight: "90vh", overflowY: "auto" }}
             >
               {/* Modal Header */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700, color: "#1f2937" }}>
+              <div className="room-modal-header">
+                <h3>
                   {selectedTopic.title}
                 </h3>
                 <button
                   type="button"
+                  className="room-modal-close-btn"
                   onClick={() => setSelectedTopic(null)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: "0.25rem",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#6b7280"
-                  }}
+                  aria-label="Close modal"
                 >
                   <X size={20} />
                 </button>
               </div>
 
               {/* Modal Body Overview */}
-              <p style={{ color: "#4b5563", fontSize: "0.95rem", marginBottom: "1.25rem", lineHeight: "1.5" }}>
+              <p className="room-modal-overview">
                 {selectedTopic.details.overview}
               </p>
 
               {/* Step-by-Step Guide */}
               {selectedTopic.details.steps && (
-                <div style={{ marginBottom: "1.25rem" }}>
-                  <h6 style={{ fontWeight: 600, color: "#374151", marginBottom: "0.75rem", fontSize: "0.95rem" }}>
+                <div className="room-modal-steps-container">
+                  <h6>
                     Step-by-Step Guide:
                   </h6>
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <ul className="room-modal-steps-list">
                     {selectedTopic.details.steps.map((step, idx) => (
-                      <li key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", color: "#1f2937", fontSize: "0.9rem", lineHeight: "1.4" }}>
-                        <CheckCircle size={16} color="#0b4d6b" style={{ marginTop: "0.15rem", flexShrink: 0 }} />
+                      <li key={idx} className="room-modal-step-item">
+                        <CheckCircle size={16} color="#0b4d6b" className="room-modal-step-icon" />
                         <span>{step}</span>
                       </li>
                     ))}
@@ -364,35 +317,16 @@ export default function DepartmentHeadHelpSupport() {
 
               {/* Pro Tip Callout */}
               {selectedTopic.details.proTip && (
-                <div 
-                  style={{ 
-                    padding: "0.75rem 1rem", 
-                    borderRadius: "6px", 
-                    marginBottom: "1.25rem", 
-                    backgroundColor: "#f0fdf4", 
-                    border: "1px solid #bbf7d0", 
-                    color: "#166534", 
-                    fontSize: "0.85rem",
-                    lineHeight: "1.4"
-                  }}
-                >
+                <div className="room-modal-protip">
                   <strong>💡 Pro Tip:</strong> {selectedTopic.details.proTip}
                 </div>
               )}
 
               {/* Modal Footer */}
-              <div style={{ textAlign: "right", marginTop: "1.5rem" }}>
+              <div className="room-modal-footer">
                 <button
                   type="button"
-                  style={{
-                    backgroundColor: "#0b4d6b",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: "6px",
-                    padding: "0.5rem 1.25rem",
-                    fontWeight: 500,
-                    cursor: "pointer"
-                  }}
+                  className="room-modal-action-btn"
                   onClick={() => setSelectedTopic(null)}
                 >
                   Got it

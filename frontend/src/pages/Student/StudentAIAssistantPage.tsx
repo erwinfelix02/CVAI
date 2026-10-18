@@ -27,9 +27,7 @@ type ChatSession = {
 };
 
 const suggestions = [
-  "What's my current GPA?",
   "When is the deadline for enrollment?",
-  "How do I pay my tuition fees?",
   "Where is the registrar's office?",
 ];
 
@@ -182,7 +180,7 @@ export default function StudentAIAssistantPage() {
     setSessions(updatedSessions);
     setInputText("");
     setLoading(true);
-try {
+    try {
       // 🔄 Changed from hardcoded localhost to use config for local/AWS Nginx proxy switching
       const response = await axios.post(`${AI_API_BASE_URL}/api/chat`, {
         message: text,

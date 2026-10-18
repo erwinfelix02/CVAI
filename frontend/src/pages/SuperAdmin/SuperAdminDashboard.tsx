@@ -88,9 +88,6 @@ export default function SuperAdminDashboard() {
   const [isWelcomeClosing, setIsWelcomeClosing] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState("");
 
-  /* =========================================================
-     BACK NAVIGATION LOGOUT & COUNTDOWN STATES
-     ========================================================= */
   const [showBackLogoutConfirm, setShowBackLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutCountdown, setLogoutCountdown] = useState(3);
@@ -106,7 +103,6 @@ export default function SuperAdminDashboard() {
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [loadingPortals, setLoadingPortals] = useState(false);
 
-  // Get current user details for audit logging
   const currentUser = useMemo(() => {
     try {
       const userJson = localStorage.getItem("user");
@@ -145,9 +141,6 @@ export default function SuperAdminDashboard() {
     };
   }, [showWelcome]);
 
-  /* =========================================================
-     INTERCEPT BACK BUTTON (Trigger Logout Confirmation)
-     ========================================================= */
   useEffect(() => {
     if (!window.history.state || !window.history.state.guarded) {
       window.history.pushState({ guarded: true }, "", window.location.href);
@@ -165,9 +158,6 @@ export default function SuperAdminDashboard() {
     };
   }, []);
 
-  /* =========================================================
-     LOGOUT AUDIT & COUNTDOWN HANDLERS
-     ========================================================= */
   const logLogoutActivity = async () => {
     try {
       const userEmail = currentUser?.email || "superadmin@example.com";
@@ -211,7 +201,6 @@ export default function SuperAdminDashboard() {
       async function finalizeLogout() {
         await logLogoutActivity();
 
-        // Clear session tokens
         localStorage.removeItem("token");
         localStorage.removeItem("sessionToken");
         localStorage.removeItem("user");
@@ -289,7 +278,12 @@ export default function SuperAdminDashboard() {
             : undefined,
         });
 
-        setPortals(Array.isArray(res.data) ? res.data : []);
+        // Filter out Faculty Portal
+        const rawPortals: PortalStatusRow[] = Array.isArray(res.data) ? res.data : [];
+        const filteredPortals = rawPortals.filter(
+          (p) => !p.name.toLowerCase().includes("faculty")
+        );
+        setPortals(filteredPortals);
       } catch (err) {
         console.error("Failed to load portal statuses", err);
         setPortals([]);
@@ -313,7 +307,11 @@ export default function SuperAdminDashboard() {
           },
         });
 
-        setPortals(Array.isArray(res.data) ? res.data : []);
+        const rawPortals: PortalStatusRow[] = Array.isArray(res.data) ? res.data : [];
+        const filteredPortals = rawPortals.filter(
+          (p) => !p.name.toLowerCase().includes("faculty")
+        );
+        setPortals(filteredPortals);
       } catch (err) {
         console.error("Failed to refresh portal statuses", err);
       }
@@ -362,7 +360,7 @@ export default function SuperAdminDashboard() {
         },
         {
           label: "Active Roles",
-          value: "5",
+          value: "4", // Updated from 5 to 4
           icon: Shield,
           tone: "purple",
         },
@@ -468,7 +466,6 @@ export default function SuperAdminDashboard() {
         </div>
       )}
 
-      {/* BACK NAVIGATION LOGOUT CONFIRMATION MODAL */}
       {showBackLogoutConfirm && (
         <div
           className="logout-overlay"
@@ -502,7 +499,6 @@ export default function SuperAdminDashboard() {
         </div>
       )}
 
-      {/* LOGGING OUT OVERLAY WITH COUNTDOWN */}
       {isLoggingOut && (
         <div className="logging-out-overlay" role="status" aria-live="polite">
           <div className="logging-out-box">
@@ -526,7 +522,6 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
 
-        {/* 1. Stat Cards Row */}
         <div className="row g-3 g-md-4 mb-3 mb-md-4">
           {stats.map((s) => (
             <div key={s.label} className="col-12 col-sm-6 col-xl-3">
@@ -540,14 +535,12 @@ export default function SuperAdminDashboard() {
           ))}
         </div>
 
-        {/* 2. Quick Actions Grid */}
         <div className="row g-3 g-md-4 mb-3 mb-md-4">
           <div className="col-12">
             <QuickActionsGrid title="Quick Actions" items={quick} />
           </div>
         </div>
 
-        {/* 3. Portal Status & Recent Activity Row */}
         <div className="row g-3 g-md-4">
           <div className="col-12 col-lg-6">
             <PortalStatusCard

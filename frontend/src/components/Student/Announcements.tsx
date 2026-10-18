@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Bell, Loader2, Inbox } from "lucide-react";
-import { API_BASE_URL } from "../../config"; // 🟢 Centralized API Configuration
+import { API_BASE_URL } from "../../config";
 
 interface AnnouncementItem {
   id: string;
@@ -13,7 +13,6 @@ interface AnnouncementItem {
   createdAt?: string;
 }
 
-// Helper function to format dates into a clean, readable text format
 const formatReadableDate = (dateString?: string): string => {
   if (!dateString) return "";
   const date = new Date(dateString);
@@ -36,7 +35,6 @@ export default function Announcements() {
       try {
         setLoading(true);
 
-        // Retrieve student profile details from storage to build matching query params
         const storedUser =
           localStorage.getItem("user") || localStorage.getItem("studentProfile");
         const student = storedUser ? JSON.parse(storedUser) : null;
@@ -54,7 +52,6 @@ export default function Announcements() {
           department,
         });
 
-        // 🟢 Uses API_BASE_URL config
         const res = await fetch(`${API_BASE_URL}/announcements?${params.toString()}`);
         if (!res.ok) throw new Error("Failed to load announcements");
 
@@ -81,15 +78,13 @@ export default function Announcements() {
   }, []);
 
   return (
-    <div className="card announcements-card shadow-sm p-3 d-flex flex-column h-100">
-      {/* Title */}
-      <h5 className="fw-semibold mb-3 d-flex align-items-center gap-2 flex-shrink-0">
+    <div className="h-100 d-flex flex-column">
+      <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 flex-shrink-0 text-dark">
         <Bell size={20} className="text-primary" />
         Recent Announcements
       </h5>
 
-      {/* Scrollable list content */}
-      <div className="announcements-list-wrapper flex-grow-1 overflow-auto" style={{ maxHeight: "280px" }}>
+      <div className="flex-grow-1 overflow-auto" style={{ maxHeight: "360px" }}>
         {loading ? (
           <div className="text-center py-4 text-muted">
             <Loader2 className="spinner-border spinner-border-sm text-primary mb-1" size={20} />
@@ -100,23 +95,23 @@ export default function Announcements() {
             {error}
           </div>
         ) : announcements.length > 0 ? (
-          <ul className="announcements-list list-unstyled mb-0">
+          <ul className="list-unstyled mb-0 d-flex flex-column gap-2">
             {announcements.map((a) => (
-              <li key={a.id} className="border rounded p-2 mb-2 bg-white">
+              <li key={a.id} className="border rounded-3 p-3 bg-light bg-opacity-50">
                 <p className="small fw-bold mb-1 text-dark">{a.title}</p>
                 {a.message && (
-                  <p className="text-muted small mb-1 text-truncate" style={{ fontSize: "0.8rem" }}>
+                  <p className="text-muted small mb-2 text-truncate" style={{ fontSize: "0.8rem" }}>
                     {a.message}
                   </p>
                 )}
-                <span className="text-muted" style={{ fontSize: "0.75rem" }}>
+                <span className="text-muted d-block" style={{ fontSize: "0.75rem" }}>
                   {a.date}
                 </span>
               </li>
             ))}
           </ul>
         ) : (
-          <div className="text-center py-4 text-muted">
+          <div className="text-center py-5 text-muted">
             <Inbox size={28} className="mb-1 opacity-50" />
             <p className="small mb-0">No announcements available.</p>
           </div>

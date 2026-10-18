@@ -13,11 +13,13 @@ import SubmitTicketModal from "../../components/Registrar/Help/SubmitTicketModal
 import AuthAlert from "../../components/Authentication/AuthAlert";
 
 import {
-  BookOpen,
-  Users,
+  LayoutDashboard,
   FileText,
-  UserPlus,
-  ShieldCheck,
+  Users,
+  BookOpen,
+  Layers,
+  Book,
+  Building,
   Settings,
   Phone,
   Ticket,
@@ -71,11 +73,13 @@ export default function RegistrarHelpPage() {
   }, [query]);
 
   const iconMap: Record<string, ReactNode> = {
-    book: <BookOpen size={28} />,
+    "layout-dashboard": <LayoutDashboard size={28} />,
+    "file-text": <FileText size={28} />,
     users: <Users size={28} />,
-    file: <FileText size={28} />,
-    userplus: <UserPlus size={28} />,
-    shield: <ShieldCheck size={28} />,
+    "book-open": <BookOpen size={28} />,
+    layers: <Layers size={28} />,
+    book: <Book size={28} />,
+    building: <Building size={28} />,
     settings: <Settings size={28} />,
   };
 
@@ -131,7 +135,7 @@ export default function RegistrarHelpPage() {
           <div className="row g-3 g-md-4 rh-guide-row">
             {quickGuides.map((guide) => (
               <div
-                className="col-12 col-sm-6 col-lg-4 col-xl-2 d-flex"
+                className="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex"
                 key={guide.id}
               >
                 <QuickGuideCard

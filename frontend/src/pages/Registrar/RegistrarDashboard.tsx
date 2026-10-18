@@ -51,11 +51,10 @@ export default function RegistrarDashboard() {
   const [totalStudents, setTotalStudents] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [recent, setRecent] = useState<RecentApplication[]>([]);
-  const [enrollmentCounts, setEnrollmentCounts] = useState({
-    scheduled: 0,
-    enrolled: 0,
-    cancelled: 0,
-  });
+  
+  // States for live student records counts
+  const [activeEnrollmentsCount, setActiveEnrollmentsCount] = useState(0);
+  const [droppedCount, setDroppedCount] = useState(0);
 
   const [permissions, setPermissions] = useState<string[]>([]);
   const [, setLoadingPerms] = useState(true);
@@ -214,24 +213,27 @@ export default function RegistrarDashboard() {
     loadPerms();
   }, []);
 
+  // Fetch student status counts directly from student records
   useEffect(() => {
-    const fetchEnrollmentCounts = async () => {
+    const fetchStudentRecordCounts = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/enrollments/counts`);
-        const data = await res.json();
+        // Fetch active students count
+        const activeRes = await fetch(`${API_BASE_URL}/students?status=Active`);
+        const activeData = await activeRes.json();
+        setActiveEnrollmentsCount(Array.isArray(activeData) ? activeData.length : 0);
 
-        setEnrollmentCounts({
-          scheduled: Number(data?.scheduled ?? 0),
-          enrolled: Number(data?.enrolled ?? 0),
-          cancelled: Number(data?.cancelled ?? 0),
-        });
+        // Fetch dropped / inactive students count
+        const droppedRes = await fetch(`${API_BASE_URL}/students?status=Dropped`);
+        const droppedData = await droppedRes.json();
+        setDroppedCount(Array.isArray(droppedData) ? droppedData.length : 0);
       } catch (err) {
-        console.error("Failed to fetch enrollment counts", err);
-        setEnrollmentCounts({ scheduled: 0, enrolled: 0, cancelled: 0 });
+        console.error("Failed to fetch student status counts", err);
+        setActiveEnrollmentsCount(0);
+        setDroppedCount(0);
       }
     };
 
-    fetchEnrollmentCounts();
+    fetchStudentRecordCounts();
   }, []);
 
   useEffect(() => {
@@ -341,20 +343,20 @@ export default function RegistrarDashboard() {
       },
       {
         label: "Active Enrollments",
-        value: enrollmentCounts.enrolled.toLocaleString(),
+        value: activeEnrollmentsCount.toLocaleString(),
         helper: "Enrolled students",
         icon: UserCheck,
         tone: "green",
       },
       {
         label: "Dropped/Inactive",
-        value: enrollmentCounts.cancelled.toLocaleString(),
+        value: droppedCount.toLocaleString(),
         helper: "Cancelled enrollments",
         icon: UserX,
         tone: "red",
       },
     ],
-    [pendingCount, totalStudents, enrollmentCounts],
+    [pendingCount, totalStudents, activeEnrollmentsCount, droppedCount],
   );
 
   const quickActions: QuickActionItem[] = useMemo(() => {
