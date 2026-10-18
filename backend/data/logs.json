@@ -1,5 +1,41 @@
 [
   {
+    "id": "0833a0bc-9352-42d0-8583-c72e433310cb",
+    "date": "2026-10-18",
+    "time": "07:22:50",
+    "action": "Delete Task",
+    "user": "fwin2092@gmail.com",
+    "role": "Student",
+    "type": "Data",
+    "details": "Task 6ad553991d3e64f62ccc45ae deleted",
+    "ip": "127.0.0.1",
+    "status": "success"
+  },
+  {
+    "id": "e47413db-46b8-4ac1-b4ae-12f128c2468f",
+    "date": "2026-10-18",
+    "time": "07:17:45",
+    "action": "Create Task",
+    "user": "fwin2092@gmail.com",
+    "role": "Student",
+    "type": "Data",
+    "details": "Task created for date 2026-10-21",
+    "ip": "127.0.0.1",
+    "status": "success"
+  },
+  {
+    "id": "3e1da6a3-946b-45ef-9b74-c12aa5e84a12",
+    "date": "2026-10-18",
+    "time": "07:10:43",
+    "action": "User Login",
+    "user": "fwin2092@gmail.com",
+    "role": "Student",
+    "type": "Auth",
+    "details": "Successful login",
+    "ip": "127.0.0.1",
+    "status": "success"
+  },
+  {
     "id": "0682b8e3-4654-4ed9-ad56-ed7f0ce201b1",
     "date": "2026-10-18",
     "time": "22:04:04",

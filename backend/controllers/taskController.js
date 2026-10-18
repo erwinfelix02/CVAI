@@ -22,6 +22,10 @@ const checkAndNotifyUpcomingTasks = async (userId, userEmail, req) => {
     });
 
     const appName = process.env.APP_NAME || "CVAI Portal";
+    
+    // Use environment variable if set, otherwise fallback to your deployed public IP
+    const frontendUrl = process.env.FRONTEND_URL || "http://32.237.52.114";
+    const portalUrl = `${frontendUrl}/signin`;
 
     for (const task of upcomingTasks) {
       const emailHtml = `
@@ -33,6 +37,14 @@ const checkAndNotifyUpcomingTasks = async (userId, userEmail, req) => {
             <strong>${task.text}</strong><br/>
             <small style="color: #64748b;">Due Date: ${new Date(task.dueDate).toLocaleDateString()}</small>
           </blockquote>
+          
+          <!-- Clickable Login CTA Button -->
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${portalUrl}" style="display: inline-block; padding: 12px 28px; background-color: #0f766e; color: #ffffff; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 15px;">
+              Sign In to View Portal
+            </a>
+          </div>
+
           <p>Please log in to your student portal to complete it.</p>
           <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
           <p style="font-size: 12px; color: #64748b; margin: 0;">
@@ -103,6 +115,11 @@ export const createTask = async (req, res) => {
     const todayStr = new Date().toISOString().split("T")[0];
     if (dateKey === todayStr) {
       const appName = process.env.APP_NAME || "CVAI Portal";
+      
+      // Use environment variable if set, otherwise fallback to your deployed public IP
+      const frontendUrl = process.env.FRONTEND_URL || "http://32.237.52.114";
+      const portalUrl = `${frontendUrl}/signin`;
+
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
           <h2 style="color: #0f766e; margin-top: 0;">Task Reminder</h2>
@@ -112,6 +129,14 @@ export const createTask = async (req, res) => {
             <strong>${text}</strong><br/>
             <small style="color: #64748b;">Due Date: ${new Date(task.dueDate).toLocaleDateString()}</small>
           </blockquote>
+
+          <!-- Clickable Login CTA Button -->
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${portalUrl}" style="display: inline-block; padding: 12px 28px; background-color: #0f766e; color: #ffffff; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 15px;">
+              Sign In to View Portal
+            </a>
+          </div>
+
           <p>Please log in to your student portal to complete it.</p>
           <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
           <p style="font-size: 12px; color: #64748b; margin: 0;">
@@ -205,4 +230,4 @@ export const deleteTask = async (req, res) => {
     console.error("Delete task error:", error);
     return res.status(500).json({ message: "Server error deleting task", error: error.message });
   }
-};
+}; 

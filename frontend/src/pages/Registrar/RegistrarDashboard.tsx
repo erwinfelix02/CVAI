@@ -51,7 +51,7 @@ export default function RegistrarDashboard() {
   const [totalStudents, setTotalStudents] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [recent, setRecent] = useState<RecentApplication[]>([]);
-  
+
   // States for live student records counts
   const [activeEnrollmentsCount, setActiveEnrollmentsCount] = useState(0);
   const [droppedCount, setDroppedCount] = useState(0);
@@ -188,9 +188,7 @@ export default function RegistrarDashboard() {
     async function loadPerms() {
       setLoadingPerms(true);
       try {
-        const res = await fetch(
-          `${API_BASE_URL}/roles/${REGISTRAR_ROLE_ID}`,
-        );
+        const res = await fetch(`${API_BASE_URL}/roles/${REGISTRAR_ROLE_ID}`);
 
         if (!res.ok) {
           console.error("Failed to fetch role perms:", res.status);
@@ -220,10 +218,14 @@ export default function RegistrarDashboard() {
         // Fetch active students count
         const activeRes = await fetch(`${API_BASE_URL}/students?status=Active`);
         const activeData = await activeRes.json();
-        setActiveEnrollmentsCount(Array.isArray(activeData) ? activeData.length : 0);
+        setActiveEnrollmentsCount(
+          Array.isArray(activeData) ? activeData.length : 0,
+        );
 
         // Fetch dropped / inactive students count
-        const droppedRes = await fetch(`${API_BASE_URL}/students?status=Dropped`);
+        const droppedRes = await fetch(
+          `${API_BASE_URL}/students?status=Dropped`,
+        );
         const droppedData = await droppedRes.json();
         setDroppedCount(Array.isArray(droppedData) ? droppedData.length : 0);
       } catch (err) {
@@ -297,9 +299,7 @@ export default function RegistrarDashboard() {
   useEffect(() => {
     const fetchRecent = async () => {
       try {
-        const res = await fetch(
-          `${API_BASE_URL}/preregistrations/recent`,
-        );
+        const res = await fetch(`${API_BASE_URL}/preregistrations/recent`);
         const data = await res.json();
 
         const mapped = data.map((app: any) => ({
@@ -425,7 +425,11 @@ export default function RegistrarDashboard() {
                 className="btn btn-secondary btn-sm"
                 onClick={() => {
                   setShowBackLogoutConfirm(false);
-                  window.history.pushState({ guarded: true }, "", window.location.href);
+                  window.history.pushState(
+                    { guarded: true },
+                    "",
+                    window.location.href,
+                  );
                 }}
               >
                 Cancel

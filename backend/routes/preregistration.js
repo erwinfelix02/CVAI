@@ -396,9 +396,8 @@ router.patch("/:id/status", async (req, res) => {
     }
 
     // Automatically capture network host from request so it uses your IP instead of localhost
-    const host = req.get("host") || "localhost:5000";
-    const frontendHost = host.replace(/:\d+$/, ":5173");
-    const frontendUrl = process.env.FRONTEND_URL || `http://${frontendHost}`;
+// Use environment variable if set, otherwise fallback to your deployed public IP
+    const frontendUrl = process.env.FRONTEND_URL || "http://32.237.52.114";
     const revisionLink = `${frontendUrl}/preregistration/revise?token=${updateData.revisionToken}`;
 
     const emailHtml = `

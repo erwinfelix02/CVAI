@@ -47,9 +47,8 @@ export const sendStudentCredentialsBulk = async (req, res) => {
     const sentStudentIds = [];
 
     //  Automatically capture network host / frontend URL for the login button link
-    const host = req.get("host") || "localhost:5000";
-    const frontendHost = host.replace(/:\d+$/, ":5173");
-    const frontendUrl = process.env.FRONTEND_URL || `http://${frontendHost}`;
+    // Use environment variable if set, otherwise fallback to your deployed public IP
+    const frontendUrl = process.env.FRONTEND_URL || "http://32.237.52.114";
     const loginUrl = `${frontendUrl}/signin`;
 
     for (const s of students) {

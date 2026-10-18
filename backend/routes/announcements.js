@@ -139,9 +139,7 @@ async function dispatchAnnouncementEmails(
   try {
     console.log("🚀 Entering email dispatch loop...");
     const appName = process.env.APP_NAME || "CVAI Portal";
-    const host = req.get("host") || "localhost:5000";
-    const frontendHost = host.replace(/:\d+$/, ":5173");
-    const frontendUrl = process.env.FRONTEND_URL || `http://${frontendHost}`;
+const frontendUrl = process.env.FRONTEND_URL || "http://32.237.52.114";
     const portalUrl = `${frontendUrl}/signin`;
 
     const safeTitle = validator.escape(title);

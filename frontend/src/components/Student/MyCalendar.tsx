@@ -21,9 +21,9 @@ export default function MyCalendar() {
   const [newTaskText, setNewTaskText] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Confirmation modal states
-  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
-  const [taskToToggle, setTaskToToggle] = useState<Task | null>(null);
+  // Stable action states
+  const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);
+  const [taskToToggleId, setTaskToToggleId] = useState<string | null>(null);
 
   const storedUser = localStorage.getItem("user");
   const parsedUser = storedUser ? JSON.parse(storedUser) : null;
@@ -111,6 +111,8 @@ export default function MyCalendar() {
     setSelectedDate(dateObj);
     setShowModal(true);
     setNewTaskText("");
+    setTaskToDeleteId(null);
+    setTaskToToggleId(null);
   };
 
   const isPastDate = selectedDate ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()) < today : false;
@@ -147,10 +149,9 @@ export default function MyCalendar() {
     }
   };
 
-  const confirmToggleTask = async () => {
-    if (!taskToToggle) return;
-    const taskId = taskToToggle.id;
-    const newCompletedStatus = !taskToToggle.completed;
+  const confirmToggleTask = async (task: Task) => {
+    const taskId = task.id;
+    const newCompletedStatus = !task.completed;
 
     try {
       const res = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
@@ -170,14 +171,11 @@ export default function MyCalendar() {
     } catch (err) {
       console.error("Failed to update task", err);
     } finally {
-      setTaskToToggle(null);
+      setTaskToToggleId(null);
     }
   };
 
-  const confirmDeleteTask = async () => {
-    if (!taskToDelete) return;
-    const taskId = taskToDelete.id;
-
+  const confirmDeleteTask = async (taskId: string) => {
     try {
       const res = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
         method: "DELETE",
@@ -193,7 +191,7 @@ export default function MyCalendar() {
     } catch (err) {
       console.error("Failed to delete task", err);
     } finally {
-      setTaskToDelete(null);
+      setTaskToDeleteId(null);
     }
   };
 
@@ -201,14 +199,14 @@ export default function MyCalendar() {
   const filteredTasks = tasks.filter((t) => t.dateKey === selectedDateKey);
 
   return (
-    <div className="h-100">
+    <div className="container-fluid px-2 px-md-3 h-100">
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h5 className="fw-bold mb-0 d-flex align-items-center gap-2 text-dark">
           <CalendarIcon size={20} className="text-primary" />
           My Calendar & Tasks
         </h5>
 
-        <div className="d-flex align-items-center gap-3">
+        <div className="d-flex align-items-center gap-2 flex-wrap">
           <button
             type="button"
             className="btn btn-outline-secondary btn-sm px-3 rounded-pill"
@@ -217,13 +215,13 @@ export default function MyCalendar() {
             Today
           </button>
           <div className="d-flex align-items-center gap-2">
-            <span className="fw-semibold text-dark" style={{ minWidth: 130 }}>
+            <span className="fw-semibold text-dark text-nowrap" style={{ minWidth: 120 }}>
               {monthNames[month]} {year}
             </span>
             <div className="btn-group shadow-sm">
               <button
                 type="button"
-                className="btn btn-light border btn-sm"
+                className="btn btn-light border btn-sm px-2 py-1"
                 onClick={prevMonth}
                 title="Previous Month"
               >
@@ -231,7 +229,7 @@ export default function MyCalendar() {
               </button>
               <button
                 type="button"
-                className="btn btn-light border btn-sm"
+                className="btn btn-light border btn-sm px-2 py-1"
                 onClick={nextMonth}
                 title="Next Month"
               >
@@ -260,7 +258,7 @@ export default function MyCalendar() {
           const hasTasks = tasks.some((t) => t.dateKey === dateKey);
 
           return (
-            <div className="col-1.5 p-1" style={{ width: "14.28%" }} key={index}>
+            <div className="p-1" style={{ width: "14.28%" }} key={index}>
               <div
                 onClick={() => handleDayClick(item.dateObj)}
                 className={`d-flex flex-column align-items-center justify-content-center rounded-circle mx-auto fw-medium small position-relative ${
@@ -270,7 +268,7 @@ export default function MyCalendar() {
                     ? "text-dark hover-bg-light"
                     : "text-muted opacity-50"
                 }`}
-                style={{ height: 38, width: 38, cursor: "pointer" }}
+                style={{ height: "38px", width: "38px", cursor: "pointer", maxWidth: "100%" }}
                 title="Click to view/manage tasks"
               >
                 <span>{item.day}</span>
@@ -289,19 +287,20 @@ export default function MyCalendar() {
       {/* TASK MANAGER MODAL */}
       {showModal && selectedDate && (
         <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable mx-auto" style={{ maxWidth: "500px", width: "92%" }}>
             <div className="modal-content rounded-4 shadow border-0">
-              <div className="modal-header border-bottom-0 pb-0">
-                <h5 className="modal-title fw-bold text-dark">
+              <div className="modal-header border-bottom-0 pb-2">
+                <h5 className="modal-title fw-bold text-dark fs-6 text-truncate pe-2">
                   Tasks for {selectedDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
                 </h5>
                 <button
                   type="button"
                   className="btn-close"
                   onClick={() => setShowModal(false)}
+                  style={{ minHeight: "30px", minWidth: "30px" }}
                 />
               </div>
-              <div className="modal-body">
+              <div className="modal-body pt-0">
                 {isPastDate ? (
                   <div className="alert alert-warning d-flex align-items-center gap-2 small py-2 rounded-3 mb-3">
                     <AlertCircle size={18} className="flex-shrink-0" />
@@ -318,122 +317,121 @@ export default function MyCalendar() {
                       disabled={loading}
                       autoFocus
                     />
-                    <button type="submit" className="btn btn-primary rounded-3 d-flex align-items-center px-3" disabled={loading}>
+                    <button type="submit" className="btn btn-primary rounded-3 d-flex align-items-center justify-content-center px-3 flex-shrink-0" style={{ minWidth: "45px" }} disabled={loading}>
                       <Plus size={18} />
                     </button>
                   </form>
                 )}
 
-                {/* Task List */}
-                <div className="task-list" style={{ maxHeight: 250, overflowY: "auto" }}>
+                {/* Task List container */}
+                <div className="task-list px-1" style={{ maxHeight: "280px", overflowY: "auto" }}>
                   {filteredTasks.length === 0 ? (
-                    <p className="text-muted text-center small py-3 mb-0">No tasks scheduled for this date.</p>
+                    <p className="text-muted text-center small py-4 mb-0">No tasks scheduled for this date.</p>
                   ) : (
-                    filteredTasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className="d-flex align-items-center justify-content-between p-2 mb-2 rounded-3 border bg-light"
-                      >
+                    filteredTasks.map((task) => {
+                      const isDeleting = taskToDeleteId === task.id;
+                      const isToggling = taskToToggleId === task.id;
+
+                      return (
                         <div
-                          className="d-flex align-items-center gap-2 flex-grow-1"
-                          style={{ cursor: "pointer" }}
-                          onClick={() => setTaskToToggle(task)}
-                          title="Click to change status"
+                          key={task.id}
+                          className="p-2 mb-2 rounded-3 border bg-light position-relative"
                         >
-                          {task.completed ? (
-                            <CheckCircle size={18} className="text-success flex-shrink-0" />
-                          ) : (
-                            <Circle size={18} className="text-secondary flex-shrink-0" />
+                          {!isDeleting && !isToggling && (
+                            <div className="d-flex align-items-center justify-content-between gap-2">
+                              <div
+                                className="d-flex align-items-center gap-2 flex-grow-1 text-break py-1"
+                                style={{ cursor: "pointer", minHeight: "32px" }}
+                                onClick={() => setTaskToToggleId(task.id)}
+                                title="Click to change status"
+                              >
+                                {task.completed ? (
+                                  <CheckCircle size={18} className="text-success flex-shrink-0" />
+                                ) : (
+                                  <Circle size={18} className="text-secondary flex-shrink-0" />
+                                )}
+                                <span
+                                  className={`small ${task.completed ? "text-decoration-line-through text-muted" : "text-dark"}`}
+                                >
+                                  {task.text}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                className="btn btn-link text-danger p-2 ms-1 flex-shrink-0 text-decoration-none"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setTaskToDeleteId(task.id);
+                                }}
+                                title="Delete task"
+                                style={{ minHeight: "36px", minWidth: "36px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
                           )}
-                          <span
-                            className={`small ${task.completed ? "text-decoration-line-through text-muted" : "text-dark"}`}
-                          >
-                            {task.text}
-                          </span>
+
+                          {/* Inline Toggle Confirmation with Solid Background */}
+                          {isToggling && (
+                            <div className="text-center py-2 px-2 bg-white rounded-3 border shadow-sm">
+                              <p className="small text-dark fw-semibold mb-2">
+                                Mark as {task.completed ? "incomplete" : "completed"}?
+                              </p>
+                              <div className="d-flex justify-content-center gap-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1"
+                                  onClick={() => setTaskToToggleId(null)}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-primary btn-sm rounded-pill px-3 py-1"
+                                  onClick={() => confirmToggleTask(task)}
+                                >
+                                  Confirm
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Inline Delete Confirmation with Solid Background */}
+                          {isDeleting && (
+                            <div className="text-center py-2 px-2 bg-white rounded-3 border shadow-sm">
+                              <p className="small text-danger fw-semibold mb-2">Delete this task?</p>
+                              <div className="d-flex justify-content-center gap-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1"
+                                  onClick={() => setTaskToDeleteId(null)}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-danger btn-sm rounded-pill px-3 py-1"
+                                  onClick={() => confirmDeleteTask(task.id)}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <button
-                          type="button"
-                          className="btn btn-link text-danger p-0 ms-2"
-                          onClick={() => setTaskToDelete(task)}
-                          title="Delete task"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
-              <div className="modal-footer border-top-0 pt-0">
+              <div className="modal-footer border-top-0 pt-0 pb-3">
                 <button
                   type="button"
-                  className="btn btn-secondary btn-sm rounded-pill px-4"
+                  className="btn btn-secondary btn-sm rounded-pill px-4 mx-auto"
                   onClick={() => setShowModal(false)}
                 >
                   Close
                 </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* CONFIRM TOGGLE MODAL */}
-      {taskToToggle && (
-        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1060 }}>
-          <div className="modal-dialog modal-dialog-centered modal-sm">
-            <div className="modal-content rounded-4 shadow border-0 text-center p-3">
-              <div className="modal-body">
-                <h6 className="fw-bold text-dark mb-2">Update Task Status</h6>
-                <p className="text-muted small mb-3">
-                  Mark this task as {taskToToggle.completed ? "incomplete" : "completed"}?
-                </p>
-                <div className="d-flex justify-content-center gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary btn-sm rounded-pill px-3"
-                    onClick={() => setTaskToToggle(null)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm rounded-pill px-3"
-                    onClick={confirmToggleTask}
-                  >
-                    Confirm
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* CONFIRM DELETE MODAL */}
-      {taskToDelete && (
-        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1060 }}>
-          <div className="modal-dialog modal-dialog-centered modal-sm">
-            <div className="modal-content rounded-4 shadow border-0 text-center p-3">
-              <div className="modal-body">
-                <h6 className="fw-bold text-dark mb-2">Delete Task</h6>
-                <p className="text-muted small mb-3">Are you sure you want to delete this task?</p>
-                <div className="d-flex justify-content-center gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary btn-sm rounded-pill px-3"
-                    onClick={() => setTaskToDelete(null)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-danger btn-sm rounded-pill px-3"
-                    onClick={confirmDeleteTask}
-                  >
-                    Delete
-                  </button>
-                </div>
               </div>
             </div>
           </div>
