@@ -1,6 +1,7 @@
 // ✅ src/components/Student/MyCalendar.tsx
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Trash2, CheckCircle, Circle, AlertCircle } from "lucide-react";
 import { API_BASE_URL } from "../../config";
 
@@ -21,9 +22,20 @@ export default function MyCalendar() {
   const [newTaskText, setNewTaskText] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Stable action states
   const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);
   const [taskToToggleId, setTaskToToggleId] = useState<string | null>(null);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [showModal]);
 
   const storedUser = localStorage.getItem("user");
   const parsedUser = storedUser ? JSON.parse(storedUser) : null;
@@ -98,7 +110,8 @@ export default function MyCalendar() {
         });
         if (res.ok) {
           const data = await res.json();
-          setTasks(data);
+          const normalized = data.map((t: any) => ({ ...t, id: t.id || t._id }));
+          setTasks(normalized);
         }
       } catch (err) {
         console.error("Failed to fetch tasks", err);
@@ -139,7 +152,8 @@ export default function MyCalendar() {
 
       if (res.ok) {
         const createdTask = await res.json();
-        setTasks((prev) => [createdTask, ...prev]);
+        const normalizedTask = { ...createdTask, id: createdTask.id || createdTask._id };
+        setTasks((prev) => [normalizedTask, ...prev]);
         setNewTaskText("");
       }
     } catch (err) {
@@ -166,7 +180,8 @@ export default function MyCalendar() {
 
       if (res.ok) {
         const updated = await res.json();
-        setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
+        const normalizedUpdated = { ...updated, id: updated.id || updated._id };
+        setTasks((prev) => prev.map((t) => (t.id === taskId ? normalizedUpdated : t)));
       }
     } catch (err) {
       console.error("Failed to update task", err);
@@ -198,24 +213,187 @@ export default function MyCalendar() {
   const selectedDateKey = selectedDate ? formatDateKey(selectedDate) : "";
   const filteredTasks = tasks.filter((t) => t.dateKey === selectedDateKey);
 
+  // Clean, modern modal content rendered via Portal
+  const modalContent = showModal && selectedDate && (
+    <div 
+      className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3"
+      style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 99999 }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          setShowModal(false);
+        }
+      }}
+    >
+      <div 
+        className="bg-white rounded-4 shadow-lg border-0 w-100 overflow-hidden"
+        style={{ maxWidth: "460px", maxHeight: "85vh", display: "flex", flexDirection: "column" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="d-flex align-items-center justify-content-between px-4 pt-4 pb-3">
+          <h5 className="fw-bold text-dark fs-5 mb-0 text-truncate pe-2">
+            Tasks for {selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          </h5>
+          <button
+            type="button"
+            className="btn-close shadow-none"
+            onClick={() => setShowModal(false)}
+            aria-label="Close"
+          />
+        </div>
+        
+        {/* Body */}
+        <div className="px-4 pb-4 overflow-y-auto" style={{ flexGrow: 1 }}>
+          {isPastDate ? (
+            <div className="alert alert-warning d-flex align-items-center gap-2 small py-2 rounded-3 mb-3">
+              <AlertCircle size={18} className="flex-shrink-0" />
+              <span>You cannot add new tasks to past dates.</span>
+            </div>
+          ) : (
+            <form onSubmit={handleAddTask} className="d-flex gap-2 mb-3">
+              <input
+                type="text"
+                className="form-control rounded-3 form-control-sm form-control-md shadow-none"
+                placeholder="Add a to-do or event..."
+                value={newTaskText}
+                onChange={(e) => setNewTaskText(e.target.value)}
+                disabled={loading}
+                autoFocus
+              />
+              <button 
+                type="submit" 
+                className="btn btn-primary rounded-3 d-flex align-items-center justify-content-center px-3 flex-shrink-0 shadow-none" 
+                style={{ minWidth: "42px", minHeight: "38px" }} 
+                disabled={loading}
+              >
+                <Plus size={18} />
+              </button>
+            </form>
+          )}
+
+          <div className="task-list" style={{ maxHeight: "240px", overflowY: "auto" }}>
+            {filteredTasks.length === 0 ? (
+              <p className="text-muted text-center small py-4 mb-0">No tasks scheduled for this date.</p>
+            ) : (
+              filteredTasks.map((task) => {
+                const isDeleting = taskToDeleteId === task.id;
+                const isToggling = taskToToggleId === task.id;
+
+                return (
+                  <div
+                    key={task.id}
+                    className="p-2 mb-2 rounded-3 border bg-light position-relative"
+                    style={{ minHeight: "52px", display: "flex", alignItems: "center" }}
+                  >
+                    <div className="w-100">
+                      {!isDeleting && !isToggling && (
+                        <div className="d-flex align-items-center justify-content-between gap-2 w-100">
+                          <div
+                            className="d-flex align-items-center gap-2 flex-grow-1 text-break py-1"
+                            style={{ cursor: "pointer", minWidth: 0 }}
+                            onClick={() => setTaskToToggleId(task.id)}
+                            title="Click to change status"
+                          >
+                            {task.completed ? (
+                              <CheckCircle size={18} className="text-success flex-shrink-0" />
+                            ) : (
+                              <Circle size={18} className="text-secondary flex-shrink-0" />
+                            )}
+                            <span
+                              className={`small text-break ${task.completed ? "text-decoration-line-through text-muted" : "text-dark"}`}
+                            >
+                              {task.text}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-link text-danger p-1 ms-1 flex-shrink-0 text-decoration-none shadow-none"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTaskToDeleteId(task.id);
+                            }}
+                            title="Delete task"
+                            style={{ minHeight: "32px", minWidth: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
+
+                      {isToggling && (
+                        <div className="d-flex align-items-center justify-content-between w-100 px-1">
+                          <span className="small text-dark fw-semibold">
+                            Mark as {task.completed ? "incomplete" : "completed"}?
+                          </span>
+                          <div className="d-flex gap-2">
+                            <button
+                              type="button"
+                              className="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1 shadow-none"
+                              onClick={() => setTaskToToggleId(null)}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm rounded-pill px-3 py-1 shadow-none"
+                              onClick={() => confirmToggleTask(task)}
+                            >
+                              Confirm
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {isDeleting && (
+                        <div className="d-flex align-items-center justify-content-between w-100 px-1">
+                          <span className="small text-danger fw-semibold">Delete this task?</span>
+                          <div className="d-flex gap-2">
+                            <button
+                              type="button"
+                              className="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1 shadow-none"
+                              onClick={() => setTaskToDeleteId(null)}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-danger btn-sm rounded-pill px-3 py-1 shadow-none"
+                              onClick={() => confirmDeleteTask(task.id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="container-fluid px-2 px-md-3 h-100">
-      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <h5 className="fw-bold mb-0 d-flex align-items-center gap-2 text-dark">
-          <CalendarIcon size={20} className="text-primary" />
-          My Calendar & Tasks
+    <div className="container-fluid px-1 px-md-3 h-100">
+      <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h5 className="fw-bold mb-0 d-flex align-items-center gap-2 text-dark fs-6 fs-md-5">
+          <CalendarIcon size={20} className="text-primary flex-shrink-0" />
+          <span>My Calendar & Tasks</span>
         </h5>
 
         <div className="d-flex align-items-center gap-2 flex-wrap">
           <button
             type="button"
-            className="btn btn-outline-secondary btn-sm px-3 rounded-pill"
+            className="btn btn-outline-secondary btn-sm px-2 px-md-3 rounded-pill"
             onClick={goToToday}
           >
             Today
           </button>
           <div className="d-flex align-items-center gap-2">
-            <span className="fw-semibold text-dark text-nowrap" style={{ minWidth: 120 }}>
+            <span className="fw-semibold text-dark text-nowrap small" style={{ minWidth: 100 }}>
               {monthNames[month]} {year}
             </span>
             <div className="btn-group shadow-sm">
@@ -240,7 +418,6 @@ export default function MyCalendar() {
         </div>
       </div>
 
-      {/* Weekdays Header */}
       <div className="row text-center text-muted fw-semibold small mb-2 g-0">
         {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
           <div className="col" key={d}>
@@ -249,7 +426,6 @@ export default function MyCalendar() {
         ))}
       </div>
 
-      {/* Calendar Days Grid */}
       <div className="row g-1 text-center">
         {daysGrid.map((item, index) => {
           const itemNormalized = new Date(item.dateObj.getFullYear(), item.dateObj.getMonth(), item.dateObj.getDate());
@@ -268,14 +444,14 @@ export default function MyCalendar() {
                     ? "text-dark hover-bg-light"
                     : "text-muted opacity-50"
                 }`}
-                style={{ height: "38px", width: "38px", cursor: "pointer", maxWidth: "100%" }}
+                style={{ height: "34px", width: "34px", cursor: "pointer", maxWidth: "100%" }}
                 title="Click to view/manage tasks"
               >
-                <span>{item.day}</span>
+                <span className="small">{item.day}</span>
                 {hasTasks && (
                   <span
                     className="position-absolute bottom-0 bg-info rounded-circle"
-                    style={{ width: 5, height: 5, marginBottom: 4 }}
+                    style={{ width: 4, height: 4, marginBottom: 3 }}
                   />
                 )}
               </div>
@@ -284,159 +460,8 @@ export default function MyCalendar() {
         })}
       </div>
 
-      {/* TASK MANAGER MODAL */}
-      {showModal && selectedDate && (
-        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable mx-auto" style={{ maxWidth: "500px", width: "92%" }}>
-            <div className="modal-content rounded-4 shadow border-0">
-              <div className="modal-header border-bottom-0 pb-2">
-                <h5 className="modal-title fw-bold text-dark fs-6 text-truncate pe-2">
-                  Tasks for {selectedDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowModal(false)}
-                  style={{ minHeight: "30px", minWidth: "30px" }}
-                />
-              </div>
-              <div className="modal-body pt-0">
-                {isPastDate ? (
-                  <div className="alert alert-warning d-flex align-items-center gap-2 small py-2 rounded-3 mb-3">
-                    <AlertCircle size={18} className="flex-shrink-0" />
-                    <span>You cannot add new tasks to past dates.</span>
-                  </div>
-                ) : (
-                  <form onSubmit={handleAddTask} className="d-flex gap-2 mb-3">
-                    <input
-                      type="text"
-                      className="form-control rounded-3"
-                      placeholder="Add a to-do or event..."
-                      value={newTaskText}
-                      onChange={(e) => setNewTaskText(e.target.value)}
-                      disabled={loading}
-                      autoFocus
-                    />
-                    <button type="submit" className="btn btn-primary rounded-3 d-flex align-items-center justify-content-center px-3 flex-shrink-0" style={{ minWidth: "45px" }} disabled={loading}>
-                      <Plus size={18} />
-                    </button>
-                  </form>
-                )}
-
-                {/* Task List container */}
-                <div className="task-list px-1" style={{ maxHeight: "280px", overflowY: "auto" }}>
-                  {filteredTasks.length === 0 ? (
-                    <p className="text-muted text-center small py-4 mb-0">No tasks scheduled for this date.</p>
-                  ) : (
-                    filteredTasks.map((task) => {
-                      const isDeleting = taskToDeleteId === task.id;
-                      const isToggling = taskToToggleId === task.id;
-
-                      return (
-                        <div
-                          key={task.id}
-                          className="p-2 mb-2 rounded-3 border bg-light position-relative"
-                        >
-                          {!isDeleting && !isToggling && (
-                            <div className="d-flex align-items-center justify-content-between gap-2">
-                              <div
-                                className="d-flex align-items-center gap-2 flex-grow-1 text-break py-1"
-                                style={{ cursor: "pointer", minHeight: "32px" }}
-                                onClick={() => setTaskToToggleId(task.id)}
-                                title="Click to change status"
-                              >
-                                {task.completed ? (
-                                  <CheckCircle size={18} className="text-success flex-shrink-0" />
-                                ) : (
-                                  <Circle size={18} className="text-secondary flex-shrink-0" />
-                                )}
-                                <span
-                                  className={`small ${task.completed ? "text-decoration-line-through text-muted" : "text-dark"}`}
-                                >
-                                  {task.text}
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                className="btn btn-link text-danger p-2 ms-1 flex-shrink-0 text-decoration-none"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setTaskToDeleteId(task.id);
-                                }}
-                                title="Delete task"
-                                style={{ minHeight: "36px", minWidth: "36px", display: "flex", alignItems: "center", justifyContent: "center" }}
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Inline Toggle Confirmation with Solid Background */}
-                          {isToggling && (
-                            <div className="text-center py-2 px-2 bg-white rounded-3 border shadow-sm">
-                              <p className="small text-dark fw-semibold mb-2">
-                                Mark as {task.completed ? "incomplete" : "completed"}?
-                              </p>
-                              <div className="d-flex justify-content-center gap-2">
-                                <button
-                                  type="button"
-                                  className="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1"
-                                  onClick={() => setTaskToToggleId(null)}
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn btn-primary btn-sm rounded-pill px-3 py-1"
-                                  onClick={() => confirmToggleTask(task)}
-                                >
-                                  Confirm
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Inline Delete Confirmation with Solid Background */}
-                          {isDeleting && (
-                            <div className="text-center py-2 px-2 bg-white rounded-3 border shadow-sm">
-                              <p className="small text-danger fw-semibold mb-2">Delete this task?</p>
-                              <div className="d-flex justify-content-center gap-2">
-                                <button
-                                  type="button"
-                                  className="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1"
-                                  onClick={() => setTaskToDeleteId(null)}
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn btn-danger btn-sm rounded-pill px-3 py-1"
-                                  onClick={() => confirmDeleteTask(task.id)}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-              <div className="modal-footer border-top-0 pt-0 pb-3">
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm rounded-pill px-4 mx-auto"
-                  onClick={() => setShowModal(false)}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Render modal directly into document.body using Portal */}
+      {createPortal(modalContent, document.body)}
     </div>
   );
 }

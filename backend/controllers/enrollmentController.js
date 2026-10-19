@@ -225,7 +225,7 @@ export const evaluateEnrollment = async (req, res) => {
       userDoc.department = resolvedDepartment;
       userDoc.idNumber = studentIdNumber;
       userDoc.password = tempPassword; // Handled by User pre-save hashing hook
-      userDoc.isTemporaryPassword = true;
+      userDoc.credentialsSent = false;
       userDoc.credentialsSent = true;
       await userDoc.save();
     } else {
@@ -238,10 +238,10 @@ export const evaluateEnrollment = async (req, res) => {
         gender: updatedInfo.gender || "Not Specified",
         role: "Student",
         department: resolvedDepartment,
-        status: "active",
+        status: "inactive",
         password: tempPassword,
         isTemporaryPassword: true,
-        credentialsSent: true,
+        credentialsSent: false,
       });
     }
 
@@ -278,7 +278,7 @@ export const evaluateEnrollment = async (req, res) => {
     enrollment.verifiedDocs = Array.isArray(verifiedDocs) ? verifiedDocs : [];
     enrollment.evaluationNotes = String(notes || "").trim();
     enrollment.evaluatedAt = new Date();
-    enrollment.credentialsSent = true;
+    enrollment.credentialsSent = false;
 
     enrollment.personal = {
       ...(enrollment.personal || {}),

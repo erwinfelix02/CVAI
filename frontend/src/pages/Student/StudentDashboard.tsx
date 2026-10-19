@@ -139,7 +139,6 @@ export default function StudentDashboard() {
     return () => clearTimeout(timer);
   }, [isLoggingOut, logoutCountdown, navigate]);
 
-  // Robustly fetch user data AND extended student records on mount
   useEffect(() => {
     async function fetchStudentDashboardData() {
       if (parsedUser) setStudentProfile(parsedUser);
@@ -159,7 +158,6 @@ export default function StudentDashboard() {
         const userRes = await fetch(meUrl, { headers });
         const userData = userRes.ok ? await userRes.json() : {};
 
-        // Query extended Student collection using student ID or email
         const studentQueryId =
           userData.idNumber ||
           userData.studentIdNumber ||
@@ -182,7 +180,6 @@ export default function StudentDashboard() {
           }
         }
 
-        // Merge user account details and student collection record
         setStudentProfile({
           ...parsedUser,
           ...userData,
@@ -196,7 +193,6 @@ export default function StudentDashboard() {
     fetchStudentDashboardData();
   }, []);
 
-  // 1. Robustly resolve Full Name
   const studentFullName =
     studentProfile?.name ||
     studentProfile?.fullName ||
@@ -209,7 +205,6 @@ export default function StudentDashboard() {
     [parsedUser?.firstName, parsedUser?.lastName].filter(Boolean).join(" ") ||
     "Student";
 
-  // 2. Robustly resolve Student ID Number
   const studentIdDisplay =
     studentProfile?.idNumber ||
     studentProfile?.studentIdNumber ||
@@ -220,7 +215,6 @@ export default function StudentDashboard() {
     parsedUser?.studentIdNumber ||
     "2024-00001";
 
-  // 3. Robustly resolve Year Level & format it
   const rawYear =
     studentProfile?.yearLevel ||
     studentProfile?.year_level ||
@@ -240,7 +234,6 @@ export default function StudentDashboard() {
 
   const studentYearLevel = formatYearLevel(rawYear);
 
-  // 4. Robustly resolve Program / Course
   const studentProgram =
     studentProfile?.program ||
     studentProfile?.course ||
@@ -311,7 +304,6 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* HEADER SECTION */}
       <header className="student-dashboard-header d-flex justify-content-between align-items-start mb-4">
         <div>
           <h1 className="fw-bold text-dark mb-1">Welcome back, {studentFullName}!</h1>
@@ -322,7 +314,6 @@ export default function StudentDashboard() {
         </div>
       </header>
 
-      {/* ID NUMBER & YEAR LEVEL CARDS */}
       <div className="row g-3 mb-4">
         <div className="col-12 col-md-6">
           <div className="card border border-secondary-subtle shadow-sm p-3 rounded-4 d-flex flex-row align-items-center gap-3 bg-white">
@@ -349,7 +340,6 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      {/* NAVIGATION QUICK BUTTONS */}
       <div className="d-flex gap-2 mb-4">
         <button
           type="button"
@@ -369,7 +359,6 @@ export default function StudentDashboard() {
         </button>
       </div>
 
-      {/* SIDE-BY-SIDE CARDS FOR CALENDAR AND ANNOUNCEMENTS */}
       <div className="row g-3 my-3">
         <div className="col-12 col-xl-8">
           <div className="card border border-secondary-subtle shadow-sm p-4 rounded-4 bg-white h-100">
