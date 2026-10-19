@@ -137,11 +137,16 @@ export const evaluateEnrollment = async (req, res) => {
     const selectedProgram = String(updatedInfo.program || "").trim();
     const yearLevel = Number(updatedInfo.yearLevel);
 
+    // 🟢 Automatically delete/overwrite old duplicate enrollments for this email
+    await Enrollment.deleteMany({
+      _id: { $ne: enrollment._id },
+      email: email,
+    });
+
     // ✅ AUTO-RESOLVE DEPARTMENT BY FETCHING COURSES & MATCHING IN MEMORY
     let resolvedDepartment = String(updatedInfo.department || "").trim();
 
     if (selectedProgram) {
-      // Fetch all courses (Mongoose getters automatically decrypt `name` for us)
       const allCourses = await Course.find({});
 
       const matchedCourse = allCourses.find((c) => {
@@ -173,6 +178,10 @@ export const evaluateEnrollment = async (req, res) => {
     if (studentDoc) {
       // Reuse existing student ID and reactivate status
       studentIdNumber = studentDoc.studentIdNumber;
+      
+      // 🟢 FIX: Update enrollmentId reference to point to the NEW current enrollment!
+      studentDoc.enrollmentId = enrollment._id; 
+
       studentDoc.status = "Active";
       studentDoc.workflowState = "None";
       studentDoc.fullName = fullName;
@@ -209,7 +218,7 @@ export const evaluateEnrollment = async (req, res) => {
         guardianPhone: normalizePhone(updatedInfo.guardianPhone),
         program: selectedProgram,
         yearLevel,
-        department: resolvedDepartment, // ✅ Correctly resolved department name
+        department: resolvedDepartment,
         notes: String(notes || "").trim(),
         verifiedDocs: Array.isArray(verifiedDocs) ? verifiedDocs : [],
         status: "Active",
@@ -224,9 +233,8 @@ export const evaluateEnrollment = async (req, res) => {
       userDoc.status = "active";
       userDoc.department = resolvedDepartment;
       userDoc.idNumber = studentIdNumber;
-      userDoc.password = tempPassword; // Handled by User pre-save hashing hook
+      userDoc.password = tempPassword; 
       userDoc.credentialsSent = false;
-      userDoc.credentialsSent = true;
       await userDoc.save();
     } else {
       userDoc = await User.create({
@@ -294,7 +302,7 @@ export const evaluateEnrollment = async (req, res) => {
       ...(enrollment.academic || {}),
       program: selectedProgram,
       yearLevel: String(updatedInfo.yearLevel).trim(),
-      department: resolvedDepartment, // ✅ Correctly resolved department name
+      department: resolvedDepartment,
     };
 
     await enrollment.save();
