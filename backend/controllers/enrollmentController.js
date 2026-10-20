@@ -178,9 +178,9 @@ export const evaluateEnrollment = async (req, res) => {
     if (studentDoc) {
       // Reuse existing student ID and reactivate status
       studentIdNumber = studentDoc.studentIdNumber;
-      
+
       // 🟢 FIX: Update enrollmentId reference to point to the NEW current enrollment!
-      studentDoc.enrollmentId = enrollment._id; 
+      studentDoc.enrollmentId = enrollment._id;
 
       studentDoc.status = "Active";
       studentDoc.workflowState = "None";
@@ -233,7 +233,7 @@ export const evaluateEnrollment = async (req, res) => {
       userDoc.status = "active";
       userDoc.department = resolvedDepartment;
       userDoc.idNumber = studentIdNumber;
-      userDoc.password = tempPassword; 
+      userDoc.password = tempPassword;
       userDoc.credentialsSent = false;
       await userDoc.save();
     } else {
