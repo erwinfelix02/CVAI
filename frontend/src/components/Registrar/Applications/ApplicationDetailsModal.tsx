@@ -428,7 +428,7 @@ export default function ApplicationDetailsModal({
                 {!isApproved && (
                   <div className="text-muted mt-2" style={{ fontSize: 13 }}>
                     * All uploaded documents must be clicked and viewed before
-                    unlocking approval or revision options.
+                    unlocking approval or resubmission options.
                   </div>
                 )}
               </div>
@@ -450,7 +450,7 @@ export default function ApplicationDetailsModal({
                     onClick={() => setConfirmAction("Returned")}
                     disabled={loading}
                   >
-                    Return for Revision
+                    Return for Resubmission
                   </button>
 
                   <button
@@ -524,7 +524,7 @@ export default function ApplicationDetailsModal({
                 )}
                 {confirmAction === "Approved"
                   ? "Approve Application?"
-                  : "Return Application for Revision"}
+                  : "Return for Resubmission"}
               </h4>
 
               <button
@@ -642,7 +642,7 @@ export default function ApplicationDetailsModal({
                   ? "Processing..."
                   : confirmAction === "Approved"
                   ? "Confirm Approval"
-                  : "Confirm Return for Revision"}
+                  : "Confirm Return for Resubmission"}
               </button>
             </div>
           </div>
