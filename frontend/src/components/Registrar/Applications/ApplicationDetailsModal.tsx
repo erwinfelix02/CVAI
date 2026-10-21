@@ -34,7 +34,7 @@ const PREDEFINED_RETURN_REASONS = [
   "Incomplete or unreadable documents uploaded. Please re-upload clear copies.",
   "Incorrect personal or academic details provided. Please review and update.",
   "Missing required document attachments (e.g., Birth Certificate, Good Moral).",
-  "Other / Custom revision note",
+  "Other / Custom resubmission note",
 ];
 
 export default function ApplicationDetailsModal({
@@ -164,7 +164,7 @@ export default function ApplicationDetailsModal({
         return;
       }
       if (
-        selectedReasonOption === "Other / Custom revision note" &&
+        selectedReasonOption === "Other / Custom resubmission note" &&
         !customReturnReason.trim()
       ) {
         setReturnError("Please provide a custom explanation for the student.");
@@ -172,7 +172,7 @@ export default function ApplicationDetailsModal({
       }
 
       finalReturnReason =
-        selectedReasonOption === "Other / Custom revision note"
+        selectedReasonOption === "Other / Custom resubmission note"
           ? customReturnReason.trim()
           : selectedReasonOption;
     }
@@ -258,24 +258,30 @@ export default function ApplicationDetailsModal({
           <div className="tab-container">
             <button
               className={`${activeTab === "personal" ? "active" : ""} ${
-                isApproved || (visitedTabs.personal && scrolledTabs.personal) ? "tab-viewed" : ""
+                isApproved || (visitedTabs.personal && scrolledTabs.personal)
+                  ? "tab-viewed"
+                  : ""
               }`}
               onClick={() => handleTabChange("personal")}
             >
               Personal
-              {(isApproved || (visitedTabs.personal && scrolledTabs.personal)) && (
+              {(isApproved ||
+                (visitedTabs.personal && scrolledTabs.personal)) && (
                 <CheckCircle size={12} className="tab-check-icon ms-1" />
               )}
             </button>
 
             <button
               className={`${activeTab === "academic" ? "active" : ""} ${
-                isApproved || (visitedTabs.academic && scrolledTabs.academic) ? "tab-viewed" : ""
+                isApproved || (visitedTabs.academic && scrolledTabs.academic)
+                  ? "tab-viewed"
+                  : ""
               }`}
               onClick={() => handleTabChange("academic")}
             >
               Academic
-              {(isApproved || (visitedTabs.academic && scrolledTabs.academic)) && (
+              {(isApproved ||
+                (visitedTabs.academic && scrolledTabs.academic)) && (
                 <CheckCircle size={12} className="tab-check-icon ms-1" />
               )}
             </button>
@@ -294,8 +300,8 @@ export default function ApplicationDetailsModal({
               Documents
               {isApproved ||
               (visitedTabs.documents &&
-              scrolledTabs.documents &&
-              allDocumentsViewed) ? (
+                scrolledTabs.documents &&
+                allDocumentsViewed) ? (
                 <CheckCircle size={12} className="tab-check-icon ms-1" />
               ) : (
                 !isApproved &&
@@ -375,9 +381,9 @@ export default function ApplicationDetailsModal({
             {activeTab === "documents" && (
               <div className="doc-card-list">
                 {documentList.map((doc) => {
-                  const isViewed = isApproved || (doc.file
-                    ? viewedDocFiles.has(doc.file)
-                    : false);
+                  const isViewed =
+                    isApproved ||
+                    (doc.file ? viewedDocFiles.has(doc.file) : false);
 
                   return (
                     <div
@@ -390,7 +396,13 @@ export default function ApplicationDetailsModal({
                         <span className="d-flex align-items-center gap-1">
                           {doc.label}
                           {doc.optional && (
-                            <span style={{ marginLeft: 4, fontSize: 12, opacity: 0.7 }}>
+                            <span
+                              style={{
+                                marginLeft: 4,
+                                fontSize: 12,
+                                opacity: 0.7,
+                              }}
+                            >
                               (Optional)
                             </span>
                           )}
@@ -409,8 +421,8 @@ export default function ApplicationDetailsModal({
                               ? "uploaded"
                               : "uploaded-unviewed"
                             : doc.optional
-                            ? "optional"
-                            : "missing"
+                              ? "optional"
+                              : "missing"
                         }`}
                       >
                         {doc.file
@@ -418,8 +430,8 @@ export default function ApplicationDetailsModal({
                             ? "Uploaded (Viewed)"
                             : "Click to View Document"
                           : doc.optional
-                          ? "Not uploaded"
-                          : "Missing"}
+                            ? "Not uploaded"
+                            : "Missing"}
                       </span>
                     </div>
                   );
@@ -558,12 +570,14 @@ export default function ApplicationDetailsModal({
                     <strong>
                       {personal.firstName} {personal.lastName}
                     </strong>
-                    . They will receive this feedback to update their registration.
+                    . They will receive this feedback to update their
+                    registration.
                   </p>
 
                   <div className="mb-3">
                     <label className="form-label fw-semibold small">
-                      Select Revision Feedback <span className="text-danger">*</span>
+                      Select Resubmission Feedback{" "}
+                      <span className="text-danger">*</span>
                     </label>
                     <select
                       className="form-select form-select-sm"
@@ -585,10 +599,11 @@ export default function ApplicationDetailsModal({
                     </select>
                   </div>
 
-                  {selectedReasonOption === "Other / Custom revision note" && (
+                  {selectedReasonOption === "Other / Custom resubmission note" && (
                     <div className="mb-3">
                       <label className="form-label fw-semibold small">
-                        Detailed Instructions <span className="text-danger">*</span>
+                        Detailed Instructions{" "}
+                        <span className="text-danger">*</span>
                       </label>
                       <textarea
                         className="form-control form-control-sm"
@@ -641,8 +656,8 @@ export default function ApplicationDetailsModal({
                 {loading
                   ? "Processing..."
                   : confirmAction === "Approved"
-                  ? "Confirm Approval"
-                  : "Confirm Return for Resubmission"}
+                    ? "Confirm Approval"
+                    : "Confirm Return for Resubmission"}
               </button>
             </div>
           </div>

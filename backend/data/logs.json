@@ -1,5 +1,17 @@
 [
   {
+    "id": "e01ccb18-bbc1-4469-9640-c3e592f8402e",
+    "date": "2026-10-21",
+    "time": "11:28:31",
+    "action": "User Login",
+    "user": "primeroerwin63@gmail.com",
+    "role": "Registrar",
+    "type": "Auth",
+    "details": "Successful login",
+    "ip": "127.0.0.1",
+    "status": "success"
+  },
+  {
     "id": "bf3de5e0-46c7-4912-aff2-804881c10c0c",
     "date": "2026-10-20",
     "time": "13:47:40",
