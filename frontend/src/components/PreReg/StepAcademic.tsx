@@ -36,8 +36,9 @@ export default function StepAcademic({
   const [localErrors, setLocalErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Touched>({});
 
+  // Removed .trim() here so users can type spaces freely while editing
   const normalizeText = (v: string) =>
-    v.replace(/[\u0000-\u001F\u007F]/g, "").replace(/\s+/g, " ").trim();
+    v.replace(/[\u0000-\u001F\u007F]/g, "").replace(/\s+/g, " ");
 
   const hasDangerChars = (v: string) => /[<>$`{};]/.test(v);
 
@@ -132,6 +133,12 @@ export default function StepAcademic({
 
   const onBlurField = (k: keyof AcademicInfo) => {
     setTouched((prev) => ({ ...prev, [k]: true }));
+    
+    // Trim whitespace on blur for clean final state storage
+    if (typeof (value as any)[k] === "string") {
+      onChange({ ...value, [k]: (value as any)[k].trim() });
+    }
+
     const msg = validateField(k, (value as any)[k] ?? "");
     setLocalErrors((prev) => ({ ...prev, [k]: msg }));
   };
