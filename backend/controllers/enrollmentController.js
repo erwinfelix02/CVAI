@@ -169,6 +169,9 @@ export const evaluateEnrollment = async (req, res) => {
       resolvedDepartment = selectedProgram; // Fallback
     }
 
+    // 🟢 Extract uploaded documents from enrollment
+    const enrollmentDocs = enrollment.documents || {};
+
     // 🟢 Check if student or user already exists (handling previously dropped/inactive students)
     let studentDoc = await Student.findOne({ email });
     let userDoc = await User.findOne({ email });
@@ -196,6 +199,14 @@ export const evaluateEnrollment = async (req, res) => {
       studentDoc.department = resolvedDepartment;
       studentDoc.notes = String(notes || "").trim();
       studentDoc.verifiedDocs = Array.isArray(verifiedDocs) ? verifiedDocs : [];
+      
+      // ✅ Preserve or update documents inside the student document
+      studentDoc.documents = {
+        birthCert: enrollmentDocs.birthCert || studentDoc.documents?.birthCert || null,
+        goodMoral: enrollmentDocs.goodMoral || studentDoc.documents?.goodMoral || null,
+        idPhoto: enrollmentDocs.idPhoto || studentDoc.documents?.idPhoto || null,
+      };
+
       await studentDoc.save();
     } else {
       // FINAL ID generation happens only here on save for brand new students
@@ -223,7 +234,28 @@ export const evaluateEnrollment = async (req, res) => {
         verifiedDocs: Array.isArray(verifiedDocs) ? verifiedDocs : [],
         status: "Active",
         workflowState: "None",
+        // ✅ Save documents directly on student creation
+        documents: {
+          birthCert: enrollmentDocs.birthCert || null,
+          goodMoral: enrollmentDocs.goodMoral || null,
+          idPhoto: enrollmentDocs.idPhoto || null,
+        },
       });
+    }
+
+    // 🟢 Parse Full Name cleanly into First Name, Middle Name, and Last Name
+    const nameParts = fullName.split(/\s+/);
+    let firstName = nameParts[0] || fullName;
+    let middleName = "";
+    let lastName = "";
+
+    if (nameParts.length > 2) {
+      firstName = nameParts[0];
+      middleName = nameParts.slice(1, -1).join(" ");
+      lastName = nameParts[nameParts.length - 1];
+    } else if (nameParts.length === 2) {
+      firstName = nameParts[0];
+      lastName = nameParts[1];
     }
 
     // 🟢 Generate a new temporary password and reactivate/create the User login account
@@ -235,11 +267,15 @@ export const evaluateEnrollment = async (req, res) => {
       userDoc.idNumber = studentIdNumber;
       userDoc.password = tempPassword;
       userDoc.credentialsSent = false;
+      userDoc.firstName = firstName;
+      userDoc.middleName = middleName; // 🟢 Updates middle name
+      userDoc.lastName = lastName;
       await userDoc.save();
     } else {
       userDoc = await User.create({
-        firstName: fullName.split(" ")[0] || fullName,
-        lastName: fullName.split(" ").slice(1).join(" ") || "",
+        firstName: firstName,
+        middleName: middleName, // 🟢 Saves middle name on creation
+        lastName: lastName,
         idNumber: studentIdNumber,
         email,
         phone,

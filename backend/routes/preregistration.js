@@ -1,5 +1,3 @@
-// routes/preregistrations.js
-
 import express from "express";
 import crypto from "crypto";
 import multer from "multer";
@@ -50,6 +48,46 @@ function normalizePHPhone(phone) {
   if (digits.startsWith("9") && digits.length >= 10) return `+63${digits.slice(0, 10)}`;
   return String(phone || "").trim();
 }
+
+// ── CHECK EXISTING VERIFIED DOCUMENTS ENDPOINT ─────────────────
+
+router.get("/check-existing", async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ message: "Email parameter required." });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const emailHashVal = hashLookup("personal.email", cleanEmail);
+
+    const previousApp = await Preregistration.findOne({
+      $or: [{ emailHash: emailHashVal }, { "personal.email": cleanEmail }]
+    }).sort({ createdAt: -1 });
+
+    const previousArchived = !previousApp ? await ArchivedPreregistration.findOne({
+      $or: [{ emailHash: emailHashVal }, { "personal.email": cleanEmail }]
+    }).sort({ createdAt: -1 }) : null;
+
+    const previousStudent = !previousApp && !previousArchived ? await Student.findOne({
+      $or: [{ emailHash: hashLookup("email", cleanEmail) }, { email: cleanEmail }]
+    }).sort({ createdAt: -1 }) : null;
+
+    const targetRecord = previousApp || previousArchived || previousStudent;
+
+    if (targetRecord && targetRecord.documents) {
+      return res.json({
+        hasDocuments: true,
+        documents: targetRecord.documents,
+      });
+    }
+
+    return res.json({ hasDocuments: false });
+  } catch (err) {
+    console.error("Check existing error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 // ── RETENTION SETTINGS ENDPOINTS ──────────────────────────────
 
@@ -154,6 +192,7 @@ router.post(
 
       const data = JSON.parse(req.body.data);
       const email = String(data?.personal?.email || "").trim().toLowerCase();
+      const useExistingDocs = data?.useExistingDocs;
 
       const otpRecord = otpStore.get(email);
       if (!otpRecord || !otpRecord.verified) {
@@ -181,7 +220,6 @@ router.post(
       const previousSchool = String(data?.academic?.previousSchool || "").trim();
 
       // 🟢 1. CLEAR OLD PRE-REGISTRATION RECORDS FOR THIS EMAIL/PHONE
-      // This ensures MongoDB's unique emailHash/phoneHash index won't throw duplicate errors on re-application.
       const emailHashVal = hashLookup("personal.email", email);
       const phoneHashVal = phone ? hashLookup("personal.phone", phone) : null;
       
@@ -192,7 +230,7 @@ router.post(
         ]
       });
 
-      // Check if an active user account exists that is ACTIVE (ignore if inactive)
+      // Check if an active user account exists that is ACTIVE
       const existingUser = await User.findOne({ email });
       if (existingUser && existingUser.status === "active") {
         return res.status(409).json({
@@ -200,13 +238,12 @@ router.post(
         });
       }
 
-      // Check for existing active/pending applications (ignoring Archived, Dropped, or Returned)
+      // Check for existing active/pending applications
       const existingActive = await Preregistration.findOne({
         $or: [{ "personal.email": email }, { "personal.phone": phone }],
         status: { $nin: ["Archived", "Dropped", "Returned"] }
       });
 
-      // Also check if there is an active student record who is NOT dropped or inactive
       const existingActiveStudent = await Student.findOne({
         email: email,
         status: { $nin: ["Dropped", "Inactive"] }
@@ -216,6 +253,27 @@ router.post(
         return res.status(409).json({
           message: "Duplicate application detected. An active student or application with this email already exists.",
         });
+      }
+
+      // 🟢 Inherit documents from previous records if flagged
+      let documentsData = {
+        birthCert: req.files?.birthCert?.[0] ? `/uploads/${req.files.birthCert[0].filename}` : null,
+        goodMoral: req.files?.goodMoral?.[0] ? `/uploads/${req.files.goodMoral[0].filename}` : null,
+        idPhoto: req.files?.idPhoto?.[0] ? `/uploads/${req.files.idPhoto[0].filename}` : null,
+      };
+
+      if (useExistingDocs) {
+        const previousApp = await Preregistration.findOne({ "personal.email": email }).sort({ createdAt: -1 });
+        const previousStudent = !previousApp ? await Student.findOne({ email: email }).sort({ createdAt: -1 }) : null;
+        const sourceDoc = previousApp?.documents || previousStudent?.documents;
+
+        if (sourceDoc) {
+          documentsData = {
+            birthCert: documentsData.birthCert || sourceDoc.birthCert,
+            goodMoral: documentsData.goodMoral || sourceDoc.goodMoral,
+            idPhoto: documentsData.idPhoto || sourceDoc.idPhoto,
+          };
+        }
       }
 
       let txHash = null;
@@ -240,11 +298,7 @@ router.post(
         academic: { applicantType, course, previousSchool },
         status: "Pending",
         blockchainTxHash: txHash,
-        documents: {
-          birthCert: req.files?.birthCert?.[0] ? `/uploads/${req.files.birthCert[0].filename}` : null,
-          goodMoral: req.files?.goodMoral?.[0] ? `/uploads/${req.files.goodMoral[0].filename}` : null,
-          idPhoto: req.files?.idPhoto?.[0] ? `/uploads/${req.files.idPhoto[0].filename}` : null,
-        },
+        documents: documentsData,
       });
 
       await newApp.save();
@@ -266,9 +320,6 @@ router.post(
 
 // ── REVISION TOKEN VERIFICATION ENDPOINT ───────────────────────
 
-
-// ── REVISION TOKEN VERIFICATION ENDPOINT ───────────────────────
-
 router.get("/verify-revision", async (req, res) => {
   try {
     const { token } = req.query;
@@ -276,7 +327,6 @@ router.get("/verify-revision", async (req, res) => {
       return res.status(400).json({ message: "Missing revision token." });
     }
 
-    // Fetch the document and include select fields
     const application = await Preregistration.findOne({
       revisionToken: token,
       revisionTokenExpires: { $gt: Date.now() },
@@ -286,13 +336,13 @@ router.get("/verify-revision", async (req, res) => {
       return res.status(400).json({ message: "Revision link is invalid or has expired." });
     }
 
-    // Call .toJSON() to explicitly invoke schema getters (decrypting all encrypted fields)
     const jsonApp = application.toJSON();
 
     res.json({
       registrationId: jsonApp.registrationId,
       personal: jsonApp.personal,
       academic: jsonApp.academic,
+      documents: jsonApp.documents,
       returnReason: jsonApp.returnReason,
     });
   } catch (err) {
@@ -300,6 +350,7 @@ router.get("/verify-revision", async (req, res) => {
     res.status(500).json({ message: "Server error verifying revision link" });
   }
 });
+
 // ── RESUBMISSION ENDPOINT ──────────────────────────────────────
 
 router.post(
@@ -360,7 +411,6 @@ router.post(
 
 // ── PARAMETERIZED ID ENDPOINTS ────────────────────────────────
 
-// UPDATE STATUS (Approved or Returned)
 router.patch("/:id/status", async (req, res) => {
   try {
     const { status, returnReason } = req.body;
@@ -388,7 +438,7 @@ router.patch("/:id/status", async (req, res) => {
         approvedAt: null,
         returnReason: returnReason || "Please update your application details.",
         revisionToken: token,
-        revisionTokenExpires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days expiration
+        revisionTokenExpires: Date.now() + 7 * 24 * 60 * 60 * 1000,
       };
     }
 
@@ -402,8 +452,6 @@ router.patch("/:id/status", async (req, res) => {
       return res.status(404).json({ message: "Application not found" });
     }
 
-    // Automatically capture network host from request so it uses your IP instead of localhost
-// Use environment variable if set, otherwise fallback to your deployed public IP
     const frontendUrl = process.env.FRONTEND_URL || "http://32.237.52.114";
     const revisionLink = `${frontendUrl}/preregistration/revise?token=${updateData.revisionToken}`;
 
@@ -418,57 +466,28 @@ router.patch("/:id/status", async (req, res) => {
               <h2 style="margin:0;">Application Status Update</h2>
             </td>
           </tr>
-
           <tr>
             <td style="padding:30px; color:#333; text-align:center;">
               <p style="margin:0 0 10px;">Your Registration ID</p>
               <h3 style="margin:0; color:#1a73e8;">${updated.registrationId}</h3>
-
               <div style="margin:25px 0;">
                 <span style="display:inline-block; padding:10px 20px; border-radius:20px; font-size:14px; font-weight:bold; background:${status === "Approved" ? "#dcfce7" : "#fef9c3"}; color:${status === "Approved" ? "#166534" : "#854d0e"};">
                   ${status === "Returned" ? "Returned for Revision" : status}
                 </span>
               </div>
-
               ${
                 status === "Approved"
                   ? `
                   <p style="margin:15px 0 0; font-size:16px; color:#166534; font-weight:bold;">
                     Congratulations! Your application has been approved.
                   </p>
-                  <p style="margin:8px 0 0; font-size:14px;">
-                    Please wait for the official schedule of your school visit or orientation.
-                  </p>
                   `
                   : `
-                  <p style="margin:15px 0 0; font-size:14px; color:#854d0e; font-weight:bold;">
-                    Your application requires revisions before it can be processed further.
-                  </p>
-                  
-                  <div style="margin: 20px 0; padding: 15px; background-color: #fefce8; border: 1px solid #fde047; border-radius: 6px; text-align: left;">
-                    <p style="margin: 0 0 5px; font-size: 12px; font-weight: bold; color: #854d0e; text-transform: uppercase;">
-                      Registrar Feedback:
-                    </p>
-                    <p style="margin: 0; font-size: 14px; color: #713f12; line-height: 1.4;">
-                      ${updated.returnReason}
-                    </p>
-                  </div>
-
-                  <p style="margin:20px 0 10px; font-size:14px;">
-                    Click the button below to update your information and re-upload documents:
-                  </p>
-
                   <a href="${revisionLink}" style="display:inline-block; padding:12px 24px; background-color:#1a73e8; color:#ffffff; border-radius:6px; text-decoration:none; font-weight:bold; font-size:14px;">
                     Update & Resubmit Application
                   </a>
                   `
               }
-            </td>
-          </tr>
-
-          <tr>
-            <td style="background:#f4f6f8; text-align:center; padding:15px; font-size:12px; color:#777;">
-              This is an automated update. Please do not reply.
             </td>
           </tr>
         </table>
@@ -479,7 +498,6 @@ router.patch("/:id/status", async (req, res) => {
 `;
 
     await sendEmail(updated.personal.email, "Application Status Update", emailHtml);
-
     res.json({ message: "Status updated successfully", updated });
   } catch (err) {
     console.error(err);
@@ -487,7 +505,6 @@ router.patch("/:id/status", async (req, res) => {
   }
 });
 
-// ARCHIVE ENDPOINT
 router.post("/:id/archive", async (req, res) => {
   try {
     const app = await Preregistration.findOne({ registrationId: req.params.id });
@@ -512,7 +529,6 @@ router.post("/:id/archive", async (req, res) => {
   }
 });
 
-// UNARCHIVE ENDPOINT
 router.post("/:id/unarchive", async (req, res) => {
   try {
     const archived = await ArchivedPreregistration.findOne({ registrationId: req.params.id });
@@ -535,7 +551,6 @@ router.post("/:id/unarchive", async (req, res) => {
   }
 });
 
-// DELETE ENDPOINT
 router.delete("/:id", async (req, res) => {
   try {
     let target = await Preregistration.findOneAndDelete({ registrationId: req.params.id });
@@ -551,7 +566,6 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// ERROR HANDLING MIDDLEWARE
 router.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {

@@ -38,6 +38,7 @@ type Profile = {
 const initialProfile: Profile = {
   firstName: "",
   lastName: "",
+  middleName: "",
   email: "",
   phone: "",
   address: "",
@@ -75,7 +76,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile>(initialProfile);
   const [draft, setDraft] = useState<Profile>(initialProfile);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [removeAvatar, setRemoveAvatar] = useState(false); // 🟢 Track if profile picture was cleared/removed
+  const [removeAvatar, setRemoveAvatar] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [discardOpen, setDiscardOpen] = useState(false);
@@ -129,8 +130,11 @@ export default function ProfilePage() {
           studentData?.address,
         );
         const resolvedPhone = validValue(userData.phone, studentData?.phone);
+        const resolvedMiddleName = validValue(
+          userData.middleName,
+          studentData?.middleName,
+        );
 
-        // PERSISTENCE FIX: Prioritize MongoDB user -> student record -> localStorage cache
         const resolvedAvatarUrl =
           userData.avatarUrl ||
           studentData?.avatarUrl ||
@@ -138,9 +142,9 @@ export default function ProfilePage() {
           "";
 
         const loadedProfile: Profile = {
-          firstName: userData.firstName || "",
-          lastName: userData.lastName || "",
-          middleName: userData.middleName || "",
+          firstName: userData.firstName || studentData?.firstName || "",
+          lastName: userData.lastName || studentData?.lastName || "",
+          middleName: resolvedMiddleName !== "N/A" ? resolvedMiddleName : "",
           email: userData.email || studentData?.email || "",
           phone: resolvedPhone !== "N/A" ? resolvedPhone : "",
           address: resolvedAddress !== "N/A" ? resolvedAddress : "",
@@ -210,9 +214,11 @@ export default function ProfilePage() {
     setIsEditing(true);
   }
 
-  // Check if anything has been modified during editing
   const hasTypedSomething = useMemo(() => {
     return (
+      draft.firstName !== profile.firstName ||
+      draft.lastName !== profile.lastName ||
+      draft.middleName !== profile.middleName ||
       draft.phone !== profile.phone ||
       draft.address !== profile.address ||
       avatarFile !== null ||
@@ -220,7 +226,6 @@ export default function ProfilePage() {
     );
   }, [draft, profile, avatarFile, removeAvatar]);
 
-  // Cancel button trigger
   function handleCancelClick() {
     if (hasTypedSomething) {
       setDiscardOpen(true);
@@ -229,7 +234,6 @@ export default function ProfilePage() {
     }
   }
 
-  // Actual discard execution
   function exitEditing() {
     setDraft(profile);
     setAvatarFile(null);
@@ -249,7 +253,6 @@ export default function ProfilePage() {
       const token = localStorage.getItem("token");
       let uploadedAvatarUrl = removeAvatar ? "" : draft.avatarUrl;
 
-      // 1. Upload new Avatar File if chosen (and not marked for removal)
       if (avatarFile && !removeAvatar) {
         const formData = new FormData();
         formData.append("avatar", avatarFile);
@@ -277,19 +280,20 @@ export default function ProfilePage() {
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      // 2. Update User Document
       const userReq = fetch(`${API_BASE_URL}/users/me/profile`, {
         method: "PATCH",
         headers,
         body: JSON.stringify({
           email: userEmail,
+          firstName: draft.firstName,
+          lastName: draft.lastName,
+          middleName: draft.middleName,
           phone: draft.phone,
           address: draft.address,
           avatarUrl: uploadedAvatarUrl,
         }),
       });
 
-      // 3. Update Student Document
       const studentReq =
         studentId && studentId !== "—"
           ? fetch(
@@ -298,6 +302,9 @@ export default function ProfilePage() {
                 method: "PUT",
                 headers,
                 body: JSON.stringify({
+                  firstName: draft.firstName,
+                  lastName: draft.lastName,
+                  middleName: draft.middleName,
                   phone: draft.phone,
                   address: draft.address,
                   avatarUrl: uploadedAvatarUrl,
@@ -310,18 +317,22 @@ export default function ProfilePage() {
       const [userRes, studentRes] = await Promise.all([userReq, studentReq]);
 
       if (userRes.ok || (studentRes && studentRes.ok)) {
-        // Save new state locally
         setProfile((prev) => ({
           ...prev,
+          firstName: draft.firstName,
+          lastName: draft.lastName,
+          middleName: draft.middleName,
           avatarUrl: uploadedAvatarUrl,
           phone: draft.phone,
           address: draft.address,
         }));
 
-        // PERSISTENCE FIX: Update localStorage user object so changes reflect immediately on refresh
         const existingUserStr = localStorage.getItem("user");
         if (existingUserStr) {
           const updatedUser = JSON.parse(existingUserStr);
+          updatedUser.firstName = draft.firstName;
+          updatedUser.lastName = draft.lastName;
+          updatedUser.middleName = draft.middleName;
           updatedUser.phone = draft.phone;
           updatedUser.address = draft.address;
           updatedUser.avatarUrl = uploadedAvatarUrl;
@@ -428,13 +439,18 @@ export default function ProfilePage() {
               items={[
                 {
                   label: "First Name",
-                  value: profile.firstName,
-                  readOnly: true,
+                  value: isEditing ? draft.firstName : profile.firstName,
+                  onChange: (v) => setDraft((p) => ({ ...p, firstName: v })),
+                },
+                {
+                  label: "Middle Name",
+                  value: isEditing ? draft.middleName || "" : profile.middleName || "",
+                  onChange: (v) => setDraft((p) => ({ ...p, middleName: v })),
                 },
                 {
                   label: "Last Name",
-                  value: profile.lastName,
-                  readOnly: true,
+                  value: isEditing ? draft.lastName : profile.lastName,
+                  onChange: (v) => setDraft((p) => ({ ...p, lastName: v })),
                 },
                 {
                   label: "Email",
@@ -446,7 +462,6 @@ export default function ProfilePage() {
                   label: "Phone",
                   value: isEditing ? draft.phone : profile.phone || "N/A",
                   icon: Phone,
-                  // 🟢 Locked +639 prefix logic, keeping digits limited after it
                   onChange: (v) => {
                     let cleaned = v;
                     if (!cleaned.startsWith("+639")) {
@@ -564,7 +579,6 @@ export default function ProfilePage() {
               style={{ maxWidth: "420px" }}
             >
               <div className="modal-content border-0 shadow-lg rounded-4 p-4 text-center bg-white">
-                {/* Centered Yellow Warning Icon Box */}
                 <div
                   className="mx-auto d-flex align-items-center justify-content-center rounded-circle mb-3"
                   style={{
@@ -576,7 +590,6 @@ export default function ProfilePage() {
                   <AlertTriangle size={30} style={{ color: "#f59e0b" }} />
                 </div>
 
-                {/* Title */}
                 <h4
                   className="fw-bold text-dark mb-2"
                   style={{ fontSize: "1.25rem" }}
@@ -584,7 +597,6 @@ export default function ProfilePage() {
                   Unsaved Changes
                 </h4>
 
-                {/* Subtitle Message */}
                 <p
                   className="text-muted small mb-4 px-2"
                   style={{ lineHeight: "1.5" }}
@@ -593,7 +605,6 @@ export default function ProfilePage() {
                   them?
                 </p>
 
-                {/* Action Buttons Row */}
                 <div className="d-flex gap-2 justify-content-center">
                   <button
                     type="button"

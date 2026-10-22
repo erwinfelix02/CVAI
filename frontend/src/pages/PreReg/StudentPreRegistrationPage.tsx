@@ -1,6 +1,14 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CheckCircle2, Info, X, Loader2, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Info,
+  X,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import { API_BASE_URL } from "../../config"; // Adjust import path as needed
 
 import AuthAlert from "../../components/Authentication/AuthAlert";
@@ -62,6 +70,7 @@ export type DocumentsState = {
   birthCert?: File | null;
   goodMoral?: File | null;
   idPhoto?: File | null;
+  hasExistingDocs?: boolean;
 };
 
 type PersonalErrors = Partial<Record<keyof PersonalInfo, string>>;
@@ -91,10 +100,10 @@ type CourseOption = {
 };
 
 /* =========================================================
-   STEPS
+   STEPS CONFIG
 ========================================================= */
 
-const steps: {
+const allSteps: {
   key: StepKey;
   label: string;
 }[] = [
@@ -122,7 +131,10 @@ const steps: {
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validatePersonal(v: PersonalInfo, isRevision: boolean = false): PersonalErrors {
+function validatePersonal(
+  v: PersonalInfo,
+  isRevision: boolean = false,
+): PersonalErrors {
   const e: PersonalErrors = {};
 
   const req = (k: keyof PersonalInfo, msg: string) => {
@@ -199,12 +211,13 @@ function validateAcademic(v: AcademicInfo): AcademicErrors {
   return e;
 }
 
-function validateDocs(v: DocumentsState, isRevision: boolean = false): DocsErrors {
+function validateDocs(
+  v: DocumentsState,
+  isRevision: boolean = false,
+): DocsErrors {
   const e: DocsErrors = {};
 
-  // During revisions, documents might already be uploaded on the server side unless replaced, 
-  // but if it's a fresh app they are required. You can adjust this rule if updating docs is optional during revision.
-  if (!isRevision) {
+  if (!isRevision && !v.hasExistingDocs) {
     if (!v.birthCert) {
       e.birthCert = "Birth Certificate is required.";
     }
@@ -292,6 +305,7 @@ export default function StudentPreRegistrationPage() {
     birthCert: null,
     goodMoral: null,
     idPhoto: null,
+    hasExistingDocs: false,
   });
 
   /* =========================================================
@@ -311,6 +325,77 @@ export default function StudentPreRegistrationPage() {
   const [coursesLoading, setCoursesLoading] = useState(false);
 
   /* =========================================================
+     CHECK EXISTING DOCUMENTS & CONVERT TO FILE OBJECTS FOR PREVIEW
+  ========================================================= */
+
+  useEffect(() => {
+    const email = personal.email.trim();
+    if (!email || !emailRegex.test(email) || !personal.isEmailVerified || isRevision) return;
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/preregistrations/check-existing?email=${encodeURIComponent(
+            email,
+          )}`,
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.hasDocuments && data.documents) {
+            // Helper to fetch server path and convert into a genuine File object for previews
+            const convertPathToFile = async (pathVal: any) => {
+              if (!pathVal || typeof pathVal !== "string") return null;
+              try {
+                const fullUrl = pathVal.startsWith("http")
+                  ? pathVal
+                  : `${API_BASE_URL.replace(/\/api$/, "")}${pathVal}`;
+                const fileRes = await fetch(fullUrl);
+                const blob = await fileRes.blob();
+                const filename = pathVal.split("/").pop() || "document.pdf";
+                return new File([blob], filename, { type: blob.type || "application/pdf" });
+              } catch (e) {
+                console.error("Failed to convert existing document path to File:", e);
+                return null;
+              }
+            };
+
+            const birthCertFile = await convertPathToFile(data.documents.birthCert);
+            const goodMoralFile = await convertPathToFile(data.documents.goodMoral);
+            const idPhotoFile = await convertPathToFile(data.documents.idPhoto);
+
+            setDocs({
+              birthCert: birthCertFile,
+              goodMoral: goodMoralFile,
+              idPhoto: idPhotoFile,
+              hasExistingDocs: true,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check existing documents:", err);
+      }
+    })();
+  }, [personal.email, personal.isEmailVerified, isRevision]);
+
+  /* =========================================================
+     DYNAMIC STEPS (HIDES DOCUMENTS TAB IF EXISTING DOCS FOUND)
+  ========================================================= */
+
+  const steps = useMemo(() => {
+    if (docs.hasExistingDocs && !isRevision) {
+      return allSteps.filter((s) => s.key !== "documents");
+    }
+    return allSteps;
+  }, [docs.hasExistingDocs, isRevision]);
+
+  // Ensure activeStep remains valid if steps list shrinks
+  useEffect(() => {
+    if (!steps.some((s) => s.key === activeStep)) {
+      setActiveStep("review");
+    }
+  }, [steps, activeStep]);
+
+  /* =========================================================
      LOAD REVISION DATA IF TOKEN EXISTS
   ========================================================= */
 
@@ -320,22 +405,28 @@ export default function StudentPreRegistrationPage() {
     (async () => {
       try {
         setRevisionLoading(true);
-        const res = await fetch(`${API_BASE_URL}/preregistrations/verify-revision?token=${revisionToken}`);
-        
+        const res = await fetch(
+          `${API_BASE_URL}/preregistrations/verify-revision?token=${revisionToken}`,
+        );
+
         if (!res.ok) {
           const body = await res.json().catch(() => null);
-          throw new Error(body?.message || "Revision link is invalid or has expired.");
+          throw new Error(
+            body?.message || "Revision link is invalid or has expired.",
+          );
         }
 
         const data = await res.json();
         setRegistrationId(data.registrationId || "");
-        setReturnReason(data.returnReason || "Please update your application details.");
+        setReturnReason(
+          data.returnReason || "Please update your application details.",
+        );
 
         if (data.personal) {
           setPersonal((prev) => ({
             ...prev,
             ...data.personal,
-            isEmailVerified: true, // Already verified if returning application
+            isEmailVerified: true,
           }));
         }
 
@@ -346,7 +437,35 @@ export default function StudentPreRegistrationPage() {
           }));
         }
 
-        setAgreedToTerms(true); // Automatically accept terms for revisions since they already agreed
+        if (data.documents) {
+          const convertPathToFile = async (pathVal: any) => {
+            if (!pathVal || typeof pathVal !== "string") return null;
+            try {
+              const fullUrl = pathVal.startsWith("http")
+                ? pathVal
+                : `${API_BASE_URL.replace(/\/api$/, "")}${pathVal}`;
+              const fileRes = await fetch(fullUrl);
+              const blob = await fileRes.blob();
+              const filename = pathVal.split("/").pop() || "document.pdf";
+              return new File([blob], filename, { type: blob.type || "application/pdf" });
+            } catch (e) {
+              return null;
+            }
+          };
+
+          const birthCertFile = await convertPathToFile(data.documents.birthCert);
+          const goodMoralFile = await convertPathToFile(data.documents.goodMoral);
+          const idPhotoFile = await convertPathToFile(data.documents.idPhoto);
+
+          setDocs({
+            birthCert: birthCertFile,
+            goodMoral: goodMoralFile,
+            idPhoto: idPhotoFile,
+            hasExistingDocs: true,
+          });
+        }
+
+        setAgreedToTerms(true);
       } catch (err: any) {
         setAlertMessage(err?.message || "Failed to load revision data.");
         setAlertType("error");
@@ -410,7 +529,9 @@ export default function StudentPreRegistrationPage() {
           .filter((c: any) => (c.status ?? "Active") === "Active")
           .map(
             (c: any): CourseOption => ({
-              code: String(c.code || "").trim().toUpperCase(),
+              code: String(c.code || "")
+                .trim()
+                .toUpperCase(),
               name: String(c.name || "").trim(),
               yearLevels: Number(c.yearLevels || 0),
               department: String(c.department || "").trim(),
@@ -453,7 +574,7 @@ export default function StudentPreRegistrationPage() {
 
   const stepIndex = useMemo(
     () => steps.findIndex((s) => s.key === activeStep),
-    [activeStep],
+    [activeStep, steps],
   );
 
   /* =========================================================
@@ -535,7 +656,8 @@ export default function StudentPreRegistrationPage() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedInput, isSubmitting]);
 
-  const enrollmentOpen = isRevision || (registrarSettings?.enrollmentOpen ?? true);
+  const enrollmentOpen =
+    isRevision || (registrarSettings?.enrollmentOpen ?? true);
 
   /* =========================================================
      VALIDATE CURRENT STEP
@@ -622,7 +744,9 @@ export default function StudentPreRegistrationPage() {
     }
 
     if (!agreedToTerms) {
-      setAlertMessage("Please read and agree to the Terms and Conditions before submitting your application.");
+      setAlertMessage(
+        "Please read and agree to the Terms and Conditions before submitting your application.",
+      );
       setAlertType("error");
       setShowAlert(true);
       return;
@@ -649,8 +773,10 @@ export default function StudentPreRegistrationPage() {
         setActiveStep("personal");
       } else if (hasErrors(ae as Record<string, unknown>)) {
         setActiveStep("academic");
-      } else {
+      } else if (steps.some((s) => s.key === "documents")) {
         setActiveStep("documents");
+      } else {
+        setActiveStep("review");
       }
       setIsSubmitting(false);
       return;
@@ -662,7 +788,8 @@ export default function StudentPreRegistrationPage() {
       if (isRevision && revisionToken) {
         formData.append("token", revisionToken);
         formData.append("firstName", personal.firstName);
-        if (personal.middleName) formData.append("middleName", personal.middleName);
+        if (personal.middleName)
+          formData.append("middleName", personal.middleName);
         formData.append("lastName", personal.lastName);
         formData.append("phone", personal.phone);
         formData.append("course", academic.course);
@@ -672,19 +799,20 @@ export default function StudentPreRegistrationPage() {
           JSON.stringify({
             personal,
             academic,
+            useExistingDocs: docs.hasExistingDocs,
             termsAccepted: agreedToTerms,
             termsAcceptedAt: new Date().toISOString(),
           }),
         );
       }
 
-      if (docs.birthCert) {
+      if (docs.birthCert instanceof File) {
         formData.append("birthCert", docs.birthCert);
       }
-      if (docs.goodMoral) {
+      if (docs.goodMoral instanceof File) {
         formData.append("goodMoral", docs.goodMoral);
       }
-      if (docs.idPhoto) {
+      if (docs.idPhoto instanceof File) {
         formData.append("idPhoto", docs.idPhoto);
       }
 
@@ -721,14 +849,16 @@ export default function StudentPreRegistrationPage() {
       setAlertMessage(
         isRevision
           ? "Application successfully resubmitted for review!"
-          : "Application submitted successfully!"
+          : "Application submitted successfully!",
       );
       setAlertType("success");
       setShowAlert(true);
 
       setTimeout(() => navigate("/"), 2500);
     } catch (err: any) {
-      setAlertMessage(err?.message || "Something went wrong. Please try again.");
+      setAlertMessage(
+        err?.message || "Something went wrong. Please try again.",
+      );
       setAlertType("error");
       setShowAlert(true);
     } finally {
@@ -787,7 +917,9 @@ export default function StudentPreRegistrationPage() {
                 <Loader2 size={28} className="spinner-border border-0" />
               </div>
               <h5 className="fw-bold text-dark mb-1">
-                {isRevision ? "Resubmitting Application" : "Submitting Application"}
+                {isRevision
+                  ? "Resubmitting Application"
+                  : "Submitting Application"}
               </h5>
               <p className="text-muted small mb-0">
                 Please wait while we upload your information and documents...
@@ -813,19 +945,44 @@ export default function StudentPreRegistrationPage() {
         <div className="container prereg-page">
           <div className="text-center prereg-hero">
             <h1 className="fw-bold prereg-title">
-              {isRevision ? "Update & Resubmit Application" : "Student Pre-Registration"}
+              {isRevision
+                ? "Update & Resubmit Application"
+                : "Student Pre-Registration"}
             </h1>
+
+            {/* Existing Verified Documents Notice Banner */}
+            {docs.hasExistingDocs && !isRevision && (
+              <div
+                className="alert alert-info text-start mx-auto mt-3 shadow-sm d-flex align-items-center gap-2"
+                style={{ maxWidth: 700 }}
+              >
+                <Info size={22} className="text-info flex-shrink-0" />
+                <div className="small">
+                  <strong>Existing documents found!</strong> Your email has been verified and your previously verified documents have been automatically loaded. The document upload step has been safely skipped.
+                </div>
+              </div>
+            )}
 
             {/* Registrar Feedback Banner for Revisions */}
             {isRevision && returnReason && (
-              <div className="alert alert-warning text-start mx-auto mt-3 shadow-sm" style={{ maxWidth: 700 }}>
+              <div
+                className="alert alert-warning text-start mx-auto mt-3 shadow-sm"
+                style={{ maxWidth: 700 }}
+              >
                 <div className="d-flex align-items-start gap-2">
-                  <AlertCircle size={20} className="text-warning flex-shrink-0 mt-1" />
+                  <AlertCircle
+                    size={20}
+                    className="text-warning flex-shrink-0 mt-1"
+                  />
                   <div>
-                    <strong className="d-block mb-1 text-dark">Registrar Feedback & Required Revisions:</strong>
+                    <strong className="d-block mb-1 text-dark">
+                      Registrar Feedback & Required Revisions:
+                    </strong>
                     <p className="mb-0 text-muted small">{returnReason}</p>
                     {registrationId && (
-                      <span className="badge bg-secondary mt-2">Registration ID: {registrationId}</span>
+                      <span className="badge bg-secondary mt-2">
+                        Registration ID: {registrationId}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -834,8 +991,8 @@ export default function StudentPreRegistrationPage() {
 
             {settingsLoading ? null : enrollmentOpen ? (
               <p className="text-muted mb-0">
-                {isRevision 
-                  ? "Modify your details below based on the registrar's feedback and resubmit." 
+                {isRevision
+                  ? "Modify your details below based on the registrar's feedback and resubmit."
                   : "Complete the form below to submit your enrollment application"}
               </p>
             ) : null}
@@ -850,7 +1007,9 @@ export default function StudentPreRegistrationPage() {
                     role="status"
                   />
                   <p className="mb-0 text-muted">
-                    {revisionLoading ? "Loading application revision data..." : "Loading registration settings..."}
+                    {revisionLoading
+                      ? "Loading application revision data..."
+                      : "Loading registration settings..."}
                   </p>
                 </div>
               ) : !enrollmentOpen ? (
@@ -963,18 +1122,31 @@ export default function StudentPreRegistrationPage() {
                             title={
                               !agreedToTerms
                                 ? "Please agree to the Terms and Conditions first."
-                                : isRevision ? "Resubmit Application" : "Submit Application"
+                                : isRevision
+                                ? "Resubmit Application"
+                                : "Submit Application"
                             }
                           >
                             {isSubmitting ? (
                               <>
-                                <Loader2 size={16} className="spinner-border spinner-border-sm" />
-                                <span>{isRevision ? "Resubmitting..." : "Submitting..."}</span>
+                                <Loader2
+                                  size={16}
+                                  className="spinner-border spinner-border-sm"
+                                />
+                                <span>
+                                  {isRevision
+                                    ? "Resubmitting..."
+                                    : "Submitting..."}
+                                </span>
                               </>
                             ) : (
                               <>
                                 <CheckCircle2 size={16} />
-                                <span>{isRevision ? "Resubmit Application" : "Submit Application"}</span>
+                                <span>
+                                  {isRevision
+                                    ? "Resubmit Application"
+                                    : "Submit Application"}
+                                </span>
                               </>
                             )}
                           </button>

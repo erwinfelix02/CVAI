@@ -83,7 +83,7 @@ const studentSchema = new mongoose.Schema(
     program: { type: String, required: true, trim: true },
     yearLevel: { type: Number, required: true },
     section: { type: String, default: "", trim: true },
-    assignedAt: { type: String, default: "—" }, // 👈 Added assignedAt field
+    assignedAt: { type: String, default: "—" },
     department: { type: String, required: true, trim: true },
     enrolledSubjects: { type: [String], default: [] },
     
@@ -106,6 +106,14 @@ const studentSchema = new mongoose.Schema(
 
     notes: encryptedField("notes"),
     verifiedDocs: { type: [String], default: [] },
+    
+    // 🟢 Added documents subfield to preserve uploaded files permanently
+    documents: {
+      birthCert: String,
+      goodMoral: String,
+      idPhoto: String,
+    },
+
     facultyId: { type: String, default: "", index: true },
     facultyName: encryptedField("facultyName"),
     avatarUrl: { type: String, default: "" },
@@ -120,6 +128,7 @@ const studentSchema = new mongoose.Schema(
     phoneHash: {
       type: String,
       index: true,
+      unique: true,
       sparse: true,
       select: false,
     },
