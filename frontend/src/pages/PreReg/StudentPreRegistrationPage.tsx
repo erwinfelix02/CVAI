@@ -330,7 +330,13 @@ export default function StudentPreRegistrationPage() {
 
   useEffect(() => {
     const email = personal.email.trim();
-    if (!email || !emailRegex.test(email) || !personal.isEmailVerified || isRevision) return;
+    if (
+      !email ||
+      !emailRegex.test(email) ||
+      !personal.isEmailVerified ||
+      isRevision
+    )
+      return;
 
     (async () => {
       try {
@@ -352,15 +358,24 @@ export default function StudentPreRegistrationPage() {
                 const fileRes = await fetch(fullUrl);
                 const blob = await fileRes.blob();
                 const filename = pathVal.split("/").pop() || "document.pdf";
-                return new File([blob], filename, { type: blob.type || "application/pdf" });
+                return new File([blob], filename, {
+                  type: blob.type || "application/pdf",
+                });
               } catch (e) {
-                console.error("Failed to convert existing document path to File:", e);
+                console.error(
+                  "Failed to convert existing document path to File:",
+                  e,
+                );
                 return null;
               }
             };
 
-            const birthCertFile = await convertPathToFile(data.documents.birthCert);
-            const goodMoralFile = await convertPathToFile(data.documents.goodMoral);
+            const birthCertFile = await convertPathToFile(
+              data.documents.birthCert,
+            );
+            const goodMoralFile = await convertPathToFile(
+              data.documents.goodMoral,
+            );
             const idPhotoFile = await convertPathToFile(data.documents.idPhoto);
 
             setDocs({
@@ -447,14 +462,20 @@ export default function StudentPreRegistrationPage() {
               const fileRes = await fetch(fullUrl);
               const blob = await fileRes.blob();
               const filename = pathVal.split("/").pop() || "document.pdf";
-              return new File([blob], filename, { type: blob.type || "application/pdf" });
+              return new File([blob], filename, {
+                type: blob.type || "application/pdf",
+              });
             } catch (e) {
               return null;
             }
           };
 
-          const birthCertFile = await convertPathToFile(data.documents.birthCert);
-          const goodMoralFile = await convertPathToFile(data.documents.goodMoral);
+          const birthCertFile = await convertPathToFile(
+            data.documents.birthCert,
+          );
+          const goodMoralFile = await convertPathToFile(
+            data.documents.goodMoral,
+          );
           const idPhotoFile = await convertPathToFile(data.documents.idPhoto);
 
           setDocs({
@@ -958,7 +979,10 @@ export default function StudentPreRegistrationPage() {
               >
                 <Info size={22} className="text-info flex-shrink-0" />
                 <div className="small">
-                  <strong>Existing documents found!</strong> Your email has been verified and your previously verified documents have been automatically loaded. The document upload step has been safely skipped.
+                  <strong>Existing documents found!</strong> Your email has been
+                  verified and your previously verified documents have been
+                  automatically loaded. The document upload step has been safely
+                  skipped.
                 </div>
               </div>
             )}
@@ -1123,8 +1147,8 @@ export default function StudentPreRegistrationPage() {
                               !agreedToTerms
                                 ? "Please agree to the Terms and Conditions first."
                                 : isRevision
-                                ? "Resubmit Application"
-                                : "Submit Application"
+                                  ? "Resubmit Application"
+                                  : "Submit Application"
                             }
                           >
                             {isSubmitting ? (

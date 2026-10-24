@@ -287,7 +287,7 @@ export default function ProfilePage() {
           email: userEmail,
           firstName: draft.firstName,
           lastName: draft.lastName,
-          middleName: draft.middleName,
+         middleName: draft.middleName,
           phone: draft.phone,
           address: draft.address,
           avatarUrl: uploadedAvatarUrl,
@@ -443,10 +443,11 @@ export default function ProfilePage() {
                   onChange: (v) => setDraft((p) => ({ ...p, firstName: v })),
                 },
                 {
-                  label: "Middle Name",
-                  value: isEditing ? draft.middleName || "" : profile.middleName || "",
-                  onChange: (v) => setDraft((p) => ({ ...p, middleName: v })),
-                },
+  label: "Middle Name",
+  value: isEditing ? draft.middleName || "" : profile.middleName || "",
+  // 🟢 Add this onChange handler so typing updates the draft state
+  onChange: (v) => setDraft((p) => ({ ...p, middleName: v })),
+},
                 {
                   label: "Last Name",
                   value: isEditing ? draft.lastName : profile.lastName,

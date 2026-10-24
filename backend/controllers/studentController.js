@@ -449,6 +449,7 @@ export const updateStudentInfo = async (req, res) => {
       email,
       phone,
       address,
+      middleName,
       guardian,
       guardianPhone,
       birthdate,
@@ -574,7 +575,13 @@ export const updateStudentInfo = async (req, res) => {
         student.phone = cleanPhone;
       }
     }
-
+if (middleName !== undefined) {
+      const cleanMiddle = String(middleName).trim();
+      if (String(student.middleName || "") !== cleanMiddle) {
+        changes.push(`middleName updated`);
+        student.middleName = cleanMiddle; // 🟢 2. Assign to student schema
+      }
+    }
     if (address !== undefined) {
       const cleanAddress = String(address).trim();
       if (String(student.address || "") !== cleanAddress) {

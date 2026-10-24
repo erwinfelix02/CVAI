@@ -1020,7 +1020,7 @@ export const searchStudentsByName = async (req, res) => {
 
 export const updateMyProfile = async (req, res) => {
   try {
-    const { email, phone, address, avatarUrl } = req.body;
+    const { email, phone, address, avatarUrl,middleName } = req.body;
 
     let user = null;
     if (email) {
@@ -1037,6 +1037,10 @@ export const updateMyProfile = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ message: "User account not found." });
+    }
+
+    if (middleName !== undefined) {
+      user.middleName = middleName ? String(middleName).trim() : "";
     }
 
     if (phone !== undefined) {
